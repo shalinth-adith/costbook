@@ -366,3 +366,164 @@
   .ctable-head span:nth-child(5), .ctable-row > span:nth-child(5),
   .ctable-head span:nth-child(6), .ctable-row > span:nth-child(6) { display: none; }
 }
+
+/* ── editing ───────────────────────────────────────────────────────── */
+
+/* A figure you can change still reads as a figure: tabular, aligned on the
+   decimal, and the same size as the ones you cannot. */
+.qty-input {
+  width: 100%; max-width: 74px;
+  height: 30px; padding-inline: 6px;
+  border: 1px solid var(--border-control); border-radius: var(--radius-chip);
+  background: var(--surface-card); color: var(--text-primary);
+  font: inherit; font-size: 13.5px; font-weight: 500; text-align: end;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.qty-input:hover { border-color: var(--border-control-hover); }
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.ctable-qty-cell { display: flex; justify-content: flex-end; }
+
+/* The chevron turns over the same duration the row takes to open. */
+.icon-btn svg { transition: transform var(--dur-reveal) var(--ease-enter); }
+.icon-btn.is-open svg { transform: rotate(180deg); }
+.ctable-row.is-open { background: var(--surface-sunken); }
+
+/* Expansion pushes content down, never up, so the line just clicked stays
+   where the eye left it. */
+.line-detail {
+  border-block-end: 1px solid var(--border-hairline);
+  background: var(--surface-sunken);
+  padding: var(--sp-3) 14px var(--sp-4) 44px;
+  animation: reveal var(--dur-reveal) var(--ease-enter);
+}
+@keyframes reveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+.line-detail-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--sp-5);
+}
+.line-detail-copy {
+  font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;
+  margin: 6px 0 8px; text-wrap: pretty;
+}
+.line-detail-copy strong { color: var(--text-primary); font-weight: 600; }
+
+.scope-toggle {
+  display: inline-flex; margin-block-start: 6px;
+  border: 1px solid var(--border-control); border-radius: var(--radius-field);
+  overflow: hidden; background: var(--surface-card);
+}
+.scope-option {
+  font: inherit; font-size: 12.5px; padding: 8px 11px; min-height: 36px;
+  background: none; border: 0; border-inline-start: 1px solid var(--border-hairline);
+  color: var(--text-secondary); cursor: pointer;
+}
+.scope-option:first-child { border-inline-start: 0; }
+.scope-option:hover { background: var(--surface-sunken); }
+.scope-option.is-active {
+  background: var(--surface-inverse); color: var(--text-on-inverse); font-weight: 600;
+}
+
+/* ── picker ────────────────────────────────────────────────────────── */
+
+.picker { display: flex; flex-direction: column; gap: 6px; position: relative; }
+.picker-panel {
+  border: 1px solid var(--border-control); border-radius: var(--radius-field);
+  background: var(--surface-card); margin-block-start: 6px; overflow: hidden;
+  animation: reveal var(--dur-reveal) var(--ease-enter);
+}
+.picker-count {
+  font-size: 11.5px; color: var(--text-tertiary);
+  padding: var(--sp-2) var(--sp-3); border-block-end: 1px solid var(--border-hairline);
+  background: var(--surface-sunken);
+}
+/* Capped at four with internal scroll, so the list opens into empty space
+   rather than over the lines being typed. */
+.picker-list {
+  list-style: none; margin: 0; padding: 0;
+  max-height: calc(4 * 52px); overflow-y: auto;
+}
+.picker-row {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center; gap: var(--sp-3);
+  width: 100%; min-height: 52px; padding: var(--sp-2) var(--sp-3);
+  background: none; border: 0; border-block-end: 1px solid var(--border-row);
+  font: inherit; text-align: start; color: var(--text-primary); cursor: pointer;
+}
+.picker-row:hover { background: var(--surface-sunken); }
+.picker-text { display: flex; flex-direction: column; min-width: 0; }
+.picker-name { font-size: 13.5px; }
+.picker-meta { font-size: 11px; color: var(--text-tertiary); }
+.picker-rate { font-size: 12.5px; color: var(--text-secondary); white-space: nowrap; }
+.picker-rate.is-missing { color: var(--over-ink-strong); }
+.picker-uses { font-size: 11.5px; color: var(--text-tertiary); white-space: nowrap; }
+.picker-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  padding: 10px var(--sp-3); background: var(--surface-sunken);
+  border-block-start: 1px solid var(--border-hairline);
+}
+.picker-hint { font-size: 12px; color: var(--text-secondary); line-height: 1.45; }
+.picker-hint strong { color: var(--text-primary); }
+
+/* ── blocked ───────────────────────────────────────────────────────── */
+
+/* The only warning that stops a dish. Named in the operator's language with
+   the loop drawn, never as a database error. */
+.blocked {
+  border-color: var(--over-edge); background: var(--over-row);
+  padding: var(--sp-3) 14px; display: flex; align-items: center;
+  gap: var(--sp-3); flex-wrap: wrap;
+}
+.blocked-copy {
+  margin: 0; flex: 1; min-width: 240px;
+  font-size: 13px; color: var(--text-primary); line-height: 1.5; text-wrap: pretty;
+}
+
+/* ── empty ─────────────────────────────────────────────────────────── */
+
+.empty { padding: var(--sp-8) var(--sp-6); max-width: 56ch; }
+.empty-title { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
+.empty-copy { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin: 0; text-wrap: pretty; }
+
+.running-warn { color: var(--over-ink-strong); }
+
+/* ── cards layout ──────────────────────────────────────────────────── */
+
+.ccards { display: flex; flex-direction: column; }
+.ccard { border-block-end: 1px solid var(--border-row); padding: var(--sp-3) 14px; }
+.ccard.is-missing { background: var(--over-row); }
+.ccard-head { display: flex; align-items: center; gap: 10px; }
+.ccard-n { font-size: 11px; color: var(--text-tertiary); }
+.ccard-title-block { display: flex; align-items: center; gap: var(--sp-2); flex: 1; min-width: 0; flex-wrap: wrap; }
+.ccard-title { display: flex; align-items: center; gap: var(--sp-2); font-size: 14.5px; font-weight: 500; }
+.ccard-fields {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: var(--sp-3); margin-block-start: 10px; align-items: end;
+}
+.ccard-field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ccard-field.end { align-items: flex-end; }
+.ccard-qty { display: flex; align-items: center; gap: 6px; }
+.ccard-value { font-size: 14px; }
+.ccard-unit { font-size: 12px; color: var(--text-secondary); }
+.ccard-total { font-size: 16px; font-weight: 600; }
+.ccard-detail {
+  margin-block-start: var(--sp-3); padding-block-start: var(--sp-3);
+  border-block-start: 1px solid var(--border-hairline);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-3); flex-wrap: wrap;
+  animation: reveal var(--dur-reveal) var(--ease-enter);
+}
+
+/* ── rounding rule ─────────────────────────────────────────────────── */
+
+.rule-select {
+  font: inherit; font-size: 12px; font-weight: 600;
+  color: var(--text-primary); background: var(--surface-card);
+  border: 1px solid var(--border-control); border-radius: var(--radius-chip);
+  padding: 3px 6px; margin-inline: 2px; max-width: 100%;
+}
+.rule-select:hover { border-color: var(--border-control-hover); }

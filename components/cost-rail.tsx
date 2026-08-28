@@ -1,6 +1,10 @@
+'use client';
+
 import type { RecipeCost } from '@/core/recipe';
 
 import {
+  ROUNDING_LABEL,
+  type RoundingRule,
   type CostBuildUp,
   type CostingModel,
   foodCostPercent,
@@ -27,12 +31,14 @@ export function CostRail({
   model,
   sellingPrice,
   note,
+  onRounding,
 }: {
   cost: RecipeCost;
   build: CostBuildUp;
   model: CostingModel;
   sellingPrice: number | null;
   note: string;
+  onRounding: (rule: RoundingRule) => void;
 }) {
   const fc = build.complete ? foodCostPercent(build.total, sellingPrice) : null;
   const status = statusFor(fc, model.foodCostTarget);
@@ -107,14 +113,26 @@ export function CostRail({
             <div className="figure price-formula">
               {money(build.total)} ÷ {percent(model.foodCostTarget, 1)} = {money(suggestion.exact)}
             </div>
-            <p className="price-rule">
-              Your rounding rule is <strong>{suggestion.ruleLabel}</strong>.{' '}
-              <button type="button" className="link">Change it here</button> — you do not have to
-              leave the dish.
-            </p>
+            <div className="price-rule">
+              <label htmlFor="rounding-rule">
+                Your rounding rule is{' '}
+              </label>
+              <select
+                id="rounding-rule"
+                className="rule-select"
+                value={model.rounding}
+                onChange={(e) => onRounding(e.target.value as RoundingRule)}
+              >
+                {(Object.keys(ROUNDING_LABEL) as RoundingRule[]).map((rule) => (
+                  <option key={rule} value={rule}>{ROUNDING_LABEL[rule]}</option>
+                ))}
+              </select>
+              <span> — changed here, because nothing that affects a dish's cost should
+              require leaving that dish.</span>
+            </div>
 
             <div className="price-options">
-              <div className="price-option is-chosen">
+              <div className="price-option is-chosen" aria-current="true">
                 <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor"
                   strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
                   <path d="M2.4 6.2 4.8 8.6 9.6 3.6" />
@@ -127,7 +145,11 @@ export function CostRail({
                 </span>
               </div>
 
-              <button type="button" className="price-option">
+              <button
+                type="button"
+                className="price-option"
+                onClick={() => onRounding(model.rounding === 'charm_99' ? 'nearest_5_up' : 'charm_99')}
+              >
                 <span className="price-radio" />
                 <span className="figure price-value muted">
                   {ORG.currencySymbol} {money(suggestion.alternative)}

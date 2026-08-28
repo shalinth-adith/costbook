@@ -154,6 +154,39 @@ const miniIdly: Recipe = {
   ],
 };
 
+/** Everything the "add a component" search can reach. */
+export const shelf: readonly Ingredient[] = [
+  pack('Onion, big', 50, 'kg', 2000, 88),
+  pack('Tomato', 1, 'kg', 30, 95),
+  pack('Coriander leaves', 1, 'kg', 280, 70),
+  pack('Mint leaves', 1, 'kg', 240, 70),
+  pack('Curry leaves', 1, 'kg', 335, 100),
+  pack('Green chilli', 1, 'kg', 180, 95),
+  pack('Coconut, grated', 1, 'kg', 190, 62),
+  pack('Cashew, whole', 1, 'kg', 980, 100),
+  pack('Ghee, Aavin', 1, 'kg', 620, 100),
+  pack('Refined oil', 15, 'l', 2220, 100),
+  pack('Curd, set', 1, 'kg', 72, 100),
+  pack('Ginger garlic paste', 1, 'kg', 220, 100),
+  pack('Fried onion, birista', 1, 'kg', 410, 100),
+  pack('Salt, iodised', 1, 'kg', 22, 100),
+  pack('Lemon', 1, 'pcs', 1.2, 100),
+  pack('Banana leaf liner', 1, 'pcs', 2.5, 100),
+  pack('Chutney cup, 30 ml', 1, 'pcs', 1.1, 100),
+  pack('Water', 1, 'l', 0, 100),
+  // No rate on file. Addable, and the dish becomes a floor until it has one.
+  pack('Milagai podi, house', 1, 'kg', null),
+];
+
+export const recipes: readonly Recipe[] = [
+  gravy,
+  parotta,
+  kuruma,
+  plate,
+  miniIdly,
+  podiIdly,
+];
+
 export const book: RecipeBook = recipeBook([
   gravy,
   parotta,
@@ -192,3 +225,23 @@ export const ORG = {
   /** Asked at setup, never assumed. COSTING_MODELS 3. */
   foodCostTarget: 32,
 } as const;
+
+
+/**
+ * How many recipes use a given ingredient or sub-recipe, by name. The question
+ * an owner asks before changing a rate: what else does this move?
+ */
+export function usedInCount(name: string): number {
+  let count = 0;
+  for (const recipe of recipes) {
+    const hit = recipe.components.some((c) =>
+      c.kind === 'ingredient'
+        ? c.ingredient.name === name
+        : c.kind === 'recipe'
+          ? (book.get(c.childId)?.name ?? '') === name
+          : false,
+    );
+    if (hit) count += 1;
+  }
+  return count;
+}
