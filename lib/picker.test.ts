@@ -66,6 +66,8 @@ describe('what each row says about itself', () => {
   it('says a dish is made, and what one batch yields', () => {
     expect(rowFor('Veechu Parotta')?.meta).toContain('you make this');
     expect(rowFor('Veechu Parotta')?.meta).toContain('yields 24 pcs');
+    // Stored in base units; shown in the unit the operator typed.
+    expect(rowFor('Onion Thakkali Gravy')?.meta).toContain('yields 2.5 kg');
   });
 
   it('adds the portion count when the dish plates into portions', () => {

@@ -63,7 +63,10 @@ export function RecipeSheet({
 
   const cost = useMemo(() => recipeCost(recipe, book), [recipe, book]);
   const build = useMemo(() => buildUp(cost, model), [cost, model]);
-  const fc = build.complete ? foodCostPercent(build.total, dish.sellingPrice) : null;
+  const fc =
+    build.complete && build.total !== null
+      ? foodCostPercent(build.total, dish.sellingPrice)
+      : null;
 
   const edit = useCallback((next: Recipe) => {
     setRecipe(next);

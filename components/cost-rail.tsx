@@ -12,7 +12,11 @@ import {
   suggestPrice,
 } from '@/lib/costing';
 import { ORG } from '@/lib/data';
-import { money, percent, points } from '@/lib/format';
+import { money, outputText, percent, points } from '@/lib/format';
+import { toBase } from '@/core/units';
+
+/** Rates invert against quantities: 0.128 per gram is 128.07 per kg. */
+const ratePerOutputUnit = (perBase: number, unit: string): number => toBase(perBase, unit);
 
 import { DefaultChip, StatusChip } from './status-chip';
 
@@ -40,28 +44,47 @@ export function CostRail({
   note: string;
   onRounding: (rule: RoundingRule) => void;
 }) {
-  const fc = build.complete ? foodCostPercent(build.total, sellingPrice) : null;
+  // A dish with no portions has no cost per portion, so the rail leads with
+  // what a batch costs instead. Nothing is invented to fill the slot.
+  const plated = build.total !== null;
+  const fc = build.complete && plated ? foodCostPercent(build.total, sellingPrice) : null;
   const status = statusFor(fc, model.foodCostTarget);
-  const suggestion = build.complete ? suggestPrice(build.total, model) : null;
+  const suggestion = build.complete && build.total !== null ? suggestPrice(build.total, model) : null;
   const missing = cost.kind === 'floor' ? cost.unpriced : [];
+
+  const headline = plated ? build.total : build.linesTotal;
+  const headlineLabel = !plated
+    ? 'Cost per batch'
+    : build.complete
+      ? 'Cost per portion'
+      : 'Floor per portion';
 
   return (
     <aside className="rail">
       <section className="card">
         <div className="rail-head">
-          <div className="label">{build.complete ? 'Cost per portion' : 'Floor per portion'}</div>
+          <div className="label">{headlineLabel}</div>
           <div className="rail-figure">
             <span className="figure rail-currency">{ORG.currencySymbol}</span>
-            <span className="figure rail-amount">{money(build.total)}</span>
+            <span className="figure rail-amount">{money(headline)}</span>
           </div>
 
           <div className="rail-status">
-            <StatusChip status={status} />
+            {/* A dish that is complete but not plated is not incomplete. Only
+                a missing rate earns that word; the rest is explained in
+                sentences rather than stamped with a status. */}
+            {!build.complete ? (
+              <StatusChip status="incomplete" />
+            ) : fc !== null ? (
+              <StatusChip status={status} />
+            ) : null}
             {fc === null ? (
               <span className="rail-status-note">
-                {build.complete
-                  ? 'No menu price set yet, so there is no food cost to report.'
-                  : 'A rate is missing, so this figure can only go up.'}
+                {!build.complete
+                  ? 'A rate is missing, so this figure can only go up.'
+                  : !plated
+                    ? 'Made by the batch and never plated on its own, so there is no cost per portion to report.'
+                    : 'No menu price set yet, so there is no food cost to report.'}
               </span>
             ) : (
               <span className="rail-status-note">
@@ -76,16 +99,30 @@ export function CostRail({
             Costbook supplied carries a chip and a way to change it. */}
         <div className="buildup">
           <Row op="" label="Lines entered" value={money(build.linesTotal)} />
-          <Row op="÷" label="Portions per batch" value={build.portions === null ? '—' : String(build.portions)} />
-          <Row op="=" label="Ingredient cost per portion" value={money(build.ingredientsPerPortion)} rule strong />
-          <Row op="+" label={build.wastage.label} value={money(build.wastage.amount)} defaulted />
-          <Row op="+" label={build.packaging.label} value={money(build.packaging.amount)} defaulted />
-          <Row
-            op="="
-            label={build.complete ? 'Total cost per portion' : 'Floor, total per portion'}
-            value={money(build.total)}
-            total
-          />
+          {plated && build.wastage !== null && build.packaging !== null ? (
+            <>
+              <Row op="÷" label="Portions per batch" value={String(build.portions)} />
+              <Row op="=" label="Ingredient cost per portion" value={money(build.ingredientsPerPortion)} rule strong />
+              <Row op="+" label={build.wastage.label} value={money(build.wastage.amount)} defaulted />
+              <Row op="+" label={build.packaging.label} value={money(build.packaging.amount)} defaulted />
+              <Row
+                op="="
+                label={build.complete ? 'Total cost per portion' : 'Floor, total per portion'}
+                value={money(build.total)}
+                total
+              />
+            </>
+          ) : (
+            <>
+              <Row op="÷" label={`Yields ${outputText(cost.outputQty, cost.outputUnit)}`} value="" />
+              <Row
+                op="="
+                label={`Cost per ${cost.outputUnit}`}
+                value={money(ratePerOutputUnit(build.perBaseUnit, cost.outputUnit))}
+                total
+              />
+            </>
+          )}
         </div>
       </section>
 
@@ -97,9 +134,15 @@ export function CostRail({
             <span className="figure rail-amount-sm">—</span>
           </div>
           <p className="rail-copy">
-            {missing.length === 1 && missing[0] !== undefined
-              ? `${missing[0].name} has no rate${missing[0].via.length > 0 ? `, inside ${missing[0].via.join(' → ')}` : ''}. It counts as zero until you give it one, which is why no price is offered yet.`
-              : 'A rate is missing, so no price is offered yet.'}
+            {!build.complete ? (
+              missing.length === 1 && missing[0] !== undefined ? (
+                `${missing[0].name} has no rate${missing[0].via.length > 0 ? `, inside ${missing[0].via.join(' → ')}` : ''}. It counts as zero until you give it one, which is why no price is offered yet.`
+              ) : (
+                'A rate is missing, so no price is offered yet.'
+              )
+            ) : (
+              'A price applies to a portion, and this is made by the batch rather than plated. It carries its cost into the dishes that use it.'
+            )}
           </p>
           <button type="button" className="btn btn-primary" disabled>
             Use as the price

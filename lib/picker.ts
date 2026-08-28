@@ -14,7 +14,7 @@ import type { Recipe, RecipeBook } from '@/core/recipe';
 import { isComplete, recipeCost } from '@/core/recipe';
 
 import { type ComponentKind, ORG } from './data';
-import { rate } from './format';
+import { outputText, rate } from './format';
 
 export type PickerChoice =
   | { readonly kind: 'ingredient'; readonly ingredient: Ingredient }
@@ -74,7 +74,7 @@ function recipeRow(r: Recipe, book: RecipeBook, usedInCount: (n: string) => numb
     kind: 'dish',
     name: r.name,
     meta:
-      `you make this · one batch yields ${r.outputQty} ${r.outputUnit}` +
+      `you make this · one batch yields ${outputText(r.outputQty, r.outputUnit)}` +
       (r.portions === null ? '' : ` · ${String(r.portions)} portions`),
     rateText:
       per === null

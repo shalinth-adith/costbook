@@ -66,12 +66,18 @@ export interface CostBuildUp {
   /** The per-portion pool, applied once to every portion. */
   readonly portionPool: number;
   readonly portions: number | null;
-  /** batch / portions + the per-portion lines. */
-  readonly ingredientsPerPortion: number;
-  readonly wastage: DefaultedFigure;
-  readonly packaging: DefaultedFigure;
-  /** ingredients + wastage + packaging. */
-  readonly total: number;
+  /**
+   * batch / portions + the per-portion lines. `null` when the dish has no
+   * portions — a gravy made by the kilo has no cost per portion, and calling
+   * that zero would invent a figure. Everything downstream of it is null too.
+   */
+  readonly ingredientsPerPortion: number | null;
+  readonly wastage: DefaultedFigure | null;
+  readonly packaging: DefaultedFigure | null;
+  /** ingredients + wastage + packaging. Null when there are no portions. */
+  readonly total: number | null;
+  /** Always available: what one base unit of the output costs. */
+  readonly perBaseUnit: number;
 }
 
 export function buildUp(cost: RecipeCost, model: CostingModel = DEFAULT_MODEL): CostBuildUp {
@@ -79,7 +85,24 @@ export function buildUp(cost: RecipeCost, model: CostingModel = DEFAULT_MODEL): 
   const batchPool = complete ? cost.batch : cost.batchFloor;
   const portionPool = complete ? cost.portionAdd : cost.portionAddFloor;
   const linesTotal = complete ? cost.total : cost.totalFloor;
-  const ingredientsPerPortion = complete ? (cost.perPortion ?? 0) : (cost.perPortionFloor ?? 0);
+  const ingredientsPerPortion = complete ? cost.perPortion : cost.perPortionFloor;
+
+  const perBaseUnit = complete ? cost.costPerBase : cost.costPerBaseFloor;
+
+  if (ingredientsPerPortion === null) {
+    return {
+      complete,
+      linesTotal,
+      batchPool,
+      portionPool,
+      portions: null,
+      ingredientsPerPortion: null,
+      wastage: null,
+      packaging: null,
+      total: null,
+      perBaseUnit,
+    };
+  }
 
   const wastage = ingredientsPerPortion * (model.wastagePercent / 100);
   const packaging = model.packagingPerPortion;
@@ -94,6 +117,7 @@ export function buildUp(cost: RecipeCost, model: CostingModel = DEFAULT_MODEL): 
     wastage: { label: `Wastage allowance, ${model.wastagePercent.toFixed(1)}%`, amount: wastage, isDefault: true },
     packaging: { label: 'Direct packaging', amount: packaging, isDefault: true },
     total: ingredientsPerPortion + wastage + packaging,
+    perBaseUnit,
   };
 }
 

@@ -12,7 +12,12 @@ const plate = () => {
   return r;
 };
 const others = () => recipes.filter((r) => r.id !== 'plate');
-const perPortion = (r = plate()) => buildUp(recipeCost(r, bookWith(r, others()))).ingredientsPerPortion;
+/** The plate is plated, so this figure always exists; the type keeps it nullable. */
+const perPortion = (r = plate()): number => {
+  const value = buildUp(recipeCost(r, bookWith(r, others()))).ingredientsPerPortion;
+  if (value === null) throw new Error(`${r.name} has no portions`);
+  return value;
+};
 
 describe('changing a quantity', () => {
   it('reprices the dish', () => {

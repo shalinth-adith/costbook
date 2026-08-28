@@ -5,17 +5,17 @@ import { STATUS_LABEL, type TargetStatus } from '@/lib/costing';
  * a bar or a crossed square, so a greyscale printout loses nothing and a
  * colour-blind reader is not guessing.
  */
-function Glyph({ status }: { status: TargetStatus }) {
+export function StatusGlyph({ status, size = 10 }: { status: TargetStatus; size?: number }) {
   switch (status) {
     case 'on':
-      return <svg width="10" height="10" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="5" width="10" height="2" fill="currentColor" /></svg>;
+      return <svg width={size} height={size} viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="5" width="10" height="2" fill="currentColor" /></svg>;
     case 'near':
-      return <svg width="10" height="10" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.2 10.8 6 6 10.8 1.2 6Z" fill="none" stroke="currentColor" strokeWidth="1.6" /></svg>;
+      return <svg width={size} height={size} viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.2 10.8 6 6 10.8 1.2 6Z" fill="none" stroke="currentColor" strokeWidth="1.6" /></svg>;
     case 'over':
-      return <svg width="10" height="10" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1 11.2 10.6H0.8Z" fill="currentColor" /></svg>;
+      return <svg width={size} height={size} viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1 11.2 10.6H0.8Z" fill="currentColor" /></svg>;
     case 'incomplete':
       return (
-        <svg width="10" height="10" viewBox="0 0 12 12" aria-hidden="true">
+        <svg width={size} height={size} viewBox="0 0 12 12" aria-hidden="true">
           <rect x="1.3" y="1.3" width="9.4" height="9.4" fill="none" stroke="currentColor" strokeWidth="1.4" />
           <path d="M1.3 10.7 10.7 1.3" stroke="currentColor" strokeWidth="1.4" />
         </svg>
@@ -26,7 +26,7 @@ function Glyph({ status }: { status: TargetStatus }) {
 export function StatusChip({ status, label }: { status: TargetStatus; label?: string }) {
   return (
     <span className={`chip chip-status chip-${status}`}>
-      <Glyph status={status} />
+      <StatusGlyph status={status} />
       {label ?? STATUS_LABEL[status]}
     </span>
   );
