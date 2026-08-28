@@ -66,7 +66,7 @@ describe('what each row says about itself', () => {
 
   it('says a dish is made, and what one batch yields', () => {
     expect(rowFor('Veechu Parotta')?.meta).toContain('you make this');
-    expect(rowFor('Veechu Parotta')?.meta).toContain('yields 24 pcs');
+    expect(rowFor('Veechu Parotta')?.meta).toContain('yields 24 pc');
     // Stored in base units; shown in the unit the operator typed.
     expect(rowFor('Onion Thakkali Gravy')?.meta).toContain('yields 2.5 kg');
   });
@@ -78,15 +78,15 @@ describe('what each row says about itself', () => {
   });
 
   it('reports a missing rate as absent rather than as free', () => {
-    const podi = rowFor('Milagai podi, house');
-    expect(podi?.noRate).toBe(true);
-    expect(podi?.rateText).toBe('no rate on file');
-    expect(podi?.rateText).not.toContain('0.00');
+    const unpriced = rowFor('Nannari syrup');
+    expect(unpriced?.noRate).toBe(true);
+    expect(unpriced?.rateText).toBe('no rate on file');
+    expect(unpriced?.rateText).not.toContain('0.00');
   });
 
   it('reports a dish whose own rate is missing inside it', () => {
-    // Ghee Podi Idly Fry contains the unpriced podi, so it cannot offer a rate.
-    const dish = rowFor('Ghee Podi Idly Fry');
+    // Jigarthanda contains the unpriced syrup, so it cannot offer a rate.
+    const dish = rowFor('Jigarthanda');
     expect(dish?.noRate).toBe(true);
     expect(dish?.rateText).toContain('missing inside it');
   });

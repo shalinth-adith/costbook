@@ -7,6 +7,13 @@ import { DASH, money, qty, rate } from '@/lib/format';
 import { Stepper } from './stepper';
 
 export interface LineHandlers {
+  /**
+   * Portions in the batch, so a per-portion line can show what it contributes
+   * to the batch rather than to one plate. Without it the Line cost column
+   * does not add up to the batch total, and a column an owner cannot add up
+   * is a column they stop trusting.
+   */
+  readonly portions: number | null;
   readonly onQty: (index: number, value: number) => void;
   readonly onScope: (index: number) => void;
   readonly onRemove: (index: number) => void;
@@ -45,6 +52,12 @@ export function ComponentTable({
 
       {lines.map((line, i) => {
         const isOpen = handlers.expanded === i;
+        const inBatch =
+          line.cost === null
+            ? null
+            : line.scope === 'portion'
+              ? line.cost * (handlers.portions ?? 1)
+              : line.cost;
 
         return (
           <div key={`${line.name}-${i}`}>
@@ -63,21 +76,19 @@ export function ComponentTable({
               <span className="ctable-name">
                 {line.kind === 'recipe' ? (
                   <span className="sub-marker">
-                    <span className="figure sub-badge">DISH</span>
+                    <span className="figure sub-badge">SUB</span>
                     <span className="ctable-label">
                       <span className="ctable-title is-link">{line.name}</span>
-                      <span className="ctable-note">
-                        you make this, and it carries its own cost and yield across
-                      </span>
+                      <span className="ctable-note">{line.note}</span>
                     </span>
                   </span>
                 ) : (
                   <span className="ctable-label indent">
                     <span className="ctable-title">{line.name}</span>
-                    {line.entryMode === 'spend' ? (
+                    {line.note !== null ? (
+                      <span className="ctable-note">{line.note}</span>
+                    ) : line.entryMode === 'spend' ? (
                       <span className="ctable-note">rate worked out from what you spent</span>
-                    ) : line.entryMode === 'rate' ? (
-                      <span className="ctable-note">rate entered on this line</span>
                     ) : line.kind === 'flat' ? (
                       <span className="ctable-note">a charge, not a measurement</span>
                     ) : null}
@@ -110,7 +121,7 @@ export function ComponentTable({
                     Set rate
                   </button>
                 ) : (
-                  <span className="figure ctable-total">{money(line.cost)}</span>
+                  <span className="figure ctable-total">{money(inBatch)}</span>
                 )}
               </span>
 

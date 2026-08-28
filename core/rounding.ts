@@ -34,10 +34,16 @@ export type RoundingRule =
       readonly direction: RoundingDirection;
       readonly tie: TieBreak;
     }
-  /** Figures ending in a set fraction: .99, .95, .50. */
+  /**
+   * Figures ending in a set amount: .99 and .95, and also whole figures
+   * ending in 9 — 9, 19, 29, 39 — which is a different lattice with the same
+   * shape. `every` is the spacing between candidates: 1 for a .99 price,
+   * 10 for the next figure ending in 9.
+   */
   | {
       readonly mode: 'charm';
       readonly ending: number;
+      readonly every: number;
       readonly direction: RoundingDirection;
       readonly tie: TieBreak;
     };
@@ -89,7 +95,8 @@ export const charm = (
   ending: number,
   direction: RoundingDirection = 'up',
   tie: TieBreak = 'up',
-): RoundingRule => ({ mode: 'charm', ending, direction, tie });
+  every = 1,
+): RoundingRule => ({ mode: 'charm', ending, every, direction, tie });
 
 /**
  * The rules named in COSTING_MODELS Axis F, ready to select.
@@ -101,6 +108,8 @@ export const PRESETS = {
   none: NONE,
   nearest_whole: whole('nearest'),
   up_whole: whole('up'),
+  /** The next whole figure ending in 9: 9, 19, 29, 39. */
+  next_9: charm(9, 'up', 'up', 10),
   charm_99: charm(0.99),
   charm_95: charm(0.95),
   up_to_5: step(5),
@@ -145,7 +154,8 @@ export function describeRule(rule: RoundingRule): string {
       break;
 
     case 'charm': {
-      const ending = rule.ending.toFixed(2).slice(1);
+      // A whole-number ending reads as "9", a fractional one as ".99".
+      const ending = rule.every > 1 ? String(rule.ending) : rule.ending.toFixed(2).slice(1);
       switch (rule.direction) {
         case 'up':
           return `round up to the next figure ending in ${ending}`;
@@ -176,14 +186,17 @@ function latticeFor(rule: Exclude<RoundingRule, { mode: 'none' }>): Lattice {
       return { stepUnits: toUnits(rule.step), offsetUnits: 0 };
     }
     case 'charm': {
-      if (!Number.isFinite(rule.ending) || rule.ending < 0 || rule.ending >= 1) {
+      if (!Number.isFinite(rule.every) || rule.every <= 0) {
+        throw new RoundingError('invalid_step', 'A charm spacing has to be greater than zero.');
+      }
+      if (!Number.isFinite(rule.ending) || rule.ending < 0 || rule.ending >= rule.every) {
         throw new RoundingError(
           'invalid_ending',
-          'A charm ending is the fraction a price finishes on, so it sits between 0 and 1.',
+          'A charm ending is what a price finishes on, so it sits below the spacing between them.',
         );
       }
-      // Candidates are whole units offset by the ending: 46.99, 47.99, 48.99.
-      return { stepUnits: SCALE, offsetUnits: toUnits(rule.ending) };
+      // 46.99, 47.99, 48.99 at a spacing of 1 — or 9, 19, 29 at a spacing of 10.
+      return { stepUnits: toUnits(rule.every), offsetUnits: toUnits(rule.ending) };
     }
   }
 }

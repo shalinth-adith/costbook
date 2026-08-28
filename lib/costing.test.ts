@@ -68,7 +68,7 @@ describe('what the operator did not enter is marked', () => {
 
 describe('an incomplete dish', () => {
   it('reports a floor rather than a cost', () => {
-    expect(buildUp(costOf('podi-idly')).complete).toBe(false);
+    expect(buildUp(costOf('jigarthanda')).complete).toBe(false);
   });
 
   it('is never given a status that implies its food cost is known', () => {
@@ -79,9 +79,9 @@ describe('an incomplete dish', () => {
     // The stronger version of the rule: the dish is priced, so the arithmetic
     // would succeed — but the numerator is a floor, and a floor over a price
     // is not a food cost. The gap is in the cost, not in the price.
-    const dish = meta['podi-idly'];
+    const dish = meta['jigarthanda'];
     expect(dish?.sellingPrice).not.toBeNull();
-    expect(buildUp(costOf('podi-idly')).complete).toBe(false);
+    expect(buildUp(costOf('jigarthanda')).complete).toBe(false);
 
     // And a price that genuinely is absent still yields nothing to report.
     expect(foodCostPercent(16.73, null)).toBeNull();

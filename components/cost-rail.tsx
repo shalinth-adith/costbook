@@ -43,6 +43,7 @@ export function CostRail({
   onUsePrice,
   onKeepPrice,
   busy,
+  isDefault,
   actions,
 }: {
   cost: RecipeCost;
@@ -59,6 +60,8 @@ export function CostRail({
   /** Leaves the menu price where it is, and says so. */
   onKeepPrice: () => void;
   busy: boolean;
+  /** Whether wastage and packaging are still the figures nobody entered. */
+  isDefault: boolean;
   /** Print, save and remove sit under the price, where the decision is made. */
   actions: React.ReactNode;
 }) {
@@ -81,57 +84,51 @@ export function CostRail({
     <aside className="rail">
       <section className="card">
         <div className="rail-head">
-          <div className="label">{headlineLabel}</div>
-          <div className="rail-figure">
-            <span className="figure rail-currency">{ORG.currencySymbol}</span>
-            <span className="figure rail-amount">{money(headline)}</span>
+          {/* Two labels, side by side. The cost and what it means as a share
+              of the price are one thought, so they sit on one line. */}
+          <div className="rail-heads">
+            <span className="label">{headlineLabel}</span>
+            <span className="label">Food cost</span>
           </div>
 
-          <div className="rail-status">
-            {/* A dish that is complete but not plated is not incomplete. Only
-                a missing rate earns that word; the rest is explained in
-                sentences rather than stamped with a status. */}
-            {!build.complete ? (
-              <StatusChip status="incomplete" />
-            ) : fc !== null ? (
-              <StatusChip status={status} />
-            ) : null}
+          <div className="rail-figures">
+            <div className="rail-figure">
+              <span className="figure rail-currency">{ORG.currencySymbol}</span>
+              <span className="figure rail-amount">{money(headline)}</span>
+            </div>
             {fc === null ? (
-              <span className="rail-status-note">
-                {!build.complete
-                  ? 'A rate is missing, so this figure can only go up.'
-                  : !plated
-                    ? 'Made by the batch and never plated on its own, so there is no cost per portion to report.'
-                    : 'No menu price set yet, so there is no food cost to report.'}
-              </span>
+              <span className="chip chip-incomplete">—</span>
             ) : (
-              <span className="rail-status-note">
-                food cost <span className="figure strong">{percent(fc)}</span>,{' '}
-                {points(fc - model.foodCostTarget)} pts against {percent(model.foodCostTarget, 1)}
-              </span>
+              <StatusChip status={status} label={percent(fc)} />
             )}
           </div>
+
+          {fc === null ? (
+            <p className="rail-status-note">
+              {!build.complete
+                ? 'A rate is missing, so this figure can only go up.'
+                : !plated
+                  ? 'Made by the batch and never plated on its own, so there is no cost per portion to report.'
+                  : 'No menu price set yet, so there is no food cost to report.'}
+            </p>
+          ) : null}
         </div>
 
-        {/* How that figure is made. Every step names its source, and anything
-            Costbook supplied carries a chip and a way to change it. */}
         <div className="buildup">
-          <Row op="" label="Lines entered" value={money(build.linesTotal)} />
+          <div className="label buildup-title">How that figure is made</div>
+
           {plated && build.wastage !== null && build.packaging !== null ? (
             <>
+              <Row op="" label="Batch ingredient cost" value={money(build.linesTotal)} />
               <Row op="÷" label="Portions per batch" value={String(build.portions)} />
               <Row op="=" label="Ingredient cost per portion" value={money(build.ingredientsPerPortion)} rule strong />
-              <Row op="+" label={build.wastage.label} value={money(build.wastage.amount)} defaulted onChange={onOpenCharges} />
-              <Row op="+" label={build.packaging.label} value={money(build.packaging.amount)} defaulted onChange={onOpenCharges} />
-              <Row
-                op="="
-                label={build.complete ? 'Total cost per portion' : 'Floor, total per portion'}
-                value={money(build.total)}
-                total
-              />
+              <Row op="+" label={`Wastage, ${percent(model.wastagePercent, 1)}`} value={money(build.wastage.amount)} />
+              <Row op="+" label="Packaging, flat per portion" value={money(build.packaging.amount)} />
+              <Row op="=" label="Total cost per portion" value={money(build.total)} total />
             </>
           ) : (
             <>
+              <Row op="" label="Batch ingredient cost" value={money(build.linesTotal)} />
               <Row op="÷" label={`Yields ${outputText(cost.outputQty, cost.outputUnit)}`} value="" />
               <Row
                 op="="
@@ -141,6 +138,19 @@ export function CostRail({
               />
             </>
           )}
+
+          {/* One chip and one button, rather than a change link on each row.
+              Wastage and packaging are set together or not at all. */}
+          {plated ? (
+            <div className="buildup-defaults">
+              <span className={`chip chip-default figure${isDefault ? '' : ' is-yours'}`}>
+                {isDefault ? 'DEFAULT' : 'YOURS'}
+              </span>
+              <button type="button" className="btn wide" onClick={onOpenCharges}>
+                Change wastage and packaging
+              </button>
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -176,53 +186,55 @@ export function CostRail({
           </button>
         </section>
       ) : (
-        <section className="card">
-          <div className="label">Suggested price at {percent(model.foodCostTarget, 1)}</div>
+        <section className="card price-card">
+          <div className="label">Price at {percent(model.foodCostTarget, 1)}</div>
 
           <div className="price-work">
             <div className="figure price-formula">
               {money(build.total)} ÷ {percent(model.foodCostTarget, 1)} = {money(suggestion.exact)}
             </div>
-            <div className="price-rule">
-              <label htmlFor="rounding-rule">
-                Your rounding rule is{' '}
-              </label>
-              <button type="button" className="rule-button" onClick={onOpenRounding}>
-                {ROUNDING_LABEL[model.rounding]}
-              </button>
-              <span> — changed here, because nothing that affects a dish's cost should
-              require leaving that dish.</span>
-            </div>
 
+            {/* Both candidates side by side, each carrying the food cost it
+                produces, so the choice is between prices rather than rules. */}
             <div className="price-options">
               <div className="price-option is-chosen" aria-current="true">
                 <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor"
                   strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
                   <path d="M2.4 6.2 4.8 8.6 9.6 3.6" />
                 </svg>
-                <span className="figure price-value">
-                  {ORG.currencySymbol} {money(suggestion.rounded)}
-                </span>
-                <span className="price-fc">
-                  food cost <span className="figure strong">{percent(suggestion.roundedFoodCost)}</span>
+                <span className="price-option-text">
+                  <span className="figure price-value">
+                    {ORG.currencySymbol} {money(suggestion.rounded)}
+                  </span>
+                  <span className="price-fc">
+                    at <span className="figure strong">{percent(suggestion.roundedFoodCost)}</span>
+                  </span>
                 </span>
               </div>
 
               <button
                 type="button"
                 className="price-option"
-                onClick={() => onRounding(model.rounding === 'charm_99' ? 'up_to_5' : 'charm_99')}
+                onClick={() => onRounding(model.rounding === 'next_9' ? 'up_to_5' : 'next_9')}
               >
                 <span className="price-radio" />
-                <span className="figure price-value muted">
-                  {ORG.currencySymbol} {money(suggestion.alternative)}
-                </span>
-                <span className="price-fc">
-                  food cost <span className="figure strong">{percent(suggestion.alternativeFoodCost)}</span>
+                <span className="price-option-text">
+                  <span className="figure price-value muted">
+                    {ORG.currencySymbol} {money(suggestion.alternative)}
+                  </span>
+                  <span className="price-fc">
+                    at <span className="figure strong">{percent(suggestion.alternativeFoodCost)}</span>
+                  </span>
                 </span>
               </button>
             </div>
+
+            <p className="price-rule">Rule: {suggestion.ruleLabel}.</p>
           </div>
+
+          <button type="button" className="btn wide" onClick={onOpenRounding}>
+            Change the rounding rule
+          </button>
 
           <div className="price-actions">
             <button type="button" className="btn btn-primary" onClick={onUsePrice} disabled={busy}>
@@ -239,14 +251,6 @@ export function CostRail({
 
       {actions}
 
-      <section className="card card-note">
-        <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor"
-          strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-          <circle cx="6" cy="6" r="4.6" />
-          <path d="M6 3.4V6l1.8 1.2" />
-        </svg>
-        <span>{note}</span>
-      </section>
     </aside>
   );
 }

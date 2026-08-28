@@ -25,6 +25,12 @@ export function ComponentCards({
     <div className="ccards">
       {lines.map((line, i) => {
         const isOpen = handlers.expanded === i;
+        const inBatch =
+          line.cost === null
+            ? null
+            : line.scope === 'portion'
+              ? line.cost * (handlers.portions ?? 1)
+              : line.cost;
         // Reported by whoever resolved the ingredient, not looked up again here.
         const yieldText = line.yieldPercent === null ? DASH : `${line.yieldPercent}%`;
 
@@ -34,7 +40,7 @@ export function ComponentCards({
               <span className="figure ccard-n">{String(i + 1).padStart(2, '0')}</span>
               <span className="ccard-title-block">
                 <span className="ccard-title">
-                  {line.kind === 'recipe' ? <span className="figure sub-badge">DISH</span> : null}
+                  {line.kind === 'recipe' ? <span className="figure sub-badge">SUB</span> : null}
                   {line.name}
                 </span>
                 {line.scope === 'portion' ? (
@@ -96,7 +102,7 @@ export function ComponentCards({
                     Set rate
                   </button>
                 ) : (
-                  <span className="figure ccard-total">{money(line.cost)}</span>
+                  <span className="figure ccard-total">{money(inBatch)}</span>
                 )}
               </span>
             </div>

@@ -26,7 +26,7 @@ function pack(
   yieldPercent?: number,
 ): Ingredient {
   const family: UnitFamily =
-    packUnit === 'l' || packUnit === 'ml' ? 'volume' : packUnit === 'pcs' ? 'count' : 'mass';
+    packUnit === 'l' || packUnit === 'ml' ? 'volume' : packUnit === 'pcs' || packUnit === 'pc' ? 'count' : 'mass';
   return ingredientFromPack(
     yieldPercent === undefined
       ? { name, family, packQty, packUnit, packPrice }
@@ -56,9 +56,9 @@ const SHELF: readonly Ingredient[] = [
   pack('Ginger garlic paste', 1, 'kg', 220, 100),
   pack('Fried onion, birista', 1, 'kg', 410, 100),
   pack('Salt, iodised', 1, 'kg', 22, 100),
-  pack('Lemon', 1, 'pcs', 1.2, 100),
-  pack('Banana leaf liner', 1, 'pcs', 2.5, 100),
-  pack('Chutney cup, 30 ml', 1, 'pcs', 1.1, 100),
+  pack('Lemon', 1, 'pc', 1.2, 100),
+  pack('Banana leaf liner', 1, 'pc', 2.5, 100),
+  pack('Chutney cup, 30 ml', 1, 'pc', 1.1, 100),
   pack('Water', 1, 'l', 0, 100),
   pack('Maida', 1, 'kg', 48, 100),
   pack('Chicken, dressed', 1, 'kg', 220, 100),
@@ -73,7 +73,8 @@ const SHELF: readonly Ingredient[] = [
   pack('Sugar', 50, 'kg', 2290, 100),
   pack('Rose syrup', 750, 'ml', 180, 100),
   // No rate on file. Any dish using it reports a floor until one is entered.
-  pack('Milagai podi, house', 1, 'kg', null),
+  pack('Milagai podi, house', 1, 'kg', 445, 100),
+  // No rate on file. Jigarthanda reports a floor until one is entered.
   pack('Nannari syrup', 1, 'l', null),
 ];
 
@@ -116,7 +117,7 @@ const parotta: Recipe = {
   name: 'Veechu Parotta',
   family: 'count',
   outputQty: 24,
-  outputUnit: 'pcs',
+  outputUnit: 'pc',
   portions: null,
   components: [
     ingredientComponent(ing('Maida'), 2000, 'g'),
@@ -144,77 +145,57 @@ const plate: Recipe = {
   name: 'Parotta Kuruma Plate',
   family: 'count',
   outputQty: 6,
-  outputUnit: 'pcs',
+  outputUnit: 'pc',
   portions: 6,
   components: [
-    recipeComponent(parotta, 8, 'pcs'),
+    recipeComponent(parotta, 8, 'pc'),
     recipeComponent(kuruma, 480, 'g'),
     ingredientComponent(ing('Onion, big'), 200, 'g'),
     ingredientComponent(ing('Coriander leaves'), 20, 'g'),
-    ingredientComponent(ing('Lemon'), 4, 'pcs'),
-    ingredientComponent(ing('Banana leaf liner'), 4, 'pcs'),
+    ingredientComponent(ing('Lemon'), 4, 'pc'),
+    ingredientComponent(ing('Banana leaf liner'), 4, 'pc'),
     // Drizzled on each plate rather than mixed into the batch. The line the
     // per-portion pool exists for.
     ingredientComponent(ing('Ghee, Aavin'), 12, 'g', { scope: 'portion' }),
-    ingredientComponent(ing('Chutney cup, 30 ml'), 1, 'pcs', {
+    ingredientComponent(ing('Chutney cup, 30 ml'), 1, 'pc', {
       scope: 'portion',
     }),
   ],
 };
 
 /** The same screen, on a dish that is not finished. One rate is missing. */
+const miniIdlyBase: Recipe = {
+  id: 'mini-idly',
+  name: 'Mini Idly, steamed',
+  family: 'count',
+  outputQty: 60,
+  outputUnit: 'pc',
+  portions: null,
+  components: [
+    ingredientComponent(ing('Idly rice'), 1500, 'g'),
+    ingredientComponent(ing('Urad dal'), 325, 'g'),
+  ],
+};
+
 const podiIdly: Recipe = {
   id: 'podi-idly',
   name: 'Ghee Podi Idly Fry',
   family: 'count',
   outputQty: 4,
-  outputUnit: 'pcs',
+  outputUnit: 'pc',
   portions: 4,
   components: [
-    recipeComponent(
-      {
-        id: 'mini-idly',
-        name: 'Mini Idly, steamed',
-        family: 'count',
-        outputQty: 60,
-        outputUnit: 'pcs',
-        portions: null,
-        components: [
-          ingredientComponent(ing('Idly rice'), 3000, 'g'),
-          ingredientComponent(ing('Urad dal'), 750, 'g'),
-        ],
-      },
-      12,
-      'pcs',
-    ),
-    ingredientComponent(ing('Ghee, Aavin'), 15, 'g'),
-    // No rate on file. This dish reports a floor, and no price is offered.
-    ingredientComponent(ing('Milagai podi, house'), 8, 'g'),
-    ingredientComponent(ing('Curry leaves'), 4, 'g'),
-    ingredientComponent(ing('Chutney cup, 30 ml'), 1, 'pcs', { scope: 'portion' }),
+    recipeComponent(miniIdlyBase, 12, 'pc'),
+    ingredientComponent(ing('Ghee, Aavin'), 15, 'g', { note: 'for the tawa' }),
+    ingredientComponent(ing('Milagai podi, house'), 8, 'g', { note: 'house made, 1 kg batch' }),
+    // One goes out with every plate, so it is not divided across the batch.
+    ingredientComponent(ing('Chutney cup, 30 ml'), 1, 'pc', {
+      scope: 'portion',
+      note: 'one goes out with every plate',
+    }),
+    ingredientComponent(ing('Curry leaves'), 4, 'g', { note: 'torn, for the tempering' }),
   ],
 };
-
-const miniIdly: Recipe = {
-  id: 'mini-idly',
-  name: 'Mini Idly, steamed',
-  family: 'count',
-  outputQty: 60,
-  outputUnit: 'pcs',
-  portions: null,
-  components: [
-    ingredientComponent(ing('Idly rice'), 3000, 'g'),
-    ingredientComponent(ing('Urad dal'), 750, 'g'),
-  ],
-};
-
-/** Everything the "add a component" search can reach. */
-
-/* ── the rest of the menu ─────────────────────────────────────────────
- * Enough dishes for the dashboard to be worth reading: some comfortably
- * under target, some near it, some over, and two with a rate missing.
- * Every rate below is one an operator typed.
- */
 
 const biryani: Recipe = {
   id: 'mutton-biryani',
@@ -227,7 +208,7 @@ const biryani: Recipe = {
     ingredientComponent(ing('Onion, big'), 600, 'g'),
     ingredientComponent(ing('Ghee, Aavin'), 80, 'g'),
     ingredientComponent(ing('Ginger garlic paste'), 60, 'g'),
-    ingredientComponent(ing('Banana leaf liner'), 1, 'pcs', { scope: 'portion' }),
+    ingredientComponent(ing('Banana leaf liner'), 1, 'pc', { scope: 'portion' }),
   ],
 };
 
@@ -249,7 +230,7 @@ const kothuParotta: Recipe = {
   name: 'Mutton Kothu Parotta',
   family: 'mass', outputQty: 1600, outputUnit: 'kg', portions: 2,
   components: [
-    recipeComponent(parotta, 4, 'pcs'),
+    recipeComponent(parotta, 4, 'pc'),
     ingredientComponent(ing('Mutton, curry cut'), 250, 'g'),
     ingredientComponent(ing('Onion, big'), 200, 'g'),
     ingredientComponent(ing('Refined oil'), 40, 'ml'),
@@ -315,13 +296,14 @@ const roseMilk: Recipe = {
   ],
 };
 
-export const shelf: readonly Ingredient[] = SHELF;
-
 export const recipes: readonly Recipe[] = [
-  gravy, parotta, kuruma, miniIdly,
+  gravy, parotta, kuruma, miniIdlyBase,
   plate, podiIdly, biryani, chicken65, kothuParotta,
   filterCoffee, jigarthanda, sambarVada, mysoreBonda, roseMilk,
 ];
+
+/** Everything the "add a component" search can reach. */
+export const shelf: readonly Ingredient[] = SHELF;
 
 export const book: RecipeBook = recipeBook(recipes);
 
@@ -355,9 +337,9 @@ export const meta: Readonly<Record<string, DishMeta>> = {
     category: 'Breakfast',
     station: 'Tawa',
     portionSize: '280 g',
-    sellingPrice: 89,
-    note: 'One line has no rate, so the figure above is a floor and not a cost.',
-    onMenu: false,
+    sellingPrice: 39,
+    note: 'On the menu.',
+    onMenu: true,
   },
 
   'mutton-biryani': dishMeta('Biryani', 'Dum counter', '520 g', 289, true, 'On the menu.'),

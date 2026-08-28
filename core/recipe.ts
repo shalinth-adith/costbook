@@ -57,6 +57,8 @@ export interface IngredientComponent {
   /** The unit the operator typed. Display only; never drives the calculation. */
   readonly unit: string;
   readonly entry: LineEntry;
+  /** What this line is for, in the kitchen's words. Never costed. */
+  readonly note?: string;
 }
 
 /** Another of the operator's own recipes, used as an ingredient. */
@@ -132,6 +134,8 @@ export interface CostedLine {
   readonly yieldPercent: number | null;
   /** Which ingredient or recipe this line points at, for linking to it. */
   readonly refId: string | null;
+  /** What the line is for, if the operator said. */
+  readonly note: string | null;
   /** Which figure the operator typed, so the interface shows it back that way. */
   readonly entryMode: EntryMode;
   readonly assumed: readonly AssumedValue[];
@@ -231,6 +235,8 @@ export interface ComponentOptions {
   readonly scope?: ComponentScope;
   /** A rate the operator typed for this line, overriding the derived one. */
   readonly ratePerUnit?: number;
+  /** What this line is for, in the kitchen's words. */
+  readonly note?: string;
   /**
    * The unit that rate is per. Defaults to the line's own unit, but an
    * operator entering a rate for 200 g of onion types "40 per kg", not
@@ -306,6 +312,7 @@ export function ingredientComponent(
     qty: toBase(qty, unit),
     unit,
     entry: buildEntry(options, unit, family, ingredient.name),
+    ...(options.note === undefined ? {} : { note: options.note }),
   };
 }
 
@@ -470,6 +477,7 @@ function costRecipeInner(
           ratePerBaseUnit: null,
           yieldPercent: null,
           refId: null,
+          note: null,
           entryMode: 'flat',
           assumed: [],
         },
@@ -508,6 +516,7 @@ function costRecipeInner(
           ratePerBaseUnit: applied.ratePerBaseUnit,
           yieldPercent: ingredient.yieldPercent,
           refId: ingredient.id,
+          note: component.note ?? null,
           entryMode: component.entry.mode,
           // A line the operator priced themselves does not lean on the shelf yield.
           assumed: component.entry.mode === 'ingredient_rate' ? shelf.assumed : [],
@@ -553,6 +562,8 @@ function costRecipeInner(
         ratePerBaseUnit: applied.ratePerBaseUnit,
         yieldPercent: null,
         refId: child.id,
+        // A sub-recipe says what it is: your own batch, and what one yields.
+        note: `own recipe · yields ${child.outputQty / baseFactorFor(child.outputUnit)} ${child.outputUnit}`,
         entryMode: component.entry.mode,
         assumed: component.entry.mode === 'ingredient_rate' ? childCost.assumed : [],
       },
@@ -634,6 +645,11 @@ export function pantryOf(
     recipes: recipeBook(recipes),
     ingredients: new Map(ingredients.map((i) => [i.id, i])),
   };
+}
+
+/** Reads a base quantity back in the unit the operator typed. */
+function baseFactorFor(unit: string): number {
+  return toBase(1, unit);
 }
 
 /** Whether every line has a rate, so the figures are a cost rather than a floor. */

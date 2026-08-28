@@ -143,6 +143,7 @@ export function RecipeSheet({
 
   const handlers: LineHandlers = {
     expanded,
+    portions: recipe.portions,
     usedInCount,
     onExpand: (i) => setExpanded((current) => (current === i ? -1 : i)),
     onQty: (i, value) => edit(setQty(recipe, i, value)),
@@ -402,32 +403,6 @@ export function RecipeSheet({
             </div>
           </section>
 
-          {/* A charge is a cost with a label rather than a measurement, and an
-              occasional thing — so it sits under the table rather than beside
-              the two controls used on every dish. */}
-          <div className="table-extra">
-            <button type="button" className="link link-sm" onClick={addCharge}>
-              Add a charge — a processing cost with a label, not a measurement
-            </button>
-          </div>
-
-          <div className="sheet-footer">
-            <button
-              type="button"
-              className="link"
-              disabled={saving}
-              onClick={() => {
-                if (dish.onMenu) void commit(() => removeFromMenu(recipe.id));
-                else {
-                  setRecipe(initialRecipe);
-                  setDirty(false);
-                  setToast({ message: 'Draft discarded. Nothing was saved, so nothing was lost.', undoable: false });
-                }
-              }}
-            >
-              {dish.onMenu ? 'Remove from the menu' : 'Discard this draft'}
-            </button>
-          </div>
         </div>
 
         <CostRail
@@ -444,7 +419,7 @@ export function RecipeSheet({
             void commit(() => saveAndPrice(named, dishFields, suggestion.rounded));
           }}
           actions={
-            <div className="rail-actions">
+            <div className="rail-actions rail-actions-row">
               <button
                 type="button"
                 className="btn"
@@ -509,6 +484,7 @@ export function RecipeSheet({
             })
           }
           busy={saving}
+          isDefault={charges === null}
         />
       </div>
 

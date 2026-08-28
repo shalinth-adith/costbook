@@ -105,10 +105,13 @@ describe('adding a component', () => {
   });
 
   it('makes the dish a floor when the added ingredient has no rate', () => {
-    const podi = shelf.find((i) => i.name === 'Milagai podi, house');
-    if (podi === undefined) expect.unreachable('podi is on the shelf');
+    const unpriced = shelf.find((i) => i.purchasePrice === null);
+    if (unpriced === undefined) expect.unreachable('something on the shelf has no rate');
 
-    const result = addComponent(plate(), others(), shelf, { kind: 'ingredient', ingredient: podi });
+    const result = addComponent(plate(), others(), shelf, {
+      kind: 'ingredient',
+      ingredient: unpriced,
+    });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 

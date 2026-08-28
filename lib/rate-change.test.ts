@@ -104,16 +104,14 @@ describe('changing a rate reaches every dish', () => {
   });
 
   it('costs a dish that has no rate as a floor, and as a cost once one is given', () => {
-    const podi = shelf.find((i) => i.name === 'Milagai podi, house');
-    if (podi === undefined) throw new Error('no podi');
+    const syrup = shelf.find((i) => i.name === 'Nannari syrup');
+    if (syrup === undefined) throw new Error('no syrup');
 
-    expect(buildUp(recipeCost(
-      pantryOf(recipes, shelf).recipes.get('podi-idly')!,
-      pantryOf(recipes, shelf),
-    )).complete).toBe(false);
+    const asIs = pantryOf(recipes, shelf);
+    expect(buildUp(recipeCost(asIs.recipes.get('jigarthanda')!, asIs)).complete).toBe(false);
 
-    const priced = swap(withRate(podi, 445));
-    expect(buildUp(recipeCost(priced.recipes.get('podi-idly')!, priced)).complete).toBe(true);
+    const priced = swap(withRate(syrup, 260));
+    expect(buildUp(recipeCost(priced.recipes.get('jigarthanda')!, priced)).complete).toBe(true);
   });
 });
 

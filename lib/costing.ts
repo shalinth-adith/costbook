@@ -40,7 +40,7 @@ export const DEFAULT_MODEL: CostingModel = {
   wastagePercent: 2,
   packagingPerPortion: 0.35,
   foodCostTarget: 32,
-  rounding: 'charm_99',
+  rounding: 'next_9',
 };
 
 /**
@@ -49,9 +49,9 @@ export const DEFAULT_MODEL: CostingModel = {
  * can never drift apart.
  */
 export const ROUNDING_CHOICES: readonly PresetName[] = [
-  'charm_99',
-  'charm_95',
+  'next_9',
   'up_to_5',
+  'charm_99',
   'nearest_whole',
   'none',
 ];
@@ -190,7 +190,7 @@ export function suggestPrice(total: number, model: CostingModel): PriceSuggestio
 
   // The other candidate, so the operator sees what the choice costs rather
   // than being handed one figure and asked to trust it.
-  const alternativeName: PresetName = model.rounding === 'charm_99' ? 'up_to_5' : 'charm_99';
+  const alternativeName: PresetName = model.rounding === 'next_9' ? 'up_to_5' : 'next_9';
   const alternative = applyRounding(exact, ruleFor(alternativeName));
 
   return {

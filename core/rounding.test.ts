@@ -118,6 +118,7 @@ describe('the presets named in the document', () => {
       'none',
       'nearest_whole',
       'up_whole',
+      'next_9',
       'charm_99',
       'charm_95',
       'up_to_5',
@@ -133,6 +134,16 @@ describe('the presets named in the document', () => {
     expect(applyRounding(47.83, PRESETS.charm_95)).toBe(47.95);
     expect(applyRounding(47.83, PRESETS.up_to_5)).toBe(50);
     expect(applyRounding(47.83, PRESETS.up_to_half)).toBe(48);
+  });
+
+  it('rounds up to the next whole figure ending in 9', () => {
+    // A12's default: 9, 19, 29, 39 — a different lattice from a .99 price,
+    // with the same shape.
+    expect(applyRounding(34.5625, PRESETS.next_9)).toBe(39);
+    expect(applyRounding(39, PRESETS.next_9)).toBe(39);
+    expect(applyRounding(39.01, PRESETS.next_9)).toBe(49);
+    expect(applyRounding(1, PRESETS.next_9)).toBe(9);
+    expect(describeRule(PRESETS.next_9)).toBe('round up to the next figure ending in 9');
   });
 });
 

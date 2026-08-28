@@ -73,16 +73,16 @@ describe('putting a dish on the menu', () => {
 
 describe('setting a rate is one write that moves everything', () => {
   it('turns a floor into a cost', () => {
-    const podi = allIngredients().find((i) => i.name === 'Milagai podi, house');
-    if (podi === undefined) throw new Error('no podi');
+    const syrup = allIngredients().find((i) => i.name === 'Nannari syrup');
+    if (syrup === undefined) throw new Error('no syrup');
 
     const before = pantry();
-    expect(buildUp(recipeCost(before.recipes.get('podi-idly')!, before)).complete).toBe(false);
+    expect(buildUp(recipeCost(before.recipes.get('jigarthanda')!, before)).complete).toBe(false);
 
-    putIngredient(withRate(podi, 445));
+    putIngredient(withRate(syrup, 260));
 
     const after = pantry();
-    expect(buildUp(recipeCost(after.recipes.get('podi-idly')!, after)).complete).toBe(true);
+    expect(buildUp(recipeCost(after.recipes.get('jigarthanda')!, after)).complete).toBe(true);
   });
 
   it('moves every dish that reaches the ingredient, at any depth', () => {

@@ -1014,3 +1014,39 @@
   border-radius: 50%; background: var(--surface-inverse); color: var(--text-on-inverse);
   font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
 }
+
+/* ── A12 rail ──────────────────────────────────────────────────────── */
+
+.rail-heads { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }
+.rail-figures {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-3); margin-block-start: 4px;
+}
+.rail-status-note { margin: var(--sp-2) 0 0; }
+
+.buildup-title { display: block; margin-block-end: var(--sp-2); }
+.buildup-defaults {
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin-block-start: var(--sp-3);
+}
+.buildup-defaults .btn { flex: 1; justify-content: center; }
+.chip-default.is-yours {
+  color: var(--on-ink-strong); background: var(--on-tint); border-color: var(--on-edge);
+}
+
+.price-card { padding-block-end: var(--sp-4); }
+.price-card > .btn.wide { margin: 0 var(--sp-4) var(--sp-3); width: calc(100% - var(--sp-8)); }
+.price-card .price-actions { padding-inline: var(--sp-4); }
+.price-card .price-work { margin-inline: var(--sp-4); }
+
+/* Both candidates side by side: the choice is between two prices. */
+.price-options { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+.price-option { align-items: flex-start; }
+.price-option-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.price-value { font-size: 16px; }
+.price-fc { margin-inline-start: 0; font-size: 11.5px; }
+.price-rule { border-block-start: 0; padding-block-start: 0; }
+
+.rail-actions-row { flex-direction: row; }
+.rail-actions-row .btn { flex: 1; }
+.rail-actions-row .link { align-self: center; }
