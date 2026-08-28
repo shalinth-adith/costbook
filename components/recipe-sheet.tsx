@@ -19,7 +19,7 @@ import {
 } from '@/lib/costing';
 import { addComponent, bookWith, removeLine, setQty, toggleScope } from '@/lib/edit';
 import type { DishMeta } from '@/lib/data';
-import { ORG } from '@/lib/data';
+import { ORG, recipeKind } from '@/lib/data';
 import { money, percent } from '@/lib/format';
 
 type Layout = 'table' | 'cards';
@@ -78,6 +78,13 @@ export function RecipeSheet({
   const handlers: LineHandlers = {
     expanded,
     usedInCount,
+    childOf: (i) => {
+      const component = recipe.components[i];
+      if (component === undefined || component.kind !== 'recipe') return null;
+      const child = book.get(component.childId);
+      if (child === undefined) return null;
+      return { name: child.name, kind: recipeKind(child) };
+    },
     onExpand: (i) => setExpanded((current) => (current === i ? -1 : i)),
     onQty: (i, value) => edit(setQty(recipe, i, value)),
     onScope: (i) => edit(toggleScope(recipe, i)),

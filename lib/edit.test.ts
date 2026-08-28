@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { isComplete, recipeCost } from '@/core/recipe';
 
 import { buildUp } from './costing';
-import { book, recipes, shelf } from './data';
+import { book, recipeKind, recipes, shelf } from './data';
 import { addComponent, bookWith, removeLine, setQty, toggleScope } from './edit';
 
 const plate = () => {
@@ -152,5 +152,44 @@ describe('the two layouts share one set of edits', () => {
     const fromTable = setQty(toggleScope(plate(), 6), 0, 12);
     const fromCards = setQty(toggleScope(plate(), 6), 0, 12);
     expect(perPortion(fromTable)).toBe(perPortion(fromCards));
+  });
+});
+
+describe('the three kinds stay distinct', () => {
+  // An onion is bought, a kuruma is made, a plate is sold. Costing treats them
+  // alike once each cost per base unit is known — but they are not the same
+  // thing to a cook, and the picker must not merge them into one list.
+  it('reads a recipe with no portions as a preparation', () => {
+    for (const id of ['gravy', 'parotta', 'kuruma', 'mini-idly']) {
+      const r = book.get(id);
+      if (r === undefined) expect.unreachable(`${id} exists`);
+      expect(r.portions).toBeNull();
+      expect(recipeKind(r)).toBe('preparation');
+    }
+  });
+
+  it('reads a recipe that plates into portions as a dish', () => {
+    for (const id of ['plate', 'podi-idly']) {
+      const r = book.get(id);
+      if (r === undefined) expect.unreachable(`${id} exists`);
+      expect(r.portions).not.toBeNull();
+      expect(recipeKind(r)).toBe('dish');
+    }
+  });
+
+  it('keeps a dish addable, because nesting one is unusual rather than wrong', () => {
+    const podi = book.get('podi-idly');
+    if (podi === undefined) expect.unreachable('podi exists');
+
+    const result = addComponent(plate(), others(), { kind: 'recipe', recipe: podi });
+    expect(result.ok).toBe(true);
+  });
+
+  it('never classes an ingredient as either', () => {
+    // Ingredients have a pack and a rate; they are not recipes at all, so the
+    // question does not arise for them.
+    for (const i of shelf) {
+      expect(book.has(i.name)).toBe(false);
+    }
   });
 });

@@ -245,3 +245,38 @@ export function usedInCount(name: string): number {
   }
   return count;
 }
+
+/**
+ * The three kinds of thing that can go on a component line.
+ *
+ * Costing treats them identically once each one's cost per base unit is known
+ * — that is the whole of the nesting rule. But they are not the same thing to
+ * the person cooking, and the interface must not pretend otherwise:
+ *
+ *   ingredient   something you buy. A pack, a supplier, a rate.
+ *   preparation  something you make that goes into other dishes and is never
+ *                plated on its own. TRD 5: portions is null for these.
+ *   dish         something you make and sell. It plates into portions.
+ *
+ * A dish can be nested inside another dish — a plate can carry a portion of
+ * something that is also sold on its own — but it is the uncommon case, so it
+ * is offered and marked rather than hidden or listed as though it were a
+ * preparation.
+ */
+export type ComponentKind = 'ingredient' | 'preparation' | 'dish';
+
+export function recipeKind(recipe: Recipe): Extract<ComponentKind, 'preparation' | 'dish'> {
+  return recipe.portions === null ? 'preparation' : 'dish';
+}
+
+export const KIND_LABEL: Readonly<Record<ComponentKind, string>> = {
+  ingredient: 'Ingredients',
+  preparation: 'Your preparations',
+  dish: 'Your menu dishes',
+};
+
+export const KIND_HINT: Readonly<Record<ComponentKind, string>> = {
+  ingredient: 'Things you buy. Each one has a pack size and a rate you entered.',
+  preparation: 'Things you make that go into other dishes. Each carries its own cost and yield across.',
+  dish: 'Things you sell. Putting one inside another dish is unusual, but Costbook will cost it correctly.',
+};
