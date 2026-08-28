@@ -17,6 +17,7 @@ export function ComponentPicker({
   excludeRecipeId,
   usedInCount,
   onPick,
+  alwaysOpen = false,
 }: {
   shelf: readonly Ingredient[];
   recipes: readonly Recipe[];
@@ -24,9 +25,11 @@ export function ComponentPicker({
   excludeRecipeId: string;
   usedInCount: (name: string) => number;
   onPick: (choice: PickerChoice) => void;
+  /** Inside a drawer the list is the whole point, so it does not wait for focus. */
+  alwaysOpen?: boolean;
 }) {
   const [query, setQuery] = useState('');
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(alwaysOpen);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const groups = useMemo(
@@ -123,7 +126,9 @@ export function ComponentPicker({
                 you will be asked for its pack size and rate
               </span>
             )}
-            <button type="button" className="link link-sm" onClick={() => setOpen(false)}>Close</button>
+            {alwaysOpen ? null : (
+              <button type="button" className="link link-sm" onClick={() => setOpen(false)}>Close</button>
+            )}
           </div>
         </div>
       ) : null}

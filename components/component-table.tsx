@@ -38,7 +38,6 @@ export function ComponentTable({
         <span>Component</span>
         <span className="end">Qty</span>
         <span>Unit</span>
-        <span className="end">Yield</span>
         <span className="end">Rate / unit</span>
         <span className="end">Line cost</span>
         <span />
@@ -46,12 +45,19 @@ export function ComponentTable({
 
       {lines.map((line, i) => {
         const isOpen = handlers.expanded === i;
-        // Reported by whoever resolved the ingredient, not looked up again here.
-        const yieldText = line.yieldPercent === null ? DASH : `${line.yieldPercent}%`;
 
         return (
           <div key={`${line.name}-${i}`}>
-            <div className={`ctable-row${line.cost === null ? ' is-missing' : ''}${isOpen ? ' is-open' : ''}`}>
+            <div
+              className={`ctable-row${line.cost === null ? ' is-missing' : ''}${isOpen ? ' is-open' : ''}`}
+              role="button"
+              tabIndex={0}
+              aria-expanded={isOpen}
+              onClick={() => handlers.onExpand(i)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlers.onExpand(i); }
+              }}
+            >
               <span className="figure ctable-n">{String(i + 1).padStart(2, '0')}</span>
 
               <span className="ctable-name">
@@ -86,7 +92,6 @@ export function ComponentTable({
               </span>
 
               <span className="figure ctable-unit">{line.unit}</span>
-              <span className="figure end ctable-dim">{yieldText}</span>
               <span className="figure end ctable-dim">{rate(line.ratePerBaseUnit)}</span>
 
               <span className="ctable-cost">
@@ -94,7 +99,11 @@ export function ComponentTable({
                   <span className="chip chip-scope figure">PER PORTION</span>
                 ) : null}
                 {line.cost === null ? (
-                  <button type="button" className="btn-set-rate" onClick={() => handlers.onSetRate(i)}>
+                  <button
+                    type="button"
+                    className="btn-set-rate"
+                    onClick={(e) => { e.stopPropagation(); handlers.onSetRate(i); }}
+                  >
                     <svg width="10" height="10" viewBox="0 0 12 12" aria-hidden="true">
                       <path d="M6 1 11.2 10.6H0.8Z" fill="currentColor" />
                     </svg>
@@ -106,23 +115,19 @@ export function ComponentTable({
               </span>
 
               <span className="ctable-more">
-                <button
-                  type="button"
-                  className={`icon-btn${isOpen ? ' is-open' : ''}`}
-                  aria-expanded={isOpen}
-                  aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${line.name}`}
-                  onClick={() => handlers.onExpand(i)}
-                >
+                <span className={`icon-btn${isOpen ? ' is-open' : ''}`} aria-hidden="true">
                   <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor"
                     strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
                     <path d="m3 4.6 3 3 3-3" />
                   </svg>
-                </button>
+                </span>
               </span>
             </div>
 
             {isOpen ? (
-              <LineDetail line={line} index={i} handlers={handlers} />
+              <div onClick={(e) => e.stopPropagation()}>
+                <LineDetail line={line} index={i} handlers={handlers} />
+              </div>
             ) : null}
           </div>
         );

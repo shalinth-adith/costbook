@@ -43,6 +43,7 @@ export function CostRail({
   onUsePrice,
   onKeepPrice,
   busy,
+  actions,
 }: {
   cost: RecipeCost;
   build: CostBuildUp;
@@ -58,6 +59,8 @@ export function CostRail({
   /** Leaves the menu price where it is, and says so. */
   onKeepPrice: () => void;
   busy: boolean;
+  /** Print, save and remove sit under the price, where the decision is made. */
+  actions: React.ReactNode;
 }) {
   // A dish with no portions has no cost per portion, so the rail leads with
   // what a batch costs instead. Nothing is invented to fill the slot.
@@ -233,6 +236,8 @@ export function CostRail({
           </div>
         </section>
       )}
+
+      {actions}
 
       <section className="card card-note">
         <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor"

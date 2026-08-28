@@ -193,7 +193,7 @@
 .ctable-head,
 .ctable-row {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) 80px 46px 62px 90px 158px 30px;
+  grid-template-columns: 32px minmax(0, 1fr) 92px 56px 100px 128px 34px;
   align-items: center; padding-inline: 14px; gap: var(--sp-2);
 }
 .ctable-head {
@@ -362,9 +362,9 @@
   .rail { position: static; }
   /* Yield and rate are the first columns to go: they are reference, and the
      quantity and the cost are what the screen is for. */
-  .ctable-head, .ctable-row { grid-template-columns: 30px minmax(0, 1fr) 76px 44px 140px 30px; }
-  .ctable-head span:nth-child(5), .ctable-row > span:nth-child(5),
-  .ctable-head span:nth-child(6), .ctable-row > span:nth-child(6) { display: none; }
+  .ctable-head, .ctable-row { grid-template-columns: 32px minmax(0, 1fr) 84px 48px 120px 34px; }
+  /* Rate is reference; the quantity and the cost are what the screen is for. */
+  .ctable-head span:nth-child(5), .ctable-row > span:nth-child(5) { display: none; }
 }
 
 /* ── editing ───────────────────────────────────────────────────────── */
@@ -989,3 +989,28 @@
 .prep-size { font-size: 11.5px; color: var(--text-tertiary); align-self: center; margin-inline-start: auto; }
 .prep-donot { border: 1px solid var(--surface-inverse); padding: var(--sp-3); margin-block-start: var(--sp-5); }
 .prep-donot-copy { margin: 0; font-size: 13.5px; line-height: 1.5; }
+
+
+/* ── A12 layout details ─────────────────────────────────────────────── */
+
+.page-sub .ink { color: var(--text-primary); }
+.layout-label { font-size: 11.5px; color: var(--text-tertiary); }
+.segmented-xs { height: 34px; border-radius: 4px; }
+.segmented-xs .segmented-item { font-size: 12.5px; padding-inline: 10px; }
+.btn-xs { height: 34px; padding-inline: 11px; font-size: 12.5px; border-radius: 4px; }
+.table-extra { padding: var(--sp-3) 14px 0; }
+
+/* The whole row opens the line. The chevron is a mark, not a second target. */
+.ctable-row[role='button'] { cursor: pointer; }
+.ctable-row .icon-btn { pointer-events: none; }
+
+.rail-actions { display: flex; flex-direction: column; gap: var(--sp-2); }
+.rail-actions .btn { width: 100%; justify-content: center; }
+.rail-actions .link { align-self: center; padding-block: 6px; }
+
+.avatar {
+  width: 28px; height: 28px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; background: var(--surface-inverse); color: var(--text-on-inverse);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+}

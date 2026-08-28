@@ -26,6 +26,7 @@ import { DishSheet } from './sheets/dish-sheet';
 import { PasteSheet, type PastedRow } from './sheets/paste-sheet';
 import { RateSheet } from './sheets/rate-sheet';
 import { RoundingSheet } from './sheets/rounding-sheet';
+import { AddSheet } from './sheets/add-sheet';
 import { ComponentTable, type LineHandlers } from './component-table';
 import { ComponentPicker, type PickerChoice } from './component-picker';
 import { CostRail } from './cost-rail';
@@ -73,7 +74,7 @@ export function RecipeSheet({
 
   /** Which secondary surface is up. Only ever one at a time. */
   const [sheet, setSheet] = useState<
-    'dish' | 'paste' | 'charges' | 'rounding' | null
+    'dish' | 'paste' | 'add' | 'charges' | 'rounding' | null
   >(null);
   /** The line whose rate is being answered, if any. */
   const [rateFor, setRateFor] = useState<string | null>(null);
@@ -254,126 +255,64 @@ export function RecipeSheet({
           <nav className="crumbs" aria-label="Breadcrumb">
             <Link href="/recipes">Recipes</Link>
             <Chevron />
-            <span>{dish.category}</span>
+            <span>{fields.category}</span>
             <Chevron />
-            <span aria-current="page">{recipe.name}</span>
+            <span aria-current="page">{fields.name}</span>
           </nav>
 
           <div className="page-title-row">
-            <h1 className="page-title">{recipe.name}</h1>
-            {!build.complete ? (
-              <StatusChip status="incomplete" label="SAVED · INCOMPLETE" />
-            ) : dirty ? (
+            <h1 className="page-title">{fields.name}</h1>
+            {dirty ? (
               <span className="chip chip-incomplete">UNSAVED CHANGES</span>
-            ) : saved ? (
+            ) : dish.onMenu ? (
               <span className="chip chip-status chip-on">
                 <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor"
                   strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
                   <path d="M2.4 6.2 4.8 8.6 9.6 3.6" />
                 </svg>
-                SAVED · ON THE MENU
+                SAVED
               </span>
             ) : (
-              <span className="chip chip-incomplete">SAVED · NOT ON THE MENU</span>
+              <span className="chip chip-incomplete">
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                  strokeWidth="1.5" aria-hidden="true">
+                  <rect x="1.4" y="1.4" width="9.2" height="9.2" strokeDasharray="2.4 1.8" />
+                </svg>
+                DRAFT
+              </span>
             )}
           </div>
+
+          {/* One line, not a card. Everything about the dish that is not a
+              component line, said once. */}
+          <p className="page-sub">
+            {fields.category} · batch of{' '}
+            <span className="figure ink">{recipe.portions ?? '—'}</span> plates
+            {fields.station === null || fields.station === '' ? '' : ` · ${fields.station}`}
+            {dish.portionSize === null ? '' : ` · ${dish.portionSize}`} ·{' '}
+            <span className="figure ink">{cost.lines.length}</span> component lines
+          </p>
         </div>
 
         <div className="page-actions">
+          <button type="button" className="btn" onClick={() => setSheet('dish')}>
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+              strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+              <path d="M4 16h3.2l8.4-8.4a1.7 1.7 0 0 0 0-2.4l-.8-.8a1.7 1.7 0 0 0-2.4 0L4 12.8Z" />
+            </svg>
+            Edit dish
+          </button>
           <div className="segmented" role="group" aria-label="View">
-            {/* The prep card returns early above, so this half is the one in view. */}
             <span className="segmented-item is-active">Costing</span>
-            <button
-              type="button"
-              className="segmented-item"
-              onClick={() => setView('prep')}
-            >
+            <button type="button" className="segmented-item" onClick={() => setView('prep')}>
               Prep card
             </button>
           </div>
-          <button type="button" className="btn" onClick={() => { setView('prep'); setTimeout(() => window.print(), 60); }}>
-            <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-              strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
-              <path d="M6.2 7V4.4h7.6V7M5 7h10v9.2H5Z" />
-            </svg>
-            Print prep card
-          </button>
-          {dish.onMenu ? (
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={!dirty || saving}
-              title={dirty ? undefined : 'Nothing has changed since this was last saved.'}
-              onClick={() => void commit(() => saveChanges(named, dishFields))}
-            >
-              {/* The label holds still. A control that renames itself between
-                  states is a control you have to re-read before pressing. */}
-              {saving ? 'Saving…' : 'Save changes'}
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="btn"
-                disabled={saving}
-                onClick={() => void commit(() => saveDraft(named, dishFields))}
-              >
-                Save as draft
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={saving || suggestion === null}
-                onClick={() => {
-                  if (suggestion === null) return;
-                  void commit(() => saveAndPrice(named, dishFields, suggestion.rounded));
-                }}
-              >
-                {saving ? 'Saving…' : 'Save and cost it'}
-              </button>
-            </>
-          )}
         </div>
       </div>
 
       <div className="sheet">
         <div className="sheet-main">
-          <section className="card dish-summary">
-            <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-              strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-              <rect x="3.2" y="3.2" width="13.6" height="13.6" rx="1.5" />
-              <path d="M7 7.6h6M7 10.8h6M7 14h3.4" />
-            </svg>
-            <div className="dish-summary-text">
-              <span className="dish-summary-title">
-                {recipe.name}
-                <span className="dish-summary-meta">
-                  {' · '}{dish.category}
-                  {recipe.portions !== null ? ` · ${recipe.portions} plates` : ''}
-                  {dish.station !== null ? ` · ${dish.station}` : ''}
-                  {dish.portionSize !== null ? ` · ${dish.portionSize}` : ''}
-                </span>
-              </span>
-              <span className="dish-summary-sub">
-                {dish.sellingPrice === null ? (
-                  'No menu price set'
-                ) : (
-                  <>
-                    Menu price <span className="figure">{ORG.currencySymbol} {money(dish.sellingPrice)}</span>
-                    {fc !== null ? <> · food cost <span className="figure">{percent(fc)}</span></> : null}
-                  </>
-                )}
-              </span>
-            </div>
-            <button type="button" className="btn" onClick={() => setSheet('dish')}>
-              <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-                strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
-                <path d="M13.4 3.8 16.2 6.6 7.4 15.4H4.6v-2.8Z" />
-              </svg>
-              Edit dish
-            </button>
-          </section>
-
           {blocked !== null ? (
             <section className="card blocked" role="alert">
               <span className="chip chip-over">
@@ -395,7 +334,8 @@ export function RecipeSheet({
                 Components <span className="figure card-count">{cost.lines.length}</span>
               </h2>
               <div className="card-head-actions">
-                <div className="segmented segmented-sm" role="group" aria-label="Component layout">
+                <span className="layout-label">Layout</span>
+                <div className="segmented segmented-xs" role="group" aria-label="Component layout">
                   <button
                     type="button"
                     className={`segmented-item${layout === 'table' ? ' is-active' : ''}`}
@@ -415,13 +355,13 @@ export function RecipeSheet({
                     Cards
                   </button>
                 </div>
-                <button type="button" className="btn" onClick={() => setSheet('paste')}>
-                  <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><rect x="6.4" y="3" width="7.2" height="3.2" rx="1" /><path d="M13.6 4.6h2.2v12.4H4.2V4.6h2.2" /></svg>
+                <button type="button" className="btn btn-xs" onClick={() => setSheet('paste')}>
+                  <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><rect x="6.4" y="3" width="7.2" height="3.2" rx="1" /><path d="M13.6 4.6h2.2v12.4H4.2V4.6h2.2" /></svg>
                   Paste rows
                 </button>
-                <button type="button" className="btn" onClick={addCharge}>
-                  <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true"><path d="M6 2v8M2 6h8" /></svg>
-                  Add a charge
+                <button type="button" className="btn btn-xs" onClick={() => setSheet('add')}>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="M6 2v8M2 6h8" /></svg>
+                  Add line
                 </button>
               </div>
             </div>
@@ -440,17 +380,6 @@ export function RecipeSheet({
             ) : (
               <ComponentCards lines={cost.lines} handlers={handlers} />
             )}
-
-            <div className="add-component">
-              <ComponentPicker
-                shelf={shelf}
-                recipes={otherRecipes}
-                pantry={pantry}
-                excludeRecipeId={recipe.id}
-                usedInCount={usedInCount}
-                onPick={onPick}
-              />
-            </div>
 
             <div className="running-total">
               <span className="running-said">
@@ -472,6 +401,15 @@ export function RecipeSheet({
               </span>
             </div>
           </section>
+
+          {/* A charge is a cost with a label rather than a measurement, and an
+              occasional thing — so it sits under the table rather than beside
+              the two controls used on every dish. */}
+          <div className="table-extra">
+            <button type="button" className="link link-sm" onClick={addCharge}>
+              Add a charge — a processing cost with a label, not a measurement
+            </button>
+          </div>
 
           <div className="sheet-footer">
             <button
@@ -505,6 +443,65 @@ export function RecipeSheet({
             if (suggestion === null) return;
             void commit(() => saveAndPrice(named, dishFields, suggestion.rounded));
           }}
+          actions={
+            <div className="rail-actions">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => { setView('prep'); setTimeout(() => window.print(), 60); }}
+              >
+                <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                  strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+                  <path d="M6.2 7V4.4h7.6V7M5 7h10v9.2H5Z" />
+                </svg>
+                Print prep card
+              </button>
+
+              {dish.onMenu ? (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={!dirty || saving}
+                    title={dirty ? undefined : 'Nothing has changed since this was last saved.'}
+                    onClick={() => void commit(() => saveChanges(named, dishFields))}
+                  >
+                    {saving ? 'Saving…' : 'Save changes'}
+                  </button>
+                  <button
+                    type="button"
+                    className="link link-sm"
+                    disabled={saving}
+                    onClick={() => void commit(() => removeFromMenu(recipe.id))}
+                  >
+                    Remove from menu
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={saving}
+                    onClick={() => void commit(() => saveDraft(named, dishFields))}
+                  >
+                    Save as draft
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={saving || suggestion === null}
+                    onClick={() => {
+                      if (suggestion === null) return;
+                      void commit(() => saveAndPrice(named, dishFields, suggestion.rounded));
+                    }}
+                  >
+                    {saving ? 'Saving…' : 'Save and cost it'}
+                  </button>
+                </>
+              )}
+            </div>
+          }
           onKeepPrice={() =>
             setToast({
               message: `Price left at ₹ ${(dish.sellingPrice ?? 0).toFixed(2)}. Nothing changed.`,
@@ -534,6 +531,17 @@ export function RecipeSheet({
         onClose={() => setSheet(null)}
         shelf={shelf}
         onAdd={addPasted}
+      />
+
+      <AddSheet
+        open={sheet === 'add'}
+        onClose={() => setSheet(null)}
+        shelf={shelf}
+        recipes={otherRecipes}
+        pantry={pantry}
+        excludeRecipeId={recipe.id}
+        usedInCount={usedInCount}
+        onPick={onPick}
       />
 
       <ChargesSheet
