@@ -1,7 +1,7 @@
 import { AppShell } from '@/components/app-shell';
 import { DashboardView } from '@/components/dashboard-view';
 import { DEFAULT_MODEL } from '@/lib/costing';
-import { ORG, book, dishIds, meta } from '@/lib/data';
+import { ORG, dishIds, meta, pantry } from '@/lib/data';
 import { dashboard } from '@/lib/dashboard';
 
 /**
@@ -12,7 +12,7 @@ import { dashboard } from '@/lib/dashboard';
  */
 export default function DashboardPage() {
   const model = { ...DEFAULT_MODEL, foodCostTarget: ORG.foodCostTarget };
-  const data = dashboard({ ids: dishIds, book, meta, model });
+  const data = dashboard({ ids: dishIds, pantry, meta, model });
 
   return (
     <AppShell current="Dashboard">

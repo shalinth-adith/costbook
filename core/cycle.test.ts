@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import { ingredientFromPack } from './ingredient';
 import {
+  type Pantry,
   type Recipe,
   RecipeError,
   findCycle,
   ingredientComponent,
+  pantryOf,
   recipeBook,
   recipeComponent,
   recipeCost,
@@ -22,15 +24,22 @@ import {
  * is tested against exactly these cases.
  */
 
-const salt = () =>
-  ingredientFromPack({
-    name: 'Salt, iodised',
-    family: 'mass',
-    packQty: 1,
-    packUnit: 'kg',
-    packPrice: 22,
-    yieldPercent: 100,
-  });
+const SALT = ingredientFromPack({
+  name: 'Salt, iodised',
+  family: 'mass',
+  packQty: 1,
+  packUnit: 'kg',
+  packPrice: 22,
+  yieldPercent: 100,
+});
+
+const salt = () => SALT;
+
+/** wouldCycle and findCycle only ever walk recipes, so they take the book. */
+const books = (recipes: readonly Recipe[]) => recipeBook(recipes);
+
+/** recipeCost needs the ingredients too. */
+const pantry = (recipes: readonly Recipe[]): Pantry => pantryOf(recipes, [SALT]);
 
 /** A recipe with one salt line, so it costs to something non-zero. */
 function dish(id: string, name: string, children: readonly string[] = []): Recipe {
@@ -58,7 +67,8 @@ describe('the acceptance check for build step 7', () => {
   it('refuses A to B to A, and names the path', () => {
     const a = dish('a', 'Onion Thakkali Gravy', ['b']);
     const b = dish('b', 'Kuruma Base', ['a']);
-    const book = recipeBook([a, b]);
+    const book = books([a, b]);
+    const kitchen = pantry([a, b]);
 
     const loop = wouldCycle(a, 'b', book);
     expect(loop).not.toBeNull();
@@ -71,7 +81,7 @@ describe('the acceptance check for build step 7', () => {
     const a = dish('a', 'Onion Thakkali Gravy', ['b']);
     const b = dish('b', 'Kuruma Base', ['a']);
 
-    const loop = findCycle(a, recipeBook([a, b]));
+    const loop = findCycle(a, books([a, b]));
     expect(loop?.names.join(' → ')).toBe(
       'Onion Thakkali Gravy → Kuruma Base → Onion Thakkali Gravy',
     );
@@ -83,13 +93,14 @@ describe('the acceptance check for build step 7', () => {
   it('refuses to cost a recipe that already contains a loop', () => {
     const a = dish('a', 'A', ['b']);
     const b = dish('b', 'B', ['a']);
-    const book = recipeBook([a, b]);
+    const book = books([a, b]);
+    const kitchen = pantry([a, b]);
 
     // Terminates rather than hanging, which is the point.
-    expect(() => recipeCost(a, book)).toThrowError(RecipeError);
+    expect(() => recipeCost(a, kitchen)).toThrowError(RecipeError);
 
     try {
-      recipeCost(a, book);
+      recipeCost(a, kitchen);
       expect.unreachable('should have thrown');
     } catch (error) {
       expect((error as RecipeError).code).toBe('cycle');
@@ -101,7 +112,7 @@ describe('the acceptance check for build step 7', () => {
 describe('loops at every depth', () => {
   it('catches a recipe containing itself', () => {
     const a = dish('a', 'A');
-    const loop = wouldCycle(a, 'a', recipeBook([a]));
+    const loop = wouldCycle(a, 'a', books([a]));
     expect(loop?.names).toEqual(['A', 'A']);
   });
 
@@ -109,7 +120,8 @@ describe('loops at every depth', () => {
     const a = dish('a', 'A', ['b']);
     const b = dish('b', 'B', ['c']);
     const c = dish('c', 'C', ['a']);
-    const book = recipeBook([a, b, c]);
+    const book = books([a, b, c]);
+    const kitchen = pantry([a, b, c]);
 
     expect(wouldCycle(a, 'b', book)?.names).toEqual(['A', 'B', 'C', 'A']);
   });
@@ -120,7 +132,8 @@ describe('loops at every depth', () => {
     const a = dish('a', 'A');
     const b = dish('b', 'B', ['c']);
     const c = dish('c', 'C', ['b']);
-    const book = recipeBook([a, b, c]);
+    const book = books([a, b, c]);
+    const kitchen = pantry([a, b, c]);
 
     expect(wouldCycle(a, 'b', book)).not.toBeNull();
   });
@@ -130,7 +143,7 @@ describe('loops at every depth', () => {
     const recipes = chain.map((id, i) =>
       dish(id, id.toUpperCase(), i + 1 < chain.length ? [chain[i + 1] as string] : ['a']),
     );
-    const book = recipeBook(recipes);
+    const book = books(recipes);
     const a = recipes[0];
     if (a === undefined) expect.unreachable('a exists');
 
@@ -142,10 +155,11 @@ describe('what is not a loop', () => {
   it('allows the same child twice in one recipe', () => {
     const child = dish('child', 'Gravy');
     const parent = dish('parent', 'Plate', ['child', 'child']);
-    const book = recipeBook([parent, child]);
+    const book = books([parent, child]);
+    const kitchen = pantry([parent, child]);
 
     expect(findCycle(parent, book)).toBeNull();
-    expect(() => recipeCost(parent, book)).not.toThrow();
+    expect(() => recipeCost(parent, kitchen)).not.toThrow();
   });
 
   it('allows a diamond — two routes reaching the same child', () => {
@@ -156,10 +170,11 @@ describe('what is not a loop', () => {
     const b = dish('b', 'Kuruma', ['d']);
     const c = dish('c', 'Chutney', ['d']);
     const a = dish('a', 'Plate', ['b', 'c']);
-    const book = recipeBook([a, b, c, d]);
+    const book = books([a, b, c, d]);
+    const kitchen = pantry([a, b, c, d]);
 
     expect(findCycle(a, book)).toBeNull();
-    expect(() => recipeCost(a, book)).not.toThrow();
+    expect(() => recipeCost(a, kitchen)).not.toThrow();
   });
 
   it('allows deep nesting that never returns', () => {
@@ -167,18 +182,18 @@ describe('what is not a loop', () => {
     const recipes = chain.map((id, i) =>
       dish(id, id.toUpperCase(), i + 1 < chain.length ? [chain[i + 1] as string] : []),
     );
-    const book = recipeBook(recipes);
+    const book = books(recipes);
     const a = recipes[0];
     if (a === undefined) expect.unreachable('a exists');
 
     expect(findCycle(a, book)).toBeNull();
-    expect(() => recipeCost(a, book)).not.toThrow();
+    expect(() => recipeCost(a, pantry(recipes))).not.toThrow();
   });
 
   it('says nothing about a recipe with no sub-recipes at all', () => {
     const a = dish('a', 'A');
-    expect(findCycle(a, recipeBook([a]))).toBeNull();
-    expect(wouldCycle(a, 'missing', recipeBook([a]))).toBeNull();
+    expect(findCycle(a, books([a]))).toBeNull();
+    expect(wouldCycle(a, 'missing', books([a]))).toBeNull();
   });
 });
 
@@ -186,7 +201,8 @@ describe('asking before offering, rather than erroring after', () => {
   it('answers without throwing, so a screen can mark the option', () => {
     const a = dish('a', 'A', ['b']);
     const b = dish('b', 'B', ['a']);
-    const book = recipeBook([a, b]);
+    const book = books([a, b]);
+    const kitchen = pantry([a, b]);
 
     // No try/catch. The interface asks, then decides what to render.
     expect(() => wouldCycle(a, 'b', book)).not.toThrow();
@@ -202,13 +218,14 @@ describe('asking before offering, rather than erroring after', () => {
 
     const a = dish('a', 'A', ['b']);
     const b = dish('b', 'B', ['a']);
-    const book = recipeBook([a, b]);
+    const book = books([a, b]);
+    const kitchen = pantry([a, b]);
 
     for (const [, _children] of cases) {
       const predicted = findCycle(a, book) !== null;
       let thrown = false;
       try {
-        recipeCost(a, book);
+        recipeCost(a, kitchen);
       } catch {
         thrown = true;
       }

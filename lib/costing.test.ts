@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { recipeCost } from '@/core/recipe';
 
 import { DEFAULT_MODEL, buildUp, foodCostPercent, statusFor, suggestPrice } from './costing';
-import { book, meta } from './data';
+import { meta, pantry } from './data';
 
 /** Narrows a plated dish's build-up, which the type keeps nullable. */
 function platedBuild(id: string) {
@@ -15,9 +15,9 @@ function platedBuild(id: string) {
 }
 
 function costOf(id: string) {
-  const recipe = book.get(id);
+  const recipe = pantry.recipes.get(id);
   if (recipe === undefined) throw new Error(`no recipe ${id}`);
-  return recipeCost(recipe, book);
+  return recipeCost(recipe, pantry);
 }
 
 describe('regression — the printed column must reconcile', () => {

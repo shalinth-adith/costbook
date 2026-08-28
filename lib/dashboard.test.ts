@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_MODEL } from './costing';
-import { ORG, book, dishIds, meta } from './data';
+import { ORG, dishIds, meta, pantry } from './data';
 import { BAR_SCALE, applyFilter, categoriesOf, dashboard } from './dashboard';
 
 const model = { ...DEFAULT_MODEL, foodCostTarget: ORG.foodCostTarget };
-const data = dashboard({ ids: dishIds, book, meta, model });
+const data = dashboard({ ids: dishIds, pantry, meta, model });
 const row = (name: string) => data.rows.find((r) => r.name === name);
 
 describe('the sort is the screen argument', () => {

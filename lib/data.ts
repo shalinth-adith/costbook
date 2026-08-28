@@ -8,9 +8,11 @@
 
 import { type Ingredient, ingredientFromPack } from '@/core/ingredient';
 import {
+  type Pantry,
   type Recipe,
   type RecipeBook,
   ingredientComponent,
+  pantryOf,
   recipeBook,
   recipeComponent,
 } from '@/core/recipe';
@@ -32,6 +34,58 @@ function pack(
   );
 }
 
+/**
+ * Every ingredient the kitchen buys, defined once.
+ *
+ * Before this existed the same onion appeared six times, each with its own
+ * rate, and editing one would have left the other five at the old price
+ * silently. A component line now points here.
+ */
+const SHELF: readonly Ingredient[] = [
+  pack('Onion, big', 50, 'kg', 2000, 88),
+  pack('Tomato', 1, 'kg', 30, 95),
+  pack('Coriander leaves', 1, 'kg', 280, 70),
+  pack('Mint leaves', 1, 'kg', 240, 70),
+  pack('Curry leaves', 1, 'kg', 335, 100),
+  pack('Green chilli', 1, 'kg', 180, 95),
+  pack('Coconut, grated', 1, 'kg', 190, 62),
+  pack('Cashew, whole', 1, 'kg', 980, 100),
+  pack('Ghee, Aavin', 1, 'kg', 620, 100),
+  pack('Refined oil', 15, 'l', 2220, 100),
+  pack('Curd, set', 1, 'kg', 72, 100),
+  pack('Ginger garlic paste', 1, 'kg', 220, 100),
+  pack('Fried onion, birista', 1, 'kg', 410, 100),
+  pack('Salt, iodised', 1, 'kg', 22, 100),
+  pack('Lemon', 1, 'pcs', 1.2, 100),
+  pack('Banana leaf liner', 1, 'pcs', 2.5, 100),
+  pack('Chutney cup, 30 ml', 1, 'pcs', 1.1, 100),
+  pack('Water', 1, 'l', 0, 100),
+  pack('Maida', 1, 'kg', 48, 100),
+  pack('Chicken, dressed', 1, 'kg', 220, 100),
+  pack('Mutton, curry cut', 1, 'kg', 780, 100),
+  pack('Seeraga samba rice', 25, 'kg', 3240, 100),
+  pack('Idly rice', 1, 'kg', 52, 100),
+  pack('Dosa rice', 1, 'kg', 60, 100),
+  pack('Urad dal', 1, 'kg', 120, 100),
+  pack('Fenugreek', 1, 'kg', 180, 100),
+  pack('Coffee powder', 1, 'kg', 480, 100),
+  pack('Milk, toned', 1, 'l', 60, 100),
+  pack('Sugar', 50, 'kg', 2290, 100),
+  pack('Rose syrup', 750, 'ml', 180, 100),
+  // No rate on file. Any dish using it reports a floor until one is entered.
+  pack('Milagai podi, house', 1, 'kg', null),
+  pack('Nannari syrup', 1, 'l', null),
+];
+
+const BY_NAME: ReadonlyMap<string, Ingredient> = new Map(SHELF.map((i) => [i.name, i]));
+
+/** Look an ingredient up by the name a recipe writes. */
+function ing(name: string): Ingredient {
+  const found = BY_NAME.get(name);
+  if (found === undefined) throw new Error(`No ingredient on the shelf called "${name}"`);
+  return found;
+}
+
 /** Fields the screens show that the costing engine has no opinion about. */
 export interface DishMeta {
   readonly category: string;
@@ -51,9 +105,9 @@ const gravy: Recipe = {
   outputUnit: 'kg',
   portions: null,
   components: [
-    ingredientComponent(pack('Onion, big', 1, 'kg', 40, 88), 1500, 'g'),
-    ingredientComponent(pack('Tomato', 1, 'kg', 30, 95), 1000, 'g'),
-    ingredientComponent(pack('Refined oil', 1, 'l', 148, 100), 100, 'ml'),
+    ingredientComponent(ing('Onion, big'), 1500, 'g'),
+    ingredientComponent(ing('Tomato'), 1000, 'g'),
+    ingredientComponent(ing('Refined oil'), 100, 'ml'),
   ],
 };
 
@@ -65,9 +119,9 @@ const parotta: Recipe = {
   outputUnit: 'pcs',
   portions: null,
   components: [
-    ingredientComponent(pack('Maida', 1, 'kg', 48, 100), 2000, 'g'),
-    ingredientComponent(pack('Refined oil', 1, 'l', 148, 100), 150, 'ml'),
-    ingredientComponent(pack('Salt, iodised', 1, 'kg', 22, 100), 20, 'g'),
+    ingredientComponent(ing('Maida'), 2000, 'g'),
+    ingredientComponent(ing('Refined oil'), 150, 'ml'),
+    ingredientComponent(ing('Salt, iodised'), 20, 'g'),
   ],
 };
 
@@ -79,9 +133,9 @@ const kuruma: Recipe = {
   outputUnit: 'kg',
   portions: null,
   components: [
-    ingredientComponent(pack('Chicken, dressed', 1, 'kg', 220, 100), 2000, 'g'),
+    ingredientComponent(ing('Chicken, dressed'), 2000, 'g'),
     recipeComponent(gravy, 240, 'g'),
-    ingredientComponent(pack('Coconut, grated', 1, 'kg', 190, 62), 200, 'g'),
+    ingredientComponent(ing('Coconut, grated'), 200, 'g'),
   ],
 };
 
@@ -95,14 +149,14 @@ const plate: Recipe = {
   components: [
     recipeComponent(parotta, 8, 'pcs'),
     recipeComponent(kuruma, 480, 'g'),
-    ingredientComponent(pack('Onion, big', 1, 'kg', 40, 88), 200, 'g'),
-    ingredientComponent(pack('Coriander leaves', 1, 'kg', 280, 70), 20, 'g'),
-    ingredientComponent(pack('Lemon', 1, 'pcs', 1.2, 100), 4, 'pcs'),
-    ingredientComponent(pack('Banana leaf liner', 1, 'pcs', 2.5, 100), 4, 'pcs'),
+    ingredientComponent(ing('Onion, big'), 200, 'g'),
+    ingredientComponent(ing('Coriander leaves'), 20, 'g'),
+    ingredientComponent(ing('Lemon'), 4, 'pcs'),
+    ingredientComponent(ing('Banana leaf liner'), 4, 'pcs'),
     // Drizzled on each plate rather than mixed into the batch. The line the
     // per-portion pool exists for.
-    ingredientComponent(pack('Ghee, Aavin', 1, 'kg', 620, 100), 12, 'g', { scope: 'portion' }),
-    ingredientComponent(pack('Chutney cup, 30 ml', 1, 'pcs', 1.1, 100), 1, 'pcs', {
+    ingredientComponent(ing('Ghee, Aavin'), 12, 'g', { scope: 'portion' }),
+    ingredientComponent(ing('Chutney cup, 30 ml'), 1, 'pcs', {
       scope: 'portion',
     }),
   ],
@@ -126,18 +180,18 @@ const podiIdly: Recipe = {
         outputUnit: 'pcs',
         portions: null,
         components: [
-          ingredientComponent(pack('Idly rice', 1, 'kg', 52, 100), 3000, 'g'),
-          ingredientComponent(pack('Urad dal', 1, 'kg', 120, 100), 750, 'g'),
+          ingredientComponent(ing('Idly rice'), 3000, 'g'),
+          ingredientComponent(ing('Urad dal'), 750, 'g'),
         ],
       },
       12,
       'pcs',
     ),
-    ingredientComponent(pack('Ghee, Aavin', 1, 'kg', 620, 100), 15, 'g'),
+    ingredientComponent(ing('Ghee, Aavin'), 15, 'g'),
     // No rate on file. This dish reports a floor, and no price is offered.
-    ingredientComponent(pack('Milagai podi, house', 1, 'kg', null), 8, 'g'),
-    ingredientComponent(pack('Curry leaves', 1, 'kg', 335, 100), 4, 'g'),
-    ingredientComponent(pack('Chutney cup, 30 ml', 1, 'pcs', 1.1), 1, 'pcs', { scope: 'portion' }),
+    ingredientComponent(ing('Milagai podi, house'), 8, 'g'),
+    ingredientComponent(ing('Curry leaves'), 4, 'g'),
+    ingredientComponent(ing('Chutney cup, 30 ml'), 1, 'pcs', { scope: 'portion' }),
   ],
 };
 
@@ -149,8 +203,8 @@ const miniIdly: Recipe = {
   outputUnit: 'pcs',
   portions: null,
   components: [
-    ingredientComponent(pack('Idly rice', 1, 'kg', 52, 100), 3000, 'g'),
-    ingredientComponent(pack('Urad dal', 1, 'kg', 120, 100), 750, 'g'),
+    ingredientComponent(ing('Idly rice'), 3000, 'g'),
+    ingredientComponent(ing('Urad dal'), 750, 'g'),
   ],
 };
 
@@ -167,13 +221,13 @@ const biryani: Recipe = {
   name: 'Mutton Seeraga Samba Biryani',
   family: 'mass', outputQty: 4800, outputUnit: 'kg', portions: 4,
   components: [
-    ingredientComponent(pack('Mutton, curry cut', 1, 'kg', 780, 100), 800, 'g'),
-    ingredientComponent(pack('Seeraga samba rice', 25, 'kg', 3240, 100), 1000, 'g'),
-    ingredientComponent(pack('Curd, set', 1, 'kg', 72, 100), 300, 'g'),
-    ingredientComponent(pack('Onion, big', 1, 'kg', 40, 88), 600, 'g'),
-    ingredientComponent(pack('Ghee, Aavin', 1, 'kg', 620, 100), 80, 'g'),
-    ingredientComponent(pack('Ginger garlic paste', 1, 'kg', 220, 100), 60, 'g'),
-    ingredientComponent(pack('Banana leaf liner', 1, 'pcs', 2.5, 100), 1, 'pcs', { scope: 'portion' }),
+    ingredientComponent(ing('Mutton, curry cut'), 800, 'g'),
+    ingredientComponent(ing('Seeraga samba rice'), 1000, 'g'),
+    ingredientComponent(ing('Curd, set'), 300, 'g'),
+    ingredientComponent(ing('Onion, big'), 600, 'g'),
+    ingredientComponent(ing('Ghee, Aavin'), 80, 'g'),
+    ingredientComponent(ing('Ginger garlic paste'), 60, 'g'),
+    ingredientComponent(ing('Banana leaf liner'), 1, 'pcs', { scope: 'portion' }),
   ],
 };
 
@@ -182,11 +236,11 @@ const chicken65: Recipe = {
   name: 'Chicken 65',
   family: 'mass', outputQty: 900, outputUnit: 'kg', portions: 3,
   components: [
-    ingredientComponent(pack('Chicken, dressed', 1, 'kg', 220, 100), 700, 'g'),
-    ingredientComponent(pack('Curd, set', 1, 'kg', 72, 100), 80, 'g'),
-    ingredientComponent(pack('Refined oil', 15, 'l', 2220, 100), 120, 'ml'),
-    ingredientComponent(pack('Curry leaves', 1, 'kg', 335, 100), 8, 'g'),
-    ingredientComponent(pack('Green chilli', 1, 'kg', 180, 95), 20, 'g'),
+    ingredientComponent(ing('Chicken, dressed'), 700, 'g'),
+    ingredientComponent(ing('Curd, set'), 80, 'g'),
+    ingredientComponent(ing('Refined oil'), 120, 'ml'),
+    ingredientComponent(ing('Curry leaves'), 8, 'g'),
+    ingredientComponent(ing('Green chilli'), 20, 'g'),
   ],
 };
 
@@ -196,9 +250,9 @@ const kothuParotta: Recipe = {
   family: 'mass', outputQty: 1600, outputUnit: 'kg', portions: 2,
   components: [
     recipeComponent(parotta, 4, 'pcs'),
-    ingredientComponent(pack('Mutton, curry cut', 1, 'kg', 780, 100), 250, 'g'),
-    ingredientComponent(pack('Onion, big', 1, 'kg', 40, 88), 200, 'g'),
-    ingredientComponent(pack('Refined oil', 15, 'l', 2220, 100), 40, 'ml'),
+    ingredientComponent(ing('Mutton, curry cut'), 250, 'g'),
+    ingredientComponent(ing('Onion, big'), 200, 'g'),
+    ingredientComponent(ing('Refined oil'), 40, 'ml'),
   ],
 };
 
@@ -207,9 +261,9 @@ const filterCoffee: Recipe = {
   name: 'Filter Coffee',
   family: 'volume', outputQty: 2000, outputUnit: 'l', portions: 10,
   components: [
-    ingredientComponent(pack('Coffee powder', 1, 'kg', 480, 100), 120, 'g'),
-    ingredientComponent(pack('Milk, toned', 1, 'l', 60, 100), 1500, 'ml'),
-    ingredientComponent(pack('Sugar', 50, 'kg', 2290, 100), 100, 'g'),
+    ingredientComponent(ing('Coffee powder'), 120, 'g'),
+    ingredientComponent(ing('Milk, toned'), 1500, 'ml'),
+    ingredientComponent(ing('Sugar'), 100, 'g'),
   ],
 };
 
@@ -218,11 +272,11 @@ const jigarthanda: Recipe = {
   name: 'Jigarthanda',
   family: 'volume', outputQty: 1200, outputUnit: 'l', portions: 4,
   components: [
-    ingredientComponent(pack('Milk, toned', 1, 'l', 60, 100), 900, 'ml'),
-    ingredientComponent(pack('Sugar', 50, 'kg', 2290, 100), 120, 'g'),
-    ingredientComponent(pack('Cashew, whole', 1, 'kg', 980, 100), 20, 'g'),
+    ingredientComponent(ing('Milk, toned'), 900, 'ml'),
+    ingredientComponent(ing('Sugar'), 120, 'g'),
+    ingredientComponent(ing('Cashew, whole'), 20, 'g'),
     // No rate on file. This dish reports a floor.
-    ingredientComponent(pack('Nannari syrup', 1, 'l', null), 60, 'ml'),
+    ingredientComponent(ing('Nannari syrup'), 60, 'ml'),
   ],
 };
 
@@ -231,10 +285,10 @@ const sambarVada: Recipe = {
   name: 'Sambar Vada (2 pc)',
   family: 'count', outputQty: 10, outputUnit: 'pcs', portions: 5,
   components: [
-    ingredientComponent(pack('Urad dal', 1, 'kg', 120, 100), 400, 'g'),
-    ingredientComponent(pack('Refined oil', 15, 'l', 2220, 100), 200, 'ml'),
-    ingredientComponent(pack('Onion, big', 1, 'kg', 40, 88), 100, 'g'),
-    ingredientComponent(pack('Curry leaves', 1, 'kg', 335, 100), 10, 'g'),
+    ingredientComponent(ing('Urad dal'), 400, 'g'),
+    ingredientComponent(ing('Refined oil'), 200, 'ml'),
+    ingredientComponent(ing('Onion, big'), 100, 'g'),
+    ingredientComponent(ing('Curry leaves'), 10, 'g'),
   ],
 };
 
@@ -243,10 +297,10 @@ const mysoreBonda: Recipe = {
   name: 'Mysore Bonda (3 pc)',
   family: 'count', outputQty: 18, outputUnit: 'pcs', portions: 6,
   components: [
-    ingredientComponent(pack('Maida', 1, 'kg', 48, 100), 500, 'g'),
-    ingredientComponent(pack('Curd, set', 1, 'kg', 72, 100), 150, 'g'),
-    ingredientComponent(pack('Refined oil', 15, 'l', 2220, 100), 250, 'ml'),
-    ingredientComponent(pack('Green chilli', 1, 'kg', 180, 95), 15, 'g'),
+    ingredientComponent(ing('Maida'), 500, 'g'),
+    ingredientComponent(ing('Curd, set'), 150, 'g'),
+    ingredientComponent(ing('Refined oil'), 250, 'ml'),
+    ingredientComponent(ing('Green chilli'), 15, 'g'),
   ],
 };
 
@@ -255,34 +309,13 @@ const roseMilk: Recipe = {
   name: 'Rose Milk',
   family: 'volume', outputQty: 1000, outputUnit: 'l', portions: 4,
   components: [
-    ingredientComponent(pack('Milk, toned', 1, 'l', 60, 100), 800, 'ml'),
-    ingredientComponent(pack('Sugar', 50, 'kg', 2290, 100), 90, 'g'),
-    ingredientComponent(pack('Rose syrup', 750, 'ml', 180, 100), 80, 'ml'),
+    ingredientComponent(ing('Milk, toned'), 800, 'ml'),
+    ingredientComponent(ing('Sugar'), 90, 'g'),
+    ingredientComponent(ing('Rose syrup'), 80, 'ml'),
   ],
 };
 
-export const shelf: readonly Ingredient[] = [
-  pack('Onion, big', 50, 'kg', 2000, 88),
-  pack('Tomato', 1, 'kg', 30, 95),
-  pack('Coriander leaves', 1, 'kg', 280, 70),
-  pack('Mint leaves', 1, 'kg', 240, 70),
-  pack('Curry leaves', 1, 'kg', 335, 100),
-  pack('Green chilli', 1, 'kg', 180, 95),
-  pack('Coconut, grated', 1, 'kg', 190, 62),
-  pack('Cashew, whole', 1, 'kg', 980, 100),
-  pack('Ghee, Aavin', 1, 'kg', 620, 100),
-  pack('Refined oil', 15, 'l', 2220, 100),
-  pack('Curd, set', 1, 'kg', 72, 100),
-  pack('Ginger garlic paste', 1, 'kg', 220, 100),
-  pack('Fried onion, birista', 1, 'kg', 410, 100),
-  pack('Salt, iodised', 1, 'kg', 22, 100),
-  pack('Lemon', 1, 'pcs', 1.2, 100),
-  pack('Banana leaf liner', 1, 'pcs', 2.5, 100),
-  pack('Chutney cup, 30 ml', 1, 'pcs', 1.1, 100),
-  pack('Water', 1, 'l', 0, 100),
-  // No rate on file. Addable, and the dish becomes a floor until it has one.
-  pack('Milagai podi, house', 1, 'kg', null),
-];
+export const shelf: readonly Ingredient[] = SHELF;
 
 export const recipes: readonly Recipe[] = [
   gravy, parotta, kuruma, miniIdly,
@@ -291,6 +324,9 @@ export const recipes: readonly Recipe[] = [
 ];
 
 export const book: RecipeBook = recipeBook(recipes);
+
+/** Everything a costing needs: the recipes it may nest and the ingredients its lines point at. */
+export const pantry: Pantry = pantryOf(recipes, SHELF);
 
 function dishMeta(
   category: string,
@@ -361,7 +397,7 @@ export function usedInCount(name: string): number {
   for (const recipe of recipes) {
     const hit = recipe.components.some((c) =>
       c.kind === 'ingredient'
-        ? c.ingredient.name === name
+        ? (BY_NAME.get(name)?.id ?? '') === c.ingredientId
         : c.kind === 'recipe'
           ? (book.get(c.childId)?.name ?? '') === name
           : false,

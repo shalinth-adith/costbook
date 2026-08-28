@@ -26,6 +26,13 @@ import { type UnitFamily, toBase } from './units';
 export const ASSUMED_YIELD_PERCENT = 100;
 
 export interface Ingredient {
+  /**
+   * Identity. An ingredient is one thing the kitchen buys, referenced by every
+   * recipe that uses it — not a value copied into each. Change the rate here
+   * and every dish follows, which is the whole point of the screen that edits
+   * it (FLOWS 6).
+   */
+  readonly id: string;
   readonly name: string;
   readonly family: UnitFamily;
   /** Size of the purchase pack, in the family's base unit. Must be > 0. */
@@ -158,6 +165,8 @@ export function isPriced(ingredient: Ingredient): boolean {
 }
 
 export interface PackInput {
+  /** Omit and one is derived from the name. */
+  readonly id?: string;
   readonly name: string;
   readonly family: UnitFamily;
   /** Pack size in the unit the operator typed — "50" for a 50 kg sack. */
@@ -177,10 +186,19 @@ export interface PackInput {
  * Nothing here supplies a price. `packPrice: null` stays null all the way
  * through to the dashboard, where it shows as an empty cell rather than a zero.
  */
+/** A stable, readable id from a name: "Onion, big" becomes "onion-big". */
+export function ingredientId(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 export function ingredientFromPack(input: PackInput): Ingredient {
   const yieldGiven = input.yieldPercent !== undefined;
 
   return {
+    id: input.id ?? ingredientId(input.name),
     name: input.name,
     family: input.family,
     purchaseQty: toBase(input.packQty, input.packUnit),
@@ -206,4 +224,35 @@ export function ingredientFromPack(input: PackInput): Ingredient {
 export function ratePerUnit(ratePerBaseUnit: number | null, unit: string): number | null {
   if (ratePerBaseUnit === null) return null;
   return toBase(ratePerBaseUnit, unit);
+}
+
+/** Every ingredient the costing can reach, by id. */
+export type IngredientBook = ReadonlyMap<string, Ingredient>;
+
+export function ingredientBook(ingredients: readonly Ingredient[]): IngredientBook {
+  return new Map(ingredients.map((i) => [i.id, i]));
+}
+
+/**
+ * The same ingredient with a new rate, and nothing else touched.
+ *
+ * The rate the operator types is what the pack cost. Everything downstream —
+ * every line in every dish that references this ingredient — follows from it
+ * without any synchronising, because there is only ever one of these.
+ */
+export function withRate(
+  ingredient: Ingredient,
+  packPrice: number | null,
+  packQty?: number,
+): Ingredient {
+  return {
+    ...ingredient,
+    purchasePrice: packPrice,
+    purchaseQty: packQty ?? ingredient.purchaseQty,
+  };
+}
+
+/** The same ingredient with a yield the operator has now stated. */
+export function withYield(ingredient: Ingredient, yieldPercent: number): Ingredient {
+  return { ...ingredient, yieldPercent, yieldIsAssumed: false };
 }

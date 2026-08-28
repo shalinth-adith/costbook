@@ -1,6 +1,6 @@
 'use client';
 
-import type { CostedLine, RecipeComponent } from '@/core/recipe';
+import type { CostedLine } from '@/core/recipe';
 
 import { DASH, money, qty, rate } from '@/lib/format';
 
@@ -22,11 +22,9 @@ export interface LineHandlers {
  */
 export function ComponentTable({
   lines,
-  components,
   handlers,
 }: {
   lines: readonly CostedLine[];
-  components: readonly RecipeComponent[];
   handlers: LineHandlers;
 }) {
   return (
@@ -43,12 +41,9 @@ export function ComponentTable({
       </div>
 
       {lines.map((line, i) => {
-        const component = components[i];
         const isOpen = handlers.expanded === i;
-        const yieldText =
-          component !== undefined && component.kind === 'ingredient'
-            ? `${component.ingredient.yieldPercent}%`
-            : DASH;
+        // Reported by whoever resolved the ingredient, not looked up again here.
+        const yieldText = line.yieldPercent === null ? DASH : `${line.yieldPercent}%`;
 
         return (
           <div key={`${line.name}-${i}`}>

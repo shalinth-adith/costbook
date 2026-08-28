@@ -12,7 +12,7 @@ import {
   type ComponentScope,
   type CyclePath,
   type Recipe,
-  type RecipeBook,
+  type Pantry,
   RecipeError,
   ingredientComponent,
   recipeBook,
@@ -66,12 +66,15 @@ export function removeLine(recipe: Recipe, index: number): Recipe {
 export function addComponent(
   recipe: Recipe,
   others: readonly Recipe[],
+  ingredients: readonly Ingredient[],
   choice: AddChoice,
 ): AddResult {
+  const pantry = pantryWith(recipe, others, ingredients);
+
   // Asked before the line is built, so a loop is refused as an answer rather
   // than as an exception thrown from inside a calculation.
   if (choice.kind === 'recipe') {
-    const loop = wouldCycle(recipe, choice.recipe.id, bookWith(recipe, others));
+    const loop = wouldCycle(recipe, choice.recipe.id, pantry.recipes);
     if (loop !== null) return { ok: false, message: cycleMessage(loop) };
   }
 
@@ -84,7 +87,7 @@ export function addComponent(
     const next: Recipe = { ...recipe, components: [...recipe.components, component] };
 
     // Cost it before keeping it, as a second guard on everything else.
-    recipeCost(next, bookWith(next, others));
+    recipeCost(next, pantryWith(next, others, ingredients));
 
     return { ok: true, recipe: next };
   } catch (error) {
@@ -126,10 +129,17 @@ export function blockedBy(
   choice: AddChoice,
 ): CyclePath | null {
   if (choice.kind !== 'recipe') return null;
-  return wouldCycle(recipe, choice.recipe.id, bookWith(recipe, others));
+  return wouldCycle(recipe, choice.recipe.id, recipeBook([...others, recipe]));
 }
 
-/** The book as it stands with this edit applied. */
-export function bookWith(recipe: Recipe, others: readonly Recipe[]): RecipeBook {
-  return recipeBook([...others.filter((r) => r.id !== recipe.id), recipe]);
+/** The pantry as it stands with this edit applied. */
+export function pantryWith(
+  recipe: Recipe,
+  others: readonly Recipe[],
+  ingredients: readonly Ingredient[],
+): Pantry {
+  return {
+    recipes: recipeBook([...others.filter((r) => r.id !== recipe.id), recipe]),
+    ingredients: new Map(ingredients.map((i) => [i.id, i])),
+  };
 }

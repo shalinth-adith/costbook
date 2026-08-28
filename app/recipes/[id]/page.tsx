@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 
 import { AppShell } from '@/components/app-shell';
 import { RecipeSheet } from '@/components/recipe-sheet';
-import { book, meta, recipes, shelf, usedInCount } from '@/lib/data';
+import { book, meta, pantry, recipes, shelf, usedInCount } from '@/lib/data';
 
 /**
  * The cost sheet. Creating a dish and editing one are the same screen in two
@@ -24,7 +24,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
   const names = new Set<string>();
   for (const r of recipes) {
     for (const c of r.components) {
-      if (c.kind === 'ingredient') names.add(c.ingredient.name);
+      if (c.kind === 'ingredient') names.add(pantry.ingredients.get(c.ingredientId)?.name ?? '');
       if (c.kind === 'recipe') names.add(book.get(c.childId)?.name ?? '');
     }
   }

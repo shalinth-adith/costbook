@@ -10,7 +10,7 @@
 
 import type { Ingredient } from '@/core/ingredient';
 import { ingredientCost, ratePerUnit } from '@/core/ingredient';
-import type { Recipe, RecipeBook } from '@/core/recipe';
+import type { Pantry, Recipe } from '@/core/recipe';
 import { isComplete, recipeCost, wouldCycle } from '@/core/recipe';
 
 import { type ComponentKind, ORG } from './data';
@@ -44,7 +44,7 @@ export interface PickerGroup {
 export interface PickerInput {
   readonly shelf: readonly Ingredient[];
   readonly recipes: readonly Recipe[];
-  readonly book: RecipeBook;
+  readonly pantry: Pantry;
   readonly excludeRecipeId: string;
   readonly usedInCount: (name: string) => number;
   readonly query: string;
@@ -73,11 +73,11 @@ function ingredientRow(i: Ingredient, usedInCount: (n: string) => number): Picke
 
 function recipeRow(
   r: Recipe,
-  book: RecipeBook,
+  pantry: Pantry,
   usedInCount: (n: string) => number,
   parent: Recipe | undefined,
 ): PickerRow {
-  const cost = recipeCost(r, book);
+  const cost = recipeCost(r, pantry);
   const per = isComplete(cost) ? cost.costPerBase : null;
 
   return {
@@ -97,7 +97,7 @@ function recipeRow(
       parent === undefined
         ? null
         : (() => {
-            const loop = wouldCycle(parent, r.id, book);
+            const loop = wouldCycle(parent, r.id, pantry.recipes);
             return loop === null
               ? null
               : `already uses ${parent.name}, so adding it would close a loop`;
@@ -111,15 +111,15 @@ function recipeRow(
  * the order a cook thinks in and the order these things come into existence.
  */
 export function pickerGroups(input: PickerInput): readonly PickerGroup[] {
-  const { shelf, recipes, book, excludeRecipeId, usedInCount, query } = input;
+  const { shelf, recipes, pantry, excludeRecipeId, usedInCount, query } = input;
 
-  const parent = book.get(excludeRecipeId);
+  const parent = pantry.recipes.get(excludeRecipeId);
 
   const ingredients = shelf.map((i) => ingredientRow(i, usedInCount));
   const fromRecipes = recipes
     // A recipe can never be a component of itself.
     .filter((r) => r.id !== excludeRecipeId)
-    .map((r) => recipeRow(r, book, usedInCount, parent));
+    .map((r) => recipeRow(r, pantry, usedInCount, parent));
 
   const q = query.trim().toLowerCase();
   const match = (r: PickerRow) => q === '' || r.name.toLowerCase().includes(q);

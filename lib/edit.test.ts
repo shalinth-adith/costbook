@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { isComplete, recipeCost } from '@/core/recipe';
 
 import { buildUp } from './costing';
-import { book, recipes, shelf } from './data';
-import { addComponent, bookWith, removeLine, setQty, toggleScope } from './edit';
+import { book, pantry, recipes, shelf } from './data';
+import { addComponent, pantryWith, removeLine, setQty, toggleScope } from './edit';
 
 const plate = () => {
   const r = book.get('plate');
@@ -14,7 +14,7 @@ const plate = () => {
 const others = () => recipes.filter((r) => r.id !== 'plate');
 /** The plate is plated, so this figure always exists; the type keeps it nullable. */
 const perPortion = (r = plate()): number => {
-  const value = buildUp(recipeCost(r, bookWith(r, others()))).ingredientsPerPortion;
+  const value = buildUp(recipeCost(r, pantryWith(r, others(), shelf))).ingredientsPerPortion;
   if (value === null) throw new Error(`${r.name} has no portions`);
   return value;
 };
@@ -27,11 +27,11 @@ describe('changing a quantity', () => {
   });
 
   it('reprices a nested sub-recipe line through its own cost per base unit', () => {
-    const kuruma = recipeCost(book.get('kuruma')!, book);
+    const kuruma = recipeCost(book.get('kuruma')!, pantry);
     if (!isComplete(kuruma)) expect.unreachable('kuruma is priced');
 
     const doubled = setQty(plate(), 1, 960); // kuruma 480 g -> 960 g
-    const cost = recipeCost(doubled, bookWith(doubled, others()));
+    const cost = recipeCost(doubled, pantryWith(doubled, others(), shelf));
     const line = cost.lines.find((l) => l.name === 'Chicken Kuruma');
 
     expect(line?.cost).toBeCloseTo(960 * kuruma.costPerBase, 9);
@@ -50,8 +50,10 @@ describe('moving a line between the pools', () => {
   it('changes the per-portion cost by the price of that line', () => {
     // The ghee, drizzled on each plate. In the batch pool it is divided across
     // the six; in the portion pool every plate carries it.
+    const ghee = shelf.find((i) => i.name === 'Ghee, Aavin');
+    if (ghee === undefined) expect.unreachable('ghee is on the shelf');
     const gheeIndex = plate().components.findIndex(
-      (c) => c.kind === 'ingredient' && c.ingredient.name === 'Ghee, Aavin',
+      (c) => c.kind === 'ingredient' && c.ingredientId === ghee.id,
     );
     expect(gheeIndex).toBeGreaterThanOrEqual(0);
 
@@ -82,7 +84,7 @@ describe('adding a component', () => {
     const ghee = shelf.find((i) => i.name === 'Ghee, Aavin');
     if (ghee === undefined) expect.unreachable('ghee is on the shelf');
 
-    const result = addComponent(plate(), others(), { kind: 'ingredient', ingredient: ghee });
+    const result = addComponent(plate(), others(), shelf, { kind: 'ingredient', ingredient: ghee });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
@@ -94,11 +96,11 @@ describe('adding a component', () => {
     const gravy = recipes.find((r) => r.id === 'gravy');
     if (gravy === undefined) expect.unreachable('gravy exists');
 
-    const result = addComponent(plate(), others(), { kind: 'recipe', recipe: gravy });
+    const result = addComponent(plate(), others(), shelf, { kind: 'recipe', recipe: gravy });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
-    const cost = recipeCost(result.recipe, bookWith(result.recipe, others()));
+    const cost = recipeCost(result.recipe, pantryWith(result.recipe, others(), shelf));
     expect(cost.lines.some((l) => l.kind === 'recipe' && l.name === 'Onion Thakkali Gravy')).toBe(true);
   });
 
@@ -106,11 +108,11 @@ describe('adding a component', () => {
     const podi = shelf.find((i) => i.name === 'Milagai podi, house');
     if (podi === undefined) expect.unreachable('podi is on the shelf');
 
-    const result = addComponent(plate(), others(), { kind: 'ingredient', ingredient: podi });
+    const result = addComponent(plate(), others(), shelf, { kind: 'ingredient', ingredient: podi });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
-    const cost = recipeCost(result.recipe, bookWith(result.recipe, others()));
+    const cost = recipeCost(result.recipe, pantryWith(result.recipe, others(), shelf));
     expect(cost.kind).toBe('floor');
   });
 
@@ -124,6 +126,7 @@ describe('adding a component', () => {
     const result = addComponent(
       kuruma,
       recipes.filter((r) => r.id !== 'kuruma'),
+      shelf,
       { kind: 'recipe', recipe: plateRecipe },
     );
 
@@ -142,7 +145,11 @@ describe('adding a component', () => {
     if (kuruma === undefined || plateRecipe === undefined) expect.unreachable('both exist');
 
     const before = kuruma.components.length;
-    addComponent(kuruma, recipes.filter((r) => r.id !== 'kuruma'), {
+    addComponent(
+      kuruma,
+      recipes.filter((r) => r.id !== 'kuruma'),
+      shelf,
+      {
       kind: 'recipe',
       recipe: plateRecipe,
     });
@@ -176,7 +183,7 @@ describe('what you buy and what you make stay distinct', () => {
     const podi = book.get('podi-idly');
     if (podi === undefined) expect.unreachable('podi exists');
 
-    const result = addComponent(plate(), others(), { kind: 'recipe', recipe: podi });
+    const result = addComponent(plate(), others(), shelf, { kind: 'recipe', recipe: podi });
     expect(result.ok).toBe(true);
   });
 });

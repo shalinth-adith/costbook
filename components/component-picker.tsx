@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from 'react';
 
 import type { Ingredient } from '@/core/ingredient';
-import type { Recipe, RecipeBook } from '@/core/recipe';
+import type { Pantry, Recipe } from '@/core/recipe';
 
 import { KIND_HINT, KIND_LABEL } from '@/lib/data';
 import { type PickerChoice, countRows, pickerGroups } from '@/lib/picker';
@@ -13,14 +13,14 @@ export type { PickerChoice };
 export function ComponentPicker({
   shelf,
   recipes,
-  book,
+  pantry,
   excludeRecipeId,
   usedInCount,
   onPick,
 }: {
   shelf: readonly Ingredient[];
   recipes: readonly Recipe[];
-  book: RecipeBook;
+  pantry: Pantry;
   excludeRecipeId: string;
   usedInCount: (name: string) => number;
   onPick: (choice: PickerChoice) => void;
@@ -30,8 +30,8 @@ export function ComponentPicker({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const groups = useMemo(
-    () => pickerGroups({ shelf, recipes, book, excludeRecipeId, usedInCount, query }),
-    [shelf, recipes, book, excludeRecipeId, usedInCount, query],
+    () => pickerGroups({ shelf, recipes, pantry, excludeRecipeId, usedInCount, query }),
+    [shelf, recipes, pantry, excludeRecipeId, usedInCount, query],
   );
 
   const total = countRows(groups);

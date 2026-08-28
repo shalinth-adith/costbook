@@ -13,7 +13,7 @@
  * gap from a missing rate, and it says so.
  */
 
-import { type RecipeBook, recipeCost } from '@/core/recipe';
+import { type Pantry, recipeCost } from '@/core/recipe';
 
 import { type CostingModel, type TargetStatus, buildUp, foodCostPercent, statusFor } from './costing';
 import { type DishMeta } from './data';
@@ -62,23 +62,23 @@ export interface Dashboard {
 
 export interface DashboardInput {
   readonly ids: readonly string[];
-  readonly book: RecipeBook;
+  readonly pantry: Pantry;
   readonly meta: Readonly<Record<string, DishMeta>>;
   readonly model: CostingModel;
 }
 
 export function dashboard(input: DashboardInput): Dashboard {
-  const { ids, book, meta, model } = input;
+  const { ids, pantry, meta, model } = input;
   const target = model.foodCostTarget;
 
   const rows: DashboardRow[] = [];
 
   for (const id of ids) {
-    const recipe = book.get(id);
+    const recipe = pantry.recipes.get(id);
     const dish = meta[id];
     if (recipe === undefined || dish === undefined) continue;
 
-    const cost = recipeCost(recipe, book);
+    const cost = recipeCost(recipe, pantry);
     const build = buildUp(cost, model);
 
     const costPerPortion = build.complete ? build.total : null;

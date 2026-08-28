@@ -2,17 +2,25 @@ import { describe, expect, it } from 'vitest';
 
 import { type Ingredient, ingredientFromPack } from './ingredient';
 import {
+  type Pantry,
   type Recipe,
   type RecipeComponent,
   RecipeError,
   flatComponent,
   ingredientComponent,
   isComplete,
-  recipeBook,
+  pantryOf,
   recipeComponent,
   recipeCost,
 } from './recipe';
 import type { UnitFamily } from './units';
+
+/**
+ * Every ingredient a fixture asks for, remembered so the pantry can be built
+ * from exactly what was used. Ingredients are referenced by id now, so a test
+ * that mints one has to put it somewhere the costing can find it.
+ */
+const USED = new Map<string, Ingredient>();
 
 function pack(
   name: string,
@@ -23,11 +31,21 @@ function pack(
 ): Ingredient {
   const family: UnitFamily =
     packUnit === 'l' || packUnit === 'ml' ? 'volume' : packUnit === 'pcs' ? 'count' : 'mass';
-  return ingredientFromPack(
+  const made = ingredientFromPack(
     yieldPercent === undefined
       ? { name, family, packQty, packUnit, packPrice }
       : { name, family, packQty, packUnit, packPrice, yieldPercent },
   );
+  // Keyed by the exact figures, so two fixtures asking for different onions
+  // get different ingredients rather than quietly sharing one.
+  const keyed: Ingredient = { ...made, id: `${made.id}-${packQty}-${packPrice}-${yieldPercent ?? 'na'}` };
+  USED.set(keyed.id, keyed);
+  return keyed;
+}
+
+/** A pantry holding every ingredient built so far, plus the given recipes. */
+function pantry(recipes: readonly Recipe[] = []): Pantry {
+  return pantryOf(recipes, [...USED.values()]);
 }
 
 interface DishInput {
@@ -172,7 +190,7 @@ function plate(): Recipe {
   });
 }
 
-const kitchen = () => recipeBook([gravy(), parotta(), kuruma(), plate()]);
+const kitchen = () => pantry([gravy(), parotta(), kuruma(), plate()]);
 
 describe('the acceptance check for build step 6', () => {
   it('costs a three-level plate correctly', () => {
@@ -232,7 +250,7 @@ describe('the acceptance check for build step 6', () => {
     });
 
     const real = recipeCost(plate(), kitchen());
-    const flat = recipeCost(plate(), recipeBook([noYield, parotta(), kuruma(), plate()]));
+    const flat = recipeCost(plate(), pantry([noYield, parotta(), kuruma(), plate()]));
     if (!isComplete(real) || !isComplete(flat)) expect.unreachable('all priced');
 
     expect(real.perPortion ?? 0).toBeGreaterThan(flat.perPortion ?? 0);
@@ -250,7 +268,7 @@ describe('nesting mechanics', () => {
       components: [recipeComponent(gravy(), 100, 'g'), recipeComponent(gravy(), 100, 'g')],
     });
 
-    const cost = recipeCost(twice, recipeBook([gravy(), twice]));
+    const cost = recipeCost(twice, pantry([gravy(), twice]));
     if (!isComplete(cost)) expect.unreachable('all priced');
 
     const each = 100 * (114.56076555023924 / 2500);
@@ -270,7 +288,7 @@ describe('nesting mechanics', () => {
 
   it('refuses a line pointing at a recipe not in the book', () => {
     try {
-      recipeCost(plate(), recipeBook([plate(), parotta()]));
+      recipeCost(plate(), pantry([plate(), parotta()]));
       expect.unreachable('the kuruma is missing');
     } catch (error) {
       expect((error as RecipeError).code).toBe('unknown_recipe');
@@ -289,7 +307,7 @@ describe('nesting mechanics', () => {
     });
     const loopedA = { ...a, components: [recipeComponent(b, 10, 'g')] };
 
-    expect(() => recipeCost(loopedA, recipeBook([loopedA, b]))).toThrowError(RecipeError);
+    expect(() => recipeCost(loopedA, pantry([loopedA, b]))).toThrowError(RecipeError);
   });
 
   it('lets a sub-recipe line be per portion', () => {
@@ -301,7 +319,7 @@ describe('nesting mechanics', () => {
       components: [recipeComponent(gravy(), 60, 'g', { scope: 'portion' })],
     });
 
-    const cost = recipeCost(perPlate, recipeBook([gravy(), perPlate]));
+    const cost = recipeCost(perPlate, pantry([gravy(), perPlate]));
     if (!isComplete(cost)) expect.unreachable('all priced');
 
     expect(cost.batch).toBe(0);
@@ -319,7 +337,7 @@ describe('nesting mechanics', () => {
       components: [recipeComponent(parotta(), 4, 'pcs', { ratePerUnit: 6.85, rateUnit: 'pcs' })],
     });
 
-    const cost = recipeCost(overridden, recipeBook([parotta(), overridden]));
+    const cost = recipeCost(overridden, pantry([parotta(), overridden]));
     if (!isComplete(cost)) expect.unreachable('all priced');
 
     expect(cost.batch).toBeCloseTo(27.4, 10); // 4 x 6.85, not 4 x 4.9433
@@ -341,7 +359,7 @@ describe('a floor propagates up through the levels', () => {
       ],
     });
 
-  const brokenBook = () => recipeBook([unpricedGravy(), parotta(), kuruma(), plate()]);
+  const brokenBook = () => pantry([unpricedGravy(), parotta(), kuruma(), plate()]);
 
   it('makes the whole plate a floor', () => {
     const cost = recipeCost(plate(), brokenBook());
@@ -383,7 +401,7 @@ describe('a floor propagates up through the levels', () => {
 
     const cost = recipeCost(
       handPriced,
-      recipeBook([unpricedGravy(), parotta(), kuruma(), handPriced]),
+      pantry([unpricedGravy(), parotta(), kuruma(), handPriced]),
     );
     if (!isComplete(cost)) expect.unreachable('the operator priced the kuruma line');
 
@@ -408,7 +426,7 @@ describe('output quantity', () => {
         outputQty: 600, // 1 kg of inputs cooked down to 600 g
         components: [ingredientComponent(pack('Tomato', 1, 'kg', 30, 100), 1000, 'g')],
       }),
-      new Map(),
+      pantry(),
     );
     if (!isComplete(cost)) expect.unreachable('all priced');
 
@@ -419,7 +437,7 @@ describe('output quantity', () => {
   it('is refused when it yields nothing', () => {
     for (const outputQty of [0, -1, Number.NaN]) {
       expect(() =>
-        recipeCost(dish({ name: 'Nothing', portions: 1, outputQty, components: [] })),
+        recipeCost(dish({ name: 'Nothing', portions: 1, outputQty, components: [] }), pantry()),
       ).toThrowError(RecipeError);
     }
   });
@@ -446,8 +464,7 @@ describe('a sub-recipe with no portions', () => {
               scope: 'portion',
             }),
           ],
-        }),
-      );
+        }), pantry());
       expect.unreachable('should have thrown');
     } catch (error) {
       expect((error as RecipeError).code).toBe('portion_scope_without_portions');
@@ -457,7 +474,7 @@ describe('a sub-recipe with no portions', () => {
 
 describe('the acceptance check for build step 5 still holds', () => {
   it('matches the ghee-per-portion dish by hand', () => {
-    const cost = recipeCost(gheeDosa('portion'));
+    const cost = recipeCost(gheeDosa('portion'), pantry());
     if (!isComplete(cost)) expect.unreachable('every line is priced');
 
     expect(cost.batch).toBeCloseTo(740.64, 10);
@@ -467,8 +484,8 @@ describe('the acceptance check for build step 5 still holds', () => {
   });
 
   it('is wrong by the price of the ghee if everything is divided by portions', () => {
-    const right = recipeCost(gheeDosa('portion'));
-    const wrong = recipeCost(gheeDosa('batch'));
+    const right = recipeCost(gheeDosa('portion'), pantry());
+    const wrong = recipeCost(gheeDosa('batch'), pantry());
     if (!isComplete(right) || !isComplete(wrong)) expect.unreachable('all priced');
 
     expect(wrong.perPortion).toBeCloseTo(5.94496, 10);
@@ -480,7 +497,7 @@ describe('the acceptance check for build step 5 still holds', () => {
     const cost = recipeCost({
       ...base,
       components: [...base.components, flatComponent('Blending', 50)],
-    });
+    }, pantry());
     if (!isComplete(cost)) expect.unreachable('every line is priced');
 
     expect(cost.batch).toBeCloseTo(790.64, 10);
@@ -493,7 +510,7 @@ describe('the acceptance check for build step 5 still holds', () => {
   });
 
   it('defaults every line to the batch pool', () => {
-    const cost = recipeCost(filterCoffee());
+    const cost = recipeCost(filterCoffee(), pantry());
     if (!isComplete(cost)) expect.unreachable('all priced');
 
     expect(cost.portionAdd).toBe(0);
@@ -511,7 +528,7 @@ describe('the acceptance check for build step 5 still holds', () => {
       ],
     });
 
-    const cost = recipeCost(boxed);
+    const cost = recipeCost(boxed, pantry());
     if (!isComplete(cost)) expect.unreachable('all priced');
     expect(cost.perPortion).toBeCloseTo(32.75, 10);
   });
@@ -526,8 +543,7 @@ describe('rate or spend, either direction', () => {
         components: [
           ingredientComponent(pack('Refined oil', 15, 'l', 2220, 100), 0.6, 'l', { spend: 3.76 }),
         ],
-      }),
-    );
+      }), pantry());
     if (!isComplete(cost)) expect.unreachable('all priced');
 
     expect(cost.batch).toBe(3.76);
@@ -543,8 +559,7 @@ describe('rate or spend, either direction', () => {
         components: [
           ingredientComponent(pack('Coriander leaves', 1, 'kg', 280, 70), 15, 'g', { spend: 6.97 }),
         ],
-      }),
-    );
+      }), pantry());
     if (!isComplete(cost)) expect.unreachable('all priced');
 
     expect(cost.lines[0]?.ratePerBaseUnit).toBeCloseTo(0.46466666666, 10);
@@ -562,8 +577,7 @@ describe('rate or spend, either direction', () => {
           ingredientComponent(shelf, 10, 'g', { ratePerUnit: 640, rateUnit: 'kg' }),
           ingredientComponent(shelf, 10, 'g', { spend: 6.0 }),
         ],
-      }),
-    ).lines;
+      }), pantry()).lines;
 
     expect(lines.map((l) => l.entryMode)).toEqual(['ingredient_rate', 'rate', 'spend']);
   });
@@ -576,8 +590,7 @@ describe('rate or spend, either direction', () => {
         components: [
           ingredientComponent(pack('Milagai podi, house', 1, 'kg', null), 8, 'g', { spend: 3.56 }),
         ],
-      }),
-    );
+      }), pantry());
     if (!isComplete(cost)) expect.unreachable('the operator priced the line');
     expect(cost.batch).toBe(3.56);
   });
@@ -605,8 +618,7 @@ describe('yield, and when it does and does not apply', () => {
             rateUnit: 'kg',
           }),
         ],
-      }),
-    );
+      }), pantry());
     if (!isComplete(cost)) expect.unreachable('all priced');
     expect(cost.batch).toBeCloseTo(9.090909090909, 10);
   });
@@ -619,16 +631,14 @@ describe('yield, and when it does and does not apply', () => {
         components: [
           ingredientComponent(pack('Onion, big', 1, 'kg', 40, 88), 200, 'g', { spend: 9.09 }),
         ],
-      }),
-    );
+      }), pantry());
     if (!isComplete(cost)) expect.unreachable('all priced');
     expect(cost.batch).toBe(9.09);
   });
 
   it('does not apply to a flat line at all', () => {
     const cost = recipeCost(
-      dish({ name: 'Charge only', portions: 2, components: [flatComponent('Blending', 50)] }),
-    );
+      dish({ name: 'Charge only', portions: 2, components: [flatComponent('Blending', 50)] }), pantry());
     if (!isComplete(cost)) expect.unreachable('a flat line always has an amount');
     expect(cost.batch).toBe(50);
     expect(cost.perPortion).toBe(25);
@@ -658,7 +668,7 @@ describe('a missing rate produces a floor, not a cost', () => {
     });
 
   it('reports a floor and names the lines that caused it', () => {
-    const cost = recipeCost(withUnpriced());
+    const cost = recipeCost(withUnpriced(), pantry());
     if (cost.kind !== 'floor') expect.unreachable('one line has no rate');
 
     expect(cost.batchFloor).toBeCloseTo(10.64, 10);
@@ -668,7 +678,7 @@ describe('a missing rate produces a floor, not a cost', () => {
   });
 
   it('leaves the unpriced line blank rather than zero', () => {
-    const podi = recipeCost(withUnpriced()).lines.find((l) => l.name === 'Milagai podi, house');
+    const podi = recipeCost(withUnpriced(), pantry()).lines.find((l) => l.name === 'Milagai podi, house');
     expect(podi?.cost).toBeNull();
     expect(podi?.cost).not.toBe(0);
   });
@@ -682,22 +692,15 @@ describe('a missing rate produces a floor, not a cost', () => {
           ingredientComponent(pack('Water', 1, 'l', 0, 100), 500, 'ml'),
           ingredientComponent(pack('Ghee, Aavin', 1, 'kg', 620, 100), 10, 'g'),
         ],
-      }),
-    );
+      }), pantry());
     if (!isComplete(cost)) expect.unreachable('water is priced at zero');
     expect(cost.batch).toBeCloseTo(6.2, 10);
   });
 });
 
 describe('assumptions travel up from the ingredients', () => {
-  const noYield = () =>
-    ingredientFromPack({
-      name: 'Ghee, Aavin',
-      family: 'mass',
-      packQty: 1,
-      packUnit: 'kg',
-      packPrice: 620,
-    });
+  // Built through pack() so it lands in the pantry like every other fixture.
+  const noYield = () => pack('Ghee, Aavin', 1, 'kg', 620);
 
   it('reports an assumed yield against the recipe that used it', () => {
     const cost = recipeCost(
@@ -705,8 +708,7 @@ describe('assumptions travel up from the ingredients', () => {
         name: 'Ghee drizzle',
         portions: 2,
         components: [ingredientComponent(noYield(), 20, 'g')],
-      }),
-    );
+      }), pantry());
 
     expect(cost.assumed).toHaveLength(1);
     expect(cost.assumed[0]?.field).toBe('yieldPercent');
@@ -728,12 +730,12 @@ describe('assumptions travel up from the ingredients', () => {
       components: [recipeComponent(child, 50, 'g')],
     });
 
-    const cost = recipeCost(parent, recipeBook([child, parent]));
+    const cost = recipeCost(parent, pantry([child, parent]));
     expect(cost.assumed).toHaveLength(1);
   });
 
   it('claims nothing when the operator entered every figure', () => {
-    expect(recipeCost(filterCoffee()).assumed).toHaveLength(0);
+    expect(recipeCost(filterCoffee(), pantry()).assumed).toHaveLength(0);
     expect(recipeCost(plate(), kitchen()).assumed).toHaveLength(0);
   });
 });
@@ -741,13 +743,13 @@ describe('assumptions travel up from the ingredients', () => {
 describe('figures that cannot be costed are refused, not repaired', () => {
   it('refuses a batch that makes no portions', () => {
     for (const portions of [0, -2, Number.NaN]) {
-      expect(() => recipeCost({ ...filterCoffee(), portions })).toThrowError(RecipeError);
+      expect(() => recipeCost({ ...filterCoffee(), portions }, pantry())).toThrowError(RecipeError);
     }
   });
 
   it('explains the portions rule in the operator language', () => {
     try {
-      recipeCost({ ...filterCoffee(), portions: 0 });
+      recipeCost({ ...filterCoffee(), portions: 0 }, pantry());
       expect.unreachable('should have thrown');
     } catch (error) {
       expect((error as RecipeError).code).toBe('invalid_portions');
@@ -778,15 +780,14 @@ describe('figures that cannot be costed are refused, not repaired', () => {
           components: [
             { ...ingredientComponent(pack('Sugar', 1, 'kg', 45.8, 100), 1, 'g'), qty: 0 },
           ],
-        }),
-      ),
+        }), pantry()),
     ).toThrowError(RecipeError);
   });
 });
 
 describe('an empty recipe', () => {
   it('costs nothing and is complete, because nothing is missing', () => {
-    const cost = recipeCost(dish({ name: 'New dish', portions: 4, components: [] }));
+    const cost = recipeCost(dish({ name: 'New dish', portions: 4, components: [] }), pantry());
     if (!isComplete(cost)) expect.unreachable('no lines means nothing unpriced');
     expect(cost.batch).toBe(0);
     expect(cost.total).toBe(0);
@@ -802,8 +803,7 @@ describe('regression — the rate unit is stated, never assumed', () => {
 
   const batchOf = (options: Parameters<typeof ingredientComponent>[3]): number => {
     const cost = recipeCost(
-      dish({ name: 'Rate unit', portions: 1, components: [ingredientComponent(onion, 200, 'g', options)] }),
-    );
+      dish({ name: 'Rate unit', portions: 1, components: [ingredientComponent(onion, 200, 'g', options)] }), pantry());
     if (!isComplete(cost)) expect.unreachable('priced');
     return cost.batch;
   };

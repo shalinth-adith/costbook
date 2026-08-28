@@ -8,11 +8,11 @@
 
 import { type Ingredient, ingredientFromPack } from '../core/ingredient';
 import {
+  type Pantry,
   type Recipe,
-  type RecipeBook,
   flatComponent,
   ingredientComponent,
-  recipeBook,
+  pantryOf,
   recipeComponent,
 } from '../core/recipe';
 import type { UnitFamily } from '../core/units';
@@ -26,12 +26,19 @@ function pack(
 ): Ingredient {
   const family: UnitFamily =
     packUnit === 'l' || packUnit === 'ml' ? 'volume' : packUnit === 'pcs' ? 'count' : 'mass';
-  return ingredientFromPack(
+  const made = ingredientFromPack(
     yieldPercent === undefined
       ? { name, family, packQty, packUnit, packPrice }
       : { name, family, packQty, packUnit, packPrice, yieldPercent },
   );
+  // Ingredients are referenced by id, so anything a fixture builds has to end
+  // up somewhere the costing can find it.
+  const keyed: Ingredient = { ...made, id: `${made.id}-${packQty}-${packPrice}-${yieldPercent ?? 'na'}` };
+  USED.set(keyed.id, keyed);
+  return keyed;
 }
+
+const USED = new Map<string, Ingredient>();
 
 export const shelf: readonly Ingredient[] = [
   pack('Onion, big', 50, 'kg', 2000, 88),
@@ -175,7 +182,7 @@ const brokenPlate: Recipe = {
   components: [recipeComponent(parotta, 8, 'pcs'), recipeComponent(brokenKuruma, 480, 'g')],
 };
 
-export const book: RecipeBook = recipeBook([
+const ALL: readonly Recipe[] = [
   gravy,
   parotta,
   kuruma,
@@ -186,7 +193,9 @@ export const book: RecipeBook = recipeBook([
   brokenGravy,
   brokenKuruma,
   brokenPlate,
-]);
+];
+
+export const book: Pantry = pantryOf(ALL, [...USED.values()]);
 
 /** Rendered in this order: the nested plate first, since it is the point. */
 export const dishes: readonly Recipe[] = [

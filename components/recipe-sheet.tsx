@@ -13,7 +13,7 @@ import { CostRail } from './cost-rail';
 import { StatusChip } from './status-chip';
 import { DEFAULT_MODEL, buildUp, foodCostPercent } from '@/lib/costing';
 import type { PresetName } from '@/core/rounding';
-import { addComponent, bookWith, removeLine, setQty, toggleScope } from '@/lib/edit';
+import { addComponent, pantryWith, removeLine, setQty, toggleScope } from '@/lib/edit';
 import type { DishMeta } from '@/lib/data';
 import { ORG } from '@/lib/data';
 import { money, percent } from '@/lib/format';
@@ -50,14 +50,17 @@ export function RecipeSheet({
   const [dirty, setDirty] = useState(false);
   const [blocked, setBlocked] = useState<string | null>(null);
 
-  const book = useMemo(() => bookWith(recipe, otherRecipes), [otherRecipes, recipe]);
+  const pantry = useMemo(
+    () => pantryWith(recipe, otherRecipes, shelf),
+    [otherRecipes, recipe, shelf],
+  );
 
   const model = useMemo(
     () => ({ ...DEFAULT_MODEL, foodCostTarget: ORG.foodCostTarget, rounding }),
     [rounding],
   );
 
-  const cost = useMemo(() => recipeCost(recipe, book), [recipe, book]);
+  const cost = useMemo(() => recipeCost(recipe, pantry), [recipe, pantry]);
   const build = useMemo(() => buildUp(cost, model), [cost, model]);
   const fc =
     build.complete && build.total !== null
@@ -92,7 +95,7 @@ export function RecipeSheet({
    * path drawn, never as an error code (FLOWS 5.2).
    */
   const onPick = (choice: PickerChoice) => {
-    const result = addComponent(recipe, otherRecipes, choice);
+    const result = addComponent(recipe, otherRecipes, shelf, choice);
     if (!result.ok) {
       setBlocked(result.message);
       return;
@@ -256,16 +259,16 @@ export function RecipeSheet({
                 </p>
               </div>
             ) : layout === 'table' ? (
-              <ComponentTable lines={cost.lines} components={recipe.components} handlers={handlers} />
+              <ComponentTable lines={cost.lines} handlers={handlers} />
             ) : (
-              <ComponentCards lines={cost.lines} components={recipe.components} handlers={handlers} />
+              <ComponentCards lines={cost.lines} handlers={handlers} />
             )}
 
             <div className="add-component">
               <ComponentPicker
                 shelf={shelf}
                 recipes={otherRecipes}
-                book={book}
+                pantry={pantry}
                 excludeRecipeId={recipe.id}
                 usedInCount={usedInCount}
                 onPick={onPick}

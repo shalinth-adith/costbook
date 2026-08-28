@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { book, recipes, shelf, usedInCount } from './data';
+import { book, pantry, recipes, shelf, usedInCount } from './data';
 import { addComponent } from './edit';
 import { countRows, pickerGroups } from './picker';
 
 const groupsFor = (query = '', excludeRecipeId = 'plate') =>
-  pickerGroups({ shelf, recipes, book, excludeRecipeId, usedInCount, query });
+  pickerGroups({ shelf, recipes, pantry, excludeRecipeId, usedInCount, query });
 
 const kindOf = (name: string) => {
   for (const g of groupsFor()) {
@@ -114,7 +114,7 @@ describe('a row that would close a loop says so before it is clicked', () => {
   // and refusing it afterwards is worse than not offering it: the operator has
   // already decided by then.
   const editingKuruma = () =>
-    pickerGroups({ shelf, recipes, book, excludeRecipeId: 'kuruma', usedInCount, query: '' });
+    pickerGroups({ shelf, recipes, pantry, excludeRecipeId: 'kuruma', usedInCount, query: '' });
 
   const rowIn = (groups: ReturnType<typeof editingKuruma>, name: string) =>
     groups.flatMap((g) => g.rows).find((r) => r.name === name);
@@ -146,7 +146,7 @@ describe('a row that would close a loop says so before it is clicked', () => {
     const others = recipes.filter((r) => r.id !== 'kuruma');
 
     for (const r of groups.flatMap((g) => g.rows)) {
-      const result = addComponent(kuruma, others, r.choice);
+      const result = addComponent(kuruma, others, shelf, r.choice);
       expect(result.ok).toBe(r.blocked === null);
     }
   });

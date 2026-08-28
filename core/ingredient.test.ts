@@ -15,6 +15,7 @@ import {
 /** Everything an operator types, and nothing they did not. */
 function onion(overrides: Partial<Ingredient> = {}): Ingredient {
   return {
+    id: 'onion-big',
     name: 'Onion, big',
     family: 'mass',
     purchaseQty: 1000, // 1 kg in base units

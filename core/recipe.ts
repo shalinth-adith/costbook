@@ -20,6 +20,7 @@
 import {
   type AssumedValue,
   type Ingredient,
+  type IngredientBook,
   ingredientCost,
 } from './ingredient';
 import { type UnitFamily, fromBase, toBase, unitFamily } from './units';
@@ -44,7 +45,13 @@ export type LineEntry =
 export interface IngredientComponent {
   readonly kind: 'ingredient';
   readonly scope: ComponentScope;
-  readonly ingredient: Ingredient;
+  /**
+   * Which ingredient, not a copy of it. Held by reference for the same reason
+   * a sub-recipe is: an ingredient is one thing the kitchen buys, and a rate
+   * change has to reach every line that uses it without anything being kept
+   * in step by hand.
+   */
+  readonly ingredientId: string;
   /** Quantity used, in the ingredient family's base unit. Must be > 0. */
   readonly qty: number;
   /** The unit the operator typed. Display only; never drives the calculation. */
@@ -90,6 +97,18 @@ export interface Recipe {
 /** Every recipe the costing can reach, by id. */
 export type RecipeBook = ReadonlyMap<string, Recipe>;
 
+/**
+ * Everything a costing needs to resolve: the recipes it may nest, and the
+ * ingredients its lines point at. Plain data in, plain data out — this is
+ * what a route handler assembles from the database and hands over (TRD 2).
+ */
+export interface Pantry {
+  readonly recipes: RecipeBook;
+  readonly ingredients: IngredientBook;
+}
+
+export const EMPTY_PANTRY: Pantry = { recipes: new Map(), ingredients: new Map() };
+
 export type EntryMode = LineEntry['mode'] | 'flat';
 
 export interface CostedLine {
@@ -104,6 +123,15 @@ export interface CostedLine {
   readonly cost: number | null;
   /** Effective cost per base unit for this line. Derived when a spend was typed. */
   readonly ratePerBaseUnit: number | null;
+  /**
+   * The yield actually used, reported by whoever resolved the ingredient
+   * rather than looked up again by the screen. Null for a sub-recipe, whose
+   * own yields are already inside its figure, and for a flat line, which has
+   * no weight to lose.
+   */
+  readonly yieldPercent: number | null;
+  /** Which ingredient or recipe this line points at, for linking to it. */
+  readonly refId: string | null;
   /** Which figure the operator typed, so the interface shows it back that way. */
   readonly entryMode: EntryMode;
   readonly assumed: readonly AssumedValue[];
@@ -170,6 +198,7 @@ export type RecipeErrorCode =
   | 'invalid_amount'
   | 'family_mismatch'
   | 'unknown_recipe'
+  | 'unknown_ingredient'
   | 'portion_scope_without_portions'
   | 'cycle';
 
@@ -273,7 +302,7 @@ export function ingredientComponent(
   return {
     kind: 'ingredient',
     scope: options.scope ?? 'batch',
-    ingredient,
+    ingredientId: ingredient.id,
     qty: toBase(qty, unit),
     unit,
     entry: buildEntry(options, unit, family, ingredient.name),
@@ -347,7 +376,7 @@ function assertValid(recipe: Recipe): void {
   for (const component of recipe.components) {
     if (component.kind === 'flat') continue;
 
-    const label = component.kind === 'ingredient' ? component.ingredient.name : component.childId;
+    const label = component.kind === 'ingredient' ? component.ingredientId : component.childId;
 
     if (!Number.isFinite(component.qty) || component.qty <= 0) {
       throw new RecipeError(
@@ -404,7 +433,7 @@ interface LineResult {
 
 function costRecipeInner(
   recipe: Recipe,
-  book: RecipeBook,
+  pantry: Pantry,
   visiting: readonly string[],
   memo: Map<string, RecipeCost>,
 ): RecipeCost {
@@ -418,7 +447,7 @@ function costRecipeInner(
       'components',
       recipe.name,
       // Names, not ids. A loop shown to a cook has to read in their words.
-      loop.map((id) => book.get(id)?.name ?? id),
+      loop.map((id) => pantry.recipes.get(id)?.name ?? id),
     );
   }
 
@@ -439,6 +468,8 @@ function costRecipeInner(
           unit: '',
           cost: component.amount,
           ratePerBaseUnit: null,
+          yieldPercent: null,
+          refId: null,
           entryMode: 'flat',
           assumed: [],
         },
@@ -447,23 +478,36 @@ function costRecipeInner(
     }
 
     if (component.kind === 'ingredient') {
-      const shelf = ingredientCost(component.ingredient);
+      const ingredient = pantry.ingredients.get(component.ingredientId);
+      if (ingredient === undefined) {
+        throw new RecipeError(
+          'unknown_ingredient',
+          'This line points at an ingredient that is not in the list.',
+          'ingredientId',
+          component.ingredientId,
+          nextVisiting,
+        );
+      }
+
+      const shelf = ingredientCost(ingredient);
       const applied = applyEntry(
         component.entry,
         component.qty,
         shelf.effectivePerBaseUnit,
-        component.ingredient.yieldPercent / 100,
+        ingredient.yieldPercent / 100,
       );
 
       return {
         line: {
-          name: component.ingredient.name,
+          name: ingredient.name,
           kind: 'ingredient',
           scope: component.scope,
           qty: component.qty,
           unit: component.unit,
           cost: applied.cost,
           ratePerBaseUnit: applied.ratePerBaseUnit,
+          yieldPercent: ingredient.yieldPercent,
+          refId: ingredient.id,
           entryMode: component.entry.mode,
           // A line the operator priced themselves does not lean on the shelf yield.
           assumed: component.entry.mode === 'ingredient_rate' ? shelf.assumed : [],
@@ -472,7 +516,7 @@ function costRecipeInner(
       };
     }
 
-    const child = book.get(component.childId);
+    const child = pantry.recipes.get(component.childId);
     if (child === undefined) {
       throw new RecipeError(
         'unknown_recipe',
@@ -483,7 +527,7 @@ function costRecipeInner(
       );
     }
 
-    const childCost = costRecipeInner(child, book, nextVisiting, memo);
+    const childCost = costRecipeInner(child, pantry, nextVisiting, memo);
 
     // The whole of the nesting rule: qty x what one base unit of the child
     // costs. Yield does not apply again — the child's own yields are already
@@ -507,6 +551,8 @@ function costRecipeInner(
         unit: component.unit,
         cost: applied.cost,
         ratePerBaseUnit: applied.ratePerBaseUnit,
+        yieldPercent: null,
+        refId: child.id,
         entryMode: component.entry.mode,
         assumed: component.entry.mode === 'ingredient_rate' ? childCost.assumed : [],
       },
@@ -575,8 +621,19 @@ function costRecipeInner(
  * Children are costed once each per call and reused, so a plate that reaches
  * the same gravy by two routes does not cost it twice.
  */
-export function recipeCost(recipe: Recipe, book: RecipeBook = new Map()): RecipeCost {
-  return costRecipeInner(recipe, book, [], new Map());
+export function recipeCost(recipe: Recipe, pantry: Pantry = EMPTY_PANTRY): RecipeCost {
+  return costRecipeInner(recipe, pantry, [], new Map());
+}
+
+/** Assemble a pantry from plain lists. */
+export function pantryOf(
+  recipes: readonly Recipe[],
+  ingredients: readonly Ingredient[],
+): Pantry {
+  return {
+    recipes: recipeBook(recipes),
+    ingredients: new Map(ingredients.map((i) => [i.id, i])),
+  };
 }
 
 /** Whether every line has a rate, so the figures are a cost rather than a floor. */
