@@ -89,7 +89,7 @@ export function ComponentCards({
               <span className="ccard-field end">
                 <span className="label">Line cost</span>
                 {line.cost === null ? (
-                  <button type="button" className="btn-set-rate" onClick={() => handlers.onExpand(i)}>
+                  <button type="button" className="btn-set-rate" onClick={() => handlers.onSetRate(i)}>
                     <svg width="10" height="10" viewBox="0 0 12 12" aria-hidden="true">
                       <path d="M6 1 11.2 10.6H0.8Z" fill="currentColor" />
                     </svg>

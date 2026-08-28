@@ -6,16 +6,37 @@ import { useCallback, useMemo, useState } from 'react';
 import type { Ingredient } from '@/core/ingredient';
 import { type Recipe, flatComponent, recipeCost } from '@/core/recipe';
 
+import {
+  type Ack,
+  removeFromMenu,
+  saveAndPrice,
+  saveChanges,
+  saveDraft,
+  setIngredientRate,
+} from '@/app/recipes/[id]/actions';
+import { ingredientComponent } from '@/core/recipe';
+import { ingredientFromPack } from '@/core/ingredient';
+import { suggestPrice } from '@/lib/costing';
+
 import { ComponentCards } from './component-cards';
+import { PrepCard } from './prep-card';
+import { Toast, type ToastState } from './toast';
+import { ChargesSheet } from './sheets/charges-sheet';
+import { DishSheet } from './sheets/dish-sheet';
+import { PasteSheet, type PastedRow } from './sheets/paste-sheet';
+import { RateSheet } from './sheets/rate-sheet';
+import { RoundingSheet } from './sheets/rounding-sheet';
 import { ComponentTable, type LineHandlers } from './component-table';
 import { ComponentPicker, type PickerChoice } from './component-picker';
 import { CostRail } from './cost-rail';
 import { StatusChip } from './status-chip';
 import { DEFAULT_MODEL, buildUp, foodCostPercent } from '@/lib/costing';
 import type { PresetName } from '@/core/rounding';
+import { unitFamily } from '@/core/units';
 import { addComponent, pantryWith, removeLine, setQty, toggleScope } from '@/lib/edit';
 import type { DishMeta } from '@/lib/data';
 import { ORG } from '@/lib/data';
+import { ROUNDING_LABEL } from '@/lib/costing';
 import { money, percent } from '@/lib/format';
 
 type Layout = 'table' | 'cards';
@@ -50,14 +71,44 @@ export function RecipeSheet({
   const [dirty, setDirty] = useState(false);
   const [blocked, setBlocked] = useState<string | null>(null);
 
+  /** Which secondary surface is up. Only ever one at a time. */
+  const [sheet, setSheet] = useState<
+    'dish' | 'paste' | 'charges' | 'rounding' | null
+  >(null);
+  /** The line whose rate is being answered, if any. */
+  const [rateFor, setRateFor] = useState<string | null>(null);
+  const [view, setView] = useState<'costing' | 'prep'>('costing');
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  /** The dish's own fields, editable here rather than only in the database. */
+  const [fields, setFields] = useState({
+    name: initialRecipe.name,
+    category: dish.category,
+    station: dish.station,
+  });
+
+  /** Wastage and packaging, once the operator has set them for this dish. */
+  const [charges, setCharges] = useState<
+    { wastagePercent: number; packagingPerPortion: number } | null
+  >(null);
+
+  /** What to put back if the toast's Undo is pressed. */
+  const [undoTo, setUndoTo] = useState<Recipe | null>(null);
+
   const pantry = useMemo(
     () => pantryWith(recipe, otherRecipes, shelf),
     [otherRecipes, recipe, shelf],
   );
 
   const model = useMemo(
-    () => ({ ...DEFAULT_MODEL, foodCostTarget: ORG.foodCostTarget, rounding }),
-    [rounding],
+    () => ({
+      ...DEFAULT_MODEL,
+      foodCostTarget: ORG.foodCostTarget,
+      rounding,
+      ...(charges ?? {}),
+    }),
+    [rounding, charges],
   );
 
   const cost = useMemo(() => recipeCost(recipe, pantry), [recipe, pantry]);
@@ -68,8 +119,20 @@ export function RecipeSheet({
       : null;
 
   const edit = useCallback((next: Recipe) => {
-    setRecipe(next);
+    setRecipe((current) => { setUndoTo(current); return next; });
     setDirty(true);
+  }, []);
+
+  /** Every write goes through here, so the toast always says what the server did. */
+  const commit = useCallback(async (run: () => Promise<Ack>) => {
+    setSaving(true);
+    try {
+      const ack = await run();
+      setToast(ack);
+      setDirty(false);
+    } finally {
+      setSaving(false);
+    }
   }, []);
 
   const usedInCount = useCallback(
@@ -84,8 +147,14 @@ export function RecipeSheet({
     onQty: (i, value) => edit(setQty(recipe, i, value)),
     onScope: (i) => edit(toggleScope(recipe, i)),
     onRemove: (i) => {
+      const gone = cost.lines[i]?.name ?? 'That line';
       setExpanded(-1);
       edit(removeLine(recipe, i));
+      setToast({ message: `${gone} removed`, undoable: true });
+    },
+    onSetRate: (i) => {
+      const line = cost.lines[i];
+      if (line?.refId != null) setRateFor(line.refId);
     },
   };
 
@@ -104,6 +173,52 @@ export function RecipeSheet({
     edit(result.recipe);
   };
 
+  const dishFields = { category: fields.category, station: fields.station };
+  const named: Recipe = { ...recipe, name: fields.name };
+
+  const suggestion =
+    build.complete && build.total !== null ? suggestPrice(build.total, model) : null;
+
+  /** Paste rows: parsed by the importer's own code, then appended as real lines. */
+  const addPasted = (rows: readonly PastedRow[]) => {
+    let next = recipe;
+    let unpriced = 0;
+
+    for (const row of rows) {
+      const ingredient =
+        row.match ??
+        ingredientFromPack({
+          name: row.name,
+          family: familyOf(row.unit),
+          packQty: 1,
+          packUnit: row.unit === '' ? 'g' : row.unit,
+          packPrice: row.rate,
+        });
+      if (ingredient.purchasePrice === null) unpriced += 1;
+
+      try {
+        next = {
+          ...next,
+          components: [
+            ...next.components,
+            ingredientComponent(ingredient, row.qty, row.unit === '' ? ingredient.purchaseUnit : row.unit),
+          ],
+        };
+      } catch {
+        // A row Costbook cannot measure is left out rather than guessed at.
+      }
+    }
+
+    edit(next);
+    setSheet(null);
+    setToast({
+      message:
+        `${rows.length} lines added.` +
+        (unpriced > 0 ? ` ${unpriced} has no rate, so the total is a floor.` : ''),
+      undoable: true,
+    });
+  };
+
   const addCharge = () => {
     edit({
       ...recipe,
@@ -112,6 +227,22 @@ export function RecipeSheet({
   };
 
   const saved = build.complete && dish.onMenu && !dirty;
+
+  const rateIngredient =
+    rateFor === null ? null : (shelf.find((i) => i.id === rateFor) ?? null);
+
+  if (view === 'prep') {
+    return (
+      <PrepCard
+        name={fields.name}
+        dish={{ ...dish, category: fields.category, station: fields.station }}
+        portions={recipe.portions}
+        lines={cost.lines}
+        steps={PREP_STEPS}
+        onBack={() => setView('costing')}
+      />
+    );
+  }
 
   return (
     <>
@@ -146,20 +277,56 @@ export function RecipeSheet({
         </div>
 
         <div className="page-actions">
-          <div className="segmented">
+          <div className="segmented" role="group" aria-label="View">
+            {/* The prep card returns early above, so this half is the one in view. */}
             <span className="segmented-item is-active">Costing</span>
-            <button type="button" className="segmented-item">Prep card</button>
+            <button
+              type="button"
+              className="segmented-item"
+              onClick={() => setView('prep')}
+            >
+              Prep card
+            </button>
           </div>
-          <button type="button" className="btn">
+          <button type="button" className="btn" onClick={() => { setView('prep'); setTimeout(() => window.print(), 60); }}>
             <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor"
               strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
               <path d="M6.2 7V4.4h7.6V7M5 7h10v9.2H5Z" />
             </svg>
             Print prep card
           </button>
-          <button type="button" className="btn btn-primary" disabled={!dirty} onClick={() => setDirty(false)}>
-            {dirty ? 'Save changes' : 'Saved'}
-          </button>
+          {dish.onMenu ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!dirty || saving}
+              onClick={() => void commit(() => saveChanges(named, dishFields))}
+            >
+              {saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn"
+                disabled={saving}
+                onClick={() => void commit(() => saveDraft(named, dishFields))}
+              >
+                Save as draft
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={saving || suggestion === null}
+                onClick={() => {
+                  if (suggestion === null) return;
+                  void commit(() => saveAndPrice(named, dishFields, suggestion.rounded));
+                }}
+              >
+                {saving ? 'Saving…' : 'Save and cost it'}
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -192,7 +359,7 @@ export function RecipeSheet({
                 )}
               </span>
             </div>
-            <button type="button" className="btn">
+            <button type="button" className="btn" onClick={() => setSheet('dish')}>
               <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor"
                 strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
                 <path d="M13.4 3.8 16.2 6.6 7.4 15.4H4.6v-2.8Z" />
@@ -242,6 +409,10 @@ export function RecipeSheet({
                     Cards
                   </button>
                 </div>
+                <button type="button" className="btn" onClick={() => setSheet('paste')}>
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><rect x="6.4" y="3" width="7.2" height="3.2" rx="1" /><path d="M13.6 4.6h2.2v12.4H4.2V4.6h2.2" /></svg>
+                  Paste rows
+                </button>
                 <button type="button" className="btn" onClick={addCharge}>
                   <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true"><path d="M6 2v8M2 6h8" /></svg>
                   Add a charge
@@ -293,8 +464,20 @@ export function RecipeSheet({
           </section>
 
           <div className="sheet-footer">
-            <button type="button" className="link">
-              {dish.onMenu ? 'Remove this dish from the menu' : 'Discard this dish'}
+            <button
+              type="button"
+              className="link"
+              disabled={saving}
+              onClick={() => {
+                if (dish.onMenu) void commit(() => removeFromMenu(recipe.id));
+                else {
+                  setRecipe(initialRecipe);
+                  setDirty(false);
+                  setToast({ message: 'Draft discarded. Nothing was saved, so nothing was lost.', undoable: false });
+                }
+              }}
+            >
+              {dish.onMenu ? 'Remove from the menu' : 'Discard this draft'}
             </button>
           </div>
         </div>
@@ -306,10 +489,108 @@ export function RecipeSheet({
           sellingPrice={dish.sellingPrice}
           note={dish.note}
           onRounding={setRounding}
+          onOpenCharges={() => setSheet('charges')}
+          onOpenRounding={() => setSheet('rounding')}
+          onUsePrice={() => {
+            if (suggestion === null) return;
+            void commit(() => saveAndPrice(named, dishFields, suggestion.rounded));
+          }}
+          busy={saving}
         />
       </div>
+
+      <DishSheet
+        open={sheet === 'dish'}
+        onClose={() => setSheet(null)}
+        name={fields.name}
+        category={fields.category}
+        station={fields.station}
+        portions={recipe.portions}
+        linesTotal={build.linesTotal}
+        onName={(v) => { setFields((f) => ({ ...f, name: v })); setDirty(true); }}
+        onCategory={(v) => { setFields((f) => ({ ...f, category: v })); setDirty(true); }}
+        onStation={(v) => { setFields((f) => ({ ...f, station: v })); setDirty(true); }}
+        onPortions={(v) => edit({ ...recipe, portions: v })}
+      />
+
+      <PasteSheet
+        open={sheet === 'paste'}
+        onClose={() => setSheet(null)}
+        shelf={shelf}
+        onAdd={addPasted}
+      />
+
+      <ChargesSheet
+        open={sheet === 'charges'}
+        onClose={() => setSheet(null)}
+        wastagePercent={model.wastagePercent}
+        packaging={model.packagingPerPortion}
+        isDefault={charges === null}
+        ingredientsPerPortion={build.ingredientsPerPortion ?? 0}
+        onWastage={(v) => setCharges({ wastagePercent: v, packagingPerPortion: model.packagingPerPortion })}
+        onPackaging={(v) => setCharges({ wastagePercent: model.wastagePercent, packagingPerPortion: v })}
+        onReset={() => { setCharges(null); setToast({ message: 'Back to the figures every dish starts from.', undoable: false }); }}
+        onApply={() => {
+          setSheet(null);
+          setToast({
+            message: 'Wastage and packaging updated — every figure above recalculated',
+            undoable: false,
+          });
+        }}
+      />
+
+      <RoundingSheet
+        open={sheet === 'rounding'}
+        onClose={() => setSheet(null)}
+        exact={suggestion?.exact ?? 0}
+        current={rounding}
+        onPick={(rule) => {
+          setRounding(rule);
+          setSheet(null);
+          setToast({ message: `Rounding rule is now “${ROUNDING_LABEL[rule]}”.`, undoable: false });
+        }}
+      />
+
+      <RateSheet
+        ingredient={rateIngredient}
+        usedIn={rateIngredient === null ? 1 : usedInCount(rateIngredient.name)}
+        onClose={() => setRateFor(null)}
+        onSet={(packPrice) => {
+          const id = rateFor;
+          setRateFor(null);
+          if (id !== null) void commit(() => setIngredientRate(id, packPrice, recipe.id));
+        }}
+      />
+
+      <Toast
+        toast={toast}
+        onUndo={() => {
+          if (undoTo !== null) { setRecipe(undoTo); setDirty(true); }
+          setToast(null);
+        }}
+        onDismiss={() => setToast(null)}
+      />
     </>
   );
+}
+
+/**
+ * The method, until a dish carries its own. The prep card is the chef's half
+ * of the product and the reason the data stays current (FLOWS 7), so it shows
+ * something real rather than an empty section.
+ */
+const PREP_STEPS: readonly string[] = [
+  'Steam the idlies and let them stand two minutes before they are handled.',
+  'Heat ghee on the tawa until it just moves, not until it colours.',
+  'Toss the idlies until every face has taken colour. Do not crowd the tawa.',
+  'Podi at the pass, not before — podi sitting on a hot idly goes soft.',
+  'Chutney cup on the side. Send within 60 seconds of the tawa.',
+];
+
+/** Which family a pasted unit belongs to, so a new ingredient is measurable. */
+function familyOf(unit: string): 'mass' | 'volume' | 'count' {
+  const family = unitFamily(unit);
+  return family ?? 'mass';
 }
 
 function Chevron() {

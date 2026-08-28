@@ -38,6 +38,10 @@ export function CostRail({
   sellingPrice,
   note,
   onRounding,
+  onOpenCharges,
+  onOpenRounding,
+  onUsePrice,
+  busy,
 }: {
   cost: RecipeCost;
   build: CostBuildUp;
@@ -45,6 +49,12 @@ export function CostRail({
   sellingPrice: number | null;
   note: string;
   onRounding: (rule: PresetName) => void;
+  /** Opens the wastage and packaging sheet, where the defaults become yours. */
+  onOpenCharges: () => void;
+  /** Opens the rounding sheet, which shows what each rule would charge. */
+  onOpenRounding: () => void;
+  onUsePrice: () => void;
+  busy: boolean;
 }) {
   // A dish with no portions has no cost per portion, so the rail leads with
   // what a batch costs instead. Nothing is invented to fill the slot.
@@ -105,8 +115,8 @@ export function CostRail({
             <>
               <Row op="÷" label="Portions per batch" value={String(build.portions)} />
               <Row op="=" label="Ingredient cost per portion" value={money(build.ingredientsPerPortion)} rule strong />
-              <Row op="+" label={build.wastage.label} value={money(build.wastage.amount)} defaulted />
-              <Row op="+" label={build.packaging.label} value={money(build.packaging.amount)} defaulted />
+              <Row op="+" label={build.wastage.label} value={money(build.wastage.amount)} defaulted onChange={onOpenCharges} />
+              <Row op="+" label={build.packaging.label} value={money(build.packaging.amount)} defaulted onChange={onOpenCharges} />
               <Row
                 op="="
                 label={build.complete ? 'Total cost per portion' : 'Floor, total per portion'}
@@ -162,16 +172,9 @@ export function CostRail({
               <label htmlFor="rounding-rule">
                 Your rounding rule is{' '}
               </label>
-              <select
-                id="rounding-rule"
-                className="rule-select"
-                value={model.rounding}
-                onChange={(e) => onRounding(e.target.value as PresetName)}
-              >
-                {ROUNDING_CHOICES.map((rule) => (
-                  <option key={rule} value={rule}>{ROUNDING_LABEL[rule]}</option>
-                ))}
-              </select>
+              <button type="button" className="rule-button" onClick={onOpenRounding}>
+                {ROUNDING_LABEL[model.rounding]}
+              </button>
               <span> — changed here, because nothing that affects a dish's cost should
               require leaving that dish.</span>
             </div>
@@ -206,8 +209,8 @@ export function CostRail({
             </div>
           </div>
 
-          <button type="button" className="btn btn-primary">
-            Use {ORG.currencySymbol} {money(suggestion.rounded)} as the price
+          <button type="button" className="btn btn-primary" onClick={onUsePrice} disabled={busy}>
+            {busy ? 'Saving…' : `Use ${ORG.currencySymbol} ${money(suggestion.rounded)} as the price`}
           </button>
         </section>
       )}
@@ -232,6 +235,7 @@ function Row({
   rule = false,
   strong = false,
   total = false,
+  onChange,
 }: {
   op: string;
   label: string;
@@ -240,6 +244,7 @@ function Row({
   rule?: boolean;
   strong?: boolean;
   total?: boolean;
+  onChange?: () => void;
 }) {
   return (
     <div className={`buildup-row${rule ? ' has-rule' : ''}${total ? ' is-total' : ''}`}>
@@ -249,7 +254,7 @@ function Row({
         {defaulted ? (
           <>
             <DefaultChip />
-            <button type="button" className="link link-sm">change</button>
+            <button type="button" className="link link-sm" onClick={onChange}>change</button>
           </>
         ) : null}
       </span>

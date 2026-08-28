@@ -4,11 +4,15 @@ import type { CostedLine } from '@/core/recipe';
 
 import { DASH, money, qty, rate } from '@/lib/format';
 
+import { Stepper } from './stepper';
+
 export interface LineHandlers {
   readonly onQty: (index: number, value: number) => void;
   readonly onScope: (index: number) => void;
   readonly onRemove: (index: number) => void;
   readonly onExpand: (index: number) => void;
+  /** The clay-coloured line is the only one that opens this. */
+  readonly onSetRate: (index: number) => void;
   readonly expanded: number;
   readonly usedInCount: (name: string) => number;
 }
@@ -77,15 +81,7 @@ export function ComponentTable({
 
               <span className="ctable-qty-cell">
                 {line.kind === 'flat' ? null : (
-                  <input
-                    className="figure qty-input"
-                    type="number"
-                    min={0}
-                    step="any"
-                    value={qty(line.qty)}
-                    aria-label={`Quantity of ${line.name}`}
-                    onChange={(e) => handlers.onQty(i, Number(e.target.value))}
-                  />
+                  <span className="figure ctable-qty">{qty(line.qty)}</span>
                 )}
               </span>
 
@@ -98,7 +94,7 @@ export function ComponentTable({
                   <span className="chip chip-scope figure">PER PORTION</span>
                 ) : null}
                 {line.cost === null ? (
-                  <button type="button" className="btn-set-rate" onClick={() => handlers.onExpand(i)}>
+                  <button type="button" className="btn-set-rate" onClick={() => handlers.onSetRate(i)}>
                     <svg width="10" height="10" viewBox="0 0 12 12" aria-hidden="true">
                       <path d="M6 1 11.2 10.6H0.8Z" fill="currentColor" />
                     </svg>
@@ -150,12 +146,23 @@ function LineDetail({
     <div className="line-detail">
       <div className="line-detail-grid">
         <div>
-          <div className="label">This line</div>
+          <div className="label">Quantity</div>
+          {/* A stepper rather than a field: a wet finger cannot select and
+              retype a number, and a field that clears on focus loses the
+              figure it was showing (A13). */}
+          <Stepper
+            label={`quantity of ${line.name}`}
+            value={`${qty(line.qty)} ${line.unit}`}
+            min={line.qty <= 1}
+            disabled={line.kind === 'flat'}
+            onDown={() => handlers.onQty(index, stepDown(line.qty))}
+            onUp={() => handlers.onQty(index, stepUp(line.qty))}
+          />
           <p className="line-detail-copy">
             {line.cost === null ? (
               <>
-                <strong>{line.name} has no rate on file.</strong> It counts as zero until you give it
-                one, which is why this dish reports a floor and no price is offered.
+                <strong>{line.name} has no rate on file.</strong> It counts as zero until you give
+                it one, which is why this dish reports a floor and no price is offered.
               </>
             ) : line.entryMode === 'spend' ? (
               <>
@@ -211,11 +218,35 @@ function LineDetail({
               <>Used only here so far.</>
             )}
           </p>
-          <button type="button" className="link link-sm" onClick={() => handlers.onRemove(index)}>
-            Remove this line
-          </button>
+          <div className="line-detail-actions">
+            {line.cost === null ? (
+              <button type="button" className="btn-set-rate" onClick={() => handlers.onSetRate(index)}>
+                <svg width="10" height="10" viewBox="0 0 12 12" aria-hidden="true">
+                  <path d="M6 1 11.2 10.6H0.8Z" fill="currentColor" />
+                </svg>
+                Set rate
+              </button>
+            ) : null}
+            <button type="button" className="link link-sm" onClick={() => handlers.onRemove(index)}>
+              Remove this line
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+
+/** A step that suits the figure: grams move in tens, pieces in ones. */
+function stepSize(value: number): number {
+  if (value >= 500) return 50;
+  if (value >= 100) return 10;
+  if (value >= 20) return 5;
+  if (value >= 5) return 1;
+  return 0.5;
+}
+
+const stepUp = (value: number): number => round(value + stepSize(value));
+const stepDown = (value: number): number => Math.max(stepSize(value), round(value - stepSize(value)));
+const round = (value: number): number => Math.round(value * 100) / 100;
