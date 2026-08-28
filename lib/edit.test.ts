@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { isComplete, recipeCost } from '@/core/recipe';
 
 import { buildUp } from './costing';
-import { book, recipeKind, recipes, shelf } from './data';
+import { book, recipes, shelf } from './data';
 import { addComponent, bookWith, removeLine, setQty, toggleScope } from './edit';
 
 const plate = () => {
@@ -155,41 +155,23 @@ describe('the two layouts share one set of edits', () => {
   });
 });
 
-describe('the three kinds stay distinct', () => {
-  // An onion is bought, a kuruma is made, a plate is sold. Costing treats them
-  // alike once each cost per base unit is known — but they are not the same
-  // thing to a cook, and the picker must not merge them into one list.
-  it('reads a recipe with no portions as a preparation', () => {
-    for (const id of ['gravy', 'parotta', 'kuruma', 'mini-idly']) {
-      const r = book.get(id);
-      if (r === undefined) expect.unreachable(`${id} exists`);
-      expect(r.portions).toBeNull();
-      expect(recipeKind(r)).toBe('preparation');
+describe('what you buy and what you make stay distinct', () => {
+  // Costing treats them alike once each cost per base unit is known — but an
+  // onion arrives from a supplier and a kuruma is made in the kitchen, and the
+  // picker must not merge them into one list.
+  it('never lists a made thing among the ingredients', () => {
+    const madeNames = recipes.map((r) => r.name);
+    for (const i of shelf) {
+      expect(madeNames).not.toContain(i.name);
     }
   });
 
-  it('reads a recipe that plates into portions as a dish', () => {
-    for (const id of ['plate', 'podi-idly']) {
-      const r = book.get(id);
-      if (r === undefined) expect.unreachable(`${id} exists`);
-      expect(r.portions).not.toBeNull();
-      expect(recipeKind(r)).toBe('dish');
-    }
-  });
-
-  it('keeps a dish addable, because nesting one is unusual rather than wrong', () => {
+  it('treats nesting a dish inside a dish as ordinary', () => {
+    // A parotta goes on a plate; both are food. Nothing about this is unusual.
     const podi = book.get('podi-idly');
     if (podi === undefined) expect.unreachable('podi exists');
 
     const result = addComponent(plate(), others(), { kind: 'recipe', recipe: podi });
     expect(result.ok).toBe(true);
-  });
-
-  it('never classes an ingredient as either', () => {
-    // Ingredients have a pack and a rate; they are not recipes at all, so the
-    // question does not arise for them.
-    for (const i of shelf) {
-      expect(book.has(i.name)).toBe(false);
-    }
   });
 });

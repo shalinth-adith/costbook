@@ -20,14 +20,17 @@ describe('the picker groups by what each thing actually is', () => {
     }
   });
 
-  it('puts things you make for other dishes under preparations', () => {
-    for (const name of ['Onion Thakkali Gravy', 'Veechu Parotta', 'Chicken Kuruma', 'Mini Idly, steamed']) {
-      expect(kindOf(name)).toBe('preparation');
+  it('puts everything you make under dishes, whether or not it is sold alone', () => {
+    // A gravy, a parotta and a kuruma are food. So is the plate they go on.
+    for (const name of [
+      'Onion Thakkali Gravy',
+      'Veechu Parotta',
+      'Chicken Kuruma',
+      'Mini Idly, steamed',
+      'Ghee Podi Idly Fry',
+    ]) {
+      expect(kindOf(name)).toBe('dish');
     }
-  });
-
-  it('puts things you sell under dishes', () => {
-    expect(kindOf('Ghee Podi Idly Fry')).toBe('dish');
   });
 
   it('never lists a made thing as an ingredient', () => {
@@ -39,16 +42,14 @@ describe('the picker groups by what each thing actually is', () => {
     }
   });
 
-  it('orders preparations first, ingredients next, dishes last', () => {
-    // Dishes sit where they will be found deliberately rather than reached for
-    // by accident. Nesting one is legitimate, and uncommon.
-    expect(groupsFor().map((g) => g.kind)).toEqual(['preparation', 'ingredient', 'dish']);
+  it('orders ingredients first, dishes second', () => {
+    // What you buy before what you make, which is the order a cook thinks in.
+    expect(groupsFor().map((g) => g.kind)).toEqual(['ingredient', 'dish']);
   });
 
   it('drops a group entirely rather than showing it empty', () => {
-    const kinds = groupsFor('onion').map((g) => g.kind);
+    const kinds = groupsFor('lemon').map((g) => g.kind);
     expect(kinds).toContain('ingredient');
-    expect(kinds).toContain('preparation'); // Onion Thakkali Gravy
     expect(kinds).not.toContain('dish');
   });
 });
@@ -62,14 +63,15 @@ describe('what each row says about itself', () => {
     expect(rowFor('Onion, big')?.meta).toContain('kg pack');
   });
 
-  it('says a preparation is made, and what one batch yields', () => {
+  it('says a dish is made, and what one batch yields', () => {
     expect(rowFor('Veechu Parotta')?.meta).toContain('you make this');
     expect(rowFor('Veechu Parotta')?.meta).toContain('yields 24 pcs');
   });
 
-  it('says a dish is on the menu, and how many portions a batch makes', () => {
-    expect(rowFor('Ghee Podi Idly Fry')?.meta).toContain('on your menu');
+  it('adds the portion count when the dish plates into portions', () => {
     expect(rowFor('Ghee Podi Idly Fry')?.meta).toContain('4 portions');
+    // A gravy is made by the kilo and never plated, so it says only its yield.
+    expect(rowFor('Onion Thakkali Gravy')?.meta).not.toContain('portions');
   });
 
   it('reports a missing rate as absent rather than as free', () => {
@@ -79,7 +81,7 @@ describe('what each row says about itself', () => {
     expect(podi?.rateText).not.toContain('0.00');
   });
 
-  it('reports a preparation whose own rate is missing inside it', () => {
+  it('reports a dish whose own rate is missing inside it', () => {
     // Ghee Podi Idly Fry contains the unpriced podi, so it cannot offer a rate.
     const dish = rowFor('Ghee Podi Idly Fry');
     expect(dish?.noRate).toBe(true);

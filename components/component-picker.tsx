@@ -50,7 +50,7 @@ export function ComponentPicker({
           id="add-component"
           ref={inputRef}
           value={query}
-          placeholder="Search ingredients, your preparations and your dishes"
+          placeholder="Search your ingredients and your dishes"
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           aria-expanded={open}
@@ -88,10 +88,8 @@ export function ComponentPicker({
                         onClick={() => { onPick(r.choice); setQuery(''); setOpen(false); }}
                       >
                         <span className="picker-kind">
-                          {r.kind === 'preparation' ? (
-                            <span className="figure sub-badge">PREP</span>
-                          ) : r.kind === 'dish' ? (
-                            <span className="figure dish-badge">DISH</span>
+                          {r.kind === 'dish' ? (
+                            <span className="figure sub-badge">DISH</span>
                           ) : (
                             <span className="figure ing-badge">BUY</span>
                           )}

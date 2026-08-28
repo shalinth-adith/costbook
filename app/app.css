@@ -528,29 +528,21 @@
 }
 .rule-select:hover { border-color: var(--border-control-hover); }
 
-/* ── the three kinds ───────────────────────────────────────────────── */
+/* ── what you buy, and what you make ───────────────────────────────── */
 
-/* An onion is bought, a kuruma is made, a plate is sold. Costing treats them
-   alike once each cost per base unit is known; a cook does not. Each kind
-   gets its own mark, and the mark is a word, not a colour. */
+/* An onion arrives from a supplier; a kuruma is made in the kitchen. Costing
+   treats them alike once each cost per base unit is known; a cook does not.
+   Each kind gets a mark, and the mark is a word, not a colour. */
 .sub-badge,
-.dish-badge,
 .ing-badge {
   font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em;
   border-radius: 2px; padding: 2px 4px; flex: none;
 }
 .sub-badge { color: var(--text-on-inverse); background: var(--text-secondary); }
-/* A dish inside a dish is legitimate but uncommon, so it reads as the
-   exception rather than blending in with the preparations. */
-.dish-badge {
-  color: var(--near-ink-strong); background: var(--near-tint);
-  border: 1px solid var(--near-edge); padding: 1px 4px;
-}
 .ing-badge {
   color: var(--text-tertiary); background: var(--surface-sunken);
   border: 1px solid var(--border-strong); padding: 1px 4px;
 }
-.sub-marker.is-dish { border-inline-start-color: var(--near-edge); }
 
 .picker-scroll { max-height: 340px; overflow-y: auto; }
 .picker-group + .picker-group { border-block-start: 1px solid var(--border-hairline); }
@@ -563,9 +555,6 @@
   color: var(--text-secondary); font-weight: 600;
 }
 .picker-group-hint { font-size: 11px; color: var(--text-tertiary); line-height: 1.4; text-wrap: pretty; }
-.picker-group.is-dish .picker-group-head { background: var(--near-tint); }
-.picker-group.is-dish .picker-group-title { color: var(--near-ink-strong); }
-.picker-group.is-dish .picker-group-hint { color: var(--near-ink-strong); }
 
 .picker-row { grid-template-columns: 46px minmax(0, 1fr) auto auto; }
 .picker-kind { display: flex; justify-content: flex-start; }

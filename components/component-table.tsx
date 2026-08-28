@@ -5,8 +5,6 @@ import type { CostedLine, RecipeComponent } from '@/core/recipe';
 import { DASH, money, qty, rate } from '@/lib/format';
 
 export interface LineHandlers {
-  /** Resolves a nested line to the recipe behind it, so the row can say what it is. */
-  readonly childOf: (index: number) => { name: string; kind: 'preparation' | 'dish' } | null;
   readonly onQty: (index: number, value: number) => void;
   readonly onScope: (index: number) => void;
   readonly onRemove: (index: number) => void;
@@ -59,25 +57,15 @@ export function ComponentTable({
 
               <span className="ctable-name">
                 {line.kind === 'recipe' ? (
-                  (() => {
-                    const child = handlers.childOf(i);
-                    const isDish = child?.kind === 'dish';
-                    return (
-                      <span className={`sub-marker${isDish ? ' is-dish' : ''}`}>
-                        <span className={`figure ${isDish ? 'dish-badge' : 'sub-badge'}`}>
-                          {isDish ? 'DISH' : 'PREP'}
-                        </span>
-                        <span className="ctable-label">
-                          <span className="ctable-title is-link">{line.name}</span>
-                          <span className="ctable-note">
-                            {isDish
-                              ? 'a dish you also sell, costed inside this one'
-                              : 'you make this, and it carries its own cost and yield across'}
-                          </span>
-                        </span>
+                  <span className="sub-marker">
+                    <span className="figure sub-badge">DISH</span>
+                    <span className="ctable-label">
+                      <span className="ctable-title is-link">{line.name}</span>
+                      <span className="ctable-note">
+                        you make this, and it carries its own cost and yield across
                       </span>
-                    );
-                  })()
+                    </span>
+                  </span>
                 ) : (
                   <span className="ctable-label indent">
                     <span className="ctable-title">{line.name}</span>

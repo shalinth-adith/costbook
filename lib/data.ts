@@ -247,36 +247,28 @@ export function usedInCount(name: string): number {
 }
 
 /**
- * The three kinds of thing that can go on a component line.
+ * The two kinds of thing that can go on a component line.
  *
- * Costing treats them identically once each one's cost per base unit is known
- * — that is the whole of the nesting rule. But they are not the same thing to
- * the person cooking, and the interface must not pretend otherwise:
+ *   ingredient  something you buy. A pack, a supplier, a rate.
+ *   dish        something you make. Gravy, parotta, kuruma, a plate — food,
+ *               whether or not it is sold on its own today.
  *
- *   ingredient   something you buy. A pack, a supplier, a rate.
- *   preparation  something you make that goes into other dishes and is never
- *                plated on its own. TRD 5: portions is null for these.
- *   dish         something you make and sell. It plates into portions.
+ * Costing treats them identically once each one's cost per base unit is known,
+ * which is the whole of the nesting rule. They are still not the same thing to
+ * the person cooking: one arrives from a supplier and the other is made in the
+ * kitchen, and the picker must not merge them into one list.
  *
- * A dish can be nested inside another dish — a plate can carry a portion of
- * something that is also sold on its own — but it is the uncommon case, so it
- * is offered and marked rather than hidden or listed as though it were a
- * preparation.
+ * Nesting a dish inside another dish is ordinary here, not an exception. A
+ * parotta goes on a plate; both are food.
  */
-export type ComponentKind = 'ingredient' | 'preparation' | 'dish';
-
-export function recipeKind(recipe: Recipe): Extract<ComponentKind, 'preparation' | 'dish'> {
-  return recipe.portions === null ? 'preparation' : 'dish';
-}
+export type ComponentKind = 'ingredient' | 'dish';
 
 export const KIND_LABEL: Readonly<Record<ComponentKind, string>> = {
   ingredient: 'Ingredients',
-  preparation: 'Your preparations',
-  dish: 'Your menu dishes',
+  dish: 'Your dishes',
 };
 
 export const KIND_HINT: Readonly<Record<ComponentKind, string>> = {
   ingredient: 'Things you buy. Each one has a pack size and a rate you entered.',
-  preparation: 'Things you make that go into other dishes. Each carries its own cost and yield across.',
-  dish: 'Things you sell. Putting one inside another dish is unusual, but Costbook will cost it correctly.',
+  dish: 'Things you make. Each carries its own cost and yield across into this one.',
 };

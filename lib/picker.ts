@@ -1,11 +1,11 @@
 /**
  * What the "add a component" search offers, grouped by what each thing is.
  *
- * Costing treats an ingredient, a preparation and a dish identically once each
- * one's cost per base unit is known — that is the whole of the nesting rule.
- * They are not the same thing to the person cooking, though, and a picker that
- * merges them invites someone to drop a finished dish into another dish
- * without noticing. So the grouping is structural, not decorative.
+ * Costing treats an ingredient and a dish identically once each one's cost per
+ * base unit is known — that is the whole of the nesting rule. They are not the
+ * same thing to the person cooking, though: one arrives from a supplier and
+ * the other is made in the kitchen. So the grouping is structural rather than
+ * decorative, and a made thing never appears among the ingredients.
  */
 
 import type { Ingredient } from '@/core/ingredient';
@@ -13,7 +13,7 @@ import { ingredientCost, ratePerUnit } from '@/core/ingredient';
 import type { Recipe, RecipeBook } from '@/core/recipe';
 import { isComplete, recipeCost } from '@/core/recipe';
 
-import { type ComponentKind, ORG, recipeKind } from './data';
+import { type ComponentKind, ORG } from './data';
 import { rate } from './format';
 
 export type PickerChoice =
@@ -68,16 +68,14 @@ function ingredientRow(i: Ingredient, usedInCount: (n: string) => number): Picke
 function recipeRow(r: Recipe, book: RecipeBook, usedInCount: (n: string) => number): PickerRow {
   const cost = recipeCost(r, book);
   const per = isComplete(cost) ? cost.costPerBase : null;
-  const kind = recipeKind(r);
 
   return {
     key: `r:${r.id}`,
-    kind,
+    kind: 'dish',
     name: r.name,
     meta:
-      kind === 'preparation'
-        ? `you make this · one batch yields ${r.outputQty} ${r.outputUnit}`
-        : `on your menu · ${String(r.portions)} portions a batch`,
+      `you make this · one batch yields ${r.outputQty} ${r.outputUnit}` +
+      (r.portions === null ? '' : ` · ${String(r.portions)} portions`),
     rateText:
       per === null
         ? 'a rate is missing inside it'
@@ -89,10 +87,8 @@ function recipeRow(r: Recipe, book: RecipeBook, usedInCount: (n: string) => numb
 }
 
 /**
- * Preparations first, because they are what a dish is usually built from.
- * Ingredients next. Dishes last, and only because nesting one is legitimate —
- * it is the uncommon case, so it sits where it will be found deliberately
- * rather than reached for by accident.
+ * Ingredients first, then dishes: what you buy before what you make, which is
+ * the order a cook thinks in and the order these things come into existence.
  */
 export function pickerGroups(input: PickerInput): readonly PickerGroup[] {
   const { shelf, recipes, book, excludeRecipeId, usedInCount, query } = input;
@@ -108,9 +104,8 @@ export function pickerGroups(input: PickerInput): readonly PickerGroup[] {
   const match = (r: PickerRow) => q === '' || r.name.toLowerCase().includes(q);
 
   const groups: PickerGroup[] = [
-    { kind: 'preparation', rows: fromRecipes.filter((r) => r.kind === 'preparation').filter(match) },
     { kind: 'ingredient', rows: ingredients.filter(match) },
-    { kind: 'dish', rows: fromRecipes.filter((r) => r.kind === 'dish').filter(match) },
+    { kind: 'dish', rows: fromRecipes.filter(match) },
   ];
 
   return groups.filter((g) => g.rows.length > 0);

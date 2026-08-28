@@ -39,11 +39,7 @@ export function ComponentCards({
               <span className="figure ccard-n">{String(i + 1).padStart(2, '0')}</span>
               <span className="ccard-title-block">
                 <span className="ccard-title">
-                  {line.kind === 'recipe' ? (
-                    <span className={`figure ${handlers.childOf(i)?.kind === 'dish' ? 'dish-badge' : 'sub-badge'}`}>
-                      {handlers.childOf(i)?.kind === 'dish' ? 'DISH' : 'PREP'}
-                    </span>
-                  ) : null}
+                  {line.kind === 'recipe' ? <span className="figure sub-badge">DISH</span> : null}
                   {line.name}
                 </span>
                 {line.scope === 'portion' ? (
