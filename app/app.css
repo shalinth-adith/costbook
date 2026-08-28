@@ -949,3 +949,43 @@
   .prep-wrap { padding: 0; }
   .prep { border: 0; padding: 0; max-width: none; }
 }
+
+/* ── the same surface, from the edge nearest the eye ────────────────── */
+
+/* A12: at 1440 the eye is already at the right rail, so the panel arrives
+   from that edge rather than 700px below it. Below that width it stays a
+   bottom sheet, which is where a thumb reaches on a held tablet. */
+@media (min-width: 1180px) {
+  .scrim { align-items: stretch; justify-content: flex-end; }
+
+  .sheet {
+    width: min(460px, 100%);
+    max-height: none;
+    height: 100%;
+    border-radius: 0;
+    border-block: 0;
+    border-inline-end: 0;
+    animation: drawer-in var(--dur-reveal) var(--ease-enter);
+  }
+  @keyframes drawer-in { from { transform: translateX(20px); } to { transform: none; } }
+
+  .sheet-head { border-radius: 0; }
+  /* The grip is a bottom-sheet affordance; a drawer does not need one. */
+  .sheet-grip { visibility: hidden; }
+}
+
+/* ── batch total ───────────────────────────────────────────────────── */
+
+/* A12 puts the batch total under the table and says in words whether it is a
+   cost or a floor — the same distinction the rail makes, at the other end of
+   the screen, so neither can be read without the other's caveat. */
+.running-said { font-size: 12.5px; color: var(--text-secondary); max-width: 62ch; text-wrap: pretty; }
+.batch-total { display: flex; align-items: baseline; gap: var(--sp-3); flex: none; }
+.batch-total-value { font-size: 17px; font-weight: 600; }
+
+.price-actions { display: flex; gap: var(--sp-2); }
+.price-actions .btn { flex: 1; justify-content: center; }
+
+.prep-size { font-size: 11.5px; color: var(--text-tertiary); align-self: center; margin-inline-start: auto; }
+.prep-donot { border: 1px solid var(--surface-inverse); padding: var(--sp-3); margin-block-start: var(--sp-5); }
+.prep-donot-copy { margin: 0; font-size: 13.5px; line-height: 1.5; }

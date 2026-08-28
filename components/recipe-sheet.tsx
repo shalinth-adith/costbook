@@ -239,6 +239,9 @@ export function RecipeSheet({
         portions={recipe.portions}
         lines={cost.lines}
         steps={PREP_STEPS}
+        prepTime="9 min"
+        contains={['Milk', 'Sesame']}
+        doNot="Podi the idlys before they are ordered — they go soft. Send within 60 seconds of the tawa."
         onBack={() => setView('costing')}
       />
     );
@@ -300,9 +303,12 @@ export function RecipeSheet({
               type="button"
               className="btn btn-primary"
               disabled={!dirty || saving}
+              title={dirty ? undefined : 'Nothing has changed since this was last saved.'}
               onClick={() => void commit(() => saveChanges(named, dishFields))}
             >
-              {saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}
+              {/* The label holds still. A control that renames itself between
+                  states is a control you have to re-read before pressing. */}
+              {saving ? 'Saving…' : 'Save changes'}
             </button>
           ) : (
             <>
@@ -447,18 +453,22 @@ export function RecipeSheet({
             </div>
 
             <div className="running-total">
-              <span>
-                Running total{' '}
-                <span className="figure strong">
-                  {ORG.currencySymbol} {money(build.ingredientsPerPortion)}
-                </span>{' '}
-                per plate before wastage and packaging
-                {!build.complete ? (
-                  <span className="running-warn"> — one line has no rate, so this is a floor and not a cost.</span>
-                ) : null}
+              <span className="running-said">
+                {build.complete ? (
+                  'Every line carries a rate, so the total below is a cost rather than a floor.'
+                ) : (
+                  <span className="running-warn">
+                    {cost.kind === 'floor' ? cost.unpriced.length : 0} line
+                    {cost.kind === 'floor' && cost.unpriced.length === 1 ? ' has' : 's have'} no
+                    rate, so the batch total is a floor rather than a cost.
+                  </span>
+                )}
               </span>
-              <span className="figure running-work">
-                {money(build.linesTotal)} ÷ {recipe.portions ?? '—'} = {money(build.ingredientsPerPortion)}
+              <span className="batch-total">
+                <span className="label">{build.complete ? 'Batch total' : 'Batch floor'}</span>
+                <span className="figure batch-total-value">
+                  {ORG.currencySymbol} {money(build.linesTotal)}
+                </span>
               </span>
             </div>
           </section>
@@ -495,6 +505,12 @@ export function RecipeSheet({
             if (suggestion === null) return;
             void commit(() => saveAndPrice(named, dishFields, suggestion.rounded));
           }}
+          onKeepPrice={() =>
+            setToast({
+              message: `Price left at ₹ ${(dish.sellingPrice ?? 0).toFixed(2)}. Nothing changed.`,
+              undoable: false,
+            })
+          }
           busy={saving}
         />
       </div>

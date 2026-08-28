@@ -22,6 +22,9 @@ export function PrepCard({
   portions,
   lines,
   steps,
+  prepTime,
+  contains,
+  doNot,
   onBack,
 }: {
   name: string;
@@ -29,6 +32,10 @@ export function PrepCard({
   portions: number | null;
   lines: readonly CostedLine[];
   steps: readonly string[];
+  prepTime: string | null;
+  /** Allergens, in the kitchen's words. Printed, never costed. */
+  contains: readonly string[];
+  doNot: string | null;
   onBack: () => void;
 }) {
   return (
@@ -41,13 +48,14 @@ export function PrepCard({
           </svg>
           Back to costing
         </button>
+        <span className="prep-size">A4 at 100%</span>
         <button type="button" className="btn btn-primary" onClick={() => window.print()}>
           <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor"
             strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
             <path d="M6.2 7V4.4h7.6V7M5 7h10v9.2H5Z" />
             <path d="M7.6 11.4h4.8" />
           </svg>
-          Print
+          Send to the printer
         </button>
       </div>
 
@@ -61,6 +69,10 @@ export function PrepCard({
           <Fact term="STATION" value={(dish.station ?? 'ANY').toUpperCase()} />
           <Fact term="BATCH" value={portions === null ? 'ONE BATCH' : `${portions} PLATES`} />
           <Fact term="PORTION" value={dish.portionSize === null ? '1 PLATE' : `1 PLATE · ${dish.portionSize}`} />
+          {prepTime === null ? null : <Fact term="PREP TIME" value={prepTime.toUpperCase()} />}
+          {contains.length === 0 ? null : (
+            <Fact term="CONTAINS" value={contains.join(' · ').toUpperCase()} />
+          )}
         </dl>
 
         <section className="prep-section">
@@ -95,6 +107,13 @@ export function PrepCard({
           </section>
         )}
 
+        {doNot === null ? null : (
+          <section className="prep-section prep-donot">
+            <h2 className="prep-h2">DO NOT</h2>
+            <p className="prep-donot-copy">{doNot}</p>
+          </section>
+        )}
+
         <footer className="prep-foot">
           <span>{ORG.name.toUpperCase()} · COSTBOOK · REVISION 1</span>
           <span>CHECKED BY ___________</span>
@@ -102,8 +121,10 @@ export function PrepCard({
       </article>
 
       <p className="prep-note no-print">
-        The same component lines, with no costs on them. A sheet taped where staff and suppliers
-        can read it is not where margins belong.
+        The same component lines as the costing view, the same quantities, no money. Editing a
+        quantity there changes what prints here, which is the point of the two views sharing one
+        set of data. A sheet taped where staff and suppliers can read it is not where margins
+        belong.
       </p>
     </div>
   );

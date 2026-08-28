@@ -3,12 +3,21 @@
 import { useEffect, useRef } from 'react';
 
 /**
- * A secondary surface, rising from the bottom edge.
+ * A secondary surface, arriving from the edge nearest the eye.
  *
- * Not a centred dialog. A dialog puts its close target in the top corner,
- * which is the furthest point from a thumb on a tablet held in two hands —
- * so the whole 52px title row closes this instead, which is the same gesture
- * whether you reach with a left hand or a right one (A13).
+ * One component, two presentations, decided by width rather than by a prop:
+ *
+ *   tablet    rises from the bottom edge. A centred dialog puts its close
+ *             target in the top corner, which is the furthest point from a
+ *             thumb on a tablet held in two hands (A13).
+ *   desktop   a right-hand drawer. At 1440 the eye is already at the rail
+ *             where the cost sits, so a panel from the bottom would land
+ *             700px below where someone is looking (A12).
+ *
+ * The drawer covers the rail, which is why every surface that changes a
+ * figure carries that figure — nothing needed is behind the panel.
+ *
+ * Either way the whole 52px title row closes it, rather than a corner of it.
  */
 export function Sheet({
   title,

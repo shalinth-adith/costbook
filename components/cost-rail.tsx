@@ -41,6 +41,7 @@ export function CostRail({
   onOpenCharges,
   onOpenRounding,
   onUsePrice,
+  onKeepPrice,
   busy,
 }: {
   cost: RecipeCost;
@@ -54,6 +55,8 @@ export function CostRail({
   /** Opens the rounding sheet, which shows what each rule would charge. */
   onOpenRounding: () => void;
   onUsePrice: () => void;
+  /** Leaves the menu price where it is, and says so. */
+  onKeepPrice: () => void;
   busy: boolean;
 }) {
   // A dish with no portions has no cost per portion, so the rail leads with
@@ -156,6 +159,15 @@ export function CostRail({
               'A price applies to a portion, and this is made by the batch rather than plated. It carries its cost into the dishes that use it.'
             )}
           </p>
+          {missing.length > 0 ? (
+            <p className="rail-copy">
+              Give it one and this price becomes trustworthy. Until then{' '}
+              <span className="figure strong">
+                {ORG.currencySymbol} {money(build.total ?? build.linesTotal)}
+              </span>{' '}
+              is the least this dish can cost.
+            </p>
+          ) : null}
           <button type="button" className="btn btn-primary" disabled>
             Use as the price
           </button>
@@ -209,9 +221,16 @@ export function CostRail({
             </div>
           </div>
 
-          <button type="button" className="btn btn-primary" onClick={onUsePrice} disabled={busy}>
-            {busy ? 'Saving…' : `Use ${ORG.currencySymbol} ${money(suggestion.rounded)} as the price`}
-          </button>
+          <div className="price-actions">
+            <button type="button" className="btn btn-primary" onClick={onUsePrice} disabled={busy}>
+              {busy ? 'Saving…' : `Use ${ORG.currencySymbol} ${money(suggestion.rounded)}`}
+            </button>
+            {sellingPrice === null ? null : (
+              <button type="button" className="btn" onClick={onKeepPrice} disabled={busy}>
+                Keep {ORG.currencySymbol} {money(sellingPrice)}
+              </button>
+            )}
+          </div>
         </section>
       )}
 
