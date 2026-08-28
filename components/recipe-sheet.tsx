@@ -11,12 +11,8 @@ import { ComponentTable, type LineHandlers } from './component-table';
 import { ComponentPicker, type PickerChoice } from './component-picker';
 import { CostRail } from './cost-rail';
 import { StatusChip } from './status-chip';
-import {
-  DEFAULT_MODEL,
-  type RoundingRule,
-  buildUp,
-  foodCostPercent,
-} from '@/lib/costing';
+import { DEFAULT_MODEL, buildUp, foodCostPercent } from '@/lib/costing';
+import type { PresetName } from '@/core/rounding';
 import { addComponent, bookWith, removeLine, setQty, toggleScope } from '@/lib/edit';
 import type { DishMeta } from '@/lib/data';
 import { ORG } from '@/lib/data';
@@ -50,7 +46,7 @@ export function RecipeSheet({
   const [recipe, setRecipe] = useState<Recipe>(initialRecipe);
   const [layout, setLayout] = useState<Layout>('table');
   const [expanded, setExpanded] = useState(-1);
-  const [rounding, setRounding] = useState<RoundingRule>(DEFAULT_MODEL.rounding);
+  const [rounding, setRounding] = useState<PresetName>(DEFAULT_MODEL.rounding);
   const [dirty, setDirty] = useState(false);
   const [blocked, setBlocked] = useState<string | null>(null);
 

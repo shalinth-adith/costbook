@@ -1,10 +1,12 @@
 'use client';
 
 import type { RecipeCost } from '@/core/recipe';
+import type { PresetName } from '@/core/rounding';
 
 import {
+  ROUNDING_CHOICES,
   ROUNDING_LABEL,
-  type RoundingRule,
+  
   type CostBuildUp,
   type CostingModel,
   foodCostPercent,
@@ -42,7 +44,7 @@ export function CostRail({
   model: CostingModel;
   sellingPrice: number | null;
   note: string;
-  onRounding: (rule: RoundingRule) => void;
+  onRounding: (rule: PresetName) => void;
 }) {
   // A dish with no portions has no cost per portion, so the rail leads with
   // what a batch costs instead. Nothing is invented to fill the slot.
@@ -164,9 +166,9 @@ export function CostRail({
                 id="rounding-rule"
                 className="rule-select"
                 value={model.rounding}
-                onChange={(e) => onRounding(e.target.value as RoundingRule)}
+                onChange={(e) => onRounding(e.target.value as PresetName)}
               >
-                {(Object.keys(ROUNDING_LABEL) as RoundingRule[]).map((rule) => (
+                {ROUNDING_CHOICES.map((rule) => (
                   <option key={rule} value={rule}>{ROUNDING_LABEL[rule]}</option>
                 ))}
               </select>
@@ -191,7 +193,7 @@ export function CostRail({
               <button
                 type="button"
                 className="price-option"
-                onClick={() => onRounding(model.rounding === 'charm_99' ? 'nearest_5_up' : 'charm_99')}
+                onClick={() => onRounding(model.rounding === 'charm_99' ? 'up_to_5' : 'charm_99')}
               >
                 <span className="price-radio" />
                 <span className="figure price-value muted">

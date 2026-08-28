@@ -99,7 +99,7 @@ describe('the suggested price shows its working', () => {
   it('always rounds up, never down', () => {
     // Rounding a suggested price down silently erodes the target the operator
     // just set (COSTING_MODELS Axis F).
-    for (const rounding of ['charm_99', 'nearest_5_up', 'exact'] as const) {
+    for (const rounding of ['charm_99', 'up_to_5', 'nearest_whole', 'none'] as const) {
       const s = suggestPrice(build.total, { ...DEFAULT_MODEL, rounding });
       expect(s.rounded).toBeGreaterThanOrEqual(s.exact - 0.005);
     }

@@ -1,0 +1,250 @@
+/**
+ * Rounding rules for a suggested price.
+ *
+ * Purely presentational, and the first thing an operator notices
+ * (COSTING_MODELS Axis F). Every rule here is a lattice of candidate prices —
+ * multiples of five, whole rupees, figures ending in .99 — and a direction for
+ * choosing between the two the value falls between.
+ *
+ * The default direction is up, and that is not an aesthetic choice. Rounding a
+ * suggested price down silently erodes the target the operator just set: they
+ * asked for a 32% food cost, and a price rounded down quietly delivers 32.4%.
+ * Down is available because some operators want it, but it is never the
+ * default and the interface says which is in force.
+ *
+ * Nothing here rounds an intermediate figure. A rate rounded mid-calculation
+ * multiplies back out across a batch, and that is where the reference
+ * workbook's unexplained variances came from (TRD 4).
+ */
+
+export type RoundingDirection = 'up' | 'down' | 'nearest';
+
+/** How a value sitting exactly between two candidates resolves. */
+export type TieBreak = 'up' | 'down' | 'even';
+
+export type RoundingRule =
+  /** The exact figure, at money precision. No candidate lattice at all. */
+  | { readonly mode: 'none' }
+  /** Whole units: 47.83 becomes 48. */
+  | { readonly mode: 'whole'; readonly direction: RoundingDirection; readonly tie: TieBreak }
+  /** Multiples of a step: nearest 5, nearest 10, nearest 0.5. */
+  | {
+      readonly mode: 'step';
+      readonly step: number;
+      readonly direction: RoundingDirection;
+      readonly tie: TieBreak;
+    }
+  /** Figures ending in a set fraction: .99, .95, .50. */
+  | {
+      readonly mode: 'charm';
+      readonly ending: number;
+      readonly direction: RoundingDirection;
+      readonly tie: TieBreak;
+    };
+
+export type RoundingErrorCode = 'invalid_step' | 'invalid_ending' | 'invalid_value';
+
+export class RoundingError extends Error {
+  readonly code: RoundingErrorCode;
+
+  constructor(code: RoundingErrorCode, message: string) {
+    super(message);
+    this.name = 'RoundingError';
+    this.code = code;
+  }
+}
+
+/** Money precision. Two places is what every figure is displayed at. */
+const MONEY_DP = 2;
+
+/**
+ * Everything is computed in millionths before any floor or ceiling runs.
+ *
+ * Without it, a value that is already a candidate gets rounded past itself:
+ * 47.99 under a .99 rule leaves 47.00000000000001 after subtracting the
+ * ending, and a ceiling on that returns 48.99. A whole rupee more, for a price
+ * that was already correct.
+ */
+const SCALE = 1_000_000;
+
+const toUnits = (value: number): number => Math.round(value * SCALE);
+const fromUnits = (units: number): number => units / SCALE;
+
+/** Convenience constructors, so a caller never assembles the union by hand. */
+export const NONE: RoundingRule = { mode: 'none' };
+
+export const whole = (direction: RoundingDirection = 'up', tie: TieBreak = 'up'): RoundingRule => ({
+  mode: 'whole',
+  direction,
+  tie,
+});
+
+export const step = (
+  size: number,
+  direction: RoundingDirection = 'up',
+  tie: TieBreak = 'up',
+): RoundingRule => ({ mode: 'step', step: size, direction, tie });
+
+export const charm = (
+  ending: number,
+  direction: RoundingDirection = 'up',
+  tie: TieBreak = 'up',
+): RoundingRule => ({ mode: 'charm', ending, direction, tie });
+
+/**
+ * The rules named in COSTING_MODELS Axis F, ready to select.
+ *
+ * A preset says which shape of rule applies, never what a jurisdiction
+ * charges — the same distinction that keeps the costing model honest.
+ */
+export const PRESETS = {
+  none: NONE,
+  nearest_whole: whole('nearest'),
+  up_whole: whole('up'),
+  charm_99: charm(0.99),
+  charm_95: charm(0.95),
+  up_to_5: step(5),
+  up_to_10: step(10),
+  up_to_half: step(0.5),
+} as const satisfies Readonly<Record<string, RoundingRule>>;
+
+export type PresetName = keyof typeof PRESETS;
+
+/**
+ * The rule in the operator's words, for showing beside the figure it produced.
+ *
+ * Written out per case rather than assembled from fragments — composing
+ * "round to the nearest" with "to a whole unit" gives "round to the nearest to
+ * a whole unit", and a sentence a user reads is not the place to be clever.
+ */
+export function describeRule(rule: RoundingRule): string {
+  switch (rule.mode) {
+    case 'none':
+      return 'leave the exact figure';
+
+    case 'whole':
+      switch (rule.direction) {
+        case 'up':
+          return 'round up to a whole unit';
+        case 'down':
+          return 'round down to a whole unit';
+        case 'nearest':
+          return 'round to the nearest whole unit';
+      }
+      break;
+
+    case 'step':
+      switch (rule.direction) {
+        case 'up':
+          return `round up to the nearest ${rule.step}`;
+        case 'down':
+          return `round down to the nearest ${rule.step}`;
+        case 'nearest':
+          return `round to the nearest ${rule.step}`;
+      }
+      break;
+
+    case 'charm': {
+      const ending = rule.ending.toFixed(2).slice(1);
+      switch (rule.direction) {
+        case 'up':
+          return `round up to the next figure ending in ${ending}`;
+        case 'down':
+          return `round down to the previous figure ending in ${ending}`;
+        case 'nearest':
+          return `round to the nearest figure ending in ${ending}`;
+      }
+    }
+  }
+}
+
+interface Lattice {
+  /** Spacing between candidates, in millionths. */
+  readonly stepUnits: number;
+  /** Where the lattice sits, in millionths. */
+  readonly offsetUnits: number;
+}
+
+function latticeFor(rule: Exclude<RoundingRule, { mode: 'none' }>): Lattice {
+  switch (rule.mode) {
+    case 'whole':
+      return { stepUnits: SCALE, offsetUnits: 0 };
+    case 'step': {
+      if (!Number.isFinite(rule.step) || rule.step <= 0) {
+        throw new RoundingError('invalid_step', 'A rounding step has to be greater than zero.');
+      }
+      return { stepUnits: toUnits(rule.step), offsetUnits: 0 };
+    }
+    case 'charm': {
+      if (!Number.isFinite(rule.ending) || rule.ending < 0 || rule.ending >= 1) {
+        throw new RoundingError(
+          'invalid_ending',
+          'A charm ending is the fraction a price finishes on, so it sits between 0 and 1.',
+        );
+      }
+      // Candidates are whole units offset by the ending: 46.99, 47.99, 48.99.
+      return { stepUnits: SCALE, offsetUnits: toUnits(rule.ending) };
+    }
+  }
+}
+
+/** Apply a rounding rule to a figure. */
+export function applyRounding(value: number, rule: RoundingRule): number {
+  if (!Number.isFinite(value)) {
+    throw new RoundingError('invalid_value', 'That is not a figure we can round.');
+  }
+
+  if (rule.mode === 'none') {
+    const factor = 10 ** MONEY_DP;
+    return Math.round(value * factor) / factor;
+  }
+
+  const { stepUnits, offsetUnits } = latticeFor(rule);
+  const units = toUnits(value);
+
+  // Integers throughout, so a value already on the lattice stays put.
+  const fromOffset = units - offsetUnits;
+  const k = fromOffset / stepUnits;
+  const kDown = Math.floor(k);
+  const kUp = Math.ceil(k);
+
+  const candidate = (index: number): number => index * stepUnits + offsetUnits;
+
+  if (rule.direction === 'up') return fromUnits(candidate(kUp));
+  if (rule.direction === 'down') return fromUnits(candidate(kDown));
+
+  const down = candidate(kDown);
+  const up = candidate(kUp);
+  const toDown = units - down;
+  const toUp = up - units;
+
+  if (toDown < toUp) return fromUnits(down);
+  if (toUp < toDown) return fromUnits(up);
+
+  // Exactly between. Resolved as configured rather than by whichever way the
+  // language happens to lean.
+  switch (rule.tie) {
+    case 'up':
+      return fromUnits(up);
+    case 'down':
+      return fromUnits(down);
+    case 'even':
+      return fromUnits(kDown % 2 === 0 ? down : up);
+  }
+}
+
+/** Both figures a rule sits between, for showing the operator the choice. */
+export function candidatesAround(
+  value: number,
+  rule: RoundingRule,
+): { readonly below: number; readonly above: number } {
+  if (rule.mode === 'none') {
+    const exact = applyRounding(value, NONE);
+    return { below: exact, above: exact };
+  }
+
+  return {
+    below: applyRounding(value, { ...rule, direction: 'down' }),
+    above: applyRounding(value, { ...rule, direction: 'up' }),
+  };
+}

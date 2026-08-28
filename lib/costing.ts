@@ -13,6 +13,13 @@
  */
 
 import { type RecipeCost, isComplete } from '@/core/recipe';
+import {
+  PRESETS,
+  type PresetName,
+  type RoundingRule,
+  applyRounding,
+  describeRule,
+} from '@/core/rounding';
 
 export interface CostingModel {
   /** Applied to the ingredient cost per portion. */
@@ -21,10 +28,9 @@ export interface CostingModel {
   readonly packagingPerPortion: number;
   /** What share of the menu price the operator is aiming for the food to be. */
   readonly foodCostTarget: number;
-  readonly rounding: RoundingRule;
+  /** Named so the interface can offer a list; the rule itself lives in core. */
+  readonly rounding: PresetName;
 }
-
-export type RoundingRule = 'charm_99' | 'nearest_5_up' | 'exact';
 
 /**
  * Every default in one place, so the screens can point at it. None of these
@@ -37,11 +43,26 @@ export const DEFAULT_MODEL: CostingModel = {
   rounding: 'charm_99',
 };
 
-export const ROUNDING_LABEL: Readonly<Record<RoundingRule, string>> = {
-  charm_99: 'round up to the next figure ending in .99',
-  nearest_5_up: 'round up to the nearest 5',
-  exact: 'leave the exact figure',
-};
+/**
+ * The rules offered on the dish, described in the operator's words. The wording
+ * comes from core so the sentence beside a price and the arithmetic behind it
+ * can never drift apart.
+ */
+export const ROUNDING_CHOICES: readonly PresetName[] = [
+  'charm_99',
+  'charm_95',
+  'up_to_5',
+  'nearest_whole',
+  'none',
+];
+
+export const ROUNDING_LABEL: Readonly<Record<PresetName, string>> = Object.fromEntries(
+  (Object.keys(PRESETS) as PresetName[]).map((name) => [name, describeRule(PRESETS[name])]),
+) as Readonly<Record<PresetName, string>>;
+
+export function ruleFor(name: PresetName): RoundingRule {
+  return PRESETS[name];
+}
 
 /** A figure Costbook supplied because the operator has not. */
 export interface DefaultedFigure {
@@ -159,27 +180,18 @@ export interface PriceSuggestion {
   readonly ruleLabel: string;
 }
 
-function applyRounding(value: number, rule: RoundingRule): number {
-  switch (rule) {
-    // Always round up. Rounding a suggested price down silently erodes the
-    // target the operator just set (COSTING_MODELS Axis F).
-    case 'charm_99':
-      return Math.ceil(value - 0.99) + 0.99;
-    case 'nearest_5_up':
-      return Math.ceil(value / 5) * 5;
-    case 'exact':
-      return Math.round(value * 100) / 100;
-  }
-}
-
 /**
  * What to charge to hit the target. Never offered for an incomplete dish: a
  * price built on a floor would be a suggestion to lose money.
  */
 export function suggestPrice(total: number, model: CostingModel): PriceSuggestion {
   const exact = total / (model.foodCostTarget / 100);
-  const rounded = applyRounding(exact, model.rounding);
-  const alternative = applyRounding(exact, model.rounding === 'charm_99' ? 'nearest_5_up' : 'charm_99');
+  const rounded = applyRounding(exact, ruleFor(model.rounding));
+
+  // The other candidate, so the operator sees what the choice costs rather
+  // than being handed one figure and asked to trust it.
+  const alternativeName: PresetName = model.rounding === 'charm_99' ? 'up_to_5' : 'charm_99';
+  const alternative = applyRounding(exact, ruleFor(alternativeName));
 
   return {
     exact,
