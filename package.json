@@ -7,12 +7,14 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
-    "test:ui": "vitest --ui"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p bench",
+    "test:ui": "vitest --ui",
+    "dev": "vite bench"
   },
   "devDependencies": {
     "@vitest/ui": "^4.1.11",
     "typescript": "^7.0.2",
+    "vite": "^8.2.2",
     "vitest": "^4.1.11"
   }
 }

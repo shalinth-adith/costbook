@@ -1,0 +1,26 @@
+/* Deliberately plain. This page is a test bench, not a screen. The only
+   styling that earns its place is what makes figures readable: a mono face
+   with tabular numerals so a column of costs aligns on the decimal. */
+body { font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: 24px 32px 64px; color: #171B24; }
+h1 { font-size: 20px; margin: 0 0 4px; }
+h2 { font-size: 15px; margin: 32px 0 8px; }
+h3 { font-size: 14px; margin: 0 0 6px; }
+section { margin: 0 0 28px; padding: 0 0 20px; border-bottom: 1px solid #DEE1E8; }
+table { border-collapse: collapse; margin: 4px 0 8px; }
+th, td { padding: 3px 14px 3px 0; text-align: start; vertical-align: baseline; }
+th { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #5C6577;
+     border-bottom: 1px solid #DEE1E8; font-weight: 600; }
+.n { font-family: ui-monospace, "SF Mono", Menlo, monospace;
+     font-variant-numeric: tabular-nums; text-align: end; }
+.u { color: #5C6577; font-size: 12px; }
+.sum { margin-top: 6px; border-top: 1px solid #DEE1E8; padding-top: 4px; }
+.sum td:first-child { color: #4A5262; min-width: 200px; }
+.sum .total td { font-weight: 600; border-top: 1px solid #DEE1E8; padding-top: 5px; }
+.note { color: #5C6577; font-size: 12.5px; max-width: 62ch; }
+.warn { color: #8A3E28; }
+.assumed { color: #6B4E12; font-size: 12.5px; max-width: 62ch; }
+.none { color: #5C6577; }
+tr.missing td { background: #FDFAF9; }
+.chip { font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em;
+        border: 1px solid #C3C8D4; border-radius: 3px; padding: 1px 5px; color: #4A5262; }
+code { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
