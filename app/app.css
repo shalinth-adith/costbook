@@ -166,15 +166,17 @@
   color: var(--text-secondary); font-weight: 600;
 }
 
-/* ── the sheet ─────────────────────────────────────────────────────── */
+/* ── the costing view ──────────────────────────────────────────────── */
 
-.sheet {
+/* Named for what it is. This was ".sheet" until a bottom sheet arrived with
+   the same name and started styling the page as a 460px drawer — the table
+   crushed to three-line wraps and the rail fell below it. */
+.costing {
   padding: var(--sp-2) var(--sp-6) var(--sp-6);
   display: grid; grid-template-columns: minmax(0, 1fr) 372px;
   gap: var(--sp-5); align-items: start;
 }
-.sheet-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.sheet-footer { display: flex; padding-inline: 2px; }
+.costing-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 
 .dish-summary {
   min-height: 60px; display: flex; align-items: center; gap: var(--sp-3);
@@ -328,13 +330,11 @@
 .price-formula { font-size: 14px; color: var(--text-primary); }
 .price-rule {
   font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 0;
-  border-block-start: 1px dotted var(--border-strong); padding-block-start: var(--sp-2);
   text-wrap: pretty;
 }
 .price-rule strong { color: var(--text-primary); font-weight: 600; }
-.price-options { display: flex; flex-direction: column; gap: 7px; }
 .price-option {
-  display: flex; align-items: center; gap: 10px; width: 100%;
+  display: flex; align-items: flex-start; gap: 10px; width: 100%;
   background: var(--surface-card); border: 1px solid var(--border-control);
   border-radius: 4px; padding: 9px 11px; cursor: pointer;
   font: inherit; text-align: start; color: var(--text-primary);
@@ -346,9 +346,7 @@
   width: 13px; height: 13px; flex: none;
   border: 1.5px solid var(--border-control-hover); border-radius: 50%;
 }
-.price-value { font-size: 17px; font-weight: 600; white-space: nowrap; }
 .price-value.muted { font-weight: 500; color: var(--text-secondary); }
-.price-fc { margin-inline-start: auto; font-size: 12px; color: var(--text-secondary); }
 
 .card-inert .btn-primary,
 .rail .btn-primary { width: 100%; justify-content: center; }
@@ -358,7 +356,7 @@
 /* ── tablet ────────────────────────────────────────────────────────── */
 
 @media (max-width: 1180px) {
-  .sheet { grid-template-columns: minmax(0, 1fr); }
+  .costing { grid-template-columns: minmax(0, 1fr); }
   .rail { position: static; }
   /* Yield and rate are the first columns to go: they are reference, and the
      quantity and the cost are what the screen is for. */
@@ -1041,11 +1039,9 @@
 
 /* Both candidates side by side: the choice is between two prices. */
 .price-options { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
-.price-option { align-items: flex-start; }
 .price-option-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .price-value { font-size: 16px; }
 .price-fc { margin-inline-start: 0; font-size: 11.5px; }
-.price-rule { border-block-start: 0; padding-block-start: 0; }
 
 .rail-actions-row { flex-direction: row; }
 .rail-actions-row .btn { flex: 1; }

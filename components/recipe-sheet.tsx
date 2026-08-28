@@ -312,8 +312,8 @@ export function RecipeSheet({
         </div>
       </div>
 
-      <div className="sheet">
-        <div className="sheet-main">
+      <div className="costing">
+        <div className="costing-main">
           {blocked !== null ? (
             <section className="card blocked" role="alert">
               <span className="chip chip-over">
