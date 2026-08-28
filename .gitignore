@@ -1,0 +1,24 @@
+node_modules/
+dist/
+coverage/
+
+.DS_Store
+*.log
+
+.env
+.env.*
+!.env.example
+
+# Session tooling, not part of the application
+.claude/
+
+# Reference documents. Deliberately not in the repo: they are the specification
+# we work from, not something the application needs in order to run.
+PRD.md
+TRD.md
+COSTING_MODELS.md
+FLOWS.md
+FIELDS_AND_VIEWS.md
+DESIGN_BRIEF.md
+FORMULA_INSPECTOR_PROMPT.md
+reference/
