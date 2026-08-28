@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { book, recipes, shelf, usedInCount } from './data';
+import { addComponent } from './edit';
 import { countRows, pickerGroups } from './picker';
 
 const groupsFor = (query = '', excludeRecipeId = 'plate') =>
@@ -105,5 +106,48 @@ describe('the list itself', () => {
 
   it('returns nothing rather than a guess when there is no match', () => {
     expect(countRows(groupsFor('kasoori'))).toBe(0);
+  });
+});
+
+describe('a row that would close a loop says so before it is clicked', () => {
+  // The plate contains the kuruma. Offering the plate while editing the kuruma
+  // and refusing it afterwards is worse than not offering it: the operator has
+  // already decided by then.
+  const editingKuruma = () =>
+    pickerGroups({ shelf, recipes, book, excludeRecipeId: 'kuruma', usedInCount, query: '' });
+
+  const rowIn = (groups: ReturnType<typeof editingKuruma>, name: string) =>
+    groups.flatMap((g) => g.rows).find((r) => r.name === name);
+
+  it('marks the dish that already uses this one', () => {
+    const plate = rowIn(editingKuruma(), 'Parotta Kuruma Plate');
+    expect(plate?.blocked).not.toBeNull();
+    expect(plate?.blocked).toContain('Chicken Kuruma');
+    expect(plate?.blocked).toContain('loop');
+  });
+
+  it('leaves everything else addable', () => {
+    const gravy = rowIn(editingKuruma(), 'Onion Thakkali Gravy');
+    const onion = rowIn(editingKuruma(), 'Onion, big');
+    expect(gravy?.blocked).toBeNull();
+    expect(onion?.blocked).toBeNull();
+  });
+
+  it('never marks an ingredient, which cannot loop', () => {
+    for (const r of editingKuruma().flatMap((g) => g.rows)) {
+      if (r.kind === 'ingredient') expect(r.blocked).toBeNull();
+    }
+  });
+
+  it('agrees with what adding it would actually do', () => {
+    const groups = editingKuruma();
+    const kuruma = book.get('kuruma');
+    if (kuruma === undefined) expect.unreachable('kuruma exists');
+    const others = recipes.filter((r) => r.id !== 'kuruma');
+
+    for (const r of groups.flatMap((g) => g.rows)) {
+      const result = addComponent(kuruma, others, r.choice);
+      expect(result.ok).toBe(r.blocked === null);
+    }
   });
 });

@@ -2,6 +2,8 @@ import Link from 'next/link';
 
 import { ORG } from '@/lib/data';
 
+import { Mark } from './mark';
+
 const NAV = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Recipes', href: '/recipes' },
@@ -9,16 +11,6 @@ const NAV = [
   { label: 'Import', href: '/import' },
   { label: 'Settings', href: '/settings' },
 ] as const;
-
-/** The costs mark: four bars, line only, on the 16px grid. */
-function Mark() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-      strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
-      <path d="M3 16V8m4.7 8V4m4.6 12v-6M17 16V6" />
-    </svg>
-  );
-}
 
 export function AppShell({ current, children }: { current: string; children: React.ReactNode }) {
   return (

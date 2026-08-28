@@ -417,7 +417,8 @@ function costRecipeInner(
       `${recipe.name} would need itself to be costed first, so neither figure can ever settle.`,
       'components',
       recipe.name,
-      loop,
+      // Names, not ids. A loop shown to a cook has to read in their words.
+      loop.map((id) => book.get(id)?.name ?? id),
     );
   }
 
@@ -581,4 +582,73 @@ export function recipeCost(recipe: Recipe, book: RecipeBook = new Map()): Recipe
 /** Whether every line has a rate, so the figures are a cost rather than a floor. */
 export function isComplete(cost: RecipeCost): cost is Extract<RecipeCost, { kind: 'cost' }> {
   return cost.kind === 'cost';
+}
+
+
+/** A loop, as the chain of recipe names that closes it. */
+export interface CyclePath {
+  /** Recipe ids, outermost first, ending where the loop closes. */
+  readonly ids: readonly string[];
+  /** The same chain in the operator's words, for showing. */
+  readonly names: readonly string[];
+}
+
+function walk(
+  id: string,
+  book: RecipeBook,
+  trail: readonly string[],
+): CyclePath | null {
+  if (trail.includes(id)) {
+    const ids = [...trail.slice(trail.indexOf(id)), id];
+    return { ids, names: ids.map((i) => book.get(i)?.name ?? i) };
+  }
+
+  const recipe = book.get(id);
+  if (recipe === undefined) return null;
+
+  const next = [...trail, id];
+  for (const component of recipe.components) {
+    if (component.kind !== 'recipe') continue;
+    const found = walk(component.childId, book, next);
+    if (found !== null) return found;
+  }
+  return null;
+}
+
+/**
+ * The loop a recipe already contains, or null.
+ *
+ * Exists alongside the check inside `recipeCost` on purpose. That one throws
+ * partway through a calculation, which is right for a guarantee and wrong for
+ * an interface: a screen wants to know before it offers the option, not after
+ * the operator has clicked it.
+ */
+export function findCycle(recipe: Recipe, book: RecipeBook): CyclePath | null {
+  const next = [recipe.id];
+  for (const component of recipe.components) {
+    if (component.kind !== 'recipe') continue;
+    const found = walk(component.childId, book, next);
+    if (found !== null) return found;
+  }
+  return null;
+}
+
+/**
+ * The loop that adding `childId` to `parent` would close, or null.
+ *
+ * A recipe cannot contain itself, at any depth. Without this one bad edit
+ * hangs the costing forever, so the same rule is enforced twice — here for the
+ * user experience, and by a Postgres trigger for integrity at write time. Two
+ * implementations of one rule only stay in agreement if they share a test
+ * list (TRD 2, 6.5).
+ */
+export function wouldCycle(
+  parent: Recipe,
+  childId: string,
+  book: RecipeBook,
+): CyclePath | null {
+  if (childId === parent.id) {
+    return { ids: [parent.id, parent.id], names: [parent.name, parent.name] };
+  }
+  return walk(childId, book, [parent.id]);
 }

@@ -10,6 +10,7 @@
 import type { Ingredient } from '@/core/ingredient';
 import {
   type ComponentScope,
+  type CyclePath,
   type Recipe,
   type RecipeBook,
   RecipeError,
@@ -17,6 +18,7 @@ import {
   recipeBook,
   recipeComponent,
   recipeCost,
+  wouldCycle,
 } from '@/core/recipe';
 import { BASE_UNIT } from '@/core/units';
 
@@ -66,6 +68,13 @@ export function addComponent(
   others: readonly Recipe[],
   choice: AddChoice,
 ): AddResult {
+  // Asked before the line is built, so a loop is refused as an answer rather
+  // than as an exception thrown from inside a calculation.
+  if (choice.kind === 'recipe') {
+    const loop = wouldCycle(recipe, choice.recipe.id, bookWith(recipe, others));
+    if (loop !== null) return { ok: false, message: cycleMessage(loop) };
+  }
+
   try {
     const component =
       choice.kind === 'ingredient'
@@ -74,7 +83,7 @@ export function addComponent(
 
     const next: Recipe = { ...recipe, components: [...recipe.components, component] };
 
-    // Cost it before keeping it, so a loop is refused rather than saved.
+    // Cost it before keeping it, as a second guard on everything else.
     recipeCost(next, bookWith(next, others));
 
     return { ok: true, recipe: next };
@@ -82,9 +91,7 @@ export function addComponent(
     if (error instanceof RecipeError && error.code === 'cycle') {
       return {
         ok: false,
-        message:
-          `${recipe.name} cannot contain itself. ${error.path.join(' → ')} — the loop closes ` +
-          'there, so neither dish could be costed until one of the two links goes.',
+        message: cycleMessage({ ids: [...error.path], names: [...error.path] }),
       };
     }
     return {
@@ -92,6 +99,34 @@ export function addComponent(
       message: error instanceof Error ? error.message : 'That line could not be added.',
     };
   }
+}
+
+/**
+ * The loop, in the operator's words. Never a database error, and never an id
+ * — name both recipes and draw the path (FLOWS 5.2).
+ */
+export function cycleMessage(loop: CyclePath): string {
+  const first = loop.names[0] ?? 'This dish';
+  const inner = loop.names[1] ?? 'it';
+
+  if (loop.names.length === 2 && first === inner) {
+    return `${first} cannot contain itself.`;
+  }
+
+  return (
+    `${first} cannot contain itself. ${loop.names.join(' → ')} — the loop closes there, ` +
+    `so neither ${first} nor ${inner} could be costed until one of the two links goes.`
+  );
+}
+
+/** Whether adding this choice would close a loop, for marking it before the click. */
+export function blockedBy(
+  recipe: Recipe,
+  others: readonly Recipe[],
+  choice: AddChoice,
+): CyclePath | null {
+  if (choice.kind !== 'recipe') return null;
+  return wouldCycle(recipe, choice.recipe.id, bookWith(recipe, others));
 }
 
 /** The book as it stands with this edit applied. */

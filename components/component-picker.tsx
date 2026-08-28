@@ -84,7 +84,8 @@ export function ComponentPicker({
                     <li key={r.key}>
                       <button
                         type="button"
-                        className="picker-row"
+                        className={`picker-row${r.blocked !== null ? ' is-blocked' : ''}`}
+                        disabled={r.blocked !== null}
                         onClick={() => { onPick(r.choice); setQuery(''); setOpen(false); }}
                       >
                         <span className="picker-kind">
@@ -96,7 +97,9 @@ export function ComponentPicker({
                         </span>
                         <span className="picker-text">
                           <span className="picker-name">{r.name}</span>
-                          <span className="picker-meta">{r.meta}</span>
+                          <span className={`picker-meta${r.blocked !== null ? ' is-blocked' : ''}`}>
+                            {r.blocked ?? r.meta}
+                          </span>
                         </span>
                         <span className={`figure picker-rate${r.noRate ? ' is-missing' : ''}`}>{r.rateText}</span>
                         <span className="picker-uses">in {r.uses}</span>

@@ -699,3 +699,12 @@
   .dash-head span:nth-child(3), .dash-row > span:nth-child(3),
   .dash-head span:nth-child(7), .dash-row > span:nth-child(7) { display: none; }
 }
+
+/* A row that would close a loop says so in place. The control loses contrast;
+   the sentence explaining why does not. */
+.picker-row.is-blocked { cursor: not-allowed; }
+.picker-row.is-blocked:hover { background: none; }
+.picker-row.is-blocked .picker-name,
+.picker-row.is-blocked .picker-rate,
+.picker-row.is-blocked .picker-uses { color: var(--text-tertiary); }
+.picker-meta.is-blocked { color: var(--over-ink-strong); }

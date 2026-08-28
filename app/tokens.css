@@ -19,6 +19,11 @@
   --text-secondary: #4A5262;
   --text-tertiary: #5C6577;
   --text-on-inverse: #FFFFFF;
+  /* The dark panel is the one place ink runs the other way. Three steps, same
+     jobs as the light three, lifted enough to clear AA on #171B24. */
+  --text-on-inverse-secondary: #A6AEBE;
+  --text-on-inverse-tertiary: #7B8496;
+  --text-on-inverse-row: #E8EBF1;
 
   /* Borders — two inks, two jobs. Anything enclosing a control takes the
      darker one and clears 3:1. The light grey divides table rows and is
@@ -28,6 +33,11 @@
   --border-strong: #C3C8D4;
   --border-control: #7E8695;
   --border-control-hover: #8F97A8;
+  /* Rules on the inverse panel. The row rule is nearly the ground it sits on —
+     a table read at arm's length needs separation, not a grid. */
+  --border-on-inverse: #2C313B;
+  --border-on-inverse-row: #22272F;
+  --surface-on-inverse-header: #20252E;
 
   /* Status. Desaturated on purpose: ten dishes over target should read as ten
      things to look at, not an alarm. Never carried by colour alone — every
@@ -36,6 +46,11 @@
   --on-ink-strong: #3D4720;
   --on-tint: #E9EDDC;
   --on-edge: #C9D2AE;
+
+  /* A control border must clear 3:1 against the card, which the tint edges do
+     not. These two are for enclosing a field that is questioned, not decorated. */
+  --near-control: #B99332;
+  --over-edge-soft: #C48A78;
 
   --near-ink: #7A5A16;
   --near-ink-strong: #6B4E12;
@@ -47,6 +62,10 @@
   --over-tint: #F5E4DE;
   --over-edge: #A85E44;
   --over-row: #FDFAF9;
+
+  /* Status against the dark panel: the same triangle and bar, lifted off #171B24. */
+  --on-ink-inverse: #A9BC6E;
+  --over-ink-inverse: #E08A6C;
 
   --incomplete-ink: #3A414F;
   --incomplete-tint: #E4E7EE;
