@@ -24,3 +24,4 @@ tr.missing td { background: #FDFAF9; }
 .chip { font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em;
         border: 1px solid #C3C8D4; border-radius: 3px; padding: 1px 5px; color: #4A5262; }
 code { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
+.chip.sub { border-color: #A9B4CB; color: #2F3819; background: #F5F6F9; }

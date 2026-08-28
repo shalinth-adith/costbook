@@ -17,10 +17,14 @@
  */
 
 import { ingredientCost, ratePerUnit } from '../core/ingredient.js';
+import { toBase } from '../core/units.js';
 import { type RecipeCost, isComplete, recipeCost } from '../core/recipe.js';
-import { dishes, shelf } from './fixtures.js';
+import { book, dishes, shelf } from './fixtures.js';
 
 const CURRENCY = '₹';
+
+/** Rates invert against quantities: 0.128 per gram is 128.07 per kg. */
+const baseFactor = (unit: string): number => toBase(1, unit);
 
 /** Two decimals at display, and only at display (TRD 4). */
 const money = (n: number | null): string =>
@@ -74,9 +78,10 @@ function lineRows(cost: RecipeCost): string {
             : l.entryMode === 'flat'
               ? '<span class="chip">flat</span>'
               : '';
+      const sub = l.kind === 'recipe' ? '<span class="chip sub">own recipe</span>' : '';
       const qty = l.kind === 'flat' ? '' : `${l.qty} <span class="u">${esc(l.unit)}</span>`;
       return `<tr class="${l.cost === null ? 'missing' : ''}">
-        <td>${esc(l.name)} ${scope} ${entry}</td>
+        <td>${esc(l.name)} ${sub} ${scope} ${entry}</td>
         <td class="n">${qty}</td>
         <td class="n">${l.ratePerBaseUnit === null ? '' : l.ratePerBaseUnit.toFixed(4)}</td>
         <td class="n">${money(l.cost)}</td>
@@ -93,10 +98,19 @@ function summary(cost: RecipeCost): string {
       <tr><td>Portions</td><td class="n">${cost.portions}</td></tr>
       <tr class="total"><td>Cost per portion</td><td class="n">${CURRENCY} ${money(cost.perPortion)}</td></tr>
       <tr><td>Whole batch</td><td class="n">${money(cost.total)}</td></tr>
+      <tr><td>Cost per ${esc(cost.outputUnit)} of output</td><td class="n">${money(
+        cost.costPerBase * baseFactor(cost.outputUnit),
+      )}</td></tr>
     </table>`;
   }
 
-  const names = cost.unpriced.map((u) => esc(u.name)).join(', ');
+  const names = cost.unpriced
+    .map((u) =>
+      u.via.length === 0
+        ? esc(u.name)
+        : `${esc(u.name)} <span class="u">(via ${u.via.map(esc).join(' &rarr; ')})</span>`,
+    )
+    .join(', ');
   return `<table class="sum floor">
       <tr><td>Batch floor</td><td class="n">${money(cost.batchFloor)}</td></tr>
       <tr><td>Applied to each portion</td><td class="n">${money(cost.portionAddFloor)}</td></tr>
@@ -131,10 +145,11 @@ export function renderBench(): string {
     <h1>Costbook engine bench</h1>
     <p class="note">TRD build step 11, brought forward. Runs <code>core/</code> directly &mdash;
     no database, no auth, no design system. Deleted when Phase 3 begins.
-    Engine complete through step 5: units, ingredient yield, batch and per-portion
-    pools, flat lines, rate-or-spend entry. Nesting is step 6.</p>
+    Engine complete through step 6: units, ingredient yield, batch and per-portion
+    pools, flat lines, rate-or-spend entry, and nested sub-recipes to any depth.
+    Cycle detection is step 7.</p>
     ${shelfTable()}
     <h2>Dishes, costed</h2>
-    ${dishes.map((d) => dishBlock(recipeCost(d))).join('')}
+    ${dishes.map((d) => dishBlock(recipeCost(d, book))).join('')}
   `;
 }

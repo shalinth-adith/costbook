@@ -1,27 +1,20 @@
 /**
- * What a batch costs, and what one portion of it costs.
+ * What a batch costs, what one portion of it costs, and what one base unit of
+ * it costs when another recipe uses it as a component.
  *
- * Three things beyond a flat ingredient list, each of which exists because a
- * real workbook contained it:
+ * The nesting rule is one line: a sub-recipe contributes `qty x child
+ * costPerBase`. A recipe behaves exactly like an ingredient once you know what
+ * one base unit of it costs (TRD 6.2). Everything else here is bookkeeping
+ * around that.
  *
- * 1. Two pools. Most lines are divided across the portions; some apply once
- *    per portion. The reference sheet holds
- *      J = (SUM(G4:G10) - G10) / I4 + G10
- *    where row 10 is ghee, drizzled on every dosa individually rather than
- *    mixed into the batter. Any model that divides everything by portion count
- *    gets that dish wrong by the price of the ghee (TRD 6.2).
+ * This is the part the reference workbook could not do. 81 recipes, 1,074
+ * rows, zero links between them, and two lines faking one with a hand-guessed
+ * per-portion rate. Costing a parotta plate correctly means costing the
+ * parotta, the kuruma and the gravy first, each through its own yield.
  *
- * 2. Flat lines. `1 lot of Blending @ 50`, `1 as req of Salt @ 1.16`. A cost
- *    with a label, not a measurement. Forcing them into a unit family produces
- *    nonsense, so they carry an amount, add to the batch, and stay out of every
- *    yield and output calculation (TRD 3.1, 6.3).
- *
- * 3. Rate or spend, either direction. 251 lines in the reference workbook
- *    derive the rate from the spend, because that is how the information
- *    arrives: someone knows this batch used 0.6 litres and cost 3.76, and has
- *    no idea what the per-litre rate is (TRD 6.6).
- *
- * Nesting arrives at step 6.
+ * Components are held by id against a book of recipes rather than by direct
+ * reference. A recipe that embedded its children could not describe a cycle,
+ * and cycles are exactly what has to be detected (step 7).
  */
 
 import {
@@ -33,16 +26,15 @@ import { type UnitFamily, fromBase, toBase, unitFamily } from './units.js';
 
 /**
  * Whether a line's cost is divided across the portions or applied to each one.
- * Defaults to batch everywhere; portion is the operator's explicit choice,
- * labelled in their language as "applied to each portion".
+ * Defaults to batch; portion is the operator's explicit choice, labelled in
+ * their language as "applied to each portion".
  */
 export type ComponentScope = 'batch' | 'portion';
 
 /**
  * Which figure the operator actually typed. Kept rather than derived away,
- * because it decides what happens when the ingredient's rate later moves: a
- * line entered as a rate follows it, a line entered as a spend does not
- * (TRD 6.6).
+ * because it decides what happens when the underlying rate later moves: a line
+ * entered as a rate follows it, a line entered as a spend does not (TRD 6.6).
  */
 export type LineEntry =
   | { readonly mode: 'ingredient_rate' }
@@ -60,6 +52,17 @@ export interface IngredientComponent {
   readonly entry: LineEntry;
 }
 
+/** Another of the operator's own recipes, used as an ingredient. */
+export interface RecipeComponentRef {
+  readonly kind: 'recipe';
+  readonly scope: ComponentScope;
+  readonly childId: string;
+  /** Quantity used, in the child's output family base unit. Must be > 0. */
+  readonly qty: number;
+  readonly unit: string;
+  readonly entry: LineEntry;
+}
+
 /** A cost with a label rather than a measurement. No quantity, no yield. */
 export interface FlatComponent {
   readonly kind: 'flat';
@@ -68,14 +71,24 @@ export interface FlatComponent {
   readonly amount: number;
 }
 
-export type RecipeComponent = IngredientComponent | FlatComponent;
+export type RecipeComponent = IngredientComponent | RecipeComponentRef | FlatComponent;
 
 export interface Recipe {
+  readonly id: string;
   readonly name: string;
-  /** How many portions one batch yields. Must be > 0. */
-  readonly portions: number;
+  /** The family this recipe's output is measured in. */
+  readonly family: UnitFamily;
+  /** What one batch yields, in base units. Entered by the operator, never inferred. */
+  readonly outputQty: number;
+  /** The unit the operator typed for the output. Display only. */
+  readonly outputUnit: string;
+  /** How many portions one batch plates. `null` for a sub-recipe never served. */
+  readonly portions: number | null;
   readonly components: readonly RecipeComponent[];
 }
+
+/** Every recipe the costing can reach, by id. */
+export type RecipeBook = ReadonlyMap<string, Recipe>;
 
 export type EntryMode = LineEntry['mode'] | 'flat';
 
@@ -89,11 +102,7 @@ export interface CostedLine {
   readonly unit: string;
   /** What this line contributes. `null` when there is no rate to cost it with. */
   readonly cost: number | null;
-  /**
-   * Effective cost per base unit for this line, derived when the operator
-   * entered a spend. Full precision — the workbook's ROUND(G/D, 2) bakes
-   * rounding into a stored rate which then multiplies back out (TRD 6.6).
-   */
+  /** Effective cost per base unit for this line. Derived when a spend was typed. */
   readonly ratePerBaseUnit: number | null;
   /** Which figure the operator typed, so the interface shows it back that way. */
   readonly entryMode: EntryMode;
@@ -105,11 +114,21 @@ export interface UnpricedLine {
   readonly name: string;
   readonly qty: number;
   readonly unit: string;
+  /**
+   * The chain of recipes it was reached through, outermost first. Empty when
+   * the line sits directly on the recipe being costed. A plate can be
+   * incomplete because of a rate three levels down, and the operator needs to
+   * be told where to go.
+   */
+  readonly via: readonly string[];
 }
 
 interface CostedBase {
+  readonly id: string;
   readonly name: string;
-  readonly portions: number;
+  readonly portions: number | null;
+  readonly outputQty: number;
+  readonly outputUnit: string;
   readonly lines: readonly CostedLine[];
   readonly assumed: readonly AssumedValue[];
 }
@@ -126,64 +145,112 @@ export type RecipeCost =
       readonly batch: number;
       /** Sum of the per-portion lines, applied once to every portion. */
       readonly portionAdd: number;
-      readonly perPortion: number;
+      /** `null` for a sub-recipe with no portions. */
+      readonly perPortion: number | null;
       /** batch + portionAdd x portions. What the whole batch really costs. */
       readonly total: number;
+      /** What one base unit of the output costs. This is what a parent pays. */
+      readonly costPerBase: number;
     })
   | (CostedBase & {
       readonly kind: 'floor';
       readonly batchFloor: number;
       readonly portionAddFloor: number;
-      readonly perPortionFloor: number;
+      readonly perPortionFloor: number | null;
       readonly totalFloor: number;
-      /** Why this is a floor: the lines with no rate on file. */
+      readonly costPerBaseFloor: number;
+      /** Why this is a floor: every line with no rate, wherever it sits. */
       readonly unpriced: readonly UnpricedLine[];
     });
 
 export type RecipeErrorCode =
   | 'invalid_portions'
+  | 'invalid_output'
   | 'invalid_qty'
   | 'invalid_amount'
-  | 'family_mismatch';
+  | 'family_mismatch'
+  | 'unknown_recipe'
+  | 'portion_scope_without_portions'
+  | 'cycle';
 
 export class RecipeError extends Error {
   readonly code: RecipeErrorCode;
   readonly field: string;
   /** Which component line, when the fault is on a line rather than the recipe. */
   readonly line: string | null;
+  /** The chain of recipe names involved, for a cycle or a nested fault. */
+  readonly path: readonly string[];
 
-  constructor(code: RecipeErrorCode, message: string, field: string, line: string | null = null) {
+  constructor(
+    code: RecipeErrorCode,
+    message: string,
+    field: string,
+    line: string | null = null,
+    path: readonly string[] = [],
+  ) {
     super(message);
     this.name = 'RecipeError';
     this.code = code;
     this.field = field;
     this.line = line;
+    this.path = path;
   }
 }
 
 export interface ComponentOptions {
   /** Defaults to 'batch'. 'portion' means the cost applies to each portion. */
   readonly scope?: ComponentScope;
-  /** A rate the operator typed for this line, overriding the shelf rate. */
+  /** A rate the operator typed for this line, overriding the derived one. */
   readonly ratePerUnit?: number;
   /**
    * The unit that rate is per. Defaults to the line's own unit, but an
    * operator entering a rate for 200 g of onion types "40 per kg", not
-   * "0.04 per g" — so the unit is stated rather than assumed. Assuming it
-   * turns a correct figure into one a thousand times too large.
+   * "0.04 per g" — so the unit is stated rather than assumed.
    */
   readonly rateUnit?: string;
   /** What this line actually cost, when that is what the operator knows. */
   readonly spend?: number;
 }
 
+function buildEntry(
+  options: ComponentOptions,
+  unit: string,
+  family: UnitFamily,
+  lineName: string,
+): LineEntry {
+  if (options.ratePerUnit !== undefined && options.spend !== undefined) {
+    throw new RecipeError(
+      'invalid_amount',
+      'Give a rate or a total spend, not both — we work the other one out for you.',
+      'entry',
+      lineName,
+    );
+  }
+
+  if (options.ratePerUnit !== undefined) {
+    const rateUnit = options.rateUnit ?? unit;
+    if (unitFamily(rateUnit) !== family) {
+      throw new RecipeError(
+        'family_mismatch',
+        `A rate per ${rateUnit} cannot price a line measured in ${unit}.`,
+        'rateUnit',
+        lineName,
+      );
+    }
+    // Per-display-unit into per-base-unit divides: 40 per kg is 0.04 per gram.
+    // The mirror of ingredient.ratePerUnit, which multiplies to go the other way.
+    return { mode: 'rate', ratePerBaseUnit: fromBase(options.ratePerUnit, rateUnit) };
+  }
+
+  if (options.spend !== undefined) return { mode: 'spend', total: options.spend };
+
+  return { mode: 'ingredient_rate' };
+}
+
 /**
  * Build an ingredient line from what the operator typed, converting into base
- * units.
- *
- * Rejects a unit from a different family than the ingredient: 200 ml of
- * something bought by weight needs a density, which the product does not hold,
- * and guessing one misprices the dish silently (TRD 3).
+ * units. Rejects a unit from another family: 200 ml of something bought by
+ * weight needs a density, which the product does not hold (TRD 3).
  */
 export function ingredientComponent(
   ingredient: Ingredient,
@@ -191,7 +258,7 @@ export function ingredientComponent(
   unit: string,
   options: ComponentOptions = {},
 ): IngredientComponent {
-  const family: UnitFamily | null = unitFamily(unit);
+  const family = unitFamily(unit);
 
   if (family === null || family !== ingredient.family) {
     throw new RecipeError(
@@ -203,44 +270,41 @@ export function ingredientComponent(
     );
   }
 
-  if (options.ratePerUnit !== undefined && options.spend !== undefined) {
-    throw new RecipeError(
-      'invalid_amount',
-      'Give a rate or a total spend, not both — we work the other one out for you.',
-      'entry',
-      ingredient.name,
-    );
-  }
-
-  let entry: LineEntry = { mode: 'ingredient_rate' };
-  if (options.ratePerUnit !== undefined) {
-    const rateUnit = options.rateUnit ?? unit;
-
-    if (unitFamily(rateUnit) !== family) {
-      throw new RecipeError(
-        'family_mismatch',
-        `A rate per ${rateUnit} cannot price a line measured in ${unit}.`,
-        'rateUnit',
-        ingredient.name,
-      );
-    }
-
-    // Per-display-unit into per-base-unit divides: 40 per kg is 0.04 per gram.
-    // This is the mirror of ingredient.ratePerUnit, which multiplies to go the
-    // other way. Using the wrong one is off by the unit's factor and reads as a
-    // formatting bug rather than a costing one.
-    entry = { mode: 'rate', ratePerBaseUnit: fromBase(options.ratePerUnit, rateUnit) };
-  } else if (options.spend !== undefined) {
-    entry = { mode: 'spend', total: options.spend };
-  }
-
   return {
     kind: 'ingredient',
     scope: options.scope ?? 'batch',
     ingredient,
     qty: toBase(qty, unit),
     unit,
-    entry,
+    entry: buildEntry(options, unit, family, ingredient.name),
+  };
+}
+
+/** Use one of the operator's own recipes as a component of another. */
+export function recipeComponent(
+  child: Recipe,
+  qty: number,
+  unit: string,
+  options: ComponentOptions = {},
+): RecipeComponentRef {
+  const family = unitFamily(unit);
+
+  if (family === null || family !== child.family) {
+    throw new RecipeError(
+      'family_mismatch',
+      `${child.name} is made in ${child.family}, so it cannot be used in ${unit}.`,
+      'unit',
+      child.name,
+    );
+  }
+
+  return {
+    kind: 'recipe',
+    scope: options.scope ?? 'batch',
+    childId: child.id,
+    qty: toBase(qty, unit),
+    unit,
+    entry: buildEntry(options, unit, family, child.name),
   };
 }
 
@@ -251,18 +315,27 @@ export function flatComponent(
   scope: ComponentScope = 'batch',
 ): FlatComponent {
   if (!Number.isFinite(amount) || amount < 0) {
-    throw new RecipeError(
-      'invalid_amount',
-      'A charge cannot be negative.',
-      'amount',
-      label,
-    );
+    throw new RecipeError('invalid_amount', 'A charge cannot be negative.', 'amount', label);
   }
   return { kind: 'flat', scope, label, amount };
 }
 
+/** Build a book from a list, for callers that hold recipes as an array. */
+export function recipeBook(recipes: readonly Recipe[]): RecipeBook {
+  return new Map(recipes.map((r) => [r.id, r]));
+}
+
 function assertValid(recipe: Recipe): void {
-  if (!Number.isFinite(recipe.portions) || recipe.portions <= 0) {
+  if (!Number.isFinite(recipe.outputQty) || recipe.outputQty <= 0) {
+    throw new RecipeError(
+      'invalid_output',
+      'A batch has to yield something — we divide by this figure when another ' +
+        'recipe uses it. Enter what one batch makes.',
+      'outputQty',
+    );
+  }
+
+  if (recipe.portions !== null && (!Number.isFinite(recipe.portions) || recipe.portions <= 0)) {
     throw new RecipeError(
       'invalid_portions',
       'A batch has to make at least one portion — we divide by this figure. ' +
@@ -272,126 +345,237 @@ function assertValid(recipe: Recipe): void {
   }
 
   for (const component of recipe.components) {
-    if (component.kind !== 'ingredient') continue;
+    if (component.kind === 'flat') continue;
+
+    const label = component.kind === 'ingredient' ? component.ingredient.name : component.childId;
+
     if (!Number.isFinite(component.qty) || component.qty <= 0) {
       throw new RecipeError(
         'invalid_qty',
         'A component line needs a quantity above zero. Remove the line if it is not used.',
         'qty',
-        component.ingredient.name,
+        label,
+      );
+    }
+
+    if (component.scope === 'portion' && recipe.portions === null) {
+      throw new RecipeError(
+        'portion_scope_without_portions',
+        `${recipe.name} does not plate into portions, so a line cannot apply to each one. ` +
+          'Give it a portion count, or move the line into the batch.',
+        'scope',
+        label,
       );
     }
   }
 }
 
-function costLine(component: RecipeComponent): CostedLine {
-  if (component.kind === 'flat') {
-    // No quantity, no unit, no yield. A blending charge has no weight (TRD 6.3).
-    return {
-      name: component.label,
-      kind: 'flat',
-      scope: component.scope,
-      qty: 0,
-      unit: '',
-      cost: component.amount,
-      ratePerBaseUnit: null,
-      entryMode: 'flat',
-      assumed: [],
-    };
-  }
-
-  const { entry, qty, ingredient } = component;
-  const shelf = ingredientCost(ingredient);
-  const yieldFactor = ingredient.yieldPercent / 100;
-
-  let cost: number | null;
-  let ratePerBaseUnit: number | null;
-
+/** Applies the operator's entry over a derived rate, uniformly for any line kind. */
+function applyEntry(
+  entry: LineEntry,
+  qty: number,
+  derivedPerBase: number | null,
+  yieldFactor: number,
+): { cost: number | null; ratePerBaseUnit: number | null } {
   switch (entry.mode) {
-    case 'rate':
-      // The operator typed an as-purchased rate, so yield still applies: it is
-      // a property of the thing bought, not of how it was priced.
-      ratePerBaseUnit = entry.ratePerBaseUnit / yieldFactor;
-      cost = qty * ratePerBaseUnit;
-      break;
-
+    case 'rate': {
+      // A typed rate is as-purchased, so yield still applies: it is a property
+      // of the thing bought, not of how it was priced.
+      const rate = entry.ratePerBaseUnit / yieldFactor;
+      return { cost: qty * rate, ratePerBaseUnit: rate };
+    }
     case 'spend':
       // The spend is what the line actually cost. Yield is already inside it,
       // so applying it again would double-count.
-      cost = entry.total;
-      ratePerBaseUnit = entry.total / qty;
-      break;
-
+      return { cost: entry.total, ratePerBaseUnit: entry.total / qty };
     case 'ingredient_rate':
-      ratePerBaseUnit = shelf.effectivePerBaseUnit;
-      cost = ratePerBaseUnit === null ? null : qty * ratePerBaseUnit;
-      break;
+      return {
+        cost: derivedPerBase === null ? null : qty * derivedPerBase,
+        ratePerBaseUnit: derivedPerBase,
+      };
   }
-
-  return {
-    name: ingredient.name,
-    kind: 'ingredient',
-    scope: component.scope,
-    qty,
-    unit: component.unit,
-    cost,
-    ratePerBaseUnit,
-    entryMode: entry.mode,
-    // A line the operator priced themselves does not lean on the shelf yield.
-    assumed: entry.mode === 'ingredient_rate' ? shelf.assumed : [],
-  };
 }
 
-/**
- * Cost one batch and one portion of it.
- *
- *   batch      = sum of the lines scoped to the batch
- *   portionAdd = sum of the lines scoped to each portion
- *   perPortion = batch / portions + portionAdd
- *   total      = batch + portionAdd x portions
- *
- * Full precision throughout; rounding happens once, at display (TRD 4).
- */
-export function recipeCost(recipe: Recipe): RecipeCost {
+interface LineResult {
+  readonly line: CostedLine;
+  /** Unpriced leaves discovered inside a sub-recipe, with their path. */
+  readonly nested: readonly UnpricedLine[];
+}
+
+function costRecipeInner(
+  recipe: Recipe,
+  book: RecipeBook,
+  visiting: readonly string[],
+  memo: Map<string, RecipeCost>,
+): RecipeCost {
   assertValid(recipe);
 
-  const lines = recipe.components.map(costLine);
-  const assumed = lines.flatMap((line) => line.assumed);
+  if (visiting.includes(recipe.id)) {
+    const loop = [...visiting.slice(visiting.indexOf(recipe.id)), recipe.id];
+    throw new RecipeError(
+      'cycle',
+      `${recipe.name} would need itself to be costed first, so neither figure can ever settle.`,
+      'components',
+      recipe.name,
+      loop,
+    );
+  }
 
-  const unpriced: UnpricedLine[] = lines
-    .filter((line) => line.cost === null)
-    .map((line) => ({ name: line.name, qty: line.qty, unit: line.unit }));
+  const cached = memo.get(recipe.id);
+  if (cached !== undefined) return cached;
+
+  const nextVisiting = [...visiting, recipe.id];
+
+  const results: LineResult[] = recipe.components.map((component): LineResult => {
+    if (component.kind === 'flat') {
+      // No quantity, no unit, no yield. A blending charge has no weight (TRD 6.3).
+      return {
+        line: {
+          name: component.label,
+          kind: 'flat',
+          scope: component.scope,
+          qty: 0,
+          unit: '',
+          cost: component.amount,
+          ratePerBaseUnit: null,
+          entryMode: 'flat',
+          assumed: [],
+        },
+        nested: [],
+      };
+    }
+
+    if (component.kind === 'ingredient') {
+      const shelf = ingredientCost(component.ingredient);
+      const applied = applyEntry(
+        component.entry,
+        component.qty,
+        shelf.effectivePerBaseUnit,
+        component.ingredient.yieldPercent / 100,
+      );
+
+      return {
+        line: {
+          name: component.ingredient.name,
+          kind: 'ingredient',
+          scope: component.scope,
+          qty: component.qty,
+          unit: component.unit,
+          cost: applied.cost,
+          ratePerBaseUnit: applied.ratePerBaseUnit,
+          entryMode: component.entry.mode,
+          // A line the operator priced themselves does not lean on the shelf yield.
+          assumed: component.entry.mode === 'ingredient_rate' ? shelf.assumed : [],
+        },
+        nested: [],
+      };
+    }
+
+    const child = book.get(component.childId);
+    if (child === undefined) {
+      throw new RecipeError(
+        'unknown_recipe',
+        'This line points at a recipe that is not in the book.',
+        'childId',
+        component.childId,
+        nextVisiting,
+      );
+    }
+
+    const childCost = costRecipeInner(child, book, nextVisiting, memo);
+
+    // The whole of the nesting rule: qty x what one base unit of the child
+    // costs. Yield does not apply again — the child's own yields are already
+    // inside its figure.
+    const derived =
+      childCost.kind === 'cost' ? childCost.costPerBase : null;
+
+    const applied = applyEntry(component.entry, component.qty, derived, 1);
+
+    const nested: UnpricedLine[] =
+      childCost.kind === 'floor' && component.entry.mode === 'ingredient_rate'
+        ? childCost.unpriced.map((u) => ({ ...u, via: [child.name, ...u.via] }))
+        : [];
+
+    return {
+      line: {
+        name: child.name,
+        kind: 'recipe',
+        scope: component.scope,
+        qty: component.qty,
+        unit: component.unit,
+        cost: applied.cost,
+        ratePerBaseUnit: applied.ratePerBaseUnit,
+        entryMode: component.entry.mode,
+        assumed: component.entry.mode === 'ingredient_rate' ? childCost.assumed : [],
+      },
+      nested,
+    };
+  });
+
+  const lines = results.map((r) => r.line);
+  const assumed = lines.flatMap((l) => l.assumed);
+
+  const unpriced: UnpricedLine[] = [
+    ...lines
+      .filter((l) => l.cost === null && l.kind !== 'recipe')
+      .map((l) => ({ name: l.name, qty: l.qty, unit: l.unit, via: [] as readonly string[] })),
+    ...results.flatMap((r) => r.nested),
+  ];
 
   const pool = (scope: ComponentScope): number =>
-    lines
-      .filter((line) => line.scope === scope)
-      .reduce((sum, line) => sum + (line.cost ?? 0), 0);
+    lines.filter((l) => l.scope === scope).reduce((sum, l) => sum + (l.cost ?? 0), 0);
 
   const batch = pool('batch');
   const portionAdd = pool('portion');
-  const perPortion = batch / recipe.portions + portionAdd;
-  const total = batch + portionAdd * recipe.portions;
+  const portions = recipe.portions;
+  const perPortion = portions === null ? null : batch / portions + portionAdd;
+  const total = portions === null ? batch : batch + portionAdd * portions;
+  const costPerBase = total / recipe.outputQty;
 
   const base: CostedBase = {
+    id: recipe.id,
     name: recipe.name,
-    portions: recipe.portions,
+    portions,
+    outputQty: recipe.outputQty,
+    outputUnit: recipe.outputUnit,
     lines,
     assumed,
   };
 
-  if (unpriced.length > 0) {
-    return {
-      ...base,
-      kind: 'floor',
-      batchFloor: batch,
-      portionAddFloor: portionAdd,
-      perPortionFloor: perPortion,
-      totalFloor: total,
-      unpriced,
-    };
-  }
+  const result: RecipeCost =
+    unpriced.length > 0
+      ? {
+          ...base,
+          kind: 'floor',
+          batchFloor: batch,
+          portionAddFloor: portionAdd,
+          perPortionFloor: perPortion,
+          totalFloor: total,
+          costPerBaseFloor: costPerBase,
+          unpriced,
+        }
+      : { ...base, kind: 'cost', batch, portionAdd, perPortion, total, costPerBase };
 
-  return { ...base, kind: 'cost', batch, portionAdd, perPortion, total };
+  memo.set(recipe.id, result);
+  return result;
+}
+
+/**
+ * Cost one batch, one portion of it, and one base unit of its output.
+ *
+ *   batch       = sum of the lines scoped to the batch
+ *   portionAdd  = sum of the lines scoped to each portion
+ *   perPortion  = batch / portions + portionAdd
+ *   total       = batch + portionAdd x portions
+ *   costPerBase = total / outputQty
+ *
+ * Full precision throughout; rounding happens once, at display (TRD 4).
+ * Children are costed once each per call and reused, so a plate that reaches
+ * the same gravy by two routes does not cost it twice.
+ */
+export function recipeCost(recipe: Recipe, book: RecipeBook = new Map()): RecipeCost {
+  return costRecipeInner(recipe, book, [], new Map());
 }
 
 /** Whether every line has a rate, so the figures are a cost rather than a floor. */
