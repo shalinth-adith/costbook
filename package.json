@@ -3,13 +3,15 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Recipe costing for small restaurants — the costing engine",
+  "description": "Recipe costing for small restaurants \u2014 the costing engine",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:ui": "vitest --ui"
   },
   "devDependencies": {
+    "@vitest/ui": "^4.1.11",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   }
