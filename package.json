@@ -3,18 +3,29 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Recipe costing for small restaurants \u2014 the costing engine",
+  "description": "Recipe costing for small restaurants — the costing engine",
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "bench": "vite bench",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p bench",
     "test:ui": "vitest --ui",
-    "dev": "vite bench"
+    "typecheck": "tsc --noEmit -p core && tsc --noEmit -p bench && tsc --noEmit"
   },
   "devDependencies": {
+    "@types/node": "26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
     "@vitest/ui": "^4.1.11",
     "typescript": "^7.0.2",
     "vite": "^8.2.2",
     "vitest": "^4.1.11"
+  },
+  "dependencies": {
+    "next": "^16.3.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   }
 }

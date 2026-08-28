@@ -6,7 +6,7 @@
  * Every rate here is typed as an operator would type it. Nothing is looked up.
  */
 
-import { type Ingredient, ingredientFromPack } from '../core/ingredient.js';
+import { type Ingredient, ingredientFromPack } from '../core/ingredient';
 import {
   type Recipe,
   type RecipeBook,
@@ -14,8 +14,8 @@ import {
   ingredientComponent,
   recipeBook,
   recipeComponent,
-} from '../core/recipe.js';
-import type { UnitFamily } from '../core/units.js';
+} from '../core/recipe';
+import type { UnitFamily } from '../core/units';
 
 function pack(
   name: string,

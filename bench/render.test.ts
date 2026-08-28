@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { renderBench } from './render.js';
+import { renderBench } from './render';
 
 /**
  * The bench renders real engine output, so these assert the figures actually

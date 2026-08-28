@@ -1,0 +1,134 @@
+/**
+ * A1 Foundations.
+ *
+ * Semantic roles, not raw colour names. A component asks for
+ * `--surface-sunken`, never `#F5F6F9`, so the dark theme and the print
+ * stylesheet are a matter of redefining these and nothing else.
+ */
+
+:root {
+  /* Surfaces */
+  --surface-page: #EEF0F4;
+  --surface-card: #FFFFFF;
+  --surface-sunken: #F5F6F9;
+  --surface-header: #F0F2F6;
+  --surface-inverse: #171B24;
+
+  /* Ink */
+  --text-primary: #171B24;
+  --text-secondary: #4A5262;
+  --text-tertiary: #5C6577;
+  --text-on-inverse: #FFFFFF;
+
+  /* Borders — two inks, two jobs. Anything enclosing a control takes the
+     darker one and clears 3:1. The light grey divides table rows and is
+     decorative. Never the reverse. */
+  --border-hairline: #DEE1E8;
+  --border-row: #EDEFF3;
+  --border-strong: #C3C8D4;
+  --border-control: #7E8695;
+  --border-control-hover: #8F97A8;
+
+  /* Status. Desaturated on purpose: ten dishes over target should read as ten
+     things to look at, not an alarm. Never carried by colour alone — every
+     status pairs with a word and a shape. */
+  --on-ink: #4E5B2A;
+  --on-ink-strong: #3D4720;
+  --on-tint: #E9EDDC;
+  --on-edge: #C9D2AE;
+
+  --near-ink: #7A5A16;
+  --near-ink-strong: #6B4E12;
+  --near-tint: #F5EDD8;
+  --near-edge: #E2D2A8;
+
+  --over-ink: #8A3E28;
+  --over-ink-strong: #7A3522;
+  --over-tint: #F5E4DE;
+  --over-edge: #A85E44;
+  --over-row: #FDFAF9;
+
+  --incomplete-ink: #3A414F;
+  --incomplete-tint: #E4E7EE;
+
+  /* Focus. The one blue in the system, reserved for focus and nothing else. */
+  --focus-ring: #2E5AAC;
+  --focus-halo: #C9D6EE;
+
+  /* Spacing — 4px base */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-14: 56px;
+
+  /* Radius. Nothing is a pill except a status chip: soft corners read
+     consumer, and a ledger has edges. */
+  --radius-rule: 0;
+  --radius-chip: 3px;
+  --radius-field: 5px;
+  --radius-panel: 8px;
+
+  /* Density — row height. Density comes from tighter rows and fewer rules,
+     never smaller type. 13px is the floor for any figure. */
+  --row-compact: 36px;
+  --row-default: 44px;
+  --row-roomy: 52px;
+
+  /* Motion. Nothing in the interface exceeds 250ms. Entering elements
+     decelerate, leaving elements accelerate, and exits are shorter because
+     someone who dismissed a thing has stopped caring about it. */
+  --ease-enter: cubic-bezier(0.2, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --dur-micro: 120ms;
+  --dur-reveal: 200ms;
+  --dur-dismiss: 150ms;
+  --dur-state: 240ms;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--surface-page);
+  color: var(--text-primary);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+/* Every figure. A duplexed mono where each digit takes one identical advance,
+   so a column of costs aligns on the decimal with no alignment rule and a 1
+   cannot be misread beside a 7. Figures only — never prose. */
+.figure {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+.figure-end { text-align: end; }
+
+/* Focus is the only way through this product with a keyboard, so it is a
+   global rule rather than a per-component decision. Never removed. */
+:where(a, button, input, select, textarea, [role='button'], [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-chip);
+}
+:where([role='button'], [tabindex]):focus-visible {
+  box-shadow: 0 0 0 4px var(--focus-halo);
+}
+
+/* No element containing text ever rests at reduced opacity. Dimming a panel to
+   signal that it is waiting drags its own explanation below AA at exactly the
+   moment someone reads it. Move the surface, keep the ink. */
+.inert {
+  background: var(--surface-sunken);
+  border-style: dashed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -11,7 +11,7 @@ import {
   sameFamily,
   toBase,
   unitFamily,
-} from './units.js';
+} from './units';
 
 describe('the acceptance check for build step 2', () => {
   it('converts kg to g', () => {

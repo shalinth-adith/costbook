@@ -8,7 +8,7 @@ import {
   ingredientFromPack,
   isPriced,
   ratePerUnit,
-} from './ingredient.js';
+} from './ingredient';
 // ratePerUnit rather than fromBase: rates invert against quantities.
 
 

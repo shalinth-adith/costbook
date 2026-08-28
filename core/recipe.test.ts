@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { type Ingredient, ingredientFromPack } from './ingredient.js';
+import { type Ingredient, ingredientFromPack } from './ingredient';
 import {
   type Recipe,
   type RecipeComponent,
@@ -11,8 +11,8 @@ import {
   recipeBook,
   recipeComponent,
   recipeCost,
-} from './recipe.js';
-import type { UnitFamily } from './units.js';
+} from './recipe';
+import type { UnitFamily } from './units';
 
 function pack(
   name: string,

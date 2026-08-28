@@ -3,7 +3,7 @@
  * built by render.ts, which is pure and covered by tests.
  */
 
-import { renderBench } from './render.js';
+import { renderBench } from './render';
 
 const app = document.querySelector('#app');
 if (app !== null) app.innerHTML = renderBench();

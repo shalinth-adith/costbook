@@ -1,0 +1,368 @@
+/* ── shell ─────────────────────────────────────────────────────────── */
+
+.shell { min-height: 100vh; }
+
+.topbar {
+  height: var(--sp-14);
+  background: var(--surface-card);
+  border-block-end: 1px solid var(--border-hairline);
+  display: flex; align-items: center;
+  padding-inline: var(--sp-5); gap: var(--sp-6);
+}
+.brand {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+  color: var(--text-primary); text-decoration: none;
+}
+.nav { display: flex; gap: 2px; align-self: stretch; }
+.nav-item {
+  display: flex; align-items: center; padding-inline: 14px;
+  font-size: 13.5px; color: var(--text-secondary); text-decoration: none;
+  transition: color var(--dur-micro) var(--ease-enter);
+}
+.nav-item:hover { color: var(--text-primary); }
+/* The active tab is marked by weight and a rule, not by colour alone. */
+.nav-item[aria-current='page'] {
+  font-weight: 600; color: var(--text-primary);
+  box-shadow: inset 0 -2px 0 var(--on-ink);
+}
+.topbar-end { margin-inline-start: auto; display: flex; align-items: center; gap: 14px; }
+.topbar-currency { font-size: 12.5px; color: var(--text-secondary); }
+.topbar-currency .figure { color: var(--text-primary); }
+.topbar-org { font-size: 13px; color: var(--text-secondary); }
+
+/* ── page head ─────────────────────────────────────────────────────── */
+
+.page-head {
+  padding: 18px var(--sp-6) 10px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-6);
+}
+.page-title-block { display: flex; flex-direction: column; gap: 6px; }
+.crumbs {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12.5px; color: var(--text-tertiary);
+}
+.crumbs a { color: inherit; text-decoration: none; }
+.crumbs a:hover { color: var(--text-secondary); text-decoration: underline; text-underline-offset: 2px; }
+.crumbs [aria-current='page'] { color: var(--text-secondary); }
+.page-title-row { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.page-title { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+.page-actions { display: flex; gap: 10px; flex: none; align-items: flex-start; }
+
+/* ── controls ──────────────────────────────────────────────────────── */
+
+/* Anything enclosing a control takes the darker ink and clears 3:1. Every
+   primary control is 44px on its short side — the tablet floor. */
+.btn {
+  height: var(--row-default);
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  padding-inline: 14px;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-field);
+  background: var(--surface-card);
+  color: var(--text-primary);
+  font: inherit; font-size: 13.5px; font-weight: 500;
+  cursor: pointer;
+  transition: background var(--dur-micro) var(--ease-enter),
+              border-color var(--dur-micro) var(--ease-enter);
+}
+.btn:hover { background: var(--surface-sunken); border-color: var(--border-control-hover); }
+.btn-primary {
+  background: var(--surface-inverse); color: var(--text-on-inverse);
+  border-color: var(--surface-inverse); padding-inline: 18px;
+}
+.btn-primary:hover { background: #2C3444; border-color: #2C3444; }
+/* A disabled control may lose contrast. The sentence saying why may not. */
+.btn-primary:disabled {
+  background: var(--surface-sunken); color: var(--text-tertiary);
+  border-color: var(--border-control); cursor: not-allowed;
+}
+
+.segmented {
+  display: flex; height: var(--row-default);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-field); overflow: hidden;
+  background: var(--surface-card);
+}
+.segmented-sm { height: var(--row-default); border-radius: 4px; }
+.segmented-item {
+  display: flex; align-items: center; gap: 5px; padding-inline: 12px;
+  font: inherit; font-size: 13px; color: var(--text-secondary);
+  background: none; border: 0; border-inline-start: 1px solid var(--border-hairline);
+  cursor: pointer;
+}
+.segmented-item:first-child { border-inline-start: 0; }
+.segmented-item:hover { background: var(--surface-sunken); }
+.segmented-item.is-active {
+  background: var(--surface-inverse); color: var(--text-on-inverse); font-weight: 600;
+}
+.segmented-item.is-active svg { stroke: currentColor; }
+
+.link {
+  font: inherit; font-size: 12.5px; color: var(--text-secondary);
+  background: none; border: 0; padding: 0; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.link:hover { color: var(--text-primary); }
+.link-sm { font-size: 11.5px; }
+
+.icon-btn {
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: var(--radius-chip); background: none;
+  color: var(--text-tertiary); cursor: pointer;
+}
+.icon-btn:hover { background: var(--surface-page); }
+
+/* ── chips ─────────────────────────────────────────────────────────── */
+
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-chip);
+  padding: 3px 7px; white-space: nowrap;
+}
+.chip-on { color: var(--on-ink-strong); background: var(--on-tint); border-color: var(--on-edge); }
+.chip-near { color: var(--near-ink-strong); background: var(--near-tint); border-color: var(--near-edge); }
+.chip-over { color: var(--over-ink-strong); background: var(--over-tint); border-color: var(--over-edge); }
+.chip-incomplete { color: var(--incomplete-ink); background: var(--incomplete-tint); border-color: var(--border-strong); }
+.chip-default {
+  font-size: 9.5px; letter-spacing: 0.07em; padding: 2px 4px;
+  color: var(--incomplete-ink); border-color: var(--border-control-hover);
+  background: var(--surface-card);
+}
+.chip-scope {
+  font-size: 10px; letter-spacing: 0.07em; padding: 2px 4px;
+  color: var(--incomplete-ink); border-color: var(--border-control-hover);
+  border-radius: 2px;
+}
+
+/* ── cards ─────────────────────────────────────────────────────────── */
+
+.card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-field);
+}
+.card-inert { background: var(--surface-sunken); border-style: dashed; border-color: var(--border-control); padding: 14px 16px; }
+.card-note {
+  background: var(--surface-sunken); padding: var(--sp-3) 15px;
+  display: flex; gap: 10px; align-items: flex-start;
+  font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; text-wrap: pretty;
+}
+.card-note svg { flex: none; margin-block-start: 2px; color: var(--text-secondary); }
+
+.card-head {
+  min-height: 52px; display: flex; align-items: center; justify-content: space-between;
+  padding: var(--sp-2) 14px; border-block-end: 1px solid var(--border-hairline); gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.card-title { font-size: 16px; font-weight: 600; margin: 0; }
+.card-count { color: var(--text-tertiary); font-weight: 400; }
+.card-head-actions { display: flex; gap: 9px; align-items: center; }
+
+.label {
+  font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--text-secondary); font-weight: 600;
+}
+
+/* ── the sheet ─────────────────────────────────────────────────────── */
+
+.sheet {
+  padding: var(--sp-2) var(--sp-6) var(--sp-6);
+  display: grid; grid-template-columns: minmax(0, 1fr) 372px;
+  gap: var(--sp-5); align-items: start;
+}
+.sheet-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.sheet-footer { display: flex; padding-inline: 2px; }
+
+.dish-summary {
+  min-height: 60px; display: flex; align-items: center; gap: var(--sp-3);
+  padding: 10px 14px; color: var(--text-secondary);
+}
+.dish-summary > svg { flex: none; }
+.dish-summary-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.dish-summary-title { font-size: 14.5px; font-weight: 600; line-height: 1.3; color: var(--text-primary); }
+.dish-summary-meta { font-weight: 400; color: var(--text-secondary); }
+.dish-summary-sub { font-size: 11.5px; color: var(--text-tertiary); }
+.dish-summary .btn { flex: none; }
+
+/* ── component table ───────────────────────────────────────────────── */
+
+.ctable { display: flex; flex-direction: column; }
+.ctable-head,
+.ctable-row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 80px 46px 62px 90px 158px 30px;
+  align-items: center; padding-inline: 14px; gap: var(--sp-2);
+}
+.ctable-head {
+  height: 34px; background: var(--surface-sunken);
+  border-block: 1px solid var(--border-control);
+  font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--text-secondary); font-weight: 600;
+}
+.ctable-head .end,
+.ctable-row .end { text-align: end; }
+
+.ctable-row {
+  min-height: var(--row-default);
+  border-block-end: 1px solid var(--border-row);
+}
+/* An incomplete row is the most actionable one on the screen, so it keeps
+   full-strength text and earns its lower priority from a sunken fill —
+   never from dimming. */
+.ctable-row.is-missing { background: var(--over-row); }
+
+.ctable-n { font-size: 11px; color: var(--text-tertiary); }
+.ctable-name { display: flex; align-items: center; min-width: 0; }
+.ctable-label { display: flex; flex-direction: column; min-width: 0; }
+.ctable-label.indent { padding-inline-start: var(--sp-3); }
+.ctable-title { font-size: 13.5px; }
+.ctable-title.is-link {
+  font-weight: 600; text-decoration: underline;
+  text-decoration-style: dotted; text-underline-offset: 3px;
+}
+.ctable-note { font-size: 11px; color: var(--text-tertiary); }
+
+/* A sub-recipe is one line that carries its own cost across, and it says so. */
+.sub-marker {
+  display: flex; align-items: center; gap: 9px; min-width: 0;
+  border-inline-start: 3px solid var(--text-secondary); padding-inline-start: 9px;
+}
+.sub-badge {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em;
+  color: var(--text-on-inverse); background: var(--text-secondary);
+  border-radius: 2px; padding: 2px 4px; flex: none;
+}
+
+.ctable-qty { font-size: 13.5px; font-weight: 500; }
+.ctable-unit { font-size: 12px; color: var(--text-secondary); }
+.ctable-dim { font-size: 12.5px; color: var(--text-secondary); }
+.ctable-cost { display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-2); }
+.ctable-total { font-size: 13.5px; font-weight: 500; }
+.ctable-more { display: flex; justify-content: flex-end; }
+
+.btn-set-rate {
+  display: flex; align-items: center; gap: 6px; height: 32px; padding-inline: 10px;
+  border: 1px solid var(--over-edge); border-radius: var(--radius-chip);
+  background: var(--surface-card); color: var(--over-ink-strong);
+  font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.btn-set-rate:hover { background: var(--over-tint); }
+
+.add-component { padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+.search-field {
+  height: 48px; display: flex; align-items: center; gap: 9px;
+  border: 1px solid var(--border-control); border-radius: var(--radius-field);
+  background: var(--surface-card); padding-inline: var(--sp-3);
+  color: var(--text-tertiary);
+}
+.search-field:focus-within { border-color: var(--border-control-hover); }
+.search-field input {
+  flex: 1; border: 0; outline: 0; background: none;
+  font: inherit; font-size: 14.5px; color: var(--text-primary);
+}
+.search-field input::placeholder { color: var(--text-tertiary); }
+
+.running-total {
+  border-block-start: 1px solid var(--border-hairline);
+  background: var(--surface-sunken);
+  min-height: var(--row-default); padding: 10px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-5); flex-wrap: wrap;
+  font-size: 13px; color: var(--text-secondary);
+}
+.running-work { font-size: 12.5px; color: var(--text-secondary); }
+.strong { font-weight: 600; color: var(--text-primary); }
+
+/* ── the rail ──────────────────────────────────────────────────────── */
+
+.rail { display: flex; flex-direction: column; gap: 14px; position: sticky; top: var(--sp-4); }
+.rail-head { padding: var(--sp-4) var(--sp-4) 14px; border-block-end: 1px solid var(--border-hairline); }
+.rail-figure { display: flex; align-items: baseline; gap: 7px; margin-block-start: 6px; }
+.rail-currency { font-size: 16px; color: var(--text-secondary); }
+/* The one big figure on the screen. It never animates its value: a cost is a
+   fact someone is reading, and a number in motion reads as approximate. */
+.rail-amount { font-size: 34px; font-weight: 500; letter-spacing: -0.02em; line-height: 1; }
+.rail-amount-sm { font-size: 24px; font-weight: 500; line-height: 1; }
+.rail-figure.muted { color: var(--text-tertiary); }
+.rail-status { display: flex; align-items: center; gap: var(--sp-2); margin-block-start: 10px; flex-wrap: wrap; }
+.rail-status-note { font-size: 12.5px; color: var(--text-secondary); }
+.rail-copy {
+  font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;
+  margin: 10px 0 12px; text-wrap: pretty;
+}
+
+.buildup { padding: var(--sp-3) var(--sp-4) 14px; display: flex; flex-direction: column; }
+.buildup-row {
+  display: grid; grid-template-columns: 14px minmax(0, 1fr) auto;
+  align-items: baseline; gap: var(--sp-2); min-height: 26px;
+}
+.buildup-op { font-size: 13px; color: var(--text-secondary); }
+.buildup-label {
+  font-size: 13px; color: var(--text-secondary);
+  display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap;
+}
+.buildup-value { font-size: 13px; }
+.buildup-row.has-rule {
+  border-block: 1px solid var(--border-hairline);
+  margin-block: var(--sp-1); min-height: 28px;
+}
+.buildup-row.has-rule .buildup-label,
+.buildup-row.has-rule .buildup-op { color: var(--text-primary); font-weight: 500; }
+.buildup-row.is-total {
+  border-block-start: 2px solid var(--surface-inverse);
+  margin-block-start: 5px; min-height: 32px;
+}
+.buildup-row.is-total .buildup-label { color: var(--text-primary); font-weight: 600; }
+.buildup-row.is-total .buildup-value { font-size: 15px; font-weight: 600; }
+
+/* The rounding shows its working: the exact figure, the rule in words, and
+   both candidates with the food cost each produces. */
+.price-work {
+  background: var(--surface-sunken); border: 1px solid var(--border-hairline);
+  border-radius: 4px; padding: var(--sp-3);
+  display: flex; flex-direction: column; gap: 9px; margin-block: 11px;
+}
+.price-formula { font-size: 14px; color: var(--text-primary); }
+.price-rule {
+  font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 0;
+  border-block-start: 1px dotted var(--border-strong); padding-block-start: var(--sp-2);
+  text-wrap: pretty;
+}
+.price-rule strong { color: var(--text-primary); font-weight: 600; }
+.price-options { display: flex; flex-direction: column; gap: 7px; }
+.price-option {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: var(--surface-card); border: 1px solid var(--border-control);
+  border-radius: 4px; padding: 9px 11px; cursor: pointer;
+  font: inherit; text-align: start; color: var(--text-primary);
+}
+.price-option:hover { border-color: var(--border-control-hover); }
+.price-option.is-chosen { border: 1.5px solid var(--surface-inverse); cursor: default; }
+.price-option > svg { flex: none; }
+.price-radio {
+  width: 13px; height: 13px; flex: none;
+  border: 1.5px solid var(--border-control-hover); border-radius: 50%;
+}
+.price-value { font-size: 17px; font-weight: 600; white-space: nowrap; }
+.price-value.muted { font-weight: 500; color: var(--text-secondary); }
+.price-fc { margin-inline-start: auto; font-size: 12px; color: var(--text-secondary); }
+
+.card-inert .btn-primary,
+.rail .btn-primary { width: 100%; justify-content: center; }
+.card > .label { display: block; padding: 14px var(--sp-4) 0; }
+.card-inert > .label { padding: 0; }
+
+/* ── tablet ────────────────────────────────────────────────────────── */
+
+@media (max-width: 1180px) {
+  .sheet { grid-template-columns: minmax(0, 1fr); }
+  .rail { position: static; }
+  /* Yield and rate are the first columns to go: they are reference, and the
+     quantity and the cost are what the screen is for. */
+  .ctable-head, .ctable-row { grid-template-columns: 30px minmax(0, 1fr) 76px 44px 140px 30px; }
+  .ctable-head span:nth-child(5), .ctable-row > span:nth-child(5),
+  .ctable-head span:nth-child(6), .ctable-row > span:nth-child(6) { display: none; }
+}

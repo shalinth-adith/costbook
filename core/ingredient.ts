@@ -20,7 +20,7 @@
  * invisible: it passes every validation and silently understates the dish.
  */
 
-import { type UnitFamily, toBase } from './units.js';
+import { type UnitFamily, toBase } from './units';
 
 /** Yield when the operator has not told us otherwise: assume nothing is lost. */
 export const ASSUMED_YIELD_PERCENT = 100;

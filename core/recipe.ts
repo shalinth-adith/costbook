@@ -21,8 +21,8 @@ import {
   type AssumedValue,
   type Ingredient,
   ingredientCost,
-} from './ingredient.js';
-import { type UnitFamily, fromBase, toBase, unitFamily } from './units.js';
+} from './ingredient';
+import { type UnitFamily, fromBase, toBase, unitFamily } from './units';
 
 /**
  * Whether a line's cost is divided across the portions or applied to each one.

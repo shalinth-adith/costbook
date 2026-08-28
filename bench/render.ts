@@ -16,10 +16,10 @@
  * are fixtures.
  */
 
-import { ingredientCost, ratePerUnit } from '../core/ingredient.js';
-import { toBase } from '../core/units.js';
-import { type RecipeCost, isComplete, recipeCost } from '../core/recipe.js';
-import { book, dishes, shelf } from './fixtures.js';
+import { ingredientCost, ratePerUnit } from '../core/ingredient';
+import { toBase } from '../core/units';
+import { type RecipeCost, isComplete, recipeCost } from '../core/recipe';
+import { book, dishes, shelf } from './fixtures';
 
 const CURRENCY = '₹';
 
