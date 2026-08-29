@@ -4,31 +4,43 @@ import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import type { Ingredient } from '@/core/ingredient';
-import { type ColumnMapping, type Field, parseRows } from '@/core/parse';
+import {
+  type ColumnMapping,
+  type Field,
+  NEEDED_FIELDS,
+  missingFields,
+  parseRows,
+  readRow,
+  sampleRows,
+} from '@/core/parse';
 
-import { type ImportPlan, groupWarnings, planImport } from '@/lib/import';
+import { type ImportPlan, groupWarnings, looksLikeMappingError, planImport } from '@/lib/import';
 import { qty } from '@/lib/format';
 
+import { Sheet } from './sheet';
 import { useMoney } from './currency-provider';
 
-type Step = 'upload' | 'map' | 'warnings' | 'check' | 'done';
+type Step = 'upload' | 'map' | 'warnings' | 'done';
 
 const FIELDS: readonly { value: Field | 'ignore'; label: string }[] = [
+  { value: 'recipe', label: 'Recipe name' },
+  { value: 'section', label: 'Section' },
   { value: 'name', label: 'Ingredient name' },
   { value: 'qty', label: 'Quantity' },
   { value: 'unit', label: 'Unit' },
   { value: 'rate', label: 'Rate per unit' },
   { value: 'total', label: 'Line total' },
   { value: 'yield', label: 'Yield %' },
-  { value: 'ignore', label: 'Do not import' },
+  // Not a default. Anything left unplaced arrives as a field on the
+  // ingredient rather than being thrown away (A6).
+  { value: 'ignore', label: 'Keep as a custom field' },
 ];
 
 const STEPS: readonly { key: Step; label: string }[] = [
   { key: 'upload', label: 'Upload' },
   { key: 'map', label: 'Map columns' },
   { key: 'warnings', label: 'Review warnings' },
-  { key: 'check', label: 'Check what arrives' },
-  { key: 'done', label: 'Done' },
+  { key: 'done', label: 'Commit' },
 ];
 
 /**
@@ -62,6 +74,10 @@ export function ImportWizard({
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  /** Which sample row the preview is reading back. */
+  const [sample, setSample] = useState(0);
+  /** The confirmation drawer: what would land, before it lands. */
+  const [checking, setChecking] = useState(false);
 
   const parsed = useMemo(
     () =>
@@ -76,7 +92,26 @@ export function ImportWizard({
     [parsed, existing],
   );
 
-  const warnings = useMemo(() => (parsed === null ? [] : groupWarnings(parsed)), [parsed]);
+  const lineCount = useMemo(
+    () => (parsed === null ? 0 : parsed.blocks.reduce((n, b) => n + b.lines.length, 0)),
+    [parsed],
+  );
+  const warnings = useMemo(
+    () => (parsed === null ? [] : groupWarnings(parsed, lineCount)),
+    [parsed, lineCount],
+  );
+  const mappingFault = useMemo(() => looksLikeMappingError(warnings), [warnings]);
+
+  const samples = useMemo(
+    () => (parsed === null ? [] : sampleRows(rows, mapping, parsed.headerRow)),
+    [rows, mapping, parsed],
+  );
+  const reading = useMemo(() => {
+    const at = samples[sample % Math.max(1, samples.length)];
+    return at === undefined ? null : readRow(rows, at, mapping);
+  }, [rows, mapping, samples, sample]);
+
+  const missing = useMemo(() => missingFields(mapping), [mapping]);
   const header = parsed?.headerRow === null || parsed === null ? [] : (rows[parsed.headerRow] ?? []);
 
   async function read(file: File) {
@@ -168,157 +203,30 @@ export function ImportWizard({
         ))}
       </ol>
 
-      <div className="import-wrap">
-        {step === 'upload' ? (
-          <section className="card empty">
-            <p className="empty-title">Choose your sheet</p>
-            <p className="empty-copy">
-              An .xlsx or a .csv. Costbook reads the file and never writes to it — nothing on your
-              machine changes, and you can throw the import away afterwards.
-            </p>
-            <div className="empty-actions">
-              <input
-                ref={fileField}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                className="visually-hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file !== undefined) void read(file);
-                }}
-              />
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={busy}
-                onClick={() => fileField.current?.click()}
-              >
-                {busy ? 'Reading…' : 'Choose a file'}
+      {/* What would land, before it lands. Not a page to navigate to - the
+          recipe of the moment is this import, and leaving it to go and look at
+          the ingredients list would lose the thing being decided (A6, A7b). */}
+      <Sheet
+        title="What would arrive"
+        open={checking && plan !== null}
+        onClose={() => setChecking(false)}
+        footer={
+          plan === null ? null : (
+            <>
+              <button type="button" className="btn" onClick={() => setChecking(false)}>
+                Not yet
               </button>
-            </div>
-            {problem === null ? null : <p className="empty-copy warn-ink">{problem}</p>}
-          </section>
-        ) : null}
-
-        {step === 'map' && parsed !== null ? (
-          <div className="map-grid">
-            {/* Their sheet stays visible throughout. Nothing is asked twice. */}
-            <section className="card sheet-preview">
-              <div className="card-head"><h2 className="card-title">Your sheet</h2></div>
-              <div className="preview-scroll">
-                <table className="preview">
-                  <tbody>
-                    {rows.slice(0, 12).map((r, i) => (
-                      <tr key={i} className={i === parsed.headerRow ? 'is-header' : ''}>
-                        <td className="figure preview-n">{i + 1}</td>
-                        {r.slice(0, 8).map((c, j) => <td key={j}>{c}</td>)}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            <section className="card">
-              <div className="card-head">
-                <h2 className="card-title">
-                  We recognised {Object.keys(mapping).length} of your {header.length} columns
-                </h2>
-              </div>
-              <p className="sheet-copy map-copy">
-                Check anything we were unsure about and change what we got wrong. Your file is not
-                altered — Costbook only reads it.
-              </p>
-
-              <div className="map-list">
-                {header.map((h, i) => (
-                  <div key={i} className="map-row">
-                    <span className="map-head">
-                      <span className="map-head-name">{h === '' ? `Column ${i + 1}` : h}</span>
-                      <span className="map-sample">
-                        e.g. {rows[(parsed.headerRow ?? 0) + 1]?.[i] ?? '—'}
-                      </span>
-                    </span>
-                    <select
-                      className="rule-select field-select map-select"
-                      value={fieldFor(i)}
-                      aria-label={`What column ${i + 1} holds`}
-                      onChange={(e) => setField(i, e.target.value as Field | 'ignore')}
-                    >
-                      {FIELDS.map((f) => (
-                        <option key={f.value} value={f.value}>{f.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
-              </div>
-
-              <div className="wizard-foot">
-                <button type="button" className="btn" onClick={() => setStep('upload')}>Back</button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={mapping.name === undefined}
-                  onClick={() => setStep('warnings')}
-                >
-                  {mapping.name === undefined ? 'Point at the name column' : 'Continue to warnings'}
-                </button>
-              </div>
-            </section>
-          </div>
-        ) : null}
-
-        {step === 'warnings' && plan !== null ? (
-          <section className="card">
-            <div className="card-head">
-              <h2 className="card-title">
-                {plan.ingredients.length} ingredients read.{' '}
-                {warnings.length === 0 ? 'Nothing to look at.' : `${warnings.length} things to look at.`}
-              </h2>
-            </div>
-
-            <p className="sheet-copy map-copy">
-              None of these are mistakes on your part — spreadsheets kept by hand always carry a
-              few. They are counted and sorted by consequence, and you can leave every one of them
-              and fix it later.
-            </p>
-
-            <div className="warn-list">
-              {warnings.map((w) => (
-                <details key={w.code} className={`warn warn-${w.tone}`}>
-                  <summary>
-                    <span className="warn-title">{w.title}</span>
-                    {w.tone === 'block' ? <span className="chip chip-over">BLOCKS ONE DISH</span> : null}
-                  </summary>
-                  <p className="warn-body">{w.body}</p>
-                  <ul className="warn-items">
-                    {w.items.map((it) => <li key={it}>{it}</li>)}
-                  </ul>
-                </details>
-              ))}
-            </div>
-
-            <div className="arrivals">
-              <Arrival label="Ingredients, new" value={plan.summary.ingredientsNew} />
-              <Arrival label="Rates updated" value={plan.summary.ratesUpdated} />
-              <Arrival label="Dishes created" value={plan.summary.dishes} />
-              <Arrival label="Rows skipped" value={plan.summary.rowsSkipped} />
-            </div>
-
-            <div className="wizard-foot">
-              <button type="button" className="btn" onClick={() => setStep('map')}>Back to mapping</button>
-              <button type="button" className="btn btn-primary" onClick={() => setStep('check')}>
-                See what would arrive
+              <button type="button" className="btn btn-primary" disabled={busy} onClick={commit}>
+                {busy
+                  ? 'Committing…'
+                  : `Yes, bring in ${plan.ingredients.length} ingredients and ${plan.recipes.length} dishes`}
               </button>
-            </div>
-          </section>
-        ) : null}
-
-        {step === 'check' && plan !== null ? (
-          <section className="card">
-            <div className="card-head">
-              <h2 className="card-title">Check what arrives</h2>
-            </div>
+            </>
+          )
+        }
+      >
+        {plan === null ? null : (
+          <>
 
             <p className="sheet-copy map-copy">
               Nothing has been written yet. This is every figure that would land, taken from your
@@ -395,16 +303,278 @@ export function ImportWizard({
                 </div>
               ))}
             </div>
+          </>
+        )}
+      </Sheet>
+
+      <div className="import-wrap">
+        {step === 'upload' ? (
+          <section className="card empty">
+            <p className="empty-title">Choose your sheet</p>
+            <p className="empty-copy">
+              An .xlsx or a .csv. Costbook reads the file and never writes to it — nothing on your
+              machine changes, and you can throw the import away afterwards.
+            </p>
+            <div className="empty-actions">
+              <input
+                ref={fileField}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="visually-hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file !== undefined) void read(file);
+                }}
+              />
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={busy}
+                onClick={() => fileField.current?.click()}
+              >
+                {busy ? 'Reading…' : 'Choose a file'}
+              </button>
+            </div>
+            {problem === null ? null : <p className="empty-copy warn-ink">{problem}</p>}
+          </section>
+        ) : null}
+
+        {step === 'map' && parsed !== null ? (
+          <div className="map-grid">
+            {/* Their sheet stays visible throughout. Nothing is asked twice. */}
+            <section className="card sheet-preview">
+              <div className="card-head"><h2 className="card-title">Your sheet</h2></div>
+              <div className="preview-scroll">
+                <table className="preview">
+                  <tbody>
+                    {rows.slice(0, 12).map((r, i) => (
+                      <tr key={i} className={i === parsed.headerRow ? 'is-header' : ''}>
+                        <td className="figure preview-n">{i + 1}</td>
+                        {r.slice(0, 8).map((c, j) => <td key={j}>{c}</td>)}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section className="card">
+              <div className="card-head">
+                <h2 className="card-title">
+                  We recognised {Object.keys(mapping).length} of your {header.length} columns
+                </h2>
+              </div>
+              <p className="sheet-copy map-copy">
+                Nothing we cannot place is thrown away — it arrives as a field on the ingredient.
+                Your file is not altered, Costbook only reads it. Read the sentence below before
+                you continue; nothing here stops you.
+              </p>
+
+              <div className="map-list">
+                {header.map((h, i) => (
+                  <div key={i} className="map-row">
+                    <span className="map-head">
+                      <span className="map-head-name">
+                        {h === '' ? `Column ${i + 1}` : h}
+                        {NEEDED_FIELDS.includes(fieldFor(i) as never) ? (
+                          <span className="needed">NEEDED</span>
+                        ) : null}
+                      </span>
+                      <span className="map-sample">
+                        e.g. {rows[(parsed.headerRow ?? 0) + 1]?.[i] ?? '—'}
+                      </span>
+                    </span>
+                    <select
+                      className="rule-select field-select map-select"
+                      value={fieldFor(i)}
+                      aria-label={`What column ${i + 1} holds`}
+                      onChange={(e) => setField(i, e.target.value as Field | 'ignore')}
+                    >
+                      {FIELDS.map((f) => (
+                        <option key={f.value} value={f.value}>{f.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+
+              {/* Nobody checks a dropdown. A chef cannot tell whether Price
+                  went to Rate per unit or to Line total by reading the labels;
+                  read back as a sentence against the sheet's own total, the
+                  same mistake is obvious (A6). */}
+              <div className="reading">
+                <div className="reading-head">
+                  <span className="label">How a row will be read</span>
+                  {samples.length > 1 ? (
+                    <span className="reading-step">
+                      <button
+                        type="button"
+                        className="btn-row"
+                        onClick={() => setSample((n) => (n - 1 + samples.length) % samples.length)}
+                      >
+                        Previous row
+                      </button>
+                      <span className="figure reading-of">
+                        row {(reading?.row ?? 0) + 1} of {rows.length}
+                      </span>
+                      <button
+                        type="button"
+                        className="btn-row"
+                        onClick={() => setSample((n) => (n + 1) % samples.length)}
+                      >
+                        Next row
+                      </button>
+                    </span>
+                  ) : null}
+                </div>
+
+                {reading === null ? (
+                  <p className="reading-said">
+                    Point at the ingredient name and the quantity, and one real row from your sheet
+                    is read back here.
+                  </p>
+                ) : (
+                  <>
+                    <p className="figure reading-sentence">
+                      {reading.name} — {qty(reading.qty ?? 0)} {reading.unit} at{' '}
+                      {m.withSymbol(reading.rate)} per {reading.unit} ={' '}
+                      {m.withSymbol(reading.lineTotal)}
+                    </p>
+                    <p className="reading-where">
+                      Recipe: {reading.recipe ?? <span className="warn-ink">nothing</span>}
+                      {reading.section === null ? '' : ` · Section: ${reading.section}`}
+                    </p>
+
+                    {reading.sheetTotal === null ? null : reading.agrees ? (
+                      <p className="reading-ok">
+                        Agrees with the sheet's own line total for this row,{' '}
+                        <span className="figure">{m.withSymbol(reading.sheetTotal)}</span>.
+                        Quantity and rate are the right way round.
+                      </p>
+                    ) : (
+                      <p className="reading-off">
+                        <strong>
+                          {reading.reversed
+                            ? 'The rate and the line total are the wrong way round.'
+                            : 'This does not agree with the sheet.'}
+                        </strong>{' '}
+                        The sheet's own total for this row is{' '}
+                        <span className="figure">{m.withSymbol(reading.sheetTotal)}</span>. Read
+                        this way it comes to{' '}
+                        <span className="figure">{m.withSymbol(reading.lineTotal)}</span>
+                        {reading.factor === null
+                          ? '.'
+                          : ` — off by a factor of ${Math.abs(reading.factor).toFixed(1)}.`}{' '}
+                        Rate per unit belongs on the rate column.
+                      </p>
+                    )}
+                  </>
+                )}
+
+                {missing.length > 0 ? (
+                  <p className="reading-off">
+                    <strong>A needed column is not mapped.</strong>{' '}
+                    {missing.includes('recipe')
+                      ? `Recipe name is unmapped, so every row arrives as an ingredient and no dish is made from it. All ${rows.length} rows would land as ingredients and 0 dishes.`
+                      : `${missing.join(', ')} still to place.`}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="wizard-foot">
+                <button type="button" className="btn" onClick={() => setStep('upload')}>Back</button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={mapping.name === undefined}
+                  onClick={() => setStep('warnings')}
+                >
+                  {mapping.name === undefined
+                    ? 'Point at the ingredient name column'
+                    : 'Continue to warnings'}
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {step === 'warnings' && plan !== null ? (
+          <section className="card">
+            <div className="card-head">
+              <h2 className="card-title">
+                {mappingFault === null
+                  ? `${plan.ingredients.length} ingredients read. ${
+                      warnings.length === 0 ? 'Nothing to look at.' : `${warnings.length} things to look at.`
+                    }`
+                  : `${lineCount} rows read. One of these is not housekeeping.`}
+              </h2>
+            </div>
+
+            <p className="sheet-copy map-copy">
+              {mappingFault === null
+                ? 'None of these are mistakes on your part — spreadsheets kept by hand always carry a few. They are counted and sorted by consequence, and you can leave every one of them and fix it later.'
+                : 'The others below are the usual few, and you can leave them and fix them later. The first one is large enough that it is probably not about your sheet at all.'}
+            </p>
+
+            <div className="warn-list">
+              {warnings.map((w) => (
+                <details key={w.code} className={`warn warn-${w.tone}`}>
+                  <summary>
+                    <span className="warn-title">{w.title}</span>
+                    {w.likelyMapping ? (
+                      <span className="chip chip-over">LIKELY A MAPPING ERROR, NOT A SHEET ERROR</span>
+                    ) : null}
+                  </summary>
+                  {w.likelyMapping ? (
+                    <p className="warn-body">
+                      <strong>
+                        {w.count} of {lineCount} rows disagree with their unit.
+                      </strong>{' '}
+                      That is {Math.round(w.share * 100)}% of the sheet, and this many usually means
+                      a column is mapped to the wrong field rather than a problem with your sheet.
+                      The row preview at the mapping step shows it in one sentence, and two clicks
+                      there fixes them all.
+                    </p>
+                  ) : (
+                    <p className="warn-body">{w.body}</p>
+                  )}
+                  <ul className="warn-items">
+                    {w.items.map((it) => <li key={it}>{it}</li>)}
+                  </ul>
+                </details>
+              ))}
+            </div>
+
+            <div className="arrivals">
+              <Arrival label="Ingredients, new" value={plan.summary.ingredientsNew} />
+              <Arrival label="Rates updated" value={plan.summary.ratesUpdated} />
+              <Arrival label="Dishes created" value={plan.summary.dishes} />
+              <Arrival label="Rows skipped" value={plan.summary.rowsSkipped} />
+            </div>
 
             <div className="wizard-foot">
-              <button type="button" className="btn" onClick={() => setStep('warnings')}>
-                Back to warnings
-              </button>
-              <button type="button" className="btn btn-primary" disabled={busy} onClick={commit}>
-                {busy
-                  ? 'Committing…'
-                  : `Yes, bring in ${plan.ingredients.length} ingredients and ${plan.recipes.length} dishes`}
-              </button>
+              {mappingFault === null ? (
+                <>
+                  <button type="button" className="btn" onClick={() => setStep('map')}>
+                    Back to mapping
+                  </button>
+                  <button type="button" className="btn btn-primary" onClick={() => setChecking(true)}>
+                    See what would arrive
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* Commit stays, one step to the left. The operator may be
+                      right, and blocking them outright would be a worse
+                      mistake than the one being prevented (A7b). */}
+                  <button type="button" className="btn" onClick={() => setChecking(true)}>
+                    Commit as mapped
+                  </button>
+                  <button type="button" className="btn btn-primary" onClick={() => setStep('map')}>
+                    Back to mapping
+                  </button>
+                </>
+              )}
             </div>
           </section>
         ) : null}

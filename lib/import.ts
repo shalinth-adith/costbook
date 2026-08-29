@@ -65,7 +65,27 @@ export interface WarningGroup {
   readonly body: string;
   readonly items: readonly string[];
   readonly tone: WarningTone;
+  /** How many rows fell into this group, and what share of the sheet that is. */
+  readonly count: number;
+  readonly share: number;
+  /**
+   * A quarter of the rows in one group is not a scattering of bad cells, it is
+   * one wrong decision made once — almost always a column mapped to the wrong
+   * field (A7b).
+   */
+  readonly likelyMapping: boolean;
 }
+
+/**
+ * Roughly a quarter of rows in a single group.
+ *
+ * Below it the warnings page stands as written: counted, sorted by
+ * consequence, phrased as work to do. Above it, one block takes the blocking
+ * treatment and names the likely cause, and the primary action moves from
+ * Commit to Back to mapping — leaving Commit dark invites a broken menu that
+ * reads as a finished one.
+ */
+export const MAPPING_ERROR_SHARE = 0.25;
 
 function familyOf(unit: string | null): UnitFamily {
   return unit === null ? 'mass' : (unitFamily(unit) ?? 'mass');
@@ -250,7 +270,7 @@ function makeIngredient(
  * dish being costed gets a solid dark mark - a warning list is the first thing
  * a new owner sees, and it is mostly their own housekeeping (A7, FLOWS 3).
  */
-export function groupWarnings(parsed: ParseResult): readonly WarningGroup[] {
+export function groupWarnings(parsed: ParseResult, totalRows = 0): readonly WarningGroup[] {
   const by = new Map<string, string[]>();
   for (const w of parsed.warnings) {
     const list = by.get(w.code) ?? [];
@@ -258,16 +278,29 @@ export function groupWarnings(parsed: ParseResult): readonly WarningGroup[] {
     by.set(w.code, list);
   }
 
+  const rows = totalRows > 0 ? totalRows : parsed.blocks.reduce((n, b) => n + b.lines.length, 0);
+
   const groups: WarningGroup[] = [];
   const add = (code: string, title: (n: number) => string, body: string, tone: WarningTone) => {
     const items = by.get(code);
     if (items === undefined || items.length === 0) return;
+
+    const count = items.length;
+    const share = rows === 0 ? 0 : count / rows;
+    // Only a per-row fault can indicate a mapping mistake. An unrecognised
+    // column is one decision about one column, however many rows it touches.
+    const perRow = code !== 'unmapped_columns' && code !== 'possible_sub_recipe';
+    const likelyMapping = perRow && share >= MAPPING_ERROR_SHARE;
+
     groups.push({
       code,
-      title: title(items.length),
+      title: title(count),
       body,
       items: [...new Set(items)].slice(0, 8),
-      tone,
+      tone: likelyMapping ? 'block' : tone,
+      count,
+      share,
+      likelyMapping,
     });
   };
 
@@ -286,7 +319,7 @@ export function groupWarnings(parsed: ParseResult): readonly WarningGroup[] {
   add(
     'magnitude_suspect',
     (n) => `${n} ${n === 1 ? 'quantity does' : 'quantities do'} not suit the unit beside it`,
-    'The figure has been kept exactly as written. Spreadsheets often label a column in grams and hold kilograms, and correcting that silently would be worse than pointing at it.',
+    'The figures are kept exactly as written. Spreadsheets often label a column in grams and hold kilograms, and correcting that silently would be worse than pointing at it. Where this covers a large share of the sheet it usually means a column is mapped to the wrong field rather than a problem with your sheet — the row preview at the mapping step shows it in one sentence.',
     'flag',
   );
   add(
@@ -316,5 +349,10 @@ export function groupWarnings(parsed: ParseResult): readonly WarningGroup[] {
 
   // Sorted by consequence: what blocks, then what needs a look, then the rest.
   const rank: Record<WarningTone, number> = { block: 0, flag: 1, review: 2 };
-  return [...groups].sort((a, b) => rank[a.tone] - rank[b.tone]);
+  return [...groups].sort((a, b) => rank[a.tone] - rank[b.tone] || b.count - a.count);
+}
+
+/** Whether the warnings say the mapping is wrong rather than the sheet. */
+export function looksLikeMappingError(groups: readonly WarningGroup[]): WarningGroup | null {
+  return groups.find((g) => g.likelyMapping) ?? null;
 }

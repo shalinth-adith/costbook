@@ -1414,3 +1414,35 @@
 .check-rate { font-size: 13px; }
 .check-what { font-size: 12px; color: var(--text-secondary); }
 .check-recipes-head { border-block-start: 1px solid var(--border-hairline); }
+
+/* ── reading a row back ────────────────────────────────────────────── */
+
+/* Nobody checks a dropdown. The sentence is the whole idea. */
+.reading {
+  margin: 0 14px var(--sp-3); padding: var(--sp-3);
+  background: var(--surface-sunken); border: 1px solid var(--border-hairline);
+  border-radius: 4px;
+}
+.reading-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; }
+.reading-step { display: flex; align-items: center; gap: var(--sp-2); }
+.reading-of { font-size: 12px; color: var(--text-tertiary); }
+.reading-sentence {
+  font-size: 15px; line-height: 1.5; margin: var(--sp-2) 0 0;
+  color: var(--text-primary);
+}
+.reading-where { font-size: 12px; color: var(--text-secondary); margin: 4px 0 0; }
+.reading-said { font-size: 12.5px; color: var(--text-tertiary); margin: var(--sp-2) 0 0; }
+.reading-ok {
+  font-size: 12.5px; color: var(--on-ink-strong); margin: var(--sp-2) 0 0;
+  line-height: 1.5; text-wrap: pretty;
+}
+.reading-off {
+  font-size: 12.5px; color: var(--over-ink-strong); margin: var(--sp-2) 0 0;
+  line-height: 1.5; text-wrap: pretty;
+  border-inline-start: 3px solid var(--over-ink); padding-inline-start: 10px;
+}
+.needed {
+  margin-inline-start: 6px; font-size: 9.5px; font-weight: 600; letter-spacing: 0.08em;
+  color: var(--text-on-inverse); background: var(--text-secondary);
+  border-radius: 2px; padding: 1px 4px;
+}

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseRows } from '@/core/parse';
+import { missingFields, parseRows, readRow, sampleRows } from '@/core/parse';
 import { recipeCost, pantryOf, isComplete } from '@/core/recipe';
 
 import { shelf } from './data';
-import { groupWarnings, planImport } from './import';
+import { groupWarnings, looksLikeMappingError, planImport } from './import';
 
 /**
  * A real sheet, of the shape the reference workbook has: a title above the
@@ -196,5 +196,137 @@ describe('the arithmetic is trusted over the label', () => {
   it('uses the spend where there is no rate column at all', () => {
     const leaves = plan.ingredients.find((p) => p.ingredient.name === 'Curry leaves');
     expect(leaves?.ingredient.purchasePrice).toBeCloseTo(2.68 / 8, 8);
+  });
+});
+
+describe('a sheet that names the recipe on every row', () => {
+  /**
+   * Reported from a real 1,140-row workbook that produced six dishes. Guessing
+   * blocks from blank rows works on a sheet laid out in blocks and produces
+   * almost nothing on one that is not - and a menu of that size never has six
+   * dishes in it (A7b). Where the sheet names the recipe, that column is the
+   * grouping and nothing has to be inferred.
+   */
+  const FLAT: readonly (readonly string[])[] = [
+    ['RECIPE', 'INGREDIENT', 'QTY', 'UOM', 'UNIT RATE'],
+    ['Kaima Idly', 'Idly rice', '600', 'g', '0.052'],
+    ['Kaima Idly', 'Onion, big', '150', 'g', '0.040'],
+    ['Rava Dosa', 'Rava', '400', 'g', '0.062'],
+    ['Rava Dosa', 'Refined oil', '80', 'ml', '0.148'],
+    ['Kaima Idly', 'Curry leaves', '8', 'g', '0.335'],
+  ];
+
+  const p = parseRows(FLAT, {});
+
+  it('maps the recipe column without being told', () => {
+    expect(p.mapping.recipe).toBe(0);
+    expect(p.mapping.name).toBe(1);
+  });
+
+  it('groups every row by the recipe it names, wherever the row sits', () => {
+    // The third Kaima Idly line is at the bottom, after a Rava Dosa row.
+    expect(p.blocks.map((b) => b.name).sort()).toEqual(['Kaima Idly', 'Rava Dosa']);
+    const kaima = p.blocks.find((b) => b.name === 'Kaima Idly');
+    expect(kaima?.lines).toHaveLength(3);
+  });
+
+  it('makes a dish of each, rather than one heap of ingredients', () => {
+    const planned = planImport(p, [], TODAY);
+    expect(planned.summary.dishes).toBe(2);
+  });
+});
+
+describe('when the warnings are about the mapping, not the sheet', () => {
+  /**
+   * A quarter of the rows in one group is not a scattering of bad cells, it is
+   * one wrong decision made once (A7b).
+   */
+  const WRONG: readonly (readonly string[])[] = [
+    ['RECIPE', 'INGREDIENT', 'QTY', 'UOM', 'RATE'],
+    ...Array.from({ length: 10 }, (_, i) => [
+      'A dish', `Thing ${i}`, '1000', 'kg', '2',
+    ]),
+  ];
+
+  it('names the likely cause and marks the group as blocking', () => {
+    const groups = groupWarnings(parseRows(WRONG, {}), 10);
+    const fault = looksLikeMappingError(groups);
+
+    expect(fault).not.toBeNull();
+    expect(fault?.tone).toBe('block');
+    expect(fault?.share).toBeGreaterThanOrEqual(0.25);
+    expect(fault?.body).toContain('mapped to the wrong field');
+  });
+
+  it('leaves an ordinary scattering alone', () => {
+    // The sheet from the tests above carries a few of everything and none of
+    // them dominate, so nothing is escalated.
+    expect(looksLikeMappingError(groupWarnings(parsed, 20))).toBeNull();
+  });
+
+  it('never escalates a decision about one column, however many rows it touches', () => {
+    const groups = groupWarnings(parseRows(WRONG, {}), 10);
+    const unmapped = groups.find((g) => g.code === 'unmapped_columns');
+    expect(unmapped?.likelyMapping ?? false).toBe(false);
+  });
+});
+
+describe('reading one row back as a sentence', () => {
+  const ROWS: readonly (readonly string[])[] = [
+    ['RECIPE', 'INGREDIENT', 'QTY', 'UOM', 'UNIT RATE', 'TOTAL'],
+    ['Kaima Idly', 'Idly Rice', '8', 'kg', '25.28', '202.24'],
+    ['Kaima Idly', 'Ghee', '15', 'g', '0.62', '9.30'],
+  ];
+  const mapped = parseRows(ROWS, {}).mapping;
+
+  it('agrees with the sheet when the mapping is right', () => {
+    const r = readRow(ROWS, 1, mapped);
+    expect(r?.name).toBe('Idly Rice');
+    expect(r?.lineTotal).toBeCloseTo(202.24, 6);
+    expect(r?.agrees).toBe(true);
+  });
+
+  it('refuses to agree when rate and total are the wrong way round', () => {
+    // Swapping both columns squares the error - 8 x 202.24 read against a
+    // total of 25.28 - so the factor is 64 rather than 8. What matters is that
+    // it does not agree and says how far out it is.
+    const { rate, total, ...rest } = mapped;
+    if (rate === undefined || total === undefined) throw new Error('both columns are mapped');
+    const r = readRow(ROWS, 1, { ...rest, rate: total, total: rate });
+
+    expect(r?.agrees).toBe(false);
+    expect(Math.abs(r?.factor ?? 0)).toBeGreaterThan(2);
+  });
+
+  it('is off by the quantity when a money column is read as a rate', () => {
+    // A7b's own case: the column holds the line total, 25.28 for 8 kg, and
+    // reading it as a per-unit rate gives 202.24 - eight times too much.
+    const AS_RATE: readonly (readonly string[])[] = [
+      ['RECIPE', 'INGREDIENT', 'QTY', 'UOM', 'AMOUNT', 'CHECK'],
+      ['Kaima Idly', 'Idly Rice', '8', 'kg', '25.28', '25.28'],
+    ];
+    const r = readRow(AS_RATE, 1, { recipe: 0, name: 1, qty: 2, unit: 3, rate: 4, total: 5 });
+
+    expect(r?.lineTotal).toBeCloseTo(202.24, 6);
+    expect(r?.agrees).toBe(false);
+    expect(Math.abs(r?.factor ?? 0)).toBeCloseTo(8, 2);
+  });
+
+  it('says which recipe a row belongs to, so an unmapped one is visible', () => {
+    expect(readRow(ROWS, 1, mapped)?.recipe).toBe('Kaima Idly');
+    const { recipe: _dropped, ...withoutRecipe } = mapped;
+    expect(readRow(ROWS, 1, withoutRecipe)?.recipe).toBeNull();
+  });
+
+  it('lists what a sheet still has to place', () => {
+    expect(missingFields({})).toContain('recipe');
+    expect(missingFields(mapped)).toHaveLength(0);
+  });
+
+  it('steps through a spread of rows, not just the first', () => {
+    // One row hides a unit problem: rice by the kilo and ghee by the gram fail
+    // differently (A6).
+    const picked = sampleRows(ROWS, mapped, 0);
+    expect(picked.length).toBeGreaterThan(1);
   });
 });

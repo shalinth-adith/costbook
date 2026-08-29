@@ -17,7 +17,25 @@
 
 import { isKnownUnit, normaliseUnit, toBase, unitFamily } from './units';
 
-export type Field = 'name' | 'qty' | 'unit' | 'rate' | 'total' | 'yield';
+export type Field =
+  /** The dish or batch this row belongs to. Without it there are no recipes. */
+  | 'recipe'
+  /** A grouping above the recipe, where a sheet carries one. */
+  | 'section'
+  | 'name'
+  | 'qty'
+  | 'unit'
+  | 'rate'
+  | 'total'
+  | 'yield';
+
+/**
+ * The fields a sheet has to place before it can become a menu.
+ *
+ * Recipe name is one of them. Without it every row arrives as an ingredient
+ * and no dish is made from any of them (A6).
+ */
+export const NEEDED_FIELDS: readonly Field[] = ['recipe', 'name', 'qty', 'unit'];
 
 /** Which column holds which field. Column indices, zero based. */
 export type ColumnMapping = Partial<Record<Field, number>>;
@@ -151,10 +169,14 @@ export function detectHeaderRow(rows: readonly (readonly string[])[]): number | 
 }
 
 const HEADER_ALIASES: Readonly<Record<Field, readonly string[]>> = {
-  name: ['ingredient', 'ingredients', 'item', 'item description', 'description', 'particulars', 'name', 'product'],
-  qty: ['qty', 'quantity', 'qnty', 'weight', 'wt', 'used'],
+  // Deliberately narrow. "Item" and "product" are what most sheets call the
+  // ingredient, so claiming them here would take the name column away.
+  recipe: ['recipe', 'recipe name', 'dish', 'dish name', 'menu item', 'preparation', 'sub recipe'],
+  section: ['section', 'category', 'group', 'menu section', 'course'],
+  name: ['ingredient', 'ingredients', 'ingredient name', 'item', 'item description', 'description', 'particulars', 'material', 'product'],
+  qty: ['qty', 'quantity', 'qnty', 'weight', 'wt', 'used', 'qty used'],
   unit: ['unit', 'units', 'uom', 'u.o.m'],
-  rate: ['rate', 'rate/unit', 'rate per unit', 'price', 'unit price', 'cost/unit'],
+  rate: ['rate', 'rate/unit', 'rate per unit', 'unit rate', 'price', 'unit price', 'cost/unit', 'rate per kg'],
   total: ['total', 'amount', 'value', 'cost', 'line total', 'total cost'],
   yield: ['yield', 'yield%', 'yield %', 'yield percent'],
 };
@@ -412,13 +434,52 @@ export function parseRows(
   const blocks: OpenBlock[] = [];
   let current: OpenBlock | null = null;
 
+  const start = (headerRow ?? -1) + 1;
+
+  /**
+   * When the sheet names the recipe on every row, that column is the grouping
+   * and nothing has to be inferred. Guessing blocks from blank rows works on a
+   * sheet laid out in blocks and produces almost no dishes on one that is not
+   * — six from over a thousand rows, which a menu that size never has (A7b).
+   */
+  const recipeCol = mapping.recipe;
+  if (recipeCol !== undefined) {
+    const byRecipe = new Map<string, OpenBlock>();
+
+    for (let i = start; i < rows.length; i += 1) {
+      const row = rows[i];
+      if (row === undefined || isBlank(row)) continue;
+      if (isTotalRow(row, nameCol)) continue;
+
+      const recipeName = text(row[recipeCol]);
+      if (recipeName === '') continue;
+
+      const line = parseLine(row, i, mapping, knownRecipes);
+      if (line === null) continue;
+
+      const key = recipeName.toLowerCase();
+      const block = byRecipe.get(key) ?? { name: recipeName, row: i, lines: [] };
+      block.lines.push(line);
+      byRecipe.set(key, block);
+    }
+
+    const grouped: ParsedBlock[] = [...byRecipe.values()]
+      .filter((b) => b.lines.length > 0)
+      .map((b) => ({ name: b.name, row: b.row, lines: [...b.lines] }));
+
+    for (const block of grouped) {
+      for (const line of block.lines) warnings.push(...line.warnings);
+    }
+
+    return { headerRow, mapping, unmappedColumns, blocks: grouped, warnings };
+  }
+
   const open = (name: string, row: number): OpenBlock => {
     const block: OpenBlock = { name, row, lines: [] };
     blocks.push(block);
     return block;
   };
 
-  const start = (headerRow ?? -1) + 1;
   for (let i = start; i < rows.length; i += 1) {
     const row = rows[i];
     if (row === undefined) continue;
@@ -484,4 +545,130 @@ export function warningsByRow(result: ParseResult): ReadonlyMap<number, readonly
     map.set(warning.row, list);
   }
   return map;
+}
+
+/* ── reading one row back ───────────────────────────────────────────── */
+
+export interface RowReading {
+  readonly row: number;
+  readonly name: string;
+  readonly qty: number | null;
+  readonly unit: string;
+  readonly rate: number | null;
+  /** qty x rate, as the mapping currently reads the row. */
+  readonly lineTotal: number | null;
+  /** What the sheet itself says the line came to, where it says so. */
+  readonly sheetTotal: number | null;
+  readonly recipe: string | null;
+  readonly section: string | null;
+  /** True when the reading agrees with the sheet's own total. */
+  readonly agrees: boolean;
+  /**
+   * How far out the reading is. A factor rather than a difference, because a
+   * mapping mistake is almost always off by an order of magnitude and a
+   * difference of 177 says nothing while "eight times" says everything.
+   */
+  readonly factor: number | null;
+  /** True when rate and total look swapped: the commonest mapping mistake. */
+  readonly reversed: boolean;
+}
+
+/**
+ * One real row, read back as a sentence.
+ *
+ * A chef cannot tell whether Price maps to Rate per unit or to Line total by
+ * reading the two labels. Read back as "8 kg at 25.28 per kg = 202.24" against
+ * a sheet that says 25.28, the same mistake is obvious to someone who has
+ * never heard of column mapping (A6).
+ */
+export function readRow(
+  rows: readonly (readonly string[])[],
+  index: number,
+  mapping: ColumnMapping,
+): RowReading | null {
+  const row = rows[index];
+  if (row === undefined) return null;
+
+  const nameCol = mapping.name;
+  const name = nameCol === undefined ? '' : text(row[nameCol]);
+  if (name === '') return null;
+
+  const qty = mapping.qty === undefined ? null : parseNumber(row[mapping.qty]);
+  const rawUnit = mapping.unit === undefined ? null : text(row[mapping.unit]);
+  const rate = mapping.rate === undefined ? null : parseNumber(row[mapping.rate]);
+  const sheetTotal = mapping.total === undefined ? null : parseNumber(row[mapping.total]);
+  const recipe = mapping.recipe === undefined ? null : text(row[mapping.recipe]) || null;
+  const section = mapping.section === undefined ? null : text(row[mapping.section]) || null;
+
+  const lineTotal = qty !== null && rate !== null ? qty * rate : null;
+
+  let agrees = true;
+  let factor: number | null = null;
+  let reversed = false;
+
+  if (lineTotal !== null && sheetTotal !== null && sheetTotal !== 0) {
+    const off = Math.abs(lineTotal - sheetTotal);
+    agrees = off <= Math.max(0.05, Math.abs(sheetTotal) * 0.02);
+    if (!agrees) {
+      factor = lineTotal / sheetTotal;
+      // Rate and total swapped: what the sheet calls the total, divided by the
+      // quantity, is the rate - and multiplying by qty then lands on the rate.
+      if (qty !== null && qty !== 0) {
+        const asRate = sheetTotal / qty;
+        reversed = Math.abs(asRate * qty - sheetTotal) < 0.005 && Math.abs(rate ?? 0) > Math.abs(asRate);
+      }
+    }
+  }
+
+  return {
+    row: index,
+    name,
+    qty,
+    unit: rawUnit === null || rawUnit === '' ? '' : (normaliseUnit(rawUnit) ?? rawUnit),
+    rate,
+    lineTotal,
+    sheetTotal,
+    recipe,
+    section,
+    agrees,
+    factor,
+    reversed,
+  };
+}
+
+/**
+ * A few rows worth reading, not just the first.
+ *
+ * One row hides a unit problem. Rice bought by the kilogram and fifteen grams
+ * of ghee fail differently, so the preview steps through a spread (A6).
+ */
+export function sampleRows(
+  rows: readonly (readonly string[])[],
+  mapping: ColumnMapping,
+  headerRow: number | null,
+  count = 3,
+): readonly number[] {
+  const start = (headerRow ?? -1) + 1;
+  const usable: number[] = [];
+
+  for (let i = start; i < rows.length; i += 1) {
+    const reading = readRow(rows, i, mapping);
+    if (reading !== null && reading.qty !== null) usable.push(i);
+  }
+  if (usable.length === 0) return [];
+
+  // Spread across the sheet rather than taking the first few, which are often
+  // the tidiest rows in the file.
+  const step = Math.max(1, Math.floor(usable.length / count));
+  const picked: number[] = [];
+  for (let i = 0; i < usable.length && picked.length < count; i += step) {
+    const at = usable[i];
+    if (at !== undefined) picked.push(at);
+  }
+  return picked;
+}
+
+/** Which needed fields the mapping is still missing. */
+export function missingFields(mapping: ColumnMapping): readonly Field[] {
+  return NEEDED_FIELDS.filter((f) => mapping[f] === undefined);
 }
