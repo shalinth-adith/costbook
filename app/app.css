@@ -1310,3 +1310,82 @@
   .ing-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; padding-block: var(--sp-3); }
   .ing-row > span:nth-child(3), .ing-row > span:nth-child(4), .ing-row > span:nth-child(5) { display: none; }
 }
+
+/* ── import wizard ─────────────────────────────────────────────────── */
+
+.steps {
+  list-style: none; margin: 0 var(--sp-6) var(--sp-4); padding: 0;
+  display: flex; gap: var(--sp-2); flex-wrap: wrap;
+}
+.step {
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: 7px 12px; border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-field); background: var(--surface-card);
+  font-size: 12.5px; color: var(--text-tertiary);
+}
+.step-n {
+  width: 20px; height: 20px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; background: var(--surface-sunken);
+  font-size: 11px; color: var(--text-secondary);
+}
+.step.is-now { border-color: var(--surface-inverse); color: var(--text-primary); font-weight: 600; }
+.step.is-now .step-n { background: var(--surface-inverse); color: var(--text-on-inverse); }
+.step.is-done { color: var(--text-secondary); }
+.step.is-done .step-n { background: var(--on-tint); color: var(--on-ink-strong); }
+
+.import-wrap { margin-inline: var(--sp-6); margin-block-end: var(--sp-6); }
+.map-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+.map-copy { padding-inline: 14px; padding-block-start: var(--sp-3); }
+
+/* Their sheet stays visible throughout, so nothing is asked twice. */
+.sheet-preview { position: sticky; top: var(--sp-4); }
+.preview-scroll { overflow: auto; max-height: 460px; }
+.preview { border-collapse: collapse; font-size: 12px; width: 100%; }
+.preview td {
+  padding: 5px 8px; border-block-end: 1px solid var(--border-row);
+  white-space: nowrap; max-width: 160px; overflow: hidden; text-overflow: ellipsis;
+}
+.preview tr.is-header td { background: var(--surface-sunken); font-weight: 600; }
+.preview-n { color: var(--text-tertiary); background: var(--surface-sunken); }
+
+.map-list { padding: var(--sp-3) 14px; display: flex; flex-direction: column; gap: var(--sp-2); }
+.map-row { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: var(--sp-3); align-items: center; }
+.map-head { display: flex; flex-direction: column; min-width: 0; }
+.map-head-name { font-size: 13.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-sample { font-size: 11.5px; color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-select { height: 40px; font-size: 13px; }
+
+.wizard-foot {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding: var(--sp-3) 14px; border-block-start: 1px solid var(--border-hairline);
+  background: var(--surface-sunken);
+}
+
+/* Bad news, ranked and calm. Only what genuinely blocks a dish is dark. */
+.warn-list { padding: var(--sp-3) 14px; display: flex; flex-direction: column; gap: var(--sp-2); }
+.warn { border: 1px solid var(--border-hairline); border-radius: 4px; background: var(--surface-card); }
+.warn summary {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  padding: var(--sp-3); cursor: pointer; list-style: none;
+}
+.warn summary::-webkit-details-marker { display: none; }
+.warn-title { font-size: 13.5px; font-weight: 500; }
+.warn-body { margin: 0 var(--sp-3) var(--sp-2); font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; text-wrap: pretty; }
+.warn-items { margin: 0 var(--sp-3) var(--sp-3); padding-inline-start: 18px; font-size: 12.5px; color: var(--text-secondary); }
+.warn-review { border-inline-start: 3px solid var(--border-strong); }
+.warn-flag { border-inline-start: 3px solid var(--near-edge); background: var(--near-tint); }
+.warn-block { border-inline-start: 3px solid var(--over-ink); background: var(--over-row); }
+
+.arrivals {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px;
+  margin: 0 14px var(--sp-3); background: var(--border-hairline);
+  border: 1px solid var(--border-hairline); border-radius: 4px; overflow: hidden;
+}
+.arrival { background: var(--surface-card); padding: var(--sp-3); display: flex; flex-direction: column; gap: 4px; }
+.arrival-value { font-size: 22px; font-weight: 500; }
+
+@media (max-width: 1180px) {
+  .map-grid { grid-template-columns: minmax(0, 1fr); }
+  .sheet-preview { position: static; }
+}
