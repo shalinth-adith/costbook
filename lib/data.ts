@@ -89,6 +89,10 @@ function ing(name: string): Ingredient {
 
 /** Fields the screens show that the costing engine has no opinion about. */
 export interface DishMeta {
+  /** Off the menu and out of the list, kept for reference (FLOWS 4). */
+  readonly archived?: boolean;
+  /** When it was last touched, as an ISO date. */
+  readonly updatedAt?: string;
   readonly category: string;
   readonly station: string | null;
   /** Prints on the prep card. Not used in the costing. */

@@ -1088,3 +1088,103 @@
 .currency-code { font-size: 13px; font-weight: 600; }
 .currency-name { font-size: 13.5px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .currency-sample { font-size: 12.5px; color: var(--text-tertiary); text-align: end; white-space: nowrap; }
+
+/* ── the recipe library ────────────────────────────────────────────── */
+
+.library-toolbar { align-items: center; row-gap: var(--sp-2); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.filter-chip {
+  height: 34px; padding-inline: 11px;
+  border: 1px solid var(--border-control); border-radius: var(--radius-field);
+  background: var(--surface-card); color: var(--text-secondary);
+  font: inherit; font-size: 12.5px; cursor: pointer;
+}
+.filter-chip:hover { border-color: var(--border-control-hover); background: var(--surface-sunken); }
+.filter-chip.is-on {
+  background: var(--surface-inverse); color: var(--text-on-inverse);
+  border-color: var(--surface-inverse); font-weight: 600;
+}
+
+.match-note {
+  margin: 0 var(--sp-6) var(--sp-3);
+  font-size: 12.5px; color: var(--text-secondary); text-wrap: pretty;
+}
+.match-note strong { color: var(--text-primary); }
+
+.library { margin-inline: var(--sp-6); margin-block-end: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-3); }
+.lib-group { background: var(--surface-card); border: 1px solid var(--border-hairline); border-radius: var(--radius-field); overflow: hidden; }
+.lib-group-head {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  min-height: var(--row-default); padding-inline: 14px;
+  background: var(--surface-header); border: 0;
+  border-block-end: 1px solid var(--border-hairline);
+  font: inherit; cursor: pointer; text-align: start; color: var(--text-primary);
+}
+.lib-group-head:hover { background: var(--surface-page); }
+.lib-group-head svg { transition: transform var(--dur-reveal) var(--ease-enter); }
+.lib-group-head svg.is-closed { transform: rotate(-90deg); }
+.lib-group-name { font-size: 13.5px; font-weight: 600; }
+.lib-group-count { font-size: 12px; color: var(--text-tertiary); }
+
+/* Seven columns for a dish; six for a batch, with different figures in them.
+   A batch has no price and no food cost, and those are not shown as blanks. */
+.lib-head, .lib-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 100px 116px 112px 92px 132px 100px 152px;
+  align-items: center; gap: 10px; padding-inline: 14px;
+}
+.lib-table.is-batches .lib-head,
+.lib-table.is-batches .lib-row {
+  grid-template-columns: minmax(0, 1fr) 100px 152px 108px 100px 152px;
+}
+.lib-head {
+  height: 34px; background: var(--surface-sunken);
+  border-block-end: 1px solid var(--border-control);
+  font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-secondary); font-weight: 600;
+}
+.lib-head .end, .lib-row .end { text-align: end; }
+.lib-row { min-height: var(--row-default); border-block-end: 1px solid var(--border-row); }
+.lib-row:last-child { border-block-end: 0; }
+.lib-row:hover { background: var(--surface-sunken); }
+/* Archived is out of the way, not dimmed into illegibility. */
+.lib-row.is-archived { background: var(--surface-sunken); }
+
+.lib-name { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.lib-name-text { display: flex; flex-direction: column; min-width: 0; }
+.lib-link {
+  font-size: 13.5px; font-weight: 500; color: var(--text-primary); text-decoration: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.lib-link:hover { text-decoration: underline; text-underline-offset: 2px; }
+.lib-note { font-size: 11px; color: var(--text-tertiary); }
+.lib-dim { color: var(--text-secondary); font-size: 13px; }
+.lib-updated { font-size: 12px; }
+.lib-status { display: flex; }
+.lib-incomplete { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
+.lib-floor { font-size: 10.5px; color: var(--text-tertiary); }
+
+.lib-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.btn-row {
+  height: 34px; padding-inline: 10px;
+  border: 1px solid var(--border-control); border-radius: 4px;
+  background: var(--surface-card); color: var(--text-primary);
+  font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
+}
+.btn-row:hover:not(:disabled) { background: var(--surface-sunken); border-color: var(--border-control-hover); }
+
+.empty { margin-inline: var(--sp-6); }
+.empty-actions { display: flex; gap: 10px; margin-block: var(--sp-3); flex-wrap: wrap; }
+
+@media (max-width: 1180px) {
+  /* A18: seven columns will not fit, so cost leads and the rest folds under.
+     Both row actions grow to 44px and stay on the card. */
+  .lib-head { display: none; }
+  .lib-row, .lib-table.is-batches .lib-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 6px; padding-block: var(--sp-3);
+  }
+  .lib-row > span:nth-child(2) { display: none; }
+  .lib-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .btn-row { height: var(--row-default); padding-inline: 14px; font-size: 13px; }
+}

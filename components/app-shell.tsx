@@ -15,14 +15,15 @@ import { ORG } from '@/lib/data';
 import { Mark } from './mark';
 
 /**
- * Four, not five. A12's nav drops Import — bringing a sheet in is something an
- * operator does from the dashboard when a price list arrives, not a place they
- * live in.
+ * Import is one of the five, per A16. A repeat import is a monthly rhythm once
+ * a supplier's price list arrives (FLOWS 3.3), not a one-time onboarding step,
+ * so it is somewhere an operator returns to.
  */
 const NAV = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Recipes', href: '/recipes' },
   { label: 'Ingredients', href: '/ingredients' },
+  { label: 'Import', href: '/import' },
   { label: 'Settings', href: '/settings' },
 ] as const;
 
