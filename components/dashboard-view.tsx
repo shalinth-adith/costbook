@@ -12,7 +12,9 @@ import {
   categoriesOf,
 } from '@/lib/dashboard';
 import { ORG } from '@/lib/data';
-import { DASH, money, percent, points } from '@/lib/format';
+import { DASH, percent, points } from '@/lib/format';
+
+import { useMoney } from './currency-provider';
 import { StatusChip } from './status-chip';
 
 /** Status is a word plus a shape, so a greyscale printout loses nothing. */
@@ -46,6 +48,7 @@ export function DashboardView({ data, target }: { data: Dashboard; target: numbe
   );
 
   const s = data.stats;
+  const m = useMoney();
 
   return (
     <>
@@ -179,9 +182,9 @@ export function DashboardView({ data, target }: { data: Dashboard; target: numbe
             <span className="dash-cat">{row.category}</span>
 
             <span className={`figure end dash-cost${row.costPerPortion === null ? ' is-absent' : ''}`}>
-              {money(row.costPerPortion)}
+              {m.money(row.costPerPortion)}
             </span>
-            <span className="figure end dash-price">{money(row.sellingPrice)}</span>
+            <span className="figure end dash-price">{m.money(row.sellingPrice)}</span>
             <span className={`figure end dash-fc ink-${row.status}`}>
               {percent(row.foodCostPercent)}
             </span>

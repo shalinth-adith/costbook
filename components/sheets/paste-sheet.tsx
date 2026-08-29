@@ -5,7 +5,9 @@ import { useMemo, useState } from 'react';
 import type { Ingredient } from '@/core/ingredient';
 import { parseTsv } from '@/core/parse';
 
-import { money, qty } from '@/lib/format';
+import { qty } from '@/lib/format';
+
+import { useMoney } from '../currency-provider';
 
 import { Sheet } from '../sheet';
 
@@ -46,6 +48,7 @@ export function PasteSheet({
   onAdd: (rows: readonly PastedRow[]) => void;
 }) {
   const [text, setText] = useState('');
+  const m = useMoney();
 
   const rows = useMemo<readonly PastedRow[]>(() => {
     if (text.trim() === '') return [];
@@ -121,7 +124,7 @@ export function PasteSheet({
                 <span className="paste-name">{r.name}</span>
                 <span className="figure paste-qty">{qty(r.qty)} {r.unit}</span>
                 <span className="figure paste-rate">
-                  {r.rate === null ? 'no rate' : money(r.rate)}
+                  {r.rate === null ? 'no rate' : m.money(r.rate)}
                 </span>
                 <span className="paste-match">{r.match === null ? 'new ingredient' : 'matched'}</span>
               </li>

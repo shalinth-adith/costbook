@@ -1,4 +1,15 @@
+'use client';
+
 import Link from 'next/link';
+import { useState, useTransition } from 'react';
+
+import type { Conversion } from '@/core/currency';
+import { currency } from '@/core/currency';
+
+import { convertCurrency } from '@/app/actions';
+
+import { CurrencySheet, type CurrencyPreviewRow } from './sheets/currency-sheet';
+import { Toast, type ToastState } from './toast';
 
 import { ORG } from '@/lib/data';
 
@@ -26,7 +37,32 @@ function initialsOf(name: string): string {
     .join('');
 }
 
-export function AppShell({ current, children }: { current: string; children: React.ReactNode }) {
+export function AppShell({
+  current,
+  currencyCode,
+  preview = [],
+  children,
+}: {
+  current: string;
+  currencyCode: string;
+  /** A few real figures, so a conversion can be seen before it is made. */
+  preview?: readonly CurrencyPreviewRow[];
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const [pending, start] = useTransition();
+
+  const c = currency(currencyCode);
+
+  const run = (conversion: Conversion) => {
+    start(async () => {
+      const ack = await convertCurrency(conversion);
+      setOpen(false);
+      setToast(ack);
+    });
+  };
+
   return (
     <div className="shell">
       <header className="topbar">
@@ -49,14 +85,31 @@ export function AppShell({ current, children }: { current: string; children: Rea
         </nav>
 
         <div className="topbar-end">
-          <span className="topbar-currency">
-            Prices in <span className="figure">{ORG.currencySymbol} {ORG.currencyCode}</span>
-          </span>
+          {/* The chip already says which currency this is, so it is also the
+              way to change it. */}
+          <button type="button" className="currency-chip" onClick={() => setOpen(true)}>
+            <span className="figure">{c.symbol} {c.code}</span>
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+              strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+              <path d="m3 4.8 3 3 3-3" />
+            </svg>
+          </button>
           <span className="topbar-org">{ORG.name}</span>
           <span className="avatar" aria-hidden="true">{initialsOf(ORG.name)}</span>
         </div>
       </header>
       {children}
+
+      <CurrencySheet
+        open={open}
+        onClose={() => setOpen(false)}
+        from={c.code}
+        preview={preview}
+        busy={pending}
+        onSwitch={run}
+      />
+
+      <Toast toast={toast} onUndo={() => setToast(null)} onDismiss={() => setToast(null)} />
     </div>
   );
 }

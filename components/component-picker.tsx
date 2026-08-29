@@ -1,5 +1,7 @@
 'use client';
 
+import { useMoney } from './currency-provider';
+
 import { useMemo, useRef, useState } from 'react';
 
 import type { Ingredient } from '@/core/ingredient';

@@ -2,7 +2,16 @@ import { AppShell } from '@/components/app-shell';
 import { DashboardView } from '@/components/dashboard-view';
 import { DEFAULT_MODEL } from '@/lib/costing';
 import { ORG } from '@/lib/data';
-import { allMeta, allRecipes, pantry } from '@/lib/store';
+import {
+  allIngredients,
+  allMeta,
+  allRecipes,
+  currencyCode,
+  orgModel,
+  pantry,
+} from '@/lib/store';
+import { ratePerUnit, ingredientCost } from '@/core/ingredient';
+import { CurrencyProvider } from '@/components/currency-provider';
 import { dashboard } from '@/lib/dashboard';
 
 /**
@@ -14,7 +23,7 @@ import { dashboard } from '@/lib/dashboard';
 export const dynamic = 'force-dynamic';
 
 export default function DashboardPage() {
-  const model = { ...DEFAULT_MODEL, foodCostTarget: ORG.foodCostTarget };
+  const model = { ...DEFAULT_MODEL, ...orgModel(), foodCostTarget: ORG.foodCostTarget };
   // Read through the store, so a dish saved a moment ago is here.
   const data = dashboard({
     ids: allRecipes().map((r) => r.id),
@@ -23,9 +32,30 @@ export default function DashboardPage() {
     model,
   });
 
+  const code = currencyCode();
+
+  // Real figures from this operator's own menu, so a conversion can be seen
+  // before it is made rather than described in the abstract.
+  const preview = [
+    ...allIngredients()
+      .filter((i) => i.purchasePrice !== null)
+      .slice(0, 2)
+      .map((i) => ({
+        label: i.name,
+        amount: ratePerUnit(ingredientCost(i).ratePerBaseUnit, i.purchaseUnit) ?? 0,
+        per: i.purchaseUnit,
+      })),
+    ...data.rows
+      .filter((r) => r.sellingPrice !== null)
+      .slice(0, 1)
+      .map((r) => ({ label: `${r.name}, menu price`, amount: r.sellingPrice ?? 0, per: null })),
+  ];
+
   return (
-    <AppShell current="Dashboard">
-      <DashboardView data={data} target={model.foodCostTarget} />
+    <AppShell current="Dashboard" currencyCode={code} preview={preview}>
+      <CurrencyProvider code={code}>
+        <DashboardView data={data} target={model.foodCostTarget} />
+      </CurrencyProvider>
     </AppShell>
   );
 }

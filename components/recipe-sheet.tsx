@@ -40,6 +40,8 @@ import { ORG } from '@/lib/data';
 import { ROUNDING_LABEL } from '@/lib/costing';
 import { money, percent } from '@/lib/format';
 
+import { useMoney } from './currency-provider';
+
 type Layout = 'table' | 'cards';
 
 /**
@@ -58,12 +60,15 @@ export function RecipeSheet({
   shelf,
   dish,
   usageCounts,
+  orgModel,
 }: {
   initialRecipe: Recipe;
   otherRecipes: readonly Recipe[];
   shelf: readonly Ingredient[];
   dish: DishMeta;
   usageCounts: Readonly<Record<string, number>>;
+  /** Wastage and packaging as the account has them, packaging being money. */
+  orgModel: { wastagePercent: number; packagingPerPortion: number };
 }) {
   const [recipe, setRecipe] = useState<Recipe>(initialRecipe);
   const [layout, setLayout] = useState<Layout>('table');
@@ -105,11 +110,12 @@ export function RecipeSheet({
   const model = useMemo(
     () => ({
       ...DEFAULT_MODEL,
+      ...orgModel,
       foodCostTarget: ORG.foodCostTarget,
       rounding,
       ...(charges ?? {}),
     }),
-    [rounding, charges],
+    [rounding, charges, orgModel],
   );
 
   const cost = useMemo(() => recipeCost(recipe, pantry), [recipe, pantry]);
@@ -228,6 +234,7 @@ export function RecipeSheet({
     });
   };
 
+  const m = useMoney();
   const saved = build.complete && dish.onMenu && !dirty;
 
   const rateIngredient =
@@ -397,7 +404,7 @@ export function RecipeSheet({
               <span className="batch-total">
                 <span className="label">{build.complete ? 'Batch total' : 'Batch floor'}</span>
                 <span className="figure batch-total-value">
-                  {ORG.currencySymbol} {money(build.linesTotal)}
+                  {m.symbol} {m.money(build.linesTotal)}
                 </span>
               </span>
             </div>
@@ -479,7 +486,7 @@ export function RecipeSheet({
           }
           onKeepPrice={() =>
             setToast({
-              message: `Price left at ₹ ${(dish.sellingPrice ?? 0).toFixed(2)}. Nothing changed.`,
+              message: `Price left at ${m.withSymbol(dish.sellingPrice)}. Nothing changed.`,
               undoable: false,
             })
           }

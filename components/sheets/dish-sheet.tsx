@@ -2,7 +2,9 @@
 
 import { Sheet } from '../sheet';
 import { Stepper } from '../stepper';
-import { money } from '@/lib/format';
+
+
+import { useMoney } from '../currency-provider';
 
 /**
  * Edit: name, category, station and batch size.
@@ -38,6 +40,7 @@ export function DishSheet({
   onPortions: (v: number) => void;
 }) {
   const per = portions === null || portions <= 0 ? null : linesTotal / portions;
+  const m = useMoney();
 
   return (
     <Sheet
@@ -76,7 +79,7 @@ export function DishSheet({
       <div className="live-note">
         <span className="label">What this changes, live</span>
         <div className="figure live-sum">
-          {money(linesTotal)} ÷ {portions ?? '—'} = {money(per)}
+          {m.money(linesTotal)} ÷ {portions ?? '—'} = {m.money(per)}
         </div>
         <p className="live-copy">
           Batch size divides the ingredient cost, so it moves every figure on the dish. Lines

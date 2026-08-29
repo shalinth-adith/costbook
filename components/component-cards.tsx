@@ -2,7 +2,9 @@
 
 import type { CostedLine } from '@/core/recipe';
 
-import { DASH, money, qty, rate } from '@/lib/format';
+import { DASH, qty } from '@/lib/format';
+
+import { useMoney } from './currency-provider';
 
 import type { LineHandlers } from './component-table';
 
@@ -21,6 +23,7 @@ export function ComponentCards({
   lines: readonly CostedLine[];
   handlers: LineHandlers;
 }) {
+  const m = useMoney();
   return (
     <div className="ccards">
       {lines.map((line, i) => {
@@ -89,7 +92,7 @@ export function ComponentCards({
 
               <span className="ccard-field">
                 <span className="label">Rate / unit</span>
-                <span className="figure ccard-value">{rate(line.ratePerBaseUnit)}</span>
+                <span className="figure ccard-value">{m.rate(line.ratePerBaseUnit)}</span>
               </span>
 
               <span className="ccard-field end">
@@ -102,7 +105,7 @@ export function ComponentCards({
                     Set rate
                   </button>
                 ) : (
-                  <span className="figure ccard-total">{money(inBatch)}</span>
+                  <span className="figure ccard-total">{m.money(inBatch)}</span>
                 )}
               </span>
             </div>

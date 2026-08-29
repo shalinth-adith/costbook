@@ -2,7 +2,9 @@
 
 import { Sheet } from '../sheet';
 import { Stepper } from '../stepper';
-import { money, percent } from '@/lib/format';
+import { percent } from '@/lib/format';
+
+import { useMoney } from '../currency-provider';
 
 /**
  * Wastage and packaging.
@@ -37,6 +39,7 @@ export function ChargesSheet({
 }) {
   const wast = ingredientsPerPortion * (wastagePercent / 100);
   const total = ingredientsPerPortion + wast + packaging;
+  const m = useMoney();
 
   return (
     <Sheet
@@ -69,7 +72,7 @@ export function ChargesSheet({
           onUp={() => onWastage(Math.round((wastagePercent + 0.5) * 10) / 10)}
         />
         <span className="figure field-work">
-          {money(ingredientsPerPortion)} × {percent(wastagePercent, 1)} = {money(wast)}
+          {m.money(ingredientsPerPortion)} × {percent(wastagePercent, 1)} = {m.money(wast)}
         </span>
       </div>
 
@@ -77,7 +80,7 @@ export function ChargesSheet({
         <span className="label">Packaging, flat per portion</span>
         <Stepper
           label="packaging"
-          value={`₹ ${money(packaging)}`}
+          value={m.withSymbol(packaging)}
           min={packaging <= 0}
           onDown={() => onPackaging(Math.max(0, Math.round((packaging - 0.05) * 100) / 100))}
           onUp={() => onPackaging(Math.round((packaging + 0.05) * 100) / 100)}
@@ -87,9 +90,9 @@ export function ChargesSheet({
       <div className="live-note">
         <span className="label">Cost per portion, as you change it</span>
         <div className="figure live-sum">
-          {money(ingredientsPerPortion)} + {money(wast)} + {money(packaging)}
+          {m.money(ingredientsPerPortion)} + {m.money(wast)} + {m.money(packaging)}
         </div>
-        <div className="figure live-total">₹ {money(total)}</div>
+        <div className="figure live-total">{m.withSymbol(total)}</div>
       </div>
 
       <p className="sheet-foot-note">

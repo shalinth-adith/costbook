@@ -3,7 +3,18 @@ import { notFound } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { RecipeSheet } from '@/components/recipe-sheet';
 import { usedInCount } from '@/lib/data';
-import { allIngredients, allMeta, allRecipes, getMeta, getRecipe, pantry } from '@/lib/store';
+import {
+  allIngredients,
+  allMeta,
+  allRecipes,
+  currencyCode,
+  getMeta,
+  getRecipe,
+  orgModel,
+  pantry,
+} from '@/lib/store';
+import { CurrencyProvider } from '@/components/currency-provider';
+import { ingredientCost, ratePerUnit } from '@/core/ingredient';
 
 /**
  * The cost sheet. Creating a dish and editing one are the same screen in two
@@ -36,15 +47,28 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
   for (const i of allIngredients()) names.add(i.name);
   const usageCounts = Object.fromEntries([...names].map((n) => [n, usedInCount(n)]));
 
+  const code = currencyCode();
+  const preview = allIngredients()
+    .filter((i) => i.purchasePrice !== null)
+    .slice(0, 3)
+    .map((i) => ({
+      label: i.name,
+      amount: ratePerUnit(ingredientCost(i).ratePerBaseUnit, i.purchaseUnit) ?? 0,
+      per: i.purchaseUnit,
+    }));
+
   return (
-    <AppShell current="Recipes">
+    <AppShell current="Recipes" currencyCode={code} preview={preview}>
+      <CurrencyProvider code={code}>
       <RecipeSheet
         initialRecipe={recipe}
         otherRecipes={allRecipes()}
         shelf={allIngredients()}
         dish={dish}
         usageCounts={usageCounts}
+        orgModel={orgModel()}
       />
+      </CurrencyProvider>
     </AppShell>
   );
 }

@@ -4,7 +4,9 @@ import { useState } from 'react';
 
 import type { Ingredient } from '@/core/ingredient';
 
-import { money } from '@/lib/format';
+
+
+import { useMoney } from '../currency-provider';
 
 import { Sheet } from '../sheet';
 
@@ -30,6 +32,7 @@ export function RateSheet({
   onClose: () => void;
   onSet: (packPrice: number) => void;
 }) {
+  const m = useMoney();
   const [value, setValue] = useState('');
 
   if (ingredient === null) return null;
@@ -67,7 +70,7 @@ export function RateSheet({
           What one {displayPack(ingredient)} costs
         </span>
         <div className="money-field">
-          <span className="figure money-symbol">₹</span>
+          <span className="figure money-symbol">{m.symbol}</span>
           <input
             className="figure"
             inputMode="decimal"
@@ -83,7 +86,7 @@ export function RateSheet({
         <div className="live-note">
           <span className="label">Which works out at</span>
           <div className="figure live-total">
-            ₹ {money(perUnit)} <span className="live-unit">per {ingredient.purchaseUnit}</span>
+            {m.withSymbol(perUnit)} <span className="live-unit">per {ingredient.purchaseUnit}</span>
           </div>
         </div>
       )}

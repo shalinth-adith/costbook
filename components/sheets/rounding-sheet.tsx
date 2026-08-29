@@ -3,7 +3,9 @@
 import { PRESETS, type PresetName, applyRounding, describeRule } from '@/core/rounding';
 
 import { ROUNDING_CHOICES } from '@/lib/costing';
-import { money } from '@/lib/format';
+
+
+import { useMoney } from '../currency-provider';
 
 import { Sheet } from '../sheet';
 
@@ -27,11 +29,12 @@ export function RoundingSheet({
   current: PresetName;
   onPick: (rule: PresetName) => void;
 }) {
+  const m = useMoney();
   return (
     <Sheet title="How prices are rounded" open={open} onClose={onClose}>
       <p className="sheet-copy">
         The exact figure at your target is{' '}
-        <span className="figure strong">{money(exact)}</span>. Nobody puts that on a menu, so
+        <span className="figure strong">{m.money(exact)}</span>. Nobody puts that on a menu, so
         Costbook rounds it. Pick how.
       </p>
 
@@ -55,7 +58,7 @@ export function RoundingSheet({
                   ) : null}
                 </span>
                 <span className="rule-label">{describeRule(PRESETS[name])}</span>
-                <span className="figure rule-price">₹ {money(price)}</span>
+                <span className="figure rule-price">{m.withSymbol(price)}</span>
               </button>
             </li>
           );

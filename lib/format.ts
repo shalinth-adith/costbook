@@ -1,3 +1,4 @@
+import { formatMoney, formatRate } from '@/core/currency';
 import { fromBase } from '@/core/units';
 
 /**
@@ -8,18 +9,28 @@ import { fromBase } from '@/core/units';
 /** A figure that is absent reads as a dash, never as a zero. */
 export const DASH = '—';
 
-export function money(value: number | null | undefined, places = 2): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) return DASH;
-  return value.toLocaleString('en-IN', {
-    minimumFractionDigits: places,
-    maximumFractionDigits: places,
-  });
+/**
+ * A figure, in the account's currency.
+ *
+ * The symbol is left to the caller so it can sit in its own span with a fixed
+ * inline gap, which is what keeps a column aligned on the decimal whatever
+ * side the symbol is on (A1).
+ */
+export function money(
+  value: number | null | undefined,
+  code = 'INR',
+  places?: number,
+): string {
+  return formatMoney(
+    value,
+    code,
+    places === undefined ? { withSymbol: false } : { withSymbol: false, decimals: places },
+  );
 }
 
-/** Rates run to more places than money: a per-gram figure rounded to 2dp is 0.00. */
-export function rate(value: number | null | undefined): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) return DASH;
-  return value >= 1 ? money(value, 2) : money(value, 4);
+/** Rates run to more places than money: a per-gram figure at 2dp is 0.00. */
+export function rate(value: number | null | undefined, code = 'INR'): string {
+  return formatRate(value, code);
 }
 
 export function percent(value: number | null | undefined, places = 1): string {

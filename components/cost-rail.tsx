@@ -14,7 +14,9 @@ import {
   suggestPrice,
 } from '@/lib/costing';
 import { ORG } from '@/lib/data';
-import { money, outputText, percent, points } from '@/lib/format';
+import { outputText, percent, points } from '@/lib/format';
+
+import { useMoney } from './currency-provider';
 import { toBase } from '@/core/units';
 
 /** Rates invert against quantities: 0.128 per gram is 128.07 per kg. */
@@ -72,6 +74,7 @@ export function CostRail({
   const status = statusFor(fc, model.foodCostTarget);
   const suggestion = build.complete && build.total !== null ? suggestPrice(build.total, model) : null;
   const missing = cost.kind === 'floor' ? cost.unpriced : [];
+  const m = useMoney();
 
   const headline = plated ? build.total : build.linesTotal;
   const headlineLabel = !plated
@@ -93,8 +96,8 @@ export function CostRail({
 
           <div className="rail-figures">
             <div className="rail-figure">
-              <span className="figure rail-currency">{ORG.currencySymbol}</span>
-              <span className="figure rail-amount">{money(headline)}</span>
+              <span className="figure rail-currency">{m.symbol}</span>
+              <span className="figure rail-amount">{m.money(headline)}</span>
             </div>
             {fc === null ? (
               <span className="chip chip-incomplete">—</span>
@@ -119,21 +122,21 @@ export function CostRail({
 
           {plated && build.wastage !== null && build.packaging !== null ? (
             <>
-              <Row op="" label="Batch ingredient cost" value={money(build.linesTotal)} />
+              <Row op="" label="Batch ingredient cost" value={m.money(build.linesTotal)} />
               <Row op="÷" label="Portions per batch" value={String(build.portions)} />
-              <Row op="=" label="Ingredient cost per portion" value={money(build.ingredientsPerPortion)} rule strong />
-              <Row op="+" label={`Wastage, ${percent(model.wastagePercent, 1)}`} value={money(build.wastage.amount)} />
-              <Row op="+" label="Packaging, flat per portion" value={money(build.packaging.amount)} />
-              <Row op="=" label="Total cost per portion" value={money(build.total)} total />
+              <Row op="=" label="Ingredient cost per portion" value={m.money(build.ingredientsPerPortion)} rule strong />
+              <Row op="+" label={`Wastage, ${percent(model.wastagePercent, 1)}`} value={m.money(build.wastage.amount)} />
+              <Row op="+" label="Packaging, flat per portion" value={m.money(build.packaging.amount)} />
+              <Row op="=" label="Total cost per portion" value={m.money(build.total)} total />
             </>
           ) : (
             <>
-              <Row op="" label="Batch ingredient cost" value={money(build.linesTotal)} />
+              <Row op="" label="Batch ingredient cost" value={m.money(build.linesTotal)} />
               <Row op="÷" label={`Yields ${outputText(cost.outputQty, cost.outputUnit)}`} value="" />
               <Row
                 op="="
                 label={`Cost per ${cost.outputUnit}`}
-                value={money(ratePerOutputUnit(build.perBaseUnit, cost.outputUnit))}
+                value={m.money(ratePerOutputUnit(build.perBaseUnit, cost.outputUnit))}
                 total
               />
             </>
@@ -158,7 +161,7 @@ export function CostRail({
         <section className="card card-inert">
           <div className="label">Suggested price</div>
           <div className="rail-figure muted">
-            <span className="figure rail-currency">{ORG.currencySymbol}</span>
+            <span className="figure rail-currency">{m.symbol}</span>
             <span className="figure rail-amount-sm">—</span>
           </div>
           <p className="rail-copy">
@@ -176,7 +179,7 @@ export function CostRail({
             <p className="rail-copy">
               Give it one and this price becomes trustworthy. Until then{' '}
               <span className="figure strong">
-                {ORG.currencySymbol} {money(build.total ?? build.linesTotal)}
+                {m.symbol} {m.money(build.total ?? build.linesTotal)}
               </span>{' '}
               is the least this dish can cost.
             </p>
@@ -191,7 +194,7 @@ export function CostRail({
 
           <div className="price-work">
             <div className="figure price-formula">
-              {money(build.total)} ÷ {percent(model.foodCostTarget, 1)} = {money(suggestion.exact)}
+              {m.money(build.total)} ÷ {percent(model.foodCostTarget, 1)} = {m.money(suggestion.exact)}
             </div>
 
             {/* Both candidates side by side, each carrying the food cost it
@@ -204,7 +207,7 @@ export function CostRail({
                 </svg>
                 <span className="price-option-text">
                   <span className="figure price-value">
-                    {ORG.currencySymbol} {money(suggestion.rounded)}
+                    {m.symbol} {m.money(suggestion.rounded)}
                   </span>
                   <span className="price-fc">
                     at <span className="figure strong">{percent(suggestion.roundedFoodCost)}</span>
@@ -220,7 +223,7 @@ export function CostRail({
                 <span className="price-radio" />
                 <span className="price-option-text">
                   <span className="figure price-value muted">
-                    {ORG.currencySymbol} {money(suggestion.alternative)}
+                    {m.symbol} {m.money(suggestion.alternative)}
                   </span>
                   <span className="price-fc">
                     at <span className="figure strong">{percent(suggestion.alternativeFoodCost)}</span>
@@ -238,11 +241,11 @@ export function CostRail({
 
           <div className="price-actions">
             <button type="button" className="btn btn-primary" onClick={onUsePrice} disabled={busy}>
-              {busy ? 'Saving…' : `Use ${ORG.currencySymbol} ${money(suggestion.rounded)}`}
+              {busy ? 'Saving…' : `Use ${m.symbol} ${m.money(suggestion.rounded)}`}
             </button>
             {sellingPrice === null ? null : (
               <button type="button" className="btn" onClick={onKeepPrice} disabled={busy}>
-                Keep {ORG.currencySymbol} {money(sellingPrice)}
+                Keep {m.symbol} {m.money(sellingPrice)}
               </button>
             )}
           </div>

@@ -2,7 +2,9 @@
 
 import type { CostedLine } from '@/core/recipe';
 
-import { DASH, money, qty, rate } from '@/lib/format';
+import { DASH, qty } from '@/lib/format';
+
+import { useMoney } from './currency-provider';
 
 import { Stepper } from './stepper';
 
@@ -38,6 +40,7 @@ export function ComponentTable({
   lines: readonly CostedLine[];
   handlers: LineHandlers;
 }) {
+  const m = useMoney();
   return (
     <div className="ctable">
       <div className="ctable-head">
@@ -103,7 +106,7 @@ export function ComponentTable({
               </span>
 
               <span className="figure ctable-unit">{line.unit}</span>
-              <span className="figure end ctable-dim">{rate(line.ratePerBaseUnit)}</span>
+              <span className="figure end ctable-dim">{m.rate(line.ratePerBaseUnit)}</span>
 
               <span className="ctable-cost">
                 {line.scope === 'portion' ? (
@@ -121,7 +124,7 @@ export function ComponentTable({
                     Set rate
                   </button>
                 ) : (
-                  <span className="figure ctable-total">{money(inBatch)}</span>
+                  <span className="figure ctable-total">{m.money(inBatch)}</span>
                 )}
               </span>
 
