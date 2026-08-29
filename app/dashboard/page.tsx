@@ -7,10 +7,10 @@ import {
   allMeta,
   allRecipes,
   currencyCode,
+  currencyIsSettable,
   orgModel,
   pantry,
 } from '@/lib/store';
-import { ratePerUnit, ingredientCost } from '@/core/ingredient';
 import { CurrencyProvider } from '@/components/currency-provider';
 import { dashboard } from '@/lib/dashboard';
 
@@ -34,25 +34,9 @@ export default function DashboardPage() {
 
   const code = currencyCode();
 
-  // Real figures from this operator's own menu, so a conversion can be seen
-  // before it is made rather than described in the abstract.
-  const preview = [
-    ...allIngredients()
-      .filter((i) => i.purchasePrice !== null)
-      .slice(0, 2)
-      .map((i) => ({
-        label: i.name,
-        amount: ratePerUnit(ingredientCost(i).ratePerBaseUnit, i.purchaseUnit) ?? 0,
-        per: i.purchaseUnit,
-      })),
-    ...data.rows
-      .filter((r) => r.sellingPrice !== null)
-      .slice(0, 1)
-      .map((r) => ({ label: `${r.name}, menu price`, amount: r.sellingPrice ?? 0, per: null })),
-  ];
 
   return (
-    <AppShell current="Dashboard" currencyCode={code} preview={preview}>
+    <AppShell current="Dashboard" currencyCode={code} currencySettable={currencyIsSettable()} dishCount={allRecipes().length}>
       <CurrencyProvider code={code}>
         <DashboardView data={data} target={model.foodCostTarget} />
       </CurrencyProvider>

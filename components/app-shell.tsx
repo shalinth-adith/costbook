@@ -3,12 +3,11 @@
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
 
-import type { Conversion } from '@/core/currency';
 import { currency } from '@/core/currency';
 
-import { convertCurrency } from '@/app/actions';
+import { chooseCurrency } from '@/app/actions';
 
-import { CurrencySheet, type CurrencyPreviewRow } from './sheets/currency-sheet';
+import { CurrencySheet } from './sheets/currency-sheet';
 import { Toast, type ToastState } from './toast';
 
 import { ORG } from '@/lib/data';
@@ -40,13 +39,15 @@ function initialsOf(name: string): string {
 export function AppShell({
   current,
   currencyCode,
-  preview = [],
+  currencySettable,
+  dishCount,
   children,
 }: {
   current: string;
   currencyCode: string;
-  /** A few real figures, so a conversion can be seen before it is made. */
-  preview?: readonly CurrencyPreviewRow[];
+  /** False once anything has been priced, which settles the currency. */
+  currencySettable: boolean;
+  dishCount: number;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -55,9 +56,9 @@ export function AppShell({
 
   const c = currency(currencyCode);
 
-  const run = (conversion: Conversion) => {
+  const run = (code: string) => {
     start(async () => {
-      const ack = await convertCurrency(conversion);
+      const ack = await chooseCurrency(code);
       setOpen(false);
       setToast(ack);
     });
@@ -103,10 +104,11 @@ export function AppShell({
       <CurrencySheet
         open={open}
         onClose={() => setOpen(false)}
-        from={c.code}
-        preview={preview}
+        current={c.code}
+        settable={currencySettable}
+        dishCount={dishCount}
         busy={pending}
-        onSwitch={run}
+        onChoose={run}
       />
 
       <Toast toast={toast} onUndo={() => setToast(null)} onDismiss={() => setToast(null)} />

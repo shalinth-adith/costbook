@@ -12,20 +12,12 @@
  * it to `core/` to be costed, every time, from current data.
  */
 
-import { type Conversion, assertConvertible, convert, convertOptional } from '@/core/currency';
+import { isKnownCurrency } from '@/core/currency';
 import type { Ingredient } from '@/core/ingredient';
 import { type Pantry, type Recipe, pantryOf } from '@/core/recipe';
 
 import { DEFAULT_MODEL } from './costing';
 import { ORG, type DishMeta, meta as seedMeta, recipes as seedRecipes, shelf as seedShelf } from './data';
-
-/** What the account was converted from, and at what rate. */
-export interface ConversionRecord {
-  readonly from: string;
-  readonly to: string;
-  readonly rate: number;
-  readonly at: string;
-}
 
 interface State {
   recipes: Recipe[];
@@ -39,8 +31,6 @@ interface State {
    */
   wastagePercent: number;
   packagingPerPortion: number;
-  /** Every switch, newest first. A figure nobody can trace is a figure nobody trusts. */
-  conversions: ConversionRecord[];
 }
 
 /**
@@ -62,7 +52,6 @@ function state(): State {
     currency: ORG.currencyCode,
     wastagePercent: DEFAULT_MODEL.wastagePercent,
     packagingPerPortion: DEFAULT_MODEL.packagingPerPortion,
-    conversions: [],
   };
   return holder[KEY];
 }
@@ -152,10 +141,6 @@ export function currencyCode(): string {
   return state().currency;
 }
 
-export function conversionHistory(): readonly ConversionRecord[] {
-  return state().conversions;
-}
-
 /** The costing model as it stands, in the account's own currency. */
 export function orgModel(): { wastagePercent: number; packagingPerPortion: number } {
   const s = state();
@@ -172,60 +157,36 @@ export function setOrgModel(patch: {
 }
 
 /**
- * Move the whole account into another currency.
+ * Whether the currency can still be chosen.
  *
- * Every rate the operator entered, and every menu price, converts by the rate
- * they supplied. Nothing is looked up and nothing is left behind at the old
- * figure — an account holding rupee rates with a dirham symbol on them has not
- * changed currency, it has silently multiplied its whole menu by about 23.
+ * Once a dish exists, every rate on it was typed in the currency in force at
+ * the time. Changing the label afterwards would not change those figures, so
+ * the account would be holding one currency's rates under another's symbol —
+ * which is a worse number than any it was meant to fix.
  *
- * The conversion is recorded. A figure that changed for a reason nobody can
- * trace is a figure nobody trusts.
+ * Moving an account between currencies for real means converting every rate
+ * at a figure the operator supplies, and that is a separate feature.
  */
-export function switchCurrency(conversion: Conversion, at: string): void {
-  assertConvertible(conversion);
+export function currencyIsSettable(): boolean {
+  return state().recipes.length === 0;
+}
+
+/**
+ * Set the currency the account prices in.
+ *
+ * Only before there is anything priced. Nothing is converted, because nothing
+ * has been entered yet — which is exactly why this is the moment to ask.
+ */
+export function setCurrency(code: string): void {
+  if (!isKnownCurrency(code)) return;
+  if (!currencyIsSettable()) return;
+  state().currency = code.toUpperCase();
+}
+
+/** Empty the account, so setup can be walked through again. */
+export function clearBook(): void {
   const s = state();
-
-  s.ingredients = s.ingredients.map((i) => ({
-    ...i,
-    // An ingredient with no rate has no rate in the new currency either.
-    purchasePrice: convertOptional(i.purchasePrice, conversion),
-  }));
-
-  // A line the operator priced by hand carries its own figure, and a rate
-  // typed on a line does too. Both are money, so both convert.
-  s.recipes = s.recipes.map((r) => ({
-    ...r,
-    components: r.components.map((c) => {
-      if (c.kind === 'flat') return { ...c, amount: convert(c.amount, conversion) };
-      if (c.entry.mode === 'spend') {
-        return { ...c, entry: { mode: 'spend' as const, total: convert(c.entry.total, conversion) } };
-      }
-      if (c.entry.mode === 'rate') {
-        return {
-          ...c,
-          entry: {
-            mode: 'rate' as const,
-            ratePerBaseUnit: convert(c.entry.ratePerBaseUnit, conversion),
-          },
-        };
-      }
-      return c;
-    }),
-  }));
-
-  s.meta = Object.fromEntries(
-    Object.entries(s.meta).map(([id, m]) => [
-      id,
-      { ...m, sellingPrice: convertOptional(m.sellingPrice, conversion) },
-    ]),
-  );
-
-  // Packaging is an amount per portion, so it is money and it converts. A
-  // figure left behind here would quietly keep the old currency inside every
-  // dish, which is the leak this whole conversion exists to avoid.
-  s.packagingPerPortion = convert(s.packagingPerPortion, conversion);
-
-  s.currency = conversion.to;
-  s.conversions = [{ ...conversion, at }, ...s.conversions];
+  s.recipes = [];
+  s.ingredients = [];
+  s.meta = {};
 }

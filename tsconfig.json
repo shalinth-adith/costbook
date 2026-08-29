@@ -43,8 +43,8 @@
   "exclude": [
     "node_modules",
     "bench",
-    "**/* 2.ts",
-    "**/* 2.tsx",
-    "**/* 2.d.ts"
+    "**/* ?.ts",
+    "**/* ?.tsx",
+    "**/* ??.ts"
   ]
 }

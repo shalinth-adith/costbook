@@ -1,165 +1,102 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-
-import {
-  CURRENCIES,
-  type Conversion,
-  convert,
-  currency as lookup,
-  describeConversion,
-  formatMoney,
-} from '@/core/currency';
+import { CURRENCIES, currency as lookup, formatMoney } from '@/core/currency';
 
 import { Sheet } from '../sheet';
 
 /**
- * Moving the account to another currency.
+ * The currency the account prices in.
  *
- * Two facts have to be true before this is safe. The operator supplies the
- * rate — Costbook never looks one up, for the same reason it ships no tax
- * rates: a figure we cannot stand behind should not be presented as one
- * (COSTING_MODELS 4.3). And the preview shows real figures from their own
- * menu, because "every rate converts" means nothing until you see what your
- * onion becomes.
+ * Chosen once, at the start, and then left alone (TRD 4, PRD 5.1). The list is
+ * always shown, because someone opening this wants to see what is on offer —
+ * but once a dish exists it is a list to read rather than to pick from, and
+ * the sheet says why in a sentence rather than by greying everything out.
+ *
+ * Changing currency on an account that already holds rates is not a label
+ * change. Every one of those rates was typed in the currency in force at the
+ * time, so relabelling would leave one currency's figures under another's
+ * symbol. Doing it properly means converting each of them at a rate the
+ * operator supplies, and that is a separate feature rather than a checkbox.
  */
-export interface CurrencyPreviewRow {
-  readonly label: string;
-  readonly amount: number;
-  readonly per: string | null;
-}
-
 export function CurrencySheet({
   open,
   onClose,
-  from,
-  preview,
+  current,
+  settable,
+  dishCount,
   busy,
-  onSwitch,
+  onChoose,
 }: {
   open: boolean;
   onClose: () => void;
-  from: string;
-  /** A few real figures from the operator's own menu. */
-  preview: readonly CurrencyPreviewRow[];
+  current: string;
+  /** False once anything has been priced in the current currency. */
+  settable: boolean;
+  dishCount: number;
   busy: boolean;
-  onSwitch: (conversion: Conversion) => void;
+  onChoose: (code: string) => void;
 }) {
-  const [to, setTo] = useState('');
-  const [rateText, setRateText] = useState('');
-
-  const entered = Number(rateText);
-  const rateOk = rateText.trim() !== '' && Number.isFinite(entered) && entered > 0;
-  const chosen = to !== '' && to !== from;
-
-  const conversion: Conversion | null = useMemo(
-    () => (chosen && rateOk ? { from, to, rate: entered } : null),
-    [chosen, rateOk, from, to, entered],
-  );
-
-  const fromCurrency = lookup(from);
-  const toCurrency = to === '' ? null : lookup(to);
+  const c = lookup(current);
 
   return (
     <Sheet
-      title="Change the currency"
+      title={settable ? 'Choose your currency' : 'Your currency'}
       open={open}
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="btn" onClick={onClose}>Cancel</button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={conversion === null || busy}
-            onClick={() => { if (conversion !== null) onSwitch(conversion); }}
-          >
-            {busy
-              ? 'Converting…'
-              : toCurrency === null
-                ? 'Pick a currency'
-                : `Convert everything to ${toCurrency.code}`}
-          </button>
-        </>
-      }
+      footer={<button type="button" className="btn wide" onClick={onClose}>Done</button>}
     >
-      <p className="sheet-copy">
-        Your prices are in <strong>{fromCurrency.name}</strong>. Moving to another currency
-        converts every rate you have entered and every menu price — it does not just change the
-        symbol, because rupee figures wearing a dirham sign would be wrong by a factor of twenty.
-      </p>
-
-      <label className="field">
-        <span className="label">Move prices to</span>
-        <select
-          className="rule-select field-select"
-          value={to}
-          onChange={(e) => setTo(e.target.value)}
-        >
-          <option value="">Choose a currency</option>
-          {CURRENCIES.filter((c) => c.code !== from).map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.code} · {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {toCurrency === null ? null : (
-        <>
-          <label className="field">
-            <span className="label">
-              What one {toCurrency.code} is worth in {fromCurrency.code}
-            </span>
-            <div className="money-field">
-              <span className="figure money-symbol">1 {toCurrency.code} =</span>
-              <input
-                className="figure"
-                inputMode="decimal"
-                value={rateText}
-                placeholder="0.00"
-                aria-label={`Value of one ${toCurrency.code} in ${fromCurrency.code}`}
-                onChange={(e) => setRateText(e.target.value)}
-              />
-              <span className="figure money-symbol">{fromCurrency.code}</span>
-            </div>
-            <span className="field-work">
-              Costbook does not look this up. Use the figure your bank or your supplier is
-              actually giving you.
-            </span>
-          </label>
-
-          {conversion === null ? null : (
-            <div className="live-note">
-              <span className="label">What this does to your figures</span>
-              <div className="figure live-sum">{describeConversion(conversion)}</div>
-
-              <ul className="convert-preview">
-                {preview.map((row) => (
-                  <li key={row.label}>
-                    <span className="convert-name">{row.label}</span>
-                    <span className="figure convert-before">
-                      {formatMoney(row.amount, from)}
-                      {row.per === null ? '' : ` / ${row.per}`}
-                    </span>
-                    <span className="convert-arrow" aria-hidden="true">→</span>
-                    <span className="figure convert-after">
-                      {formatMoney(convert(row.amount, conversion), to)}
-                      {row.per === null ? '' : ` / ${row.per}`}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <p className="sheet-foot-note">
-            Every ingredient rate, every rate typed on a line, every spend and every menu price
-            converts. An ingredient with no rate still has none. The conversion and the figure you
-            used are recorded, so any number can be traced back.
-          </p>
-        </>
+      {settable ? (
+        <p className="sheet-copy">
+          Every rate and every price you enter will be in this currency. Pick it before you start
+          costing — it is the one thing easier to set now than later.
+        </p>
+      ) : (
+        <p className="sheet-copy">
+          You are pricing in <strong>{c.name}</strong>, and{' '}
+          <span className="figure">{dishCount}</span>{' '}
+          {dishCount === 1 ? 'dish is' : 'dishes are'} costed in it. Every rate on them was typed
+          in {c.code}, so changing the label here would leave those figures under the wrong
+          symbol. Moving an account to another currency means converting each of them at a rate
+          you give — that is coming, and it is not this.
+        </p>
       )}
+
+      <ul className="currency-list">
+        {CURRENCIES.map((item) => {
+          const chosen = item.code === c.code;
+          return (
+            <li key={item.code}>
+              <button
+                type="button"
+                className={`currency-option${chosen ? ' is-chosen' : ''}`}
+                aria-pressed={chosen}
+                disabled={!settable || busy || chosen}
+                onClick={() => onChoose(item.code)}
+              >
+                <span className="currency-mark" aria-hidden="true">
+                  {chosen ? (
+                    <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                      strokeWidth="1.8" strokeLinecap="round">
+                      <path d="M2.4 6.2 4.8 8.6 9.6 3.6" />
+                    </svg>
+                  ) : null}
+                </span>
+                <span className="figure currency-code">{item.code}</span>
+                <span className="currency-name">{item.name}</span>
+                {/* The same figure, written the way each currency writes it —
+                    which is the part a symbol alone does not tell you. */}
+                <span className="figure currency-sample">{formatMoney(1234.5, item.code)}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      <p className="sheet-foot-note">
+        {settable
+          ? 'Costbook holds one currency per account and does not convert between them, so every figure you see is a figure you entered.'
+          : 'Costbook holds one currency per account. Nothing here is converted, so every figure you see is a figure you entered.'}
+      </p>
     </Sheet>
   );
 }

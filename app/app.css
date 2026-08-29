@@ -1066,17 +1066,25 @@
   border-radius: var(--radius-field);
 }
 
-/* Before and after, on the operator's own figures. "Every rate converts"
-   means nothing until you see what your onion becomes. */
-.convert-preview { list-style: none; margin: var(--sp-2) 0 0; padding: 0; }
-.convert-preview li {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto 16px auto;
-  gap: var(--sp-2); align-items: baseline;
-  padding-block: 6px; border-block-end: 1px dotted var(--border-strong);
-  font-size: 12.5px;
+/* The list is always shown, because someone opening this wants to see what is
+   on offer. Once a dish exists it is a list to read rather than to pick from,
+   and the sheet says why in a sentence rather than greying it into silence. */
+.currency-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.currency-option {
+  display: grid; grid-template-columns: 20px 46px minmax(0, 1fr) auto;
+  align-items: center; gap: var(--sp-3); width: 100%; min-height: var(--row-default);
+  padding: 6px var(--sp-3);
+  border: 1px solid transparent; border-radius: var(--radius-field);
+  background: none; font: inherit; text-align: start; color: var(--text-primary);
+  cursor: pointer;
 }
-.convert-preview li:last-child { border-block-end: 0; }
-.convert-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }
-.convert-before { color: var(--text-tertiary); text-align: end; }
-.convert-arrow { color: var(--text-tertiary); text-align: center; }
-.convert-after { font-weight: 600; text-align: end; }
+.currency-option:hover:not(:disabled) { background: var(--surface-sunken); }
+.currency-option.is-chosen {
+  border-color: var(--surface-inverse); background: var(--surface-card);
+}
+/* Not dimmed. A list you cannot pick from is still a list you have to read,
+   and the reason it is fixed is in the sentence above it. */
+.currency-option:disabled { cursor: default; }
+.currency-code { font-size: 13px; font-weight: 600; }
+.currency-name { font-size: 13.5px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.currency-sample { font-size: 12.5px; color: var(--text-tertiary); text-align: end; white-space: nowrap; }

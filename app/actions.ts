@@ -2,33 +2,30 @@
 
 import { revalidatePath } from 'next/cache';
 
-import { type Conversion, currency } from '@/core/currency';
+import { currency } from '@/core/currency';
 
-import { allIngredients, switchCurrency } from '@/lib/store';
+import { currencyIsSettable, setCurrency } from '@/lib/store';
 
 /**
- * Move the account into another currency, at the rate the operator gave.
+ * Set the currency the account prices in.
  *
- * The acknowledgement counts what moved, because "every rate converts" is a
- * claim, and the number of rates it touched is the evidence for it.
+ * Refused once anything is costed, because at that point it is not a setting
+ * any more — every rate on file was typed in the currency in force when it was
+ * entered.
  */
-export async function convertCurrency(conversion: Conversion): Promise<{
+export async function chooseCurrency(code: string): Promise<{
   readonly message: string;
   readonly undoable: boolean;
 }> {
-  const priced = allIngredients().filter((i) => i.purchasePrice !== null).length;
+  if (!currencyIsSettable()) {
+    return {
+      message: 'Your currency is already set, because there are dishes costed in it.',
+      undoable: false,
+    };
+  }
 
-  // `at` is passed in rather than read here, so the store stays a pure record
-  // of what it was told.
-  switchCurrency(conversion, new Date().toISOString());
-
+  setCurrency(code);
   revalidatePath('/', 'layout');
 
-  const to = currency(conversion.to);
-  return {
-    message:
-      `Prices are now in ${to.name}. ${priced} ingredient rate${priced === 1 ? '' : 's'} ` +
-      `and every menu price converted at 1 ${conversion.to} = ${conversion.rate} ${conversion.from}.`,
-    undoable: false,
-  };
+  return { message: `Prices are now in ${currency(code).name}.`, undoable: false };
 }

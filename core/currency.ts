@@ -1,23 +1,16 @@
 /**
- * Currencies, and moving an account from one to another.
+ * Currencies, and how each one writes a figure.
  *
- * Two separate jobs, and they are separate on purpose.
+ * Which symbol, which side of the number it sits on, how many decimals the
+ * currency actually uses, and how the digits group. A rupee groups in lakhs
+ * and a dollar does not; a dinar has three decimals and a yen has none.
+ * Getting that wrong makes a figure look foreign to the person reading it.
  *
- * Showing money is presentation: which symbol, which side of the figure it
- * sits on, how many decimals the currency actually uses, and how the digits
- * group. A rupee groups in lakhs and a dollar does not, and getting that wrong
- * makes a figure look foreign to the person reading it.
- *
- * Changing currency is arithmetic, and it is the dangerous one. An account
- * holding rates in rupees that is relabelled to dirhams has not changed
- * currency — it has silently multiplied every figure by about 23 and
- * presented the result as fact. So a switch converts, at a rate the operator
- * supplies.
- *
- * Costbook never looks an exchange rate up. It is the same rule as tax
- * (COSTING_MODELS 4.3): we compute what we are told, and we do not hold a
- * figure we cannot stand behind. An exchange rate we fetched last Tuesday is
- * exactly that.
+ * One currency per organisation, chosen at setup, and no conversion (TRD 4).
+ * An account's rates are entered in its own currency and stay in it. Moving
+ * an account between currencies is a real feature and a separate decision —
+ * it needs a rate the operator supplies, a record of what was used, and a way
+ * back — so it is not half-built here.
  */
 
 export type CurrencyPosition = 'prefix' | 'suffix';
@@ -114,69 +107,4 @@ export function formatRate(amount: number | null | undefined, code: string): str
   return amount >= 1
     ? formatMoney(amount, code, { withSymbol: false })
     : formatMoney(amount, code, { withSymbol: false, decimals: Math.max(4, c.decimals) });
-}
-
-export type ConversionErrorCode = 'invalid_rate' | 'same_currency' | 'unknown_currency';
-
-export class ConversionError extends Error {
-  readonly code: ConversionErrorCode;
-
-  constructor(code: ConversionErrorCode, message: string) {
-    super(message);
-    this.name = 'ConversionError';
-    this.code = code;
-  }
-}
-
-export interface Conversion {
-  readonly from: string;
-  readonly to: string;
-  /**
-   * How many units of the old currency one unit of the new one is worth.
-   * "1 AED = 23.50 INR" is a rate of 23.50 when moving from INR to AED.
-   */
-  readonly rate: number;
-}
-
-export function assertConvertible(conversion: Conversion): void {
-  const { from, to, rate } = conversion;
-
-  if (!isKnownCurrency(from) || !isKnownCurrency(to)) {
-    throw new ConversionError('unknown_currency', 'That is not a currency Costbook knows.');
-  }
-  if (from.toUpperCase() === to.toUpperCase()) {
-    throw new ConversionError('same_currency', 'That is the currency you are already in.');
-  }
-  if (!Number.isFinite(rate) || rate <= 0) {
-    throw new ConversionError(
-      'invalid_rate',
-      'An exchange rate has to be a figure above zero. Costbook does not look one up for you.',
-    );
-  }
-}
-
-/**
- * A figure moved into the new currency.
- *
- * Full precision. Rounding here would compound across every rate in the book
- * and put the whole menu a little wrong (TRD 4).
- */
-export function convert(amount: number, conversion: Conversion): number {
-  assertConvertible(conversion);
-  return amount / conversion.rate;
-}
-
-/** The same, for a figure that may be absent. An absent rate stays absent. */
-export function convertOptional(
-  amount: number | null,
-  conversion: Conversion,
-): number | null {
-  return amount === null ? null : convert(amount, conversion);
-}
-
-/** The sentence shown beside the field, so the direction cannot be misread. */
-export function describeConversion(conversion: Conversion): string {
-  const from = currency(conversion.from);
-  const to = currency(conversion.to);
-  return `1 ${to.code} = ${formatMoney(conversion.rate, from.code, { withSymbol: false })} ${from.code}`;
 }
