@@ -8,6 +8,8 @@ import type { Ingredient } from '@/core/ingredient';
 import type { Pantry, Recipe } from '@/core/recipe';
 
 import { KIND_HINT, KIND_LABEL } from '@/lib/data';
+
+import { IngredientEntry, type NewIngredient } from './ingredient-entry';
 import { type PickerChoice, countRows, pickerGroups } from '@/lib/picker';
 
 export type { PickerChoice };
@@ -20,6 +22,8 @@ export function ComponentPicker({
   usedInCount,
   onPick,
   alwaysOpen = false,
+  onCreateIngredient,
+  creating = false,
 }: {
   shelf: readonly Ingredient[];
   recipes: readonly Recipe[];
@@ -29,6 +33,16 @@ export function ComponentPicker({
   onPick: (choice: PickerChoice) => void;
   /** Inside a drawer the list is the whole point, so it does not wait for focus. */
   alwaysOpen?: boolean;
+  /**
+   * Create an ingredient from here, without leaving the recipe.
+   *
+   * This is arguably the more common way one gets created - mid-recipe,
+   * because something is missing. Navigating to the Ingredients screen would
+   * lose the line the chef was in the middle of writing, so it cannot be a
+   * redirect (A20).
+   */
+  onCreateIngredient?: (i: NewIngredient) => void;
+  creating?: boolean;
 }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(alwaysOpen);
@@ -121,17 +135,34 @@ export function ComponentPicker({
               <span className="picker-hint">
                 The list scrolls, so the lines you have already entered stay in view.
               </span>
+            ) : total === 0 ? (
+              <span className="picker-hint">
+                Nothing called <strong>{query.trim()}</strong>. Add it here — the recipe stays
+                open behind this.
+              </span>
             ) : (
               <span className="picker-hint">
-                <strong>Add “{query.trim()}” as a new ingredient</strong>
-                <br />
-                you will be asked for its pack size and rate
+                Not what you meant? Add <strong>{query.trim()}</strong> as a new ingredient below.
               </span>
             )}
             {alwaysOpen ? null : (
               <button type="button" className="link link-sm" onClick={() => setOpen(false)}>Close</button>
             )}
           </div>
+        </div>
+      ) : null}
+
+      {/* Same four fields, same default, same live rate as the Ingredients
+          screen — one interaction in a smaller space (A20). */}
+      {open && query.trim() !== '' && onCreateIngredient !== undefined ? (
+        <div className="picker-create">
+          <IngredientEntry
+            rows={[]}
+            compact
+            busy={creating}
+            seedName={query.trim()}
+            onAdd={onCreateIngredient}
+          />
         </div>
       ) : null}
     </div>

@@ -18,6 +18,7 @@ import { DASH, percent } from '@/lib/format';
 
 import { useMoney } from './currency-provider';
 import { StatusChip } from './status-chip';
+import { NewDishSheet } from './sheets/new-dish-sheet';
 import { Toast, type ToastState } from './toast';
 
 const FILTERS: readonly { readonly value: LibraryFilter; readonly label: string }[] = [
@@ -34,12 +35,18 @@ export function LibraryView({
   target,
   onDuplicate,
   onArchive,
+  onCreate,
 }: {
   data: Library;
   pantry: Pantry;
   target: number;
   onDuplicate: (id: string) => Promise<{ message: string; undoable: boolean }>;
   onArchive: (id: string, archived: boolean) => Promise<{ message: string; undoable: boolean }>;
+  onCreate: (dish: { name: string; category: string; portions: number }) => Promise<{
+    message: string;
+    undoable: boolean;
+    id: string | null;
+  }>;
 }) {
   const m = useMoney();
   const [tab, setTab] = useState<'dishes' | 'batches'>('dishes');
@@ -47,6 +54,7 @@ export function LibraryView({
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [creating, setCreating] = useState(false);
   const [pending, start] = useTransition();
 
   const source = tab === 'dishes' ? data.dishes : data.batches;
@@ -81,13 +89,13 @@ export function LibraryView({
           </p>
         </div>
         <div className="page-actions">
-          <Link href="/recipes/plate" className="btn btn-primary">
+          <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
             <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor"
               strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
               <path d="M6 2v8M2 6h8" />
             </svg>
             New dish
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -157,7 +165,13 @@ export function LibraryView({
       ) : null}
 
       {outcome.rows.length === 0 ? (
-        <Empty query={query} filter={filter} target={target} onClear={() => { setQuery(''); setFilter('all'); }} />
+        <Empty
+          query={query}
+          filter={filter}
+          target={target}
+          onClear={() => { setQuery(''); setFilter('all'); }}
+          onCreate={() => setCreating(true)}
+        />
       ) : (
         <div className="library">
           {groups.map((group) => {
@@ -210,6 +224,19 @@ export function LibraryView({
           })}
         </div>
       )}
+
+      <NewDishSheet
+        open={creating}
+        onClose={() => setCreating(false)}
+        busy={pending}
+        onCreate={(dish) =>
+          start(async () => {
+            const ack = await onCreate(dish);
+            setCreating(false);
+            setToast(ack);
+          })
+        }
+      />
 
       <Toast toast={toast} onUndo={() => setToast(null)} onDismiss={() => setToast(null)} />
     </>
@@ -300,11 +327,13 @@ function Empty({
   filter,
   target,
   onClear,
+  onCreate,
 }: {
   query: string;
   filter: LibraryFilter;
   target: number;
   onClear: () => void;
+  onCreate: () => void;
 }) {
   if (query !== '') {
     return (
@@ -315,7 +344,7 @@ function Empty({
           spelling, or start it as a new dish and it will be here next time.
         </p>
         <div className="empty-actions">
-          <Link href="/recipes/plate" className="btn btn-primary">Create “{query}”</Link>
+          <button type="button" className="btn btn-primary" onClick={onCreate}>Create “{query}”</button>
           <button type="button" className="btn" onClick={onClear}>Clear the search</button>
         </div>
       </div>

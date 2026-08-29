@@ -72,3 +72,43 @@ export async function archiveRecipe(id: string, archived: boolean): Promise<Ack>
     undoable: true,
   };
 }
+
+/**
+ * Create a dish from the library.
+ *
+ * It opens empty, with a dash where the cost will be and the arithmetic named
+ * but unfilled. Portions is asked now because it is the divisor under every
+ * figure that follows (A16).
+ */
+export async function createDish(input: {
+  name: string;
+  category: string;
+  portions: number;
+}): Promise<Ack & { readonly id: string | null }> {
+  const name = input.name.trim();
+  if (name === '') return { message: 'A dish needs a name.', undoable: false, id: null };
+
+  const id = `dish-${Date.now().toString(36)}`;
+
+  putRecipe({
+    id,
+    name,
+    family: 'count',
+    outputQty: input.portions,
+    outputUnit: 'pc',
+    portions: input.portions,
+    components: [],
+  });
+  putMeta(id, {
+    category: input.category,
+    station: null,
+    portionSize: null,
+    sellingPrice: null,
+    note: 'Nothing on the plate yet.',
+    onMenu: false,
+    updatedAt: new Date().toISOString().slice(0, 10),
+  });
+  refresh();
+
+  return { message: `${name} created. Add what goes on it.`, undoable: false, id };
+}

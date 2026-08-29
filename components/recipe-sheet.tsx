@@ -16,6 +16,7 @@ import {
 } from '@/app/recipes/[id]/actions';
 import { ingredientComponent } from '@/core/recipe';
 import { ingredientFromPack } from '@/core/ingredient';
+import { addIngredient } from '@/app/ingredients/actions';
 import { suggestPrice } from '@/lib/costing';
 
 import { ComponentCards } from './component-cards';
@@ -525,6 +526,32 @@ export function RecipeSheet({
         excludeRecipeId={recipe.id}
         usedInCount={usedInCount}
         onPick={onPick}
+        creating={saving}
+        onCreateIngredient={(input) => {
+          void commit(async () => {
+            const ack = await addIngredient(input);
+            if (ack.id !== null) {
+              // Straight onto the line that was being written, which is the
+              // whole point of not redirecting to the ingredients screen.
+              const made = ingredientFromPack({
+                name: input.name,
+                family: familyOf(input.packUnit),
+                packQty: input.packQty,
+                packUnit: input.packUnit,
+                packPrice: input.packPrice,
+              });
+              edit({
+                ...recipe,
+                components: [
+                  ...recipe.components,
+                  ingredientComponent({ ...made, id: ack.id }, 1, input.packUnit),
+                ],
+              });
+            }
+            setSheet(null);
+            return { message: ack.message, undoable: ack.undoable };
+          });
+        }}
       />
 
       <ChargesSheet

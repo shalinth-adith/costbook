@@ -13,7 +13,7 @@ import {
   pantry,
 } from '@/lib/store';
 
-import { archiveRecipe, duplicateRecipe } from './actions';
+import { archiveRecipe, createDish, duplicateRecipe } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +49,7 @@ export default function RecipesPage() {
           target={model.foodCostTarget}
           onDuplicate={duplicateRecipe}
           onArchive={archiveRecipe}
+          onCreate={createDish}
         />
       </CurrencyProvider>
     </AppShell>

@@ -92,8 +92,20 @@ export function putRecipe(recipe: Recipe): void {
 export function putMeta(id: string, patch: Partial<DishMeta>): void {
   const s = state();
   const current = s.meta[id];
-  if (current === undefined) return;
-  s.meta[id] = { ...current, ...patch };
+
+  // A brand new dish has no entry to patch, so this seeds one rather than
+  // silently dropping the write.
+  s.meta[id] = current === undefined
+    ? {
+        category: patch.category ?? 'Mains',
+        station: patch.station ?? null,
+        portionSize: patch.portionSize ?? null,
+        sellingPrice: patch.sellingPrice ?? null,
+        note: patch.note ?? '',
+        onMenu: patch.onMenu ?? false,
+        ...patch,
+      }
+    : { ...current, ...patch };
 }
 
 /**

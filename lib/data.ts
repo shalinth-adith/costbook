@@ -18,20 +18,30 @@ import {
 } from '@/core/recipe';
 import type { UnitFamily } from '@/core/units';
 
+interface PackExtras {
+  readonly supplier?: string;
+  /** ISO date the rate was set. Absent means nobody has ever priced it. */
+  readonly pricedAt?: string;
+  /** A feed that owns this rate, which the operator may override. */
+  readonly lockedBy?: string;
+}
+
 function pack(
   name: string,
   packQty: number,
   packUnit: string,
   packPrice: number | null,
   yieldPercent?: number,
+  extras: PackExtras = {},
 ): Ingredient {
   const family: UnitFamily =
     packUnit === 'l' || packUnit === 'ml' ? 'volume' : packUnit === 'pcs' || packUnit === 'pc' ? 'count' : 'mass';
-  return ingredientFromPack(
+  const base = ingredientFromPack(
     yieldPercent === undefined
       ? { name, family, packQty, packUnit, packPrice }
       : { name, family, packQty, packUnit, packPrice, yieldPercent },
   );
+  return { ...base, ...extras };
 }
 
 /**
@@ -42,16 +52,16 @@ function pack(
  * silently. A component line now points here.
  */
 const SHELF: readonly Ingredient[] = [
-  pack('Onion, big', 50, 'kg', 2000, 88),
+  pack('Onion, big', 50, 'kg', 2000, 88, { supplier: 'Sri Balaji Traders', pricedAt: '2026-08-24' }),
   pack('Tomato', 1, 'kg', 30, 95),
   pack('Coriander leaves', 1, 'kg', 280, 70),
   pack('Mint leaves', 1, 'kg', 240, 70),
   pack('Curry leaves', 1, 'kg', 335, 100),
   pack('Green chilli', 1, 'kg', 180, 95),
   pack('Coconut, grated', 1, 'kg', 190, 62),
-  pack('Cashew, whole', 1, 'kg', 980, 100),
-  pack('Ghee, Aavin', 1, 'kg', 620, 100),
-  pack('Refined oil', 15, 'l', 2220, 100),
+  pack('Cashew, whole', 1, 'kg', 980, 100, { supplier: 'Sri Balaji Traders', pricedAt: '2026-04-02' }),
+  pack('Ghee, Aavin', 1, 'kg', 620, 100, { supplier: 'Aavin', pricedAt: '2026-08-26' }),
+  pack('Refined oil', 15, 'l', 2220, 100, { supplier: 'Sri Balaji Traders', pricedAt: '2026-08-20' }),
   pack('Curd, set', 1, 'kg', 72, 100),
   pack('Ginger garlic paste', 1, 'kg', 220, 100),
   pack('Fried onion, birista', 1, 'kg', 410, 100),
@@ -63,17 +73,17 @@ const SHELF: readonly Ingredient[] = [
   pack('Maida', 1, 'kg', 48, 100),
   pack('Chicken, dressed', 1, 'kg', 220, 100),
   pack('Mutton, curry cut', 1, 'kg', 780, 100),
-  pack('Seeraga samba rice', 25, 'kg', 3240, 100),
+  pack('Seeraga samba rice', 25, 'kg', 3240, 100, { supplier: 'Sri Balaji Traders', pricedAt: '2026-08-18' }),
   pack('Idly rice', 1, 'kg', 52, 100),
   pack('Dosa rice', 1, 'kg', 60, 100),
   pack('Urad dal', 1, 'kg', 120, 100),
   pack('Fenugreek', 1, 'kg', 180, 100),
   pack('Coffee powder', 1, 'kg', 480, 100),
-  pack('Milk, toned', 1, 'l', 60, 100),
+  pack('Milk, toned', 1, 'l', 60, 100, { supplier: 'Aavin', pricedAt: '2026-08-28', lockedBy: 'Aavin' }),
   pack('Sugar', 50, 'kg', 2290, 100),
-  pack('Rose syrup', 750, 'ml', 180, 100),
+  pack('Rose syrup', 750, 'ml', 180, 100, { supplier: 'Madurai', pricedAt: '2026-04-14' }),
   // No rate on file. Any dish using it reports a floor until one is entered.
-  pack('Milagai podi, house', 1, 'kg', 445, 100),
+  pack('Milagai podi, house', 1, 'kg', 445, 100, { supplier: 'House made', pricedAt: '2026-08-27' }),
   // No rate on file. Jigarthanda reports a floor until one is entered.
   pack('Nannari syrup', 1, 'l', null),
 ];

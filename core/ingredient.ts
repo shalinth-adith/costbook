@@ -50,6 +50,25 @@ export interface Ingredient {
    * never applied silently.
    */
   readonly yieldIsAssumed: boolean;
+  /** Who it is bought from. Optional, and found on the row rather than asked for. */
+  readonly supplier?: string;
+  /** When the rate was last set, as an ISO date. A rate nobody has touched in
+   *  months is not wrong on the screen, it is wrong in the world. */
+  readonly pricedAt?: string;
+  /**
+   * A feed that owns this rate. The value recedes to secondary ink because the
+   * operator did not set it; the sentence saying who owns it does not recede
+   * at all, because that is the part they need to read (A20).
+   */
+  readonly lockedBy?: string;
+}
+
+/** What a rate was, and when it changed. */
+export interface RateChange {
+  readonly on: string;
+  readonly purchasePrice: number | null;
+  readonly purchaseQty: number;
+  readonly note?: string;
 }
 
 /** A value the operator did not enter, for disclosure at the point of effect. */
@@ -244,12 +263,38 @@ export function withRate(
   ingredient: Ingredient,
   packPrice: number | null,
   packQty?: number,
+  on?: string,
 ): Ingredient {
   return {
     ...ingredient,
     purchasePrice: packPrice,
     purchaseQty: packQty ?? ingredient.purchaseQty,
+    ...(on === undefined ? {} : { pricedAt: on }),
   };
+}
+
+/** How long ago a rate was set, in whole days. Null when it has never been. */
+export function ageInDays(ingredient: Ingredient, today: string): number | null {
+  if (ingredient.pricedAt === undefined) return null;
+  const then = Date.parse(ingredient.pricedAt);
+  const now = Date.parse(today);
+  if (!Number.isFinite(then) || !Number.isFinite(now)) return null;
+  return Math.floor((now - then) / 86_400_000);
+}
+
+/**
+ * A rate old enough to be making dishes wrong.
+ *
+ * Ninety days is a season. Rates move faster than that in every market this
+ * ships to, so a figure older than one is not wrong on the screen — it is
+ * wrong in the world, and it is quietly mispricing everything that uses it.
+ */
+export const STALE_AFTER_DAYS = 90;
+
+export function isStale(ingredient: Ingredient, today: string): boolean {
+  if (ingredient.purchasePrice === null) return false;
+  const age = ageInDays(ingredient, today);
+  return age !== null && age >= STALE_AFTER_DAYS;
 }
 
 /** The same ingredient with a yield the operator has now stated. */

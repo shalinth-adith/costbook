@@ -1188,3 +1188,125 @@
   .lib-actions { grid-column: 1 / -1; justify-content: flex-start; }
   .btn-row { height: var(--row-default); padding-inline: 14px; font-size: 13px; }
 }
+
+/* ── ingredients ───────────────────────────────────────────────────── */
+
+.ing-wrap { margin-inline: var(--sp-6); margin-block-end: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-3); }
+
+/* The entry row is the screen. Inline and persistent, so the fortieth
+   ingredient costs no more than the first. */
+.entry {
+  background: var(--surface-card); border: 1px solid var(--border-control);
+  border-radius: var(--radius-field); padding: var(--sp-4);
+  display: flex; flex-direction: column; gap: var(--sp-3);
+}
+.entry.is-compact { border: 0; padding: 0; }
+.entry-head { display: flex; flex-direction: column; gap: 3px; }
+.entry-hint { font-size: 12px; color: var(--text-tertiary); text-wrap: pretty; }
+.entry-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) 110px 150px 190px auto;
+  gap: var(--sp-3); align-items: end;
+}
+.entry-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.entry-field input {
+  height: var(--row-default); padding-inline: var(--sp-3);
+  border: 1px solid var(--border-control); border-radius: var(--radius-field);
+  background: var(--surface-card); color: var(--text-primary); font: inherit; font-size: 14px;
+}
+.entry-money { height: var(--row-default); }
+.entry-money input { font-size: 14px; }
+.entry-note { font-size: 12px; color: var(--text-tertiary); margin: 0; text-wrap: pretty; }
+.entry-derived { font-size: 13px; color: var(--text-primary); margin: 0; }
+.entry-derived-said { color: var(--text-secondary); }
+
+/* Type-ahead here is duplicate prevention, not convenience. */
+.entry-near {
+  background: var(--near-tint); border: 1px solid var(--near-edge);
+  border-radius: 4px; padding: var(--sp-2) var(--sp-3);
+}
+.entry-near-said { font-size: 12.5px; color: var(--near-ink-strong); font-weight: 500; }
+.entry-near-list { list-style: none; margin: 6px 0 0; padding: 0; }
+.entry-near-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--sp-3); align-items: baseline; width: 100%;
+  padding: 5px 0; background: none; border: 0; font: inherit; cursor: pointer;
+  text-align: start; color: var(--text-primary);
+}
+.entry-near-row:hover .entry-near-name { text-decoration: underline; text-underline-offset: 2px; }
+.entry-near-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.entry-near-rate, .entry-near-used { font-size: 12px; color: var(--near-ink-strong); white-space: nowrap; }
+
+.bulk-bar {
+  display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
+  background: var(--surface-inverse); color: var(--text-on-inverse);
+  border-radius: var(--radius-field); padding: var(--sp-3) var(--sp-4);
+}
+.bulk-said { font-size: 13px; flex: 1; min-width: 240px; }
+.bulk-count { font-size: 12.5px; opacity: 0.85; }
+.bulk-bar .btn { background: transparent; color: var(--text-on-inverse); border-color: #4A5262; }
+.bulk-bar .btn:hover { background: #2C3444; }
+.bulk-bar .btn-primary { background: var(--surface-card); color: var(--text-primary); border-color: var(--surface-card); }
+.bulk-input {
+  width: 100%; max-width: 110px; height: 34px; padding-inline: 8px; text-align: end;
+  border: 1px solid var(--border-control); border-radius: var(--radius-chip);
+  background: var(--surface-card); font: inherit; font-size: 13px;
+  font-family: var(--font-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums;
+}
+
+.ing-table { overflow: hidden; }
+.ing-head, .ing-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 148px 140px 104px 116px 132px 44px;
+  align-items: center; gap: 10px; padding-inline: 14px;
+}
+.ing-head {
+  height: 34px; background: var(--surface-sunken);
+  border-block-end: 1px solid var(--border-control);
+  font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-secondary); font-weight: 600;
+}
+.ing-head .end, .ing-row .end { text-align: end; }
+.ing-block { border-block-end: 1px solid var(--border-row); }
+.ing-block:last-child { border-block-end: 0; }
+.ing-block.is-missing { background: var(--over-row); }
+.ing-row { min-height: var(--row-default); }
+.ing-row:hover { background: var(--surface-sunken); }
+.ing-name { display: flex; flex-direction: column; min-width: 0; }
+.ing-name-btn {
+  background: none; border: 0; padding: 0; font: inherit; font-size: 13.5px; font-weight: 500;
+  color: var(--text-primary); text-align: start; cursor: pointer;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ing-name-btn:hover { text-decoration: underline; text-underline-offset: 2px; }
+.ing-pack { font-size: 11px; color: var(--text-tertiary); }
+/* Any rate is clickable, to change that one. */
+.ing-rate {
+  background: none; border: 0; padding: 0; font: inherit; font-size: 13.5px;
+  font-family: var(--font-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums;
+  color: var(--text-primary); cursor: pointer;
+}
+.ing-rate:hover { text-decoration: underline; text-underline-offset: 3px; }
+.ing-unit { color: var(--text-tertiary); font-size: 12px; }
+.ing-absent { color: var(--text-tertiary); }
+.ing-dim { font-size: 13px; color: var(--text-secondary); }
+.ing-when { font-size: 12px; }
+.ing-status, .ing-more { display: flex; justify-content: flex-end; }
+
+.ing-detail {
+  background: var(--surface-sunken); padding: var(--sp-4) 14px;
+  border-block-start: 1px solid var(--border-hairline);
+  animation: reveal var(--dur-reveal) var(--ease-enter);
+}
+.ing-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--sp-5); }
+.ing-detail-copy { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin: 8px 0 0; text-wrap: pretty; }
+.ing-detail-copy strong { color: var(--text-primary); }
+.ing-rate-set { display: flex; gap: var(--sp-2); align-items: center; margin-block-start: 6px; flex-wrap: wrap; }
+.ing-rate-set .money-field { flex: 1; min-width: 170px; height: var(--row-default); }
+.ing-rate-set .money-field input { font-size: 15px; }
+
+@media (max-width: 1180px) {
+  .entry-row { grid-template-columns: minmax(0, 1fr) 1fr; }
+  .ing-head { display: none; }
+  .ing-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; padding-block: var(--sp-3); }
+  .ing-row > span:nth-child(3), .ing-row > span:nth-child(4), .ing-row > span:nth-child(5) { display: none; }
+}

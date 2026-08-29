@@ -22,6 +22,8 @@ export function AddSheet({
   excludeRecipeId,
   usedInCount,
   onPick,
+  onCreateIngredient,
+  creating,
 }: {
   open: boolean;
   onClose: () => void;
@@ -31,6 +33,9 @@ export function AddSheet({
   excludeRecipeId: string;
   usedInCount: (name: string) => number;
   onPick: (choice: PickerChoice) => void;
+  /** Creating one here keeps the recipe open behind the drawer (A20). */
+  onCreateIngredient: (i: { name: string; packQty: number; packUnit: string; packPrice: number | null }) => void;
+  creating: boolean;
 }) {
   return (
     <Sheet title="Add a component" open={open} onClose={onClose}>
@@ -42,6 +47,8 @@ export function AddSheet({
         usedInCount={usedInCount}
         onPick={(choice) => { onPick(choice); onClose(); }}
         alwaysOpen
+        onCreateIngredient={onCreateIngredient}
+        creating={creating}
       />
       <p className="sheet-foot-note">
         A line marked <strong>SUB</strong> is another recipe of yours, with its own yield. Adding
