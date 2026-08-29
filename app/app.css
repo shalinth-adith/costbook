@@ -1389,3 +1389,28 @@
   .map-grid { grid-template-columns: minmax(0, 1fr); }
   .sheet-preview { position: static; }
 }
+
+/* ── check what arrives ────────────────────────────────────────────── */
+
+/* Every figure that would land, before it lands. A wrong rate is harder to
+   notice later than a missing one, so it is read here or not at all. */
+.check-head, .check-row {
+  display: grid; grid-template-columns: minmax(0, 1.4fr) 170px 190px minmax(0, 1.2fr);
+  gap: var(--sp-3); align-items: baseline; padding: 8px 14px;
+}
+.check-head {
+  background: var(--surface-sunken); border-block: 1px solid var(--border-control);
+  font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-secondary); font-weight: 600;
+}
+.check-head .end, .check-row .end { text-align: end; }
+.check-scroll { max-height: 320px; overflow-y: auto; }
+.check-row { border-block-end: 1px solid var(--border-row); font-size: 13px; }
+.check-row.is-suspect { background: var(--over-row); }
+.check-row.is-recipe { background: var(--surface-card); }
+.check-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.check-source { font-size: 12px; color: var(--text-secondary); }
+.check-rowno { color: var(--text-tertiary); }
+.check-rate { font-size: 13px; }
+.check-what { font-size: 12px; color: var(--text-secondary); }
+.check-recipes-head { border-block-start: 1px solid var(--border-hairline); }

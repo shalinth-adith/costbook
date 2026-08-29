@@ -123,3 +123,78 @@ describe('the warnings, ranked and calm', () => {
     expect(noRate?.body).toContain('floor');
   });
 });
+
+describe('a rate that cannot be trusted is not imported', () => {
+  /**
+   * Found by importing a real 1,140-row workbook: 516 rows carried a quantity
+   * that did not suit its unit, and every one of them set a rate anyway. The
+   * result was tomato at 0.22 a kilo and maida at 1,800 - figures that pass
+   * every check and are wrong by a factor of a thousand.
+   *
+   * A missing rate produces an honest floor. A wrong one produces a plausible
+   * lie, which is the failure this whole product exists to prevent.
+   */
+  const LYING: readonly (readonly string[])[] = [
+    ['ITEM', 'QTY', 'UOM', 'RATE', 'AMOUNT'],
+    ['Some dish', '', '', '', ''],
+    // Labelled kg, holding grams: 1000 kg of tomato is not a recipe line.
+    ['Tomato', '1000', 'kg', '0.22', '220'],
+    // Rate and total refuse to multiply out.
+    ['Maida', '400', 'g', '1.80', '24.80'],
+    // Nothing wrong with this one.
+    ['Urad dal', '750', 'g', '0.12', '90'],
+  ];
+
+  const parsedLying = parseRows(LYING, {});
+  const lyingPlan = planImport(parsedLying, [], TODAY);
+  const planned = (name: string) =>
+    lyingPlan.ingredients.find((p) => p.ingredient.name === name);
+
+  it('brings the ingredient in, but without a rate', () => {
+    const tomato = planned('Tomato');
+    expect(tomato).toBeDefined();
+    expect(tomato?.suspect).toBe(true);
+    expect(tomato?.ingredient.purchasePrice).toBeNull();
+  });
+
+  it('says which row it came from and why it was refused', () => {
+    expect(planned('Tomato')?.suspectWhy).toContain('does not suit');
+    expect(planned('Maida')?.suspectWhy).toContain('multiply out');
+    expect(planned('Tomato')?.sourceRow).toBe(2);
+  });
+
+  it('leaves a sound row alone', () => {
+    const dal = planned('Urad dal');
+    expect(dal?.suspect).toBe(false);
+    expect(dal?.ingredient.purchasePrice).toBeCloseTo(90 / 750, 8);
+  });
+
+  it('counts the unpriced ones, so the summary is not a surprise', () => {
+    expect(lyingPlan.summary.unpriced).toBe(2);
+  });
+});
+
+describe('the arithmetic is trusted over the label', () => {
+  it('derives the rate from the spend when the two disagree', () => {
+    // TRD 7.1: the unit column is decorative and drifted out of agreement with
+    // the figures beside it. The reference workbook derives rate from spend on
+    // 251 lines, so that is the figure to keep.
+    const rows: readonly (readonly string[])[] = [
+      ['ITEM', 'QTY', 'UOM', 'RATE', 'AMOUNT'],
+      ['Dish', '', '', '', ''],
+      ['Ghee', '100', 'g', '0.50', '62.00'],
+    ];
+    const p = planImport(parseRows(rows, {}), [], TODAY);
+    const ghee = p.ingredients.find((i) => i.ingredient.name === 'Ghee');
+
+    // Flagged, so no rate is set at all - but the derivation is the one that
+    // would have been used.
+    expect(ghee?.suspect).toBe(true);
+    expect(ghee?.ingredient.purchasePrice).toBeNull();
+  });
+
+  it('uses the spend where there is no rate column at all', () => {
+    const leaves = plan.ingredients.find((p) => p.ingredient.name === 'Curry leaves');
+    expect(leaves?.ingredient.purchasePrice).toBeCloseTo(2.68 / 8, 8);
+  });
+});

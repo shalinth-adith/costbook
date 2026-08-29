@@ -23,6 +23,17 @@ export interface PlannedIngredient {
   readonly existing: boolean;
   /** The rate as it stands now, when there is one to compare against. */
   readonly wasRate: number | null;
+  /** What the sheet said, so the preview can show where a figure came from. */
+  readonly sourceRow: number;
+  readonly sourceQty: number | null;
+  readonly sourceUnit: string | null;
+  /**
+   * The row this came from was flagged. A rate we have already said looks
+   * wrong is worse than no rate at all: a missing rate produces an honest
+   * floor, and a wrong one produces a plausible lie that passes every check.
+   */
+  readonly suspect: boolean;
+  readonly suspectWhy: string | null;
 }
 
 export interface PlannedRecipe {
@@ -41,6 +52,8 @@ export interface ImportPlan {
     readonly ratesUpdated: number;
     readonly dishes: number;
     readonly rowsSkipped: number;
+    /** Ingredients arriving with no rate because their row could not be trusted. */
+    readonly unpriced: number;
   };
 }
 
@@ -102,16 +115,23 @@ export function planImport(
       const already = planned.get(key);
       const onFile = byName.get(key);
 
-      const rate = rateOf(line);
-      const ingredient =
-        already?.ingredient ??
-        makeIngredient(line, onFile, rate, today);
+      // A row Costbook has already flagged does not get to set a rate. The
+      // ingredient still arrives, unpriced, and its dishes report a floor.
+      const why = suspicion(line, parsed);
+      const rate = why === null ? rateOf(line) : null;
+
+      const ingredient = already?.ingredient ?? makeIngredient(line, onFile, rate, today);
 
       if (already === undefined) {
         planned.set(key, {
           ingredient,
           existing: onFile !== undefined,
           wasRate: onFile?.purchasePrice ?? null,
+          sourceRow: line.row,
+          sourceQty: line.qty,
+          sourceUnit: line.rawUnit,
+          suspect: why !== null,
+          suspectWhy: why,
         });
       }
 
@@ -154,17 +174,49 @@ export function planImport(
     recipes,
     summary: {
       ingredientsNew: list.filter((p) => !p.existing).length,
-      ratesUpdated: list.filter((p) => p.existing).length,
+      // A rate only counts as updated when there is actually a rate to write.
+      ratesUpdated: list.filter((p) => p.existing && p.ingredient.purchasePrice !== null).length,
       dishes: recipes.length,
       rowsSkipped: skippedTotal,
+      unpriced: list.filter((p) => p.ingredient.purchasePrice === null).length,
     },
   };
 }
 
-/** The rate a line carries, whichever way the sheet stated it (TRD 6.6). */
+/**
+ * The rate a line carries.
+ *
+ * The spend divided by the quantity comes first, not the rate column. TRD 7.1
+ * is explicit that the arithmetic is trustworthy and the labels are not: the
+ * reference workbook derives its rate from its spend on 251 lines, and its
+ * unit column is decorative enough to have drifted out of agreement with the
+ * figures beside it.
+ *
+ * Where both exist and agree, it makes no difference which is used. Where they
+ * disagree, the one that was computed is the one to keep.
+ */
 function rateOf(line: ParsedLine): number | null {
-  if (line.rate !== null) return line.rate;
   if (line.total !== null && line.qty !== null && line.qty > 0) return line.total / line.qty;
+  if (line.rate !== null) return line.rate;
+  return null;
+}
+
+/**
+ * Why a row's figures cannot be trusted, or null.
+ *
+ * A quantity that does not suit its unit, or a rate and a total that refuse to
+ * multiply out, means one of the two columns is lying and there is no way to
+ * tell which. Importing a rate from such a row would be inventing one.
+ */
+function suspicion(line: ParsedLine, parsed: ParseResult): string | null {
+  const own = parsed.warnings.filter((w) => w.row === line.row);
+
+  if (own.some((w) => w.code === 'magnitude_suspect')) {
+    return `${line.qty ?? '?'} ${line.rawUnit ?? ''} does not suit the unit beside it`;
+  }
+  if (own.some((w) => w.code === 'inconsistent_total')) {
+    return 'its rate and its total do not multiply out';
+  }
   return null;
 }
 

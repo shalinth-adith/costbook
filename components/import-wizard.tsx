@@ -11,7 +11,7 @@ import { qty } from '@/lib/format';
 
 import { useMoney } from './currency-provider';
 
-type Step = 'upload' | 'map' | 'warnings' | 'done';
+type Step = 'upload' | 'map' | 'warnings' | 'check' | 'done';
 
 const FIELDS: readonly { value: Field | 'ignore'; label: string }[] = [
   { value: 'name', label: 'Ingredient name' },
@@ -27,7 +27,8 @@ const STEPS: readonly { key: Step; label: string }[] = [
   { key: 'upload', label: 'Upload' },
   { key: 'map', label: 'Map columns' },
   { key: 'warnings', label: 'Review warnings' },
-  { key: 'done', label: 'Commit' },
+  { key: 'check', label: 'Check what arrives' },
+  { key: 'done', label: 'Done' },
 ];
 
 /**
@@ -306,8 +307,103 @@ export function ImportWizard({
 
             <div className="wizard-foot">
               <button type="button" className="btn" onClick={() => setStep('map')}>Back to mapping</button>
+              <button type="button" className="btn btn-primary" onClick={() => setStep('check')}>
+                See what would arrive
+              </button>
+            </div>
+          </section>
+        ) : null}
+
+        {step === 'check' && plan !== null ? (
+          <section className="card">
+            <div className="card-head">
+              <h2 className="card-title">Check what arrives</h2>
+            </div>
+
+            <p className="sheet-copy map-copy">
+              Nothing has been written yet. This is every figure that would land, taken from your
+              sheet — read the rates before you agree to them, because a wrong rate is harder to
+              notice later than a missing one.
+              {plan.summary.unpriced > 0 ? (
+                <>
+                  {' '}
+                  <strong>
+                    {plan.summary.unpriced} arrive with no rate
+                  </strong>{' '}
+                  because the rows they came from could not be trusted. They are listed first.
+                </>
+              ) : null}
+            </p>
+
+            <div className="check-head">
+              <span>Ingredient</span>
+              <span>From your sheet</span>
+              <span className="end">Rate that would be set</span>
+              <span>What happens</span>
+            </div>
+
+            <div className="check-scroll">
+              {[...plan.ingredients]
+                .sort((a, b) => Number(b.suspect) - Number(a.suspect))
+                .map((p) => (
+                  <div
+                    key={p.ingredient.id}
+                    className={`check-row${p.suspect ? ' is-suspect' : ''}`}
+                  >
+                    <span className="check-name">{p.ingredient.name}</span>
+                    <span className="check-source figure">
+                      {p.sourceQty === null ? '—' : `${qty(p.sourceQty)} ${p.sourceUnit ?? ''}`}
+                      <span className="check-rowno"> · row {p.sourceRow + 1}</span>
+                    </span>
+                    <span className="figure end check-rate">
+                      {p.ingredient.purchasePrice === null
+                        ? 'no rate'
+                        : `${m.withSymbol(rateFor(p))} / ${p.ingredient.purchaseUnit}`}
+                    </span>
+                    <span className="check-what">
+                      {p.suspect ? (
+                        <span className="warn-ink">Unpriced — {p.suspectWhy}</span>
+                      ) : p.existing ? (
+                        <>
+                          Updates the one you have
+                          {p.wasRate === null ? '' : ''}
+                        </>
+                      ) : (
+                        'New ingredient'
+                      )}
+                    </span>
+                  </div>
+                ))}
+            </div>
+
+            <div className="card-head check-recipes-head">
+              <h2 className="card-title">
+                Dishes it would create <span className="figure card-count">{plan.recipes.length}</span>
+              </h2>
+            </div>
+            <div className="check-scroll">
+              {plan.recipes.map((r) => (
+                <div key={r.recipe.id} className="check-row is-recipe">
+                  <span className="check-name">{r.recipe.name}</span>
+                  <span className="check-source figure">
+                    {r.recipe.components.length} lines
+                  </span>
+                  <span className="figure end check-rate" />
+                  <span className="check-what">
+                    {r.skipped === 0 ? 'Every line read' : `${r.skipped} rows left out`}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="wizard-foot">
+              <button type="button" className="btn" onClick={() => setStep('warnings')}>
+                Back to warnings
+              </button>
               <button type="button" className="btn btn-primary" disabled={busy} onClick={commit}>
-                {busy ? 'Committing…' : 'Commit the import'}
+                {busy
+                  ? 'Committing…'
+                  : `Yes, bring in ${plan.ingredients.length} ingredients and ${plan.recipes.length} dishes`}
               </button>
             </div>
           </section>
@@ -324,12 +420,25 @@ export function ImportWizard({
               <button type="button" className="btn" onClick={() => router.push('/ingredients')}>
                 See your ingredients
               </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => { setStep('upload'); setRows([]); setFileName(''); setResult(null); }}
+              >
+                Import another sheet
+              </button>
             </div>
           </section>
         ) : null}
       </div>
     </>
   );
+}
+
+/** What one unit would cost, read back in the unit the sheet used. */
+function rateFor(p: { ingredient: { purchasePrice: number | null; purchaseQty: number } }): number | null {
+  if (p.ingredient.purchasePrice === null) return null;
+  return p.ingredient.purchasePrice;
 }
 
 function Arrival({ label, value }: { label: string; value: number }) {

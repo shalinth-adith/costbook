@@ -15,7 +15,7 @@
  * (TRD 7.1).
  */
 
-import { isKnownUnit, normaliseUnit, unitFamily } from './units';
+import { isKnownUnit, normaliseUnit, toBase, unitFamily } from './units';
 
 export type Field = 'name' | 'qty' | 'unit' | 'rate' | 'total' | 'yield';
 
@@ -211,8 +211,10 @@ function magnitudeWarning(
   const range = PLAUSIBLE[family];
   if (range === undefined) return null;
 
-  // qty here is in the sheet's own unit, converted to base for the check.
-  const inBase = family === 'mass' || family === 'volume' ? qty : qty;
+  // The quantity arrives in the sheet's own unit, so it has to be converted
+  // before it can be judged. Without this, 1000 labelled kg reads as a
+  // plausible 1000 rather than as a literal tonne.
+  const inBase = toBase(qty, unit);
   if (inBase >= range.min && inBase <= range.max) return null;
 
   return {
