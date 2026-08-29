@@ -330,3 +330,83 @@ describe('reading one row back as a sentence', () => {
     expect(picked.length).toBeGreaterThan(1);
   });
 });
+
+describe('a sheet whose recipe name is a merged cell', () => {
+  /**
+   * The shape a real Kumbakonam sheet has: section and recipe merged down the
+   * page, so each name appears once and every row under it is blank. Seven
+   * ingredients make a coconut chutney and only the first one sits beside the
+   * name.
+   *
+   * Read literally, a blank grouping cell means "no recipe" and six of the
+   * seven lines are thrown away - which is how a 1,140-row workbook produced
+   * six dishes made of one ingredient each. A blank there means "the same one
+   * as above" (TRD 7).
+   */
+  const MERGED: readonly (readonly string[])[] = [
+    ['SECTION', 'RECIPE', 'INGREDIENT', 'QTY', 'UOM', 'UNIT RATE'],
+    ['Breakfast - Chutneys', '5.1 Coconut Chutney', 'Coconut', '1', 'kg', '190'],
+    ['', '', 'Roasted Gram Dal', '100', 'g', '0.16'],
+    ['', '', 'Ginger', '20', 'g', '0.24'],
+    ['', '', 'Green Chilli', '25', 'g', '0.18'],
+    ['', '', 'Garlic', '15', 'g', '0.30'],
+    ['', '', 'Salt', '10', 'g', '0.022'],
+    ['', '', 'Water', '200', 'ml', '0'],
+    ['', '5.2 Mint Chutney', 'Coriander leaves', '150', 'g', '0.28'],
+    ['', '', 'Mint leaves', '100', 'g', '0.24'],
+    ['', '', 'Green Chilli', '30', 'g', '0.18'],
+  ];
+
+  const p = parseRows(MERGED, {});
+
+  it('finds both recipes, not ten loose ingredients', () => {
+    expect(p.blocks.map((b) => b.name)).toEqual(['5.1 Coconut Chutney', '5.2 Mint Chutney']);
+  });
+
+  it('keeps every ingredient under the name it belongs to', () => {
+    const chutney = p.blocks.find((b) => b.name === '5.1 Coconut Chutney');
+    expect(chutney?.lines.map((l) => l.name)).toEqual([
+      'Coconut',
+      'Roasted Gram Dal',
+      'Ginger',
+      'Green Chilli',
+      'Garlic',
+      'Salt',
+      'Water',
+    ]);
+  });
+
+  it('starts the next recipe where the sheet names one', () => {
+    const mint = p.blocks.find((b) => b.name === '5.2 Mint Chutney');
+    expect(mint?.lines).toHaveLength(3);
+    // Nothing leaks backwards from the chutney above it.
+    expect(mint?.lines.map((l) => l.name)).not.toContain('Coconut');
+  });
+
+  it('carries the section down the same way', () => {
+    // Both recipes belong to Breakfast - Chutneys, which is written once.
+    expect(p.mapping.section).toBe(0);
+  });
+
+  it('makes a dish of each, with all of its lines', () => {
+    const planned = planImport(p, [], TODAY);
+    expect(planned.summary.dishes).toBe(2);
+
+    const chutney = planned.recipes.find((r) => r.recipe.name === '5.1 Coconut Chutney');
+    expect(chutney?.recipe.components).toHaveLength(7);
+  });
+
+  it('does not carry a name across a genuinely blank row', () => {
+    // A blank row ends the run, so the next value starts fresh rather than
+    // inheriting from far above it.
+    const withGap: readonly (readonly string[])[] = [
+      ['SECTION', 'RECIPE', 'INGREDIENT', 'QTY', 'UOM', 'UNIT RATE'],
+      ['Breakfast', 'Idly', 'Idly rice', '600', 'g', '0.052'],
+      ['', '', '', '', '', ''],
+      ['', '', 'Stray note', '1', 'g', '1'],
+    ];
+    const gapped = parseRows(withGap, {});
+    expect(gapped.blocks).toHaveLength(1);
+    expect(gapped.blocks[0]?.lines.map((l) => l.name)).toEqual(['Idly rice']);
+  });
+});

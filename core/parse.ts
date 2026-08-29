@@ -446,12 +446,33 @@ export function parseRows(
   if (recipeCol !== undefined) {
     const byRecipe = new Map<string, OpenBlock>();
 
+    /**
+     * A merged cell carries its value on the first row of the run and leaves
+     * the rest blank, and plenty of sheets do the same by hand without merging
+     * anything. Either way a blank in a grouping column does not mean "no
+     * recipe" — it means "the same one as above" (TRD 7).
+     *
+     * Without carrying it down, a chutney of seven ingredients arrives as one
+     * line of coconut and the other six are thrown away.
+     */
+    let carriedRecipe = '';
+
     for (let i = start; i < rows.length; i += 1) {
       const row = rows[i];
-      if (row === undefined || isBlank(row)) continue;
+      if (row === undefined) continue;
+
+      // A genuinely empty row ends the run, so the next value starts fresh
+      // rather than inheriting from far above it.
+      if (isBlank(row)) {
+        carriedRecipe = '';
+        continue;
+      }
       if (isTotalRow(row, nameCol)) continue;
 
-      const recipeName = text(row[recipeCol]);
+      const stated = text(row[recipeCol]);
+      if (stated !== '') carriedRecipe = stated;
+
+      const recipeName = carriedRecipe;
       if (recipeName === '') continue;
 
       const line = parseLine(row, i, mapping, knownRecipes);
