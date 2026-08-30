@@ -1460,7 +1460,7 @@
 }
 .wordmark:hover { color: var(--accent-ink); }
 .wordmark:focus-visible {
-  outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 3px;
+  outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 3px;
 }
 /* Inert during setup and import: drawn, no hover, not focusable. Per A1 it
    keeps full contrast — it is not disabled, it simply has nowhere to go. */
@@ -1469,3 +1469,227 @@
 /* Below 480 the bars carry the mark alone: the word stops reading at 11.5px,
    where the four bars fill in and close up. */
 @media (max-width: 479px) { .wordmark > span { display: none; } }
+
+/* ── A22 / A23 · the setup wizard ────────────────────────────────────────── */
+/* One screen, no page scroll. Only the step body scrolls, and only when a step
+   genuinely overflows — the tax explainer is the one that can. The footer must
+   stay reachable without hunting for it. */
+.wiz {
+  min-height: 100dvh; display: grid;
+  grid-template-rows: var(--sp-14) auto minmax(0, 1fr) auto;
+  background: var(--surface-page);
+}
+.wiz-top {
+  display: flex; align-items: center; gap: var(--sp-4);
+  padding-inline: var(--sp-6);
+  background: var(--surface-card);
+  border-block-end: 1px solid var(--border-hairline);
+}
+.wiz-kicker {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+}
+.wiz-count { margin-inline-start: auto; font-size: 12.5px; color: var(--text-secondary); }
+
+/* Four named ticks, not a bar filling across the page: names tell someone who
+   left and came back what is left, rather than how much. */
+.wiz-ticks {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-3); list-style: none; margin: 0;
+  padding: var(--sp-4) var(--sp-6) 0;
+  max-inline-size: 1100px; margin-inline: auto; inline-size: 100%;
+}
+.wiz-tick { display: grid; gap: 6px; }
+.wiz-tick-rule { block-size: 4px; border-radius: 2px; background: var(--border-hairline); }
+.wiz-tick[data-state='done'] .wiz-tick-rule { background: var(--on-ink); }
+.wiz-tick[data-state='current'] .wiz-tick-rule { background: var(--text-primary); }
+.wiz-tick-label { font-size: 11.5px; color: var(--text-tertiary); }
+.wiz-tick[data-state='current'] .wiz-tick-label { color: var(--text-primary); font-weight: 600; }
+
+.wiz-body { overflow-y: auto; padding: var(--sp-8) var(--sp-6); }
+.wiz-step { max-inline-size: 1100px; margin-inline: auto; }
+.wiz-eyebrow {
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em;
+  color: var(--text-tertiary); margin: 0 0 var(--sp-3);
+}
+.wiz-h {
+  font-size: 30px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2;
+  margin: 0 0 var(--sp-3); max-inline-size: 22ch; text-wrap: pretty;
+}
+.wiz-h2 { font-size: 19px; font-weight: 600; margin: var(--sp-8) 0 var(--sp-4); }
+.wiz-lede {
+  font-size: 14px; line-height: 1.6; color: var(--text-secondary);
+  margin: 0 0 var(--sp-6); max-inline-size: 62ch; text-wrap: pretty;
+}
+
+.wiz-field { display: grid; gap: 6px; margin-block-end: var(--sp-6); max-inline-size: 520px; }
+.wiz-label { font-size: 13.5px; font-weight: 600; }
+.wiz-help { font-size: 12.5px; color: var(--text-tertiary); }
+.wiz-input {
+  block-size: var(--row-default); padding-inline: var(--sp-3);
+  font: inherit; font-size: 14px; color: var(--text-primary);
+  background: var(--surface-card);
+  border: 1px solid var(--border-control); border-radius: var(--radius-field);
+}
+.wiz-input:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+.wiz-currencies { display: flex; flex-wrap: wrap; gap: 6px; }
+.wiz-cur {
+  block-size: 34px; padding-inline: var(--sp-3);
+  font: inherit; font-size: 12.5px; color: var(--text-secondary);
+  background: var(--surface-card);
+  border: 1px solid var(--border-control); border-radius: var(--radius-chip);
+  cursor: pointer;
+}
+.wiz-cur[data-on='true'] {
+  background: var(--surface-inverse); color: var(--text-on-inverse);
+  border-color: var(--surface-inverse);
+}
+.wiz-cur:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+.wiz-note {
+  margin: var(--sp-4) 0 0; padding: var(--sp-4);
+  font-size: 13px; line-height: 1.6; color: var(--text-secondary);
+  background: var(--surface-sunken); border-radius: var(--radius-panel);
+  max-inline-size: 66ch;
+}
+.wiz-note strong { color: var(--text-primary); }
+
+/* Two answers and an explainer. The third is quiet because it is not a third
+   answer — choosing for them would misprice a menu by the tax rate. */
+.wiz-choices { display: grid; gap: var(--sp-3); max-inline-size: 680px; }
+.wiz-choice {
+  display: grid; gap: 4px; text-align: start;
+  padding: var(--sp-4); font: inherit; cursor: pointer;
+  background: var(--surface-card);
+  border: 1px solid var(--border-control); border-radius: var(--radius-panel);
+}
+.wiz-choice:hover { border-color: var(--border-control-hover); }
+.wiz-choice[data-on='true'] { border-color: var(--text-primary); box-shadow: inset 0 0 0 1px var(--text-primary); }
+.wiz-choice:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.wiz-choice.is-quiet { background: none; border-style: dashed; }
+.wiz-choice-h { font-size: 14.5px; font-weight: 600; }
+.wiz-choice-p { font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
+
+.wiz-explain {
+  margin-block-start: var(--sp-4); padding: var(--sp-5);
+  background: var(--surface-card); border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-panel); max-inline-size: 760px;
+  font-size: 13px; line-height: 1.6; color: var(--text-secondary);
+}
+.wiz-explain h3 { font-size: 13px; font-weight: 600; color: var(--text-primary); margin: var(--sp-4) 0 4px; }
+.wiz-explain p { margin: 0 0 var(--sp-2); }
+.wiz-explain-pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-5); margin-block: var(--sp-3); }
+.wiz-explain-fig { font-size: 13px; color: var(--text-primary); }
+.wiz-explain-fig b { font-size: 18px; }
+.wiz-explain-punch { color: var(--text-primary); font-weight: 500; }
+
+.wiz-charges { display: grid; gap: 6px; max-inline-size: 780px; margin-block-end: var(--sp-3); }
+.wiz-charge-head, .wiz-charge {
+  display: grid; grid-template-columns: 1fr 110px 190px 80px; gap: var(--sp-3);
+  align-items: center;
+}
+.wiz-charge-head { font-size: 11.5px; color: var(--text-tertiary); padding-inline: 2px; }
+.wiz-amt { display: flex; align-items: center; gap: 6px; }
+.wiz-amt .wiz-input { inline-size: 70px; text-align: end; }
+.wiz-stack, .wiz-remove, .wiz-add {
+  block-size: 34px; padding-inline: var(--sp-3); font: inherit; font-size: 12.5px;
+  color: var(--text-secondary); background: var(--surface-card); cursor: pointer;
+  border: 1px solid var(--border-control); border-radius: var(--radius-field);
+}
+.wiz-stack:hover, .wiz-remove:hover, .wiz-add:hover { background: var(--surface-sunken); }
+.wiz-add { border-style: dashed; }
+
+.wiz-bill {
+  margin-block-start: var(--sp-5); padding: var(--sp-4);
+  background: var(--surface-card); border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-panel); max-inline-size: 420px;
+}
+.wiz-bill h3 { font-size: 12.5px; font-weight: 600; margin: 0 0 var(--sp-3); color: var(--text-secondary); }
+.wiz-bill-row {
+  display: flex; justify-content: space-between; gap: var(--sp-4);
+  padding-block: 6px; font-size: 13px;
+  border-block-end: 1px dotted var(--border-row);
+}
+.wiz-bill-row.is-total {
+  border-block-end: 0; border-block-start: 1px solid var(--border-strong);
+  margin-block-start: 4px; padding-block-start: var(--sp-2);
+  font-weight: 600; font-size: 14px;
+}
+
+.wiz-target { display: grid; gap: var(--sp-2); max-inline-size: 460px; }
+.wiz-target-fig { font-size: 44px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+.wiz-target-fig span { font-size: 24px; color: var(--text-tertiary); }
+.wiz-slider { inline-size: 100%; accent-color: var(--text-primary); }
+.wiz-slider:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 4px; }
+.wiz-slider-ends { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-tertiary); }
+/* The sentence is the control: the largest text on the step, because a target
+   is a percentage until it is a price. */
+.wiz-sentence {
+  margin: var(--sp-6) 0 0; font-size: 22px; line-height: 1.4;
+  letter-spacing: -0.01em; max-inline-size: 30ch; text-wrap: pretty;
+}
+.wiz-sentence-sub { font-size: 14px; color: var(--text-secondary); }
+
+.wiz-summary { margin: 0 0 var(--sp-6); max-inline-size: 520px; }
+.wiz-summary-row {
+  display: flex; justify-content: space-between; gap: var(--sp-4);
+  padding-block: var(--sp-3); border-block-end: 1px solid var(--border-row);
+  font-size: 13.5px;
+}
+.wiz-summary-row dt { color: var(--text-secondary); }
+.wiz-summary-row dd { margin: 0; font-weight: 600; }
+
+.wiz-doors { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); max-inline-size: 860px; }
+.wiz-door {
+  display: grid; gap: 6px; text-align: start; padding: var(--sp-5);
+  font: inherit; cursor: pointer;
+  background: var(--surface-card);
+  border: 1px solid var(--border-control); border-radius: var(--radius-panel);
+}
+.wiz-door:hover { border-color: var(--border-control-hover); }
+.wiz-door:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.wiz-door.is-primary {
+  background: var(--surface-inverse); border-color: var(--surface-inverse);
+  color: var(--text-on-inverse);
+}
+.wiz-door.is-primary .wiz-door-p { color: var(--text-on-inverse-secondary); }
+.wiz-door-h { font-size: 15.5px; font-weight: 600; }
+.wiz-door-p { font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
+
+.wiz-foot {
+  display: flex; align-items: center; gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-6);
+  background: var(--surface-card); border-block-start: 1px solid var(--border-hairline);
+}
+.wiz-foot > * { flex: 0 0 auto; }
+.wiz-foot-note { margin-inline: auto; font-size: 12.5px; color: var(--text-tertiary); }
+.wiz-back, .wiz-next {
+  block-size: var(--row-default); padding-inline: 18px; font: inherit; font-size: 13.5px;
+  border-radius: var(--radius-field); cursor: pointer;
+  border: 1px solid var(--border-control); background: var(--surface-card);
+  color: var(--text-primary);
+}
+.wiz-next {
+  background: var(--surface-inverse); color: var(--text-on-inverse);
+  border-color: var(--surface-inverse); font-weight: 600;
+}
+.wiz-back:disabled, .wiz-next:disabled {
+  background: var(--surface-sunken); color: var(--text-tertiary);
+  border-color: var(--border-control); cursor: not-allowed;
+}
+.wiz-back:focus-visible, .wiz-next:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+/* 768 · the three steps whose layout actually changes. Steps 1 and 3 are
+   already single-column and lose only their outer margin. */
+@media (max-width: 900px) {
+  .wiz-h { font-size: 24px; }
+  .wiz-explain-pair { grid-template-columns: 1fr; gap: var(--sp-3); }
+  .wiz-doors { grid-template-columns: 1fr; }
+  .wiz-charge-head { display: none; }
+  .wiz-charge { grid-template-columns: 1fr 90px; grid-template-areas: 'name amt' 'stack remove'; }
+  .wiz-body { padding-inline: var(--sp-4); }
+  .wiz-ticks { padding-inline: var(--sp-4); }
+  .wiz-top, .wiz-foot { padding-inline: var(--sp-4); }
+  .wiz-sentence { font-size: 19px; }
+}

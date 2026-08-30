@@ -36,7 +36,14 @@ interface State {
  * Held on `globalThis` so the dev server's module reloading does not quietly
  * discard someone's work between requests.
  */
-const KEY = Symbol.for('costbook.store');
+/*
+ * Versioned deliberately. `Symbol.for` is a process-wide registry, so a dev
+ * server that is already running holds state in whatever shape it was seeded
+ * with — and `??=` finds that key present and adopts it. Changing the shape of
+ * State without changing this key hands old data to new code, which fails at
+ * the first field that did not exist yet. Bump it whenever State changes.
+ */
+const KEY = Symbol.for('costbook.store.v2');
 
 interface Holder {
   [KEY]?: State;
