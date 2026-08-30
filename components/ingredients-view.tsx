@@ -285,6 +285,7 @@ function Row({
   onSetRate: (packPrice: number) => void;
   onSetYield: (yieldPercent: number) => void;
 }) {
+  const m = useMoney();
   const [rateDraft, setRateDraft] = useState('');
 
   return (
@@ -455,6 +456,29 @@ function Row({
                   </>
                 )}
               </p>
+              {/* Rate history (A28). Kept because "the price has always been
+                  that" is a thing suppliers say, and without this the operator
+                  has only their memory to answer it with. */}
+              {row.history.length > 0 && (
+                <div className="rate-history">
+                  <span className="label">Rate history</span>
+                  {row.history.map((h) => (
+                    <span className="rate-history-row" key={`${h.on}-${h.to}`}>
+                      <span>{h.on}</span>
+                      <span className="figure">
+                        {h.from === null ? 'first rate' : m.money(h.from)}
+                        {h.from !== null && <span aria-hidden="true"> → </span>}
+                        {h.from !== null && m.money(h.to)}
+                        {h.from === null && ` ${m.money(h.to)}`}
+                      </span>
+                    </span>
+                  ))}
+                  <span className="rate-history-note">
+                    Three changes on the free tier; every change on the paid one.
+                  </span>
+                </div>
+              )}
+
               {row.usedIn === 0 ? null : (
                 <Link href={`/recipes?q=${encodeURIComponent(row.name)}`} className="link link-sm">
                   See the recipes

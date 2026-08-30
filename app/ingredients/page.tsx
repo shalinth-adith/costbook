@@ -2,6 +2,7 @@ import { AppShell } from '@/components/app-shell';
 import { CurrencyProvider } from '@/components/currency-provider';
 import { IngredientsView } from '@/components/ingredients-view';
 import { board } from '@/lib/ingredients';
+import { FREE_LIMITS } from '@/lib/org';
 import {
   allIngredients,
   allRecipes,
@@ -9,6 +10,8 @@ import {
   currencyIsSettable,
   pantry,
   org,
+  plan,
+  rateHistory,
 } from '@/lib/store';
 
 import { addIngredient, previewRate, setRate, setRates, setYield } from './actions';
@@ -19,7 +22,9 @@ export const dynamic = 'force-dynamic';
 export default function IngredientsPage() {
   const code = currencyCode();
   const today = new Date().toISOString().slice(0, 10);
-  const data = board(allIngredients(), pantry(), today);
+  const data = board(allIngredients(), pantry(), today, (id) =>
+    rateHistory(id, plan() === 'free' ? FREE_LIMITS.rateHistory : undefined),
+  );
 
   return (
     <AppShell

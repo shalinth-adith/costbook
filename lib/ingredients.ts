@@ -13,6 +13,7 @@ import {
   isStale,
   ratePerUnit,
 } from '@/core/ingredient';
+import type { RateChange } from './org';
 import type { Pantry } from '@/core/recipe';
 
 export type IngredientFilter = 'all' | 'no_rate' | 'stale' | 'locked';
@@ -39,6 +40,11 @@ export interface IngredientRow {
   readonly ageDays: number | null;
   readonly lockedBy: string | null;
   readonly status: IngredientStatus;
+  /**
+   * What this ingredient has cost before, newest first (A28). Empty until it
+   * has been repriced once — a first rate is not a change.
+   */
+  readonly history: readonly RateChange[];
 }
 
 export interface IngredientBoard {
@@ -88,6 +94,8 @@ export function board(
   ingredients: readonly Ingredient[],
   pantry: Pantry,
   today: string,
+  /** Looked up per ingredient. Omitted where history is not wanted. */
+  historyOf: (id: string) => readonly RateChange[] = () => [],
 ): IngredientBoard {
   const used = usageCounts(pantry);
 
@@ -117,6 +125,7 @@ export function board(
       ageDays: ageInDays(i, today),
       lockedBy: i.lockedBy ?? null,
       status,
+      history: historyOf(i.id),
     };
   });
 

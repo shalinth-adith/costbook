@@ -2022,3 +2022,12 @@
 .ins-kid em { display: block; font-style: normal; font-size: 10.5px; color: var(--text-tertiary); }
 .ins-run { white-space: nowrap; font-size: 13.5px; }
 .ins-foot p { font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0 0 var(--sp-3); }
+
+/* ── A28 · rate history in the ingredient drawer ─────────────────────────── */
+.rate-history { display: grid; gap: 3px; margin-block: var(--sp-3) 0; }
+.rate-history-row {
+  display: flex; justify-content: space-between; gap: var(--sp-3);
+  padding-block: 5px; font-size: 12px; color: var(--text-secondary);
+  border-block-end: 1px dotted var(--border-row);
+}
+.rate-history-note { font-size: 11px; color: var(--text-tertiary); margin-block-start: 4px; }
