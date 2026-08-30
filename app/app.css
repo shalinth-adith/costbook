@@ -1993,3 +1993,32 @@
   .chan-pair { gap: var(--sp-5); }
   .chan-pair b { font-size: 28px; }
 }
+
+/* ── A28 · the formula inspector ─────────────────────────────────────────── */
+.buildup-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }
+.ins-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-block-end: var(--sp-4); }
+.ins-sub { font-size: 12.5px; color: var(--text-secondary); margin: 0; }
+.ins-table { inline-size: 100%; border-collapse: collapse; font-size: 13px; }
+.ins-table th {
+  text-align: start; font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em;
+  color: var(--text-tertiary); padding-block: var(--sp-2);
+  border-block-end: 1px solid var(--border-strong);
+}
+.ins-table th:last-child, .ins-table td:last-child { text-align: end; }
+.ins-table td { padding-block: var(--sp-3); border-block-end: 1px solid var(--border-row); vertical-align: top; }
+.ins-n { inline-size: 24px; color: var(--text-tertiary); }
+.ins-label { display: block; font-size: 13.5px; font-weight: 600; }
+.ins-from { display: block; font-size: 11.5px; color: var(--text-tertiary); margin-block-start: 2px; line-height: 1.5; }
+/* Anything Costbook supplied is labelled where it appears, with a way to
+   change it — the rule from A1, applied to arithmetic. */
+.ins-default {
+  display: inline-block; margin-inline-start: 6px; padding: 1px 5px;
+  font-size: 9.5px; font-weight: 600; letter-spacing: 0.05em;
+  color: var(--incomplete-ink); background: var(--incomplete-tint);
+  border-radius: var(--radius-chip); vertical-align: 1px;
+}
+.ins-kids { display: grid; gap: 4px; margin-block-start: var(--sp-2); padding-inline-start: var(--sp-3); border-inline-start: 2px solid var(--border-row); }
+.ins-kid { display: flex; justify-content: space-between; gap: var(--sp-3); font-size: 12px; }
+.ins-kid em { display: block; font-style: normal; font-size: 10.5px; color: var(--text-tertiary); }
+.ins-run { white-space: nowrap; font-size: 13.5px; }
+.ins-foot p { font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0 0 var(--sp-3); }

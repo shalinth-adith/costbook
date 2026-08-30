@@ -42,6 +42,7 @@ export function CostRail({
   onRounding,
   onOpenCharges,
   onOpenRounding,
+  onOpenInspector,
   onUsePrice,
   onKeepPrice,
   busy,
@@ -58,6 +59,8 @@ export function CostRail({
   onOpenCharges: () => void;
   /** Opens the rounding sheet, which shows what each rule would charge. */
   onOpenRounding: () => void;
+  /** The full arithmetic, step by step (A28). */
+  onOpenInspector: () => void;
   onUsePrice: () => void;
   /** Leaves the menu price where it is, and says so. */
   onKeepPrice: () => void;
@@ -118,7 +121,13 @@ export function CostRail({
         </div>
 
         <div className="buildup">
-          <div className="label buildup-title">How that figure is made</div>
+          <div className="buildup-head">
+            <span className="label buildup-title">How that figure is made</span>
+            {/* Seven steps, from batch total to suggested price (A28). */}
+            <button type="button" className="link link-sm" onClick={onOpenInspector}>
+              Every step
+            </button>
+          </div>
 
           {plated && build.wastage !== null && build.packaging !== null ? (
             <>

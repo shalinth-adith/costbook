@@ -158,3 +158,13 @@ export function canDo(role: Role, what: 'costing' | 'charges' | 'billing' | 'tea
   if (role === 'owner') return true;
   return what === 'recipes' || what === 'rates';
 }
+
+
+/** One move of one rate. Append-only; see the store's `rateHistory`. */
+export interface RateChange {
+  /** Null when this was the first rate the ingredient ever carried. */
+  readonly from: number | null;
+  readonly to: number;
+  /** ISO date. */
+  readonly on: string;
+}

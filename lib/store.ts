@@ -18,7 +18,7 @@ import { type Pantry, type Recipe, pantryOf } from '@/core/recipe';
 
 import type { CostingModel } from './costing';
 import { ORG, charges as seedCharges, type DishMeta, meta as seedMeta, members as seedMembers, recipes as seedRecipes, shelf as seedShelf } from './data';
-import { BLANK_ORG, type Member, type Org, type Plan } from './org';
+import { BLANK_ORG, type Member, type Org, type Plan, type RateChange } from './org';
 
 interface State {
   recipes: Recipe[];
@@ -33,6 +33,14 @@ interface State {
   /** Two roles only, per A27. A kitchen does not need a permissions matrix. */
   members: Member[];
   plan: Plan;
+  /**
+   * Every rate an ingredient has carried, newest first (TRD 5, A28).
+   *
+   * Kept because "the price has always been that" is a thing suppliers say,
+   * and without this the operator has only their memory to answer it with.
+   * Append-only: a rate that was true on a date stays true for that date.
+   */
+  rateHistory: Record<string, RateChange[]>;
 }
 
 /**
@@ -46,7 +54,7 @@ interface State {
  * State without changing this key hands old data to new code, which fails at
  * the first field that did not exist yet. Bump it whenever State changes.
  */
-const KEY = Symbol.for('costbook.store.v2');
+const KEY = Symbol.for('costbook.store.v3');
 
 interface Holder {
   [KEY]?: State;
@@ -72,6 +80,7 @@ function state(): State {
     },
     members: [...seedMembers],
     plan: 'free',
+    rateHistory: {},
   };
   return holder[KEY];
 }
@@ -138,6 +147,22 @@ export function putMeta(id: string, patch: Partial<DishMeta>): void {
 export function putIngredient(ingredient: Ingredient): void {
   const s = state();
   const at = s.ingredients.findIndex((i) => i.id === ingredient.id);
+
+  // Record the move before the write, while the old rate is still readable.
+  const before = at === -1 ? undefined : s.ingredients[at];
+  if (
+    before !== undefined &&
+    before.purchasePrice !== ingredient.purchasePrice &&
+    ingredient.purchasePrice !== null
+  ) {
+    const log = s.rateHistory[ingredient.id] ?? [];
+    log.unshift({
+      from: before.purchasePrice,
+      to: ingredient.purchasePrice,
+      on: ingredient.pricedAt ?? new Date().toISOString().slice(0, 10),
+    });
+    s.rateHistory[ingredient.id] = log;
+  }
   if (at === -1) s.ingredients.push(ingredient);
   else s.ingredients[at] = ingredient;
 }
@@ -283,4 +308,17 @@ export function plan(): Plan {
 
 export function setPlan(next: Plan): void {
   state().plan = next;
+}
+
+
+/**
+ * What this ingredient has cost, newest first.
+ *
+ * The free tier keeps the last three changes; the paid tier keeps every one.
+ * Nothing is deleted at the limit — it is simply not shown, which is the rule
+ * for every free-tier cap in the product.
+ */
+export function rateHistory(id: string, limit?: number): readonly RateChange[] {
+  const log = state().rateHistory[id] ?? [];
+  return limit === undefined ? log : log.slice(0, limit);
 }

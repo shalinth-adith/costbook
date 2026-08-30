@@ -24,6 +24,7 @@ import { ComponentCards } from './component-cards';
 import { PrepCard } from './prep-card';
 import { Toast, type ToastState } from './toast';
 import { ChannelSection } from './channel-section';
+import { InspectorSheet } from './sheets/inspector-sheet';
 import { ChargesSheet } from './sheets/charges-sheet';
 import { DishSheet } from './sheets/dish-sheet';
 import { PasteSheet, type PastedRow } from './sheets/paste-sheet';
@@ -37,6 +38,7 @@ import { StatusChip } from './status-chip';
 import { type CostingModel, DEFAULT_MODEL, buildUp, foodCostPercent } from '@/lib/costing';
 import type { Charge } from '@/core/charges';
 import { compareChannels } from '@/lib/channels';
+import { inspect } from '@/lib/inspector';
 import type { PresetName } from '@/core/rounding';
 import { unitFamily } from '@/core/units';
 import { addComponent, pantryWith, removeLine, setQty, toggleScope } from '@/lib/edit';
@@ -87,7 +89,7 @@ export function RecipeSheet({
 
   /** Which secondary surface is up. Only ever one at a time. */
   const [sheet, setSheet] = useState<
-    'dish' | 'paste' | 'add' | 'charges' | 'rounding' | null
+    'dish' | 'paste' | 'add' | 'charges' | 'rounding' | 'inspector' | null
   >(null);
   /** The line whose rate is being answered, if any. */
   const [rateFor, setRateFor] = useState<string | null>(null);
@@ -200,6 +202,11 @@ export function RecipeSheet({
    * it only means anything next to it — a commission is a number until you see
    * what it does to this dish.
    */
+  const steps = useMemo(
+    () => inspect(cost, build, model, suggestion?.rounded ?? null),
+    [cost, build, model, suggestion],
+  );
+
   const channels = useMemo(
     () => compareChannels({
       charges: orgCharges,
@@ -447,6 +454,7 @@ export function RecipeSheet({
           onRounding={setRounding}
           onOpenCharges={() => setSheet('charges')}
           onOpenRounding={() => setSheet('rounding')}
+          onOpenInspector={() => setSheet('inspector')}
           onUsePrice={() => {
             if (suggestion === null) return;
             void commit(() => saveAndPrice(named, dishFields, suggestion.rounded));
@@ -519,6 +527,15 @@ export function RecipeSheet({
           busy={saving}
           isDefault={charges === null}
         />
+
+      <InspectorSheet
+        open={sheet === 'inspector'}
+        onClose={() => setSheet(null)}
+        title={fields.name}
+        subtitle={`${recipe.portions ?? '—'} portions · rates as of today`}
+        steps={steps}
+        onSetForThisDish={() => setSheet('charges')}
+      />
 
       <ChannelSection
         comparison={channels}
