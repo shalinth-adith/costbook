@@ -13,6 +13,7 @@ import {
 } from '@/lib/store';
 
 import { archiveRecipe, createDish, duplicateRecipe } from './actions';
+import { requireSetup } from '@/lib/guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,7 @@ export const dynamic = 'force-dynamic';
  * and nothing on it is being edited.
  */
 export default function RecipesPage() {
+  requireSetup();
   const model = orgModel();
   const store = pantry();
   const code = currencyCode();

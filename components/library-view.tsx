@@ -20,6 +20,7 @@ import { useMoney } from './currency-provider';
 import { StatusChip } from './status-chip';
 import { NewDishSheet } from './sheets/new-dish-sheet';
 import { Toast, type ToastState } from './toast';
+import { Empty as EmptyAccount } from './empty';
 
 const FILTERS: readonly { readonly value: LibraryFilter; readonly label: string }[] = [
   { value: 'all', label: 'All' },
@@ -57,6 +58,10 @@ export function LibraryView({
   const [creating, setCreating] = useState(false);
   const [pending, start] = useTransition();
 
+  // No recipes at all, which is a different thing from a search that found
+  // none — that case is handled below, with the query still on screen.
+  const nothingYet = data.dishCount === 0 && data.batchCount === 0;
+
   const source = tab === 'dishes' ? data.dishes : data.batches;
 
   const outcome = useMemo(
@@ -76,6 +81,17 @@ export function LibraryView({
       else next.add(category);
       return next;
     });
+
+  if (nothingYet) {
+    return (
+      <EmptyAccount
+        title="No recipes yet."
+        lede="Every dish and every batch you cost lives here, grouped by category. Most sheets map in about a minute and come out the other side as a costed menu."
+        primary={{ label: 'Import your spreadsheet', href: '/import' }}
+        note="Nothing is retyped, and your file is only ever read."
+      />
+    );
+  }
 
   return (
     <>

@@ -10,6 +10,7 @@ import {
 } from '@/lib/store';
 
 import { commitImport } from './actions';
+import { requireSetup } from '@/lib/guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ export const dynamic = 'force-dynamic';
  * costed, rather than retyping forty recipes (PRD 3).
  */
 export default function ImportPage() {
+  requireSetup();
   const code = currencyCode();
 
   return (

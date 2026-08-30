@@ -15,11 +15,13 @@ import {
 } from '@/lib/store';
 
 import { addIngredient, previewRate, setRate, setRates, setYield } from './actions';
+import { requireSetup } from '@/lib/guard';
 
 export const dynamic = 'force-dynamic';
 
 /** A19. One ingredient, entered once, priced once. */
 export default function IngredientsPage() {
+  requireSetup();
   const code = currencyCode();
   const today = new Date().toISOString().slice(0, 10);
   const data = board(allIngredients(), pantry(), today, (id) =>

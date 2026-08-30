@@ -14,6 +14,7 @@ import {
   orgModel,
   plan,
 } from '@/lib/store';
+import { requireSetup } from '@/lib/guard';
 
 /**
  * Settings — the ninth screen, and where `core/charges.ts` finally reaches a
@@ -26,6 +27,7 @@ export default function SettingsPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  requireSetup();
   void searchParams;
 
   const code = currencyCode();

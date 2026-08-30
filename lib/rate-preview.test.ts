@@ -5,12 +5,25 @@
  * it is worth proving that it reports movement, reports it in the right
  * direction, and writes nothing while doing it.
  */
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { previewRate } from '@/app/ingredients/actions';
-import { allIngredients, allRecipes } from '@/lib/store';
+import { allIngredients, allRecipes, seedForTests } from '@/lib/store';
+import { meta as fixtureMeta, recipes as fixtureRecipes, shelf as fixtureShelf } from './data';
 
-const onion = allIngredients().find((i) => /onion/i.test(i.name) && i.purchasePrice !== null);
+/*
+ * The store starts empty, as a real account does — there is no fixture café in
+ * a running Costbook. These tests exercise writes, so they put the fixture book
+ * in first, explicitly.
+ */
+beforeAll(() => {
+  seedForTests({ recipes: fixtureRecipes, ingredients: fixtureShelf, meta: fixtureMeta });
+});
+
+// Resolved after the seed lands, not at module load.
+const findOnion = () => allIngredients().find((i) => /onion/i.test(i.name) && i.purchasePrice !== null);
+let onion: ReturnType<typeof findOnion>;
+beforeAll(() => { onion = findOnion(); });
 
 describe('previewing a rate', () => {
   it('finds a priced onion in the seeded book', () => {
@@ -30,12 +43,13 @@ describe('previewing a rate', () => {
 
   it('writes nothing — the menu is untouched until it is applied', async () => {
     if (onion === undefined || onion.purchasePrice === null) return;
-    const was = allIngredients().find((i) => i.id === onion.id)?.purchasePrice ?? null;
+    const o = onion;
+    const was = allIngredients().find((i) => i.id === o.id)?.purchasePrice ?? null;
     const recipesBefore = allRecipes().length;
 
-    await previewRate(onion.id, 5000);
+    await previewRate(o.id, 5000);
 
-    const now = allIngredients().find((i) => i.id === onion.id)?.purchasePrice ?? null;
+    const now = allIngredients().find((i) => i.id === o.id)?.purchasePrice ?? null;
     expect(now).toBe(was);
     expect(allRecipes()).toHaveLength(recipesBefore);
   });

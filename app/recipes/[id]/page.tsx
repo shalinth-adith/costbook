@@ -16,6 +16,7 @@ import {
   org,
 } from '@/lib/store';
 import { CurrencyProvider } from '@/components/currency-provider';
+import { requireSetup } from '@/lib/guard';
 
 /**
  * The cost sheet. Creating a dish and editing one are the same screen in two
@@ -28,6 +29,7 @@ import { CurrencyProvider } from '@/components/currency-provider';
 export const dynamic = 'force-dynamic';
 
 export default async function RecipePage({ params }: { params: Promise<{ id: string }> }) {
+  requireSetup();
   const { id } = await params;
 
   // Read through the store, so a save is visible on the next request.

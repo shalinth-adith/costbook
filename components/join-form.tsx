@@ -21,11 +21,14 @@ export function JoinForm({
   org,
   invitedBy,
   email,
+  token,
 }: {
   state: InviteState;
   org: string;
   invitedBy: string;
   email: string;
+  /** Null when the link carried no invitation. Nothing is guessed from that. */
+  token: string | null;
 }) {
   const router = useRouter();
   const [name, setName] = useState('');
@@ -37,21 +40,22 @@ export function JoinForm({
   if (state === 'expired') {
     return (
       <div className="entry-card">
-        <h1 className="entry-title">This invitation has lapsed</h1>
-        <p className="entry-sub">Invitations last 14 days. This one was sent on 9 August.</p>
+        <h1 className="entry-title">
+          {token === null ? 'This link is missing its invitation' : 'This invitation has lapsed'}
+        </h1>
+        <p className="entry-sub">
+          {token === null
+            ? 'An invitation link carries a token naming the café it is for. This one arrived without it.'
+            : 'Invitations last 14 days, and this one has passed that.'}
+        </p>
         <div className="notice notice-near">
-          <p className="notice-title">{invitedBy} can send another in a moment.</p>
+          <p className="notice-title">Nothing is wrong with your address.</p>
           <p className="notice-text">
-            Nothing is wrong with your address and nothing has been refused — the link simply timed
-            out.
+            Nothing has been refused — the link is simply not one we can act on. Ask whoever invited
+            you to send a fresh one; it takes them a moment.
           </p>
         </div>
-        <button type="button" className="btn btn-primary entry-action">
-          Ask {invitedBy} for a new invitation
-        </button>
-        <p className="entry-foot">
-          We&rsquo;ll email them that you tried to join. Nothing is sent to anyone else.
-        </p>
+        <Link href="/sign-in" className="btn entry-action">Back to sign in</Link>
       </div>
     );
   }

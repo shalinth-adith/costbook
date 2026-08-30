@@ -17,7 +17,7 @@ import type { Ingredient } from '@/core/ingredient';
 import { type Pantry, type Recipe, pantryOf } from '@/core/recipe';
 
 import type { CostingModel } from './costing';
-import { ORG, charges as seedCharges, type DishMeta, meta as seedMeta, members as seedMembers, recipes as seedRecipes, shelf as seedShelf } from './data';
+import type { DishMeta } from './data';
 import { BLANK_ORG, type Member, type Org, type Plan, type RateChange } from './org';
 
 interface State {
@@ -54,7 +54,7 @@ interface State {
  * State without changing this key hands old data to new code, which fails at
  * the first field that did not exist yet. Bump it whenever State changes.
  */
-const KEY = Symbol.for('costbook.store.v3');
+const KEY = Symbol.for('costbook.store.v4');
 
 interface Holder {
   [KEY]?: State;
@@ -62,23 +62,21 @@ interface Holder {
 
 function state(): State {
   const holder = globalThis as unknown as Holder;
+  /*
+   * An account starts empty. Every figure in Costbook is one the operator gave
+   * us, and that has to be true of the first screen too — a menu nobody entered
+   * is exactly the plausible wrong data the product exists to avoid, and a
+   * demo café sitting in a live account is worse than no data at all.
+   *
+   * The fixture book in `data.ts` is test material. It is imported by tests
+   * and by nothing that runs.
+   */
   holder[KEY] ??= {
-    recipes: [...seedRecipes],
-    ingredients: [...seedShelf],
-    meta: { ...seedMeta },
-    // The fixture café is already set up, so the seeded org is past the wizard.
-    org: {
-      ...BLANK_ORG,
-      name: ORG.name,
-      currency: ORG.currencyCode,
-      taxTreatment: 'absorbed',
-      foodCostTarget: ORG.foodCostTarget,
-      // The fixture café lists on one platform. A real new account starts with
-      // BLANK_ORG, which has no charges at all — nothing here is a default.
-      charges: [...seedCharges],
-      setupDone: true,
-    },
-    members: [...seedMembers],
+    recipes: [],
+    ingredients: [],
+    meta: {},
+    org: { ...BLANK_ORG },
+    members: [],
     plan: 'free',
     rateHistory: {},
   };
@@ -321,4 +319,26 @@ export function setPlan(next: Plan): void {
 export function rateHistory(id: string, limit?: number): readonly RateChange[] {
   const log = state().rateHistory[id] ?? [];
   return limit === undefined ? log : log.slice(0, limit);
+}
+
+
+/**
+ * Put a book in the store. Tests only.
+ *
+ * Exported so the tests that exercise writes have something to write against.
+ * Nothing in `app/` calls this, and nothing should: a running account is
+ * whatever its operator entered, starting from nothing.
+ */
+export function seedForTests(seed: {
+  recipes: readonly Recipe[];
+  ingredients: readonly Ingredient[];
+  meta: Readonly<Record<string, DishMeta>>;
+  org?: Partial<Org>;
+}): void {
+  const s = state();
+  s.recipes = [...seed.recipes];
+  s.ingredients = [...seed.ingredients];
+  s.meta = { ...seed.meta };
+  s.org = { ...BLANK_ORG, setupDone: true, ...seed.org };
+  s.rateHistory = {};
 }

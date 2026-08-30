@@ -3,13 +3,27 @@
  * until now. A rate change used to overwrite, so "the price has always been
  * that" had only the operator's memory to answer it.
  */
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { withRate } from '@/core/ingredient';
 
-import { allIngredients, putIngredient, rateHistory } from './store';
+import { allIngredients, putIngredient, rateHistory, seedForTests } from './store';
+import { meta as fixtureMeta, recipes as fixtureRecipes, shelf as fixtureShelf } from './data';
 
-const target = allIngredients().find((i) => i.purchasePrice !== null);
+/*
+ * The store starts empty, as a real account does — there is no fixture café in
+ * a running Costbook. These tests exercise writes, so they put the fixture book
+ * in first, explicitly.
+ */
+beforeAll(() => {
+  seedForTests({ recipes: fixtureRecipes, ingredients: fixtureShelf, meta: fixtureMeta });
+});
+
+// Resolved after the seed lands, not at module load — beforeAll has not run yet
+// when top-level code is evaluated.
+const priced = () => allIngredients().find((i) => i.purchasePrice !== null);
+let target: ReturnType<typeof priced>;
+beforeAll(() => { target = priced(); });
 
 describe('recording a rate change', () => {
   it('finds a priced ingredient to move', () => {
@@ -21,9 +35,10 @@ describe('recording a rate change', () => {
     const before = target.purchasePrice;
 
     putIngredient(withRate(target, 500, undefined, '2026-08-30'));
+    const t = target;
     putIngredient(
       withRate(
-        allIngredients().find((i) => i.id === target.id) ?? target,
+        allIngredients().find((i) => i.id === t.id) ?? t,
         900,
         undefined,
         '2026-08-31',

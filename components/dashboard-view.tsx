@@ -16,6 +16,7 @@ import { DASH, percent, points } from '@/lib/format';
 
 import { useMoney } from './currency-provider';
 import { StatusChip } from './status-chip';
+import { Empty } from './empty';
 
 /** Status is a word plus a shape, so a greyscale printout loses nothing. */
 function Glyph({ row }: { row: DashboardRow }) {
@@ -37,6 +38,19 @@ function Glyph({ row }: { row: DashboardRow }) {
 }
 
 export function DashboardView({ data, target }: { data: Dashboard; target: number }) {
+  // Nothing costed yet. The dashboard's whole argument is the sort order, and
+  // there is nothing to sort — so it says what would fill it instead.
+  if (data.rows.length === 0) {
+    return (
+      <Empty
+        title="Nothing costed yet."
+        lede="This is where every dish lands once it has a cost — worst food cost first, read against your target. Bring your spreadsheet in and it fills itself."
+        primary={{ label: 'Import your spreadsheet', href: '/import' }}
+        secondary={{ label: 'Cost one dish by hand', href: '/recipes' }}
+        note="Keep your file — Costbook only reads it."
+      />
+    );
+  }
   const [filter, setFilter] = useState<DashboardFilter>('all');
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');

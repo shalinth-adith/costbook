@@ -138,7 +138,7 @@ export function SetupWizard({ initialCurrency }: { initialCurrency: string }) {
                 value={name}
                 autoFocus
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Anandha Bhavan Café"
+                placeholder="The name over your door"
               />
               <span className="wiz-help">
                 It goes on printed prep cards and anything you export for your accountant.

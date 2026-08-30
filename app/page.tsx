@@ -72,7 +72,7 @@ export default function Landing() {
 
         {/* The product's own screen, not an illustration of one. */}
         <figure className="lp-shot">
-          <figcaption>Anandha Bhavan Café · dashboard</figcaption>
+          <figcaption>Example · the dashboard, worst food cost first</figcaption>
           <div className="lp-shot-head">
             <span>Worst food cost first</span>
             <span className="figure">21 dishes · target 32.0%</span>
@@ -83,7 +83,7 @@ export default function Landing() {
               <span className="figure" data-over={d.over}>{d.fc}</span>
             </div>
           ))}
-          <p className="lp-shot-foot">A real café&rsquo;s menu, costed from the sheet they already had.</p>
+          <p className="lp-shot-foot">A worked example. We don&rsquo;t show anyone else&rsquo;s numbers, and we won&rsquo;t show yours.</p>
         </figure>
       </section>
 
@@ -139,7 +139,7 @@ export default function Landing() {
             </p>
           </div>
           <div className="lp-card">
-            <span className="lp-card-h">Parotta Kuruma Plate · cost sheet</span>
+            <span className="lp-card-h">Example · a cost sheet</span>
             <div className="lp-line"><span>Veechu Parotta <em>SUB</em></span><span className="figure">8 pc</span><span className="figure">54.80</span></div>
             <div className="lp-line"><span>Chicken Kuruma <em>SUB</em></span><span className="figure">480 g</span><span className="figure">95.28</span></div>
             <div className="lp-line"><span>Onion, big <em>88% yield</em></span><span className="figure">200 g</span><span className="figure">13.64</span></div>
@@ -160,7 +160,7 @@ export default function Landing() {
             </p>
           </div>
           <div className="lp-card">
-            <span className="lp-card-h figure">Onion, big · 42.00 → 60.00 a kilo · not applied yet</span>
+            <span className="lp-card-h figure">Example · onion 42.00 → 60.00 a kilo, not applied yet</span>
             <p className="lp-headline">11 dishes move. 3 cross your 32% target.</p>
             {MOVERS.map((d) => (
               <div className="lp-line" key={d.name}>
@@ -186,7 +186,7 @@ export default function Landing() {
           <div><span>On delivery</span><b className="figure" data-over="true">47.4%</b></div>
         </div>
         <p className="lp-fine">
-          Ghee Roast Masala Dosa, ₹ 129.00 on both. The platform takes ₹ 30.96, the gateway ₹ 2.58,
+          A dosa at ₹ 129.00 on both. The platform takes ₹ 30.96, the gateway ₹ 2.58,
           and the box is yours.
         </p>
       </section>

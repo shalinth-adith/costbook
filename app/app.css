@@ -2031,3 +2031,18 @@
   border-block-end: 1px dotted var(--border-row);
 }
 .rate-history-note { font-size: 11px; color: var(--text-tertiary); margin-block-start: 4px; }
+
+/* ── The empty account ───────────────────────────────────────────────────── */
+/* A new book is empty because nothing has been entered, which is the correct
+   state and not a failure. It reads as an invitation, not an apology. */
+.empty {
+  max-inline-size: 56ch; margin: var(--sp-10) auto; padding: var(--sp-8);
+  text-align: center;
+  background: var(--surface-card);
+  border: 1px dashed var(--border-control);
+  border-radius: var(--radius-panel);
+}
+.empty-title { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 var(--sp-3); }
+.empty-lede { font-size: 13.5px; line-height: 1.65; color: var(--text-secondary); margin: 0 0 var(--sp-5); text-wrap: pretty; }
+.empty-actions { display: flex; gap: var(--sp-3); justify-content: center; flex-wrap: wrap; }
+.empty-note { font-size: 12px; color: var(--text-tertiary); margin: var(--sp-4) 0 0; }

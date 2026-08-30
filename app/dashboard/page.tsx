@@ -12,6 +12,7 @@ import {
 } from '@/lib/store';
 import { CurrencyProvider } from '@/components/currency-provider';
 import { dashboard } from '@/lib/dashboard';
+import { requireSetup } from '@/lib/guard';
 
 /**
  * Home. Every dish, worst food cost first, read against one target line.
@@ -22,6 +23,7 @@ import { dashboard } from '@/lib/dashboard';
 export const dynamic = 'force-dynamic';
 
 export default function DashboardPage() {
+  requireSetup();
   const model = orgModel();
   // Read through the store, so a dish saved a moment ago is here.
   const data = dashboard({

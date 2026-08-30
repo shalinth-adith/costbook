@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { withRate } from '@/core/ingredient';
 import { recipeCost } from '@/core/recipe';
@@ -13,7 +13,9 @@ import {
   putMeta,
   putRecipe,
   recipesUsing,
+  seedForTests,
 } from './store';
+import { meta as fixtureMeta, recipes as fixtureRecipes, shelf as fixtureShelf } from './data';
 
 /**
  * Saving, and what it has to mean.
@@ -22,6 +24,15 @@ import {
  * the operator actually expects: make a change, and the next read of any
  * screen shows it — the dish itself, and the dashboard it appears on.
  */
+
+/*
+ * The store starts empty, as a real account does — there is no fixture café in
+ * a running Costbook. These tests exercise writes, so they put the fixture book
+ * in first, explicitly.
+ */
+beforeAll(() => {
+  seedForTests({ recipes: fixtureRecipes, ingredients: fixtureShelf, meta: fixtureMeta });
+});
 
 const plate = () => {
   const r = getRecipe('plate');

@@ -18,6 +18,7 @@ import { ImpactPanel } from './impact-panel';
 import { IngredientEntry, type NewIngredient } from './ingredient-entry';
 import { Stepper } from './stepper';
 import { Toast, type ToastState } from './toast';
+import { Empty } from './empty';
 
 interface Ack { readonly message: string; readonly undoable: boolean }
 

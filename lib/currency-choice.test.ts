@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { currency } from '@/core/currency';
 
@@ -10,7 +10,9 @@ import {
   currencyIsSettable,
   putRecipe,
   setCurrency,
+  seedForTests,
 } from './store';
+import { meta as fixtureMeta, recipes as fixtureRecipes, shelf as fixtureShelf } from './data';
 
 /**
  * The currency is chosen once, at the start.
@@ -21,6 +23,15 @@ import {
  * that already holds rates would leave one currency's figures under another's
  * symbol, which is a worse number than any it was meant to fix.
  */
+
+/*
+ * The store starts empty, as a real account does — there is no fixture café in
+ * a running Costbook. These tests exercise writes, so they put the fixture book
+ * in first, explicitly.
+ */
+beforeAll(() => {
+  seedForTests({ recipes: fixtureRecipes, ingredients: fixtureShelf, meta: fixtureMeta });
+});
 
 describe('while nothing is costed', () => {
   it('can be chosen', () => {
