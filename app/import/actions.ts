@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache';
 
 import type { ImportPlan } from '@/lib/import';
-import { putIngredient, putMeta, putRecipe } from '@/lib/store';
+import { saveBook } from '@/lib/book';
+import type { DishMeta } from '@/lib/data';
 
 /**
  * Commit an import.
@@ -16,12 +17,11 @@ export async function commitImport(plan: ImportPlan): Promise<{
   readonly message: string;
   readonly undoable: boolean;
 }> {
-  for (const p of plan.ingredients) putIngredient(p.ingredient);
-
   const today = new Date().toISOString().slice(0, 10);
+
+  const meta: Record<string, DishMeta> = {};
   for (const r of plan.recipes) {
-    putRecipe(r.recipe);
-    putMeta(r.recipe.id, {
+    meta[r.recipe.id] = {
       category: r.category,
       station: null,
       portionSize: null,
@@ -29,8 +29,16 @@ export async function commitImport(plan: ImportPlan): Promise<{
       note: 'Brought in from your sheet. Set the batch size and the price.',
       onMenu: false,
       updatedAt: today,
-    });
+    };
   }
+
+  // Ingredients before recipes: a component line references an ingredient by
+  // id, and the foreign key will not accept one that is not there yet.
+  await saveBook({
+    ingredients: plan.ingredients.map((p) => p.ingredient),
+    recipes: plan.recipes.map((r) => r.recipe),
+    meta,
+  });
 
   revalidatePath('/', 'layout');
 

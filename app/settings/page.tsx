@@ -4,16 +4,7 @@ import { SettingsView } from '@/components/settings-view';
 
 import { STALE_AFTER_DAYS } from '@/core/ingredient';
 
-import {
-  allIngredients,
-  allRecipes,
-  currencyCode,
-  currencyIsSettable,
-  members,
-  org,
-  orgModel,
-  plan,
-} from '@/lib/store';
+import { book, orgModel } from '@/lib/book';
 import { requireSetup } from '@/lib/guard';
 
 /**
@@ -22,19 +13,20 @@ import { requireSetup } from '@/lib/guard';
  */
 export const dynamic = 'force-dynamic';
 
-export default function SettingsPage({
+export default async function SettingsPage({
   searchParams,
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  requireSetup();
+  await requireSetup();
   void searchParams;
 
-  const code = currencyCode();
-  const o = org();
-  const model = orgModel();
-  const recipes = allRecipes();
-  const ingredients = allIngredients();
+  const b = await book();
+  const model = await orgModel();
+  const code = b.org.currency;
+  const o = b.org;
+  const recipes = b.recipes;
+  const ingredients = b.ingredients;
 
   const stale = ingredients.filter((i) => {
     if (i.pricedAt === undefined) return false;
@@ -49,7 +41,7 @@ export default function SettingsPage({
       orgName={o.name}
       current="Settings"
       currencyCode={code}
-      currencySettable={currencyIsSettable()}
+      currencySettable={recipes.length === 0}
       dishCount={recipes.length}
     >
       <CurrencyProvider code={code}>
@@ -58,8 +50,8 @@ export default function SettingsPage({
           data={{
             org: o,
             model,
-            members: members(),
-            plan: plan(),
+            members: b.members,
+            plan: b.plan,
             recipeCount: recipes.length,
             ingredientCount: ingredients.length,
             staleCount: stale,

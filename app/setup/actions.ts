@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import type { Charge } from '@/core/charges';
 
 import type { TaxTreatment } from '@/lib/org';
-import { currencyIsSettable, setCurrency, setOrg } from '@/lib/store';
+import { currencyIsSettable, saveOrg } from '@/lib/book';
 
 /**
  * Save the four answers and leave setup.
@@ -21,10 +21,12 @@ export async function finishSetup(answers: {
   readonly charges: readonly Charge[];
   readonly foodCostTarget: number;
 }): Promise<{ readonly ok: true }> {
-  // Currency has its own precondition, so it does not travel with the patch.
-  if (currencyIsSettable()) setCurrency(answers.currency);
+  // Currency only moves while nothing is costed in it. Once a rate has been
+  // typed, changing the label would leave every figure under the wrong symbol.
+  const settable = await currencyIsSettable();
 
-  setOrg({
+  await saveOrg({
+    ...(settable ? { currency: answers.currency } : {}),
     name: answers.name.trim(),
     taxTreatment: answers.taxTreatment,
     charges: answers.charges,

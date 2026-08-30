@@ -3,16 +3,7 @@ import { CurrencyProvider } from '@/components/currency-provider';
 import { IngredientsView } from '@/components/ingredients-view';
 import { board } from '@/lib/ingredients';
 import { FREE_LIMITS } from '@/lib/org';
-import {
-  allIngredients,
-  allRecipes,
-  currencyCode,
-  currencyIsSettable,
-  pantry,
-  org,
-  plan,
-  rateHistory,
-} from '@/lib/store';
+import { book, pantry } from '@/lib/book';
 
 import { addIngredient, previewRate, setRate, setRates, setYield } from './actions';
 import { requireSetup } from '@/lib/guard';
@@ -20,21 +11,26 @@ import { requireSetup } from '@/lib/guard';
 export const dynamic = 'force-dynamic';
 
 /** A19. One ingredient, entered once, priced once. */
-export default function IngredientsPage() {
-  requireSetup();
-  const code = currencyCode();
+export default async function IngredientsPage() {
+  await requireSetup();
+
+  const b = await book();
+  const code = b.org.currency;
   const today = new Date().toISOString().slice(0, 10);
-  const data = board(allIngredients(), pantry(), today, (id) =>
-    rateHistory(id, plan() === 'free' ? FREE_LIMITS.rateHistory : undefined),
-  );
+  const depth = b.plan === 'free' ? FREE_LIMITS.rateHistory : undefined;
+
+  const data = board(b.ingredients, await pantry(), today, (id) => {
+    const log = b.history[id] ?? [];
+    return depth === undefined ? log : log.slice(0, depth);
+  });
 
   return (
     <AppShell
-      orgName={org().name}
+      orgName={b.org.name}
       current="Ingredients"
       currencyCode={code}
-      currencySettable={currencyIsSettable()}
-      dishCount={allRecipes().length}
+      currencySettable={b.recipes.length === 0}
+      dishCount={b.recipes.length}
     >
       <CurrencyProvider code={code}>
         <IngredientsView

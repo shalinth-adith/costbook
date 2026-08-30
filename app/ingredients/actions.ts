@@ -6,7 +6,7 @@ import { ingredientFromPack, withRate, withYield } from '@/core/ingredient';
 import type { UnitFamily } from '@/core/units';
 
 import { type Impact, headlineFor, impactOf } from '@/lib/impact';
-import { allIngredients, allMeta, allRecipes, orgModel, putIngredient, recipesUsing } from '@/lib/store';
+import { book, orgModel, recipesUsing, saveIngredient } from '@/lib/book';
 
 /** What the impact panel needs, computed on the server where the costing is. */
 export interface RatePreview {
@@ -73,7 +73,7 @@ export async function addIngredient(input: {
   // rather than a date meaning nothing.
   const ingredient =
     input.packPrice === null ? made : { ...made, pricedAt: today() };
-  putIngredient(ingredient);
+  await saveIngredient(ingredient);
   refresh();
 
   return {
@@ -94,13 +94,13 @@ export async function addIngredient(input: {
  * operator most needs and the one this screen cannot show them.
  */
 export async function setRate(id: string, packPrice: number): Promise<Ack> {
-  const ingredient = allIngredients().find((i) => i.id === id);
+  const ingredient = (await book()).ingredients.find((i) => i.id === id);
   if (ingredient === undefined) {
     return { message: 'That ingredient is no longer in your list.', undoable: false };
   }
 
-  putIngredient(withRate(ingredient, packPrice, undefined, today()));
-  const moved = recipesUsing(id).length;
+  await saveIngredient(withRate(ingredient, packPrice, undefined, today()));
+  const moved = (await recipesUsing(id)).length;
   refresh();
 
   return {
@@ -118,10 +118,10 @@ export async function setRates(
 ): Promise<Ack> {
   let moved = 0;
   for (const change of changes) {
-    const ingredient = allIngredients().find((i) => i.id === change.id);
+    const ingredient = (await book()).ingredients.find((i) => i.id === change.id);
     if (ingredient === undefined) continue;
-    putIngredient(withRate(ingredient, change.packPrice, undefined, today()));
-    moved += recipesUsing(change.id).length;
+    await saveIngredient(withRate(ingredient, change.packPrice, undefined, today()));
+    moved += (await recipesUsing(change.id)).length;
   }
   refresh();
 
@@ -139,7 +139,7 @@ export async function setRates(
  * is bought and what is usable is the whole reason it exists (A19).
  */
 export async function setYield(id: string, yieldPercent: number): Promise<Ack> {
-  const ingredient = allIngredients().find((i) => i.id === id);
+  const ingredient = (await book()).ingredients.find((i) => i.id === id);
   if (ingredient === undefined) {
     return { message: 'That ingredient is no longer in your list.', undoable: false };
   }
@@ -147,7 +147,7 @@ export async function setYield(id: string, yieldPercent: number): Promise<Ack> {
     return { message: 'Yield is the usable share of what you buy, so it sits above 0 and at or below 100.', undoable: false };
   }
 
-  putIngredient(withYield(ingredient, yieldPercent));
+  await saveIngredient(withYield(ingredient, yieldPercent));
   refresh();
 
   return {
@@ -167,18 +167,18 @@ export async function setYield(id: string, yieldPercent: number): Promise<Ack> {
  * and the reason the panel is worth opening at all.
  */
 export async function previewRate(id: string, packPrice: number): Promise<RatePreview | null> {
-  const ingredient = allIngredients().find((i) => i.id === id);
+  const ingredient = (await book()).ingredients.find((i) => i.id === id);
   if (ingredient === undefined) return null;
 
   const next = withRate(ingredient, packPrice, undefined, today());
-  const model = orgModel();
+  const model = (await orgModel());
 
   const impact = impactOf({
-    recipes: allRecipes(),
-    ingredients: allIngredients(),
-    meta: allMeta(),
+    recipes: (await book()).recipes,
+    ingredients: (await book()).ingredients,
+    meta: (await book()).meta,
     model,
-    nextIngredients: allIngredients().map((i) => (i.id === id ? next : i)),
+    nextIngredients: (await book()).ingredients.map((i) => (i.id === id ? next : i)),
     ingredientId: id,
   });
 

@@ -1,0 +1,361 @@
+/**
+ * The account's book, from Postgres.
+ *
+ * One place the application asks for data. It reads through Supabase when a
+ * project is configured, and falls back to the in-memory store when one is not
+ * — which is what the tests run against, and what let every screen be built
+ * before a database existed.
+ *
+ * The whole book is loaded in a single round trip and cached for the request.
+ * A café has on the order of 150 recipes and 250 ingredients; fetching that
+ * once is cheaper than the dozen round trips a lazier design would make, and
+ * costing needs the whole graph anyway — a plate reaches three recipes deep,
+ * so there is no useful smaller unit to fetch.
+ */
+
+import { cache } from 'react';
+
+import type { Ingredient } from '@/core/ingredient';
+import { type Pantry, type Recipe, pantryOf } from '@/core/recipe';
+
+import type { CostingModel } from './costing';
+import type { DishMeta } from './data';
+import { BLANK_ORG, type Member, type Org, type Plan, type RateChange } from './org';
+import {
+  type ComponentRow,
+  type IngredientRow,
+  type OrgRow,
+  type RecipeRow,
+  fromComponents,
+  fromIngredient,
+  fromOrg,
+  fromRecipe,
+  toIngredient,
+  toMeta,
+  toOrg,
+  toRecipe,
+} from './rows';
+import * as memory from './store';
+import { supabaseConfigured } from './supabase/env';
+import { supabaseServer } from './supabase/server';
+
+export interface Book {
+  readonly orgId: string | null;
+  readonly org: Org;
+  readonly recipes: readonly Recipe[];
+  readonly ingredients: readonly Ingredient[];
+  readonly meta: Readonly<Record<string, DishMeta>>;
+  readonly members: readonly Member[];
+  readonly plan: Plan;
+  readonly history: Readonly<Record<string, readonly RateChange[]>>;
+}
+
+/** What a signed-out visitor sees: nothing, and no pretence of anything. */
+const EMPTY: Book = {
+  orgId: null,
+  org: BLANK_ORG,
+  recipes: [],
+  ingredients: [],
+  meta: {},
+  members: [],
+  plan: 'free',
+  history: {},
+};
+
+function fromMemory(): Book {
+  return {
+    orgId: 'memory',
+    org: memory.org(),
+    recipes: [...memory.allRecipes()],
+    ingredients: [...memory.allIngredients()],
+    meta: { ...memory.allMeta() },
+    members: [...memory.members()],
+    plan: memory.plan(),
+    history: {},
+  };
+}
+
+/**
+ * Load everything, once per request.
+ *
+ * `cache` is React's per-request memo: six server components on one page ask
+ * for the book and one query answers them all. It does not survive the
+ * request, so an edit is never served from a stale copy.
+ */
+export const book = cache(async (): Promise<Book> => {
+  if (!supabaseConfigured()) return fromMemory();
+
+  const supabase = await supabaseServer();
+  const { data: auth } = await supabase.auth.getUser();
+  if (auth.user === null) return EMPTY;
+
+  const { data: orgs } = await supabase.from('organizations').select('*').limit(1);
+  const orgRow = (orgs as OrgRow[] | null)?.[0];
+  if (orgRow === undefined) return EMPTY;
+
+  // RLS scopes every one of these to the caller's org, so none of them carries
+  // a where-clause of its own. The policy is the filter.
+  const [recipesRes, componentsRes, ingredientsRes, membersRes, subRes, historyRes] =
+    await Promise.all([
+      supabase.from('recipes').select('*'),
+      supabase.from('recipe_components').select('*'),
+      supabase.from('ingredients').select('*'),
+      supabase.from('memberships').select('role, user_id'),
+      supabase.from('subscriptions').select('plan').limit(1),
+      supabase
+        .from('ingredient_rate_history')
+        .select('ingredient_id, price_from, price_to, changed_at')
+        .order('changed_at', { ascending: false }),
+    ]);
+
+  const recipeRows = (recipesRes.data ?? []) as RecipeRow[];
+  const componentRows = (componentsRes.data ?? []) as ComponentRow[];
+  const ingredientRows = (ingredientsRes.data ?? []) as IngredientRow[];
+
+  const byRecipe = new Map<string, ComponentRow[]>();
+  for (const c of componentRows) {
+    const list = byRecipe.get(c.recipe_id);
+    if (list === undefined) byRecipe.set(c.recipe_id, [c]);
+    else list.push(c);
+  }
+
+  const meta: Record<string, DishMeta> = {};
+  for (const r of recipeRows) meta[r.id] = toMeta(r);
+
+  const history: Record<string, RateChange[]> = {};
+  for (const h of (historyRes.data ?? []) as {
+    ingredient_id: string; price_from: number | string | null; price_to: number | string; changed_at: string;
+  }[]) {
+    const list = history[h.ingredient_id] ?? (history[h.ingredient_id] = []);
+    list.push({
+      from: h.price_from === null ? null : Number(h.price_from),
+      to: Number(h.price_to),
+      on: h.changed_at.slice(0, 10),
+    });
+  }
+
+  const rows = membersRes.data as { role: 'owner' | 'manager'; user_id: string }[] | null;
+
+  return {
+    orgId: orgRow.id,
+    org: toOrg(orgRow),
+    recipes: recipeRows.map((r) => toRecipe(r, byRecipe.get(r.id) ?? [])),
+    ingredients: ingredientRows.map(toIngredient),
+    meta,
+    members: (rows ?? []).map((m) => ({
+      // The email lives in auth.users, which RLS does not expose to a client.
+      // A member the caller cannot name is shown by role until the invitation
+      // record supplies one, rather than by a fabricated address.
+      name: m.user_id === auth.user?.id ? 'You' : m.role === 'owner' ? 'Owner' : 'Manager',
+      email: m.user_id === auth.user?.id ? (auth.user?.email ?? '') : '',
+      role: m.role,
+      lastIn: null,
+      accepted: true,
+    })),
+    plan: ((subRes.data as { plan: Plan }[] | null)?.[0]?.plan ?? 'free') as Plan,
+    history,
+  };
+});
+
+/* ── reads the screens use ────────────────────────────────────────────────── */
+
+export async function pantry(): Promise<Pantry> {
+  const b = await book();
+  return pantryOf(b.recipes, b.ingredients);
+}
+
+export async function orgModel(): Promise<CostingModel> {
+  const { org } = await book();
+  return {
+    wastagePercent: org.wastagePercent,
+    packagingPerPortion: org.packagingPerPortion,
+    foodCostTarget: org.foodCostTarget,
+    rounding: org.rounding,
+  };
+}
+
+export async function currencyIsSettable(): Promise<boolean> {
+  const b = await book();
+  return b.recipes.length === 0;
+}
+
+/* ── writes ───────────────────────────────────────────────────────────────── */
+
+export async function saveOrg(patch: Partial<Org>): Promise<void> {
+  if (!supabaseConfigured()) {
+    memory.setOrg(patch);
+    return;
+  }
+  const b = await book();
+  if (b.orgId === null) return;
+  const supabase = await supabaseServer();
+  await supabase.from('organizations').update(fromOrg(patch)).eq('id', b.orgId);
+}
+
+export async function saveIngredient(ingredient: Ingredient): Promise<void> {
+  if (!supabaseConfigured()) {
+    memory.putIngredient(ingredient);
+    return;
+  }
+  const b = await book();
+  if (b.orgId === null) return;
+  const supabase = await supabaseServer();
+  await supabase.from('ingredients').upsert(fromIngredient(ingredient, b.orgId), { onConflict: 'id' });
+}
+
+/**
+ * Write a recipe and its lines.
+ *
+ * The components are replaced wholesale rather than diffed. A line has no
+ * identity the operator would recognise — they reorder, retype and delete
+ * them freely — so matching them up would be inventing a history nobody kept.
+ */
+export async function saveRecipe(recipe: Recipe, meta: DishMeta | undefined): Promise<void> {
+  if (!supabaseConfigured()) {
+    memory.putRecipe(recipe);
+    if (meta !== undefined) memory.putMeta(recipe.id, meta);
+    return;
+  }
+  const b = await book();
+  if (b.orgId === null) return;
+  const supabase = await supabaseServer();
+
+  await supabase.from('recipes').upsert(fromRecipe(recipe, meta, b.orgId), { onConflict: 'id' });
+  await supabase.from('recipe_components').delete().eq('recipe_id', recipe.id);
+
+  const lines = fromComponents(recipe);
+  if (lines.length > 0) await supabase.from('recipe_components').insert(lines);
+}
+
+/** Everything an import produces, in as few round trips as it can be done. */
+export async function saveBook(input: {
+  readonly ingredients: readonly Ingredient[];
+  readonly recipes: readonly Recipe[];
+  readonly meta: Readonly<Record<string, DishMeta>>;
+}): Promise<void> {
+  if (!supabaseConfigured()) {
+    for (const i of input.ingredients) memory.putIngredient(i);
+    for (const r of input.recipes) {
+      memory.putRecipe(r);
+      const m = input.meta[r.id];
+      if (m !== undefined) memory.putMeta(r.id, m);
+    }
+    return;
+  }
+
+  const b = await book();
+  if (b.orgId === null) return;
+  const supabase = await supabaseServer();
+  const orgId = b.orgId;
+
+  if (input.ingredients.length > 0) {
+    await supabase
+      .from('ingredients')
+      .upsert(input.ingredients.map((i) => fromIngredient(i, orgId)), { onConflict: 'id' });
+  }
+
+  if (input.recipes.length > 0) {
+    await supabase
+      .from('recipes')
+      .upsert(input.recipes.map((r) => fromRecipe(r, input.meta[r.id], orgId)), { onConflict: 'id' });
+
+    const ids = input.recipes.map((r) => r.id);
+    await supabase.from('recipe_components').delete().in('recipe_id', ids);
+
+    const lines = input.recipes.flatMap(fromComponents);
+    // Chunked: a large sheet produces thousands of lines, and one statement
+    // carrying all of them is a request nobody's proxy is expecting.
+    for (let i = 0; i < lines.length; i += 500) {
+      await supabase.from('recipe_components').insert(lines.slice(i, i + 500));
+    }
+  }
+}
+
+export async function clearBook(): Promise<void> {
+  if (!supabaseConfigured()) {
+    memory.clearBook();
+    return;
+  }
+  const b = await book();
+  if (b.orgId === null) return;
+  const supabase = await supabaseServer();
+  await supabase.from('recipes').delete().eq('org_id', b.orgId);
+  await supabase.from('ingredients').delete().eq('org_id', b.orgId);
+}
+
+/**
+ * How many of the operator's recipes reach an ingredient, directly or through
+ * a sub-recipe. The question an owner asks before changing a rate: what else
+ * does this move?
+ */
+export async function recipesUsing(ingredientId: string): Promise<readonly Recipe[]> {
+  const b = await book();
+  const byId = new Map(b.recipes.map((r) => [r.id, r]));
+
+  const reaches = (recipe: Recipe, seen = new Set<string>()): boolean => {
+    if (seen.has(recipe.id)) return false;
+    seen.add(recipe.id);
+    return recipe.components.some((c) => {
+      if (c.kind === 'ingredient') return c.ingredientId === ingredientId;
+      if (c.kind === 'recipe') {
+        const child = byId.get(c.childId);
+        return child !== undefined && reaches(child, seen);
+      }
+      return false;
+    });
+  };
+
+  return b.recipes.filter((r) => reaches(r));
+}
+
+export async function getRecipe(id: string): Promise<Recipe | undefined> {
+  return (await book()).recipes.find((r) => r.id === id);
+}
+
+export async function getMeta(id: string): Promise<DishMeta | undefined> {
+  return (await book()).meta[id];
+}
+
+/**
+ * Patch a dish's meta.
+ *
+ * A merge rather than a replace, because the callers send what changed — a
+ * price, an archived flag — and not the whole record. Reads the current row
+ * first so a patch never blanks a field it did not mention.
+ */
+export async function saveMeta(id: string, patch: Partial<DishMeta>): Promise<void> {
+  if (!supabaseConfigured()) {
+    memory.putMeta(id, patch);
+    return;
+  }
+  const b = await book();
+  if (b.orgId === null) return;
+
+  const current = b.meta[id];
+  const next: DishMeta = {
+    category: patch.category ?? current?.category ?? 'Mains',
+    station: patch.station ?? current?.station ?? null,
+    portionSize: patch.portionSize ?? current?.portionSize ?? null,
+    sellingPrice: patch.sellingPrice !== undefined ? patch.sellingPrice : (current?.sellingPrice ?? null),
+    deliveryPrice: patch.deliveryPrice !== undefined ? patch.deliveryPrice : (current?.deliveryPrice ?? null),
+    note: patch.note ?? current?.note ?? '',
+    onMenu: patch.onMenu ?? current?.onMenu ?? false,
+    archived: patch.archived ?? current?.archived ?? false,
+  };
+
+  const supabase = await supabaseServer();
+  await supabase
+    .from('recipes')
+    .update({
+      category: next.category,
+      station: next.station,
+      portion_size: next.portionSize,
+      selling_price: next.sellingPrice,
+      delivery_price: next.deliveryPrice,
+      notes: next.note,
+      on_menu: next.onMenu,
+      archived: next.archived,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+}

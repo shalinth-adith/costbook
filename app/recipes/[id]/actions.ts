@@ -6,14 +6,7 @@ import { withRate } from '@/core/ingredient';
 import type { Recipe } from '@/core/recipe';
 
 import type { DishMeta } from '@/lib/data';
-import {
-  allIngredients,
-  getMeta,
-  putIngredient,
-  putMeta,
-  putRecipe,
-  recipesUsing,
-} from '@/lib/store';
+import { book, getMeta, getRecipe, recipesUsing, saveIngredient, saveMeta, saveRecipe } from '@/lib/book';
 
 /**
  * The writes the cost sheet makes.
@@ -37,8 +30,8 @@ function refresh(id: string): void {
 
 /** Save the components and the dish's own fields, without pricing it. */
 export async function saveDraft(recipe: Recipe, dish: Partial<DishMeta>): Promise<Ack> {
-  putRecipe(recipe);
-  putMeta(recipe.id, { ...dish, onMenu: false, sellingPrice: null });
+  await saveRecipe(recipe, undefined);
+  await saveMeta(recipe.id, { ...dish, onMenu: false, sellingPrice: null });
   refresh(recipe.id);
 
   return {
@@ -53,8 +46,8 @@ export async function saveAndPrice(
   dish: Partial<DishMeta>,
   price: number,
 ): Promise<Ack> {
-  putRecipe(recipe);
-  putMeta(recipe.id, { ...dish, onMenu: true, sellingPrice: price });
+  await saveRecipe(recipe, undefined);
+  await saveMeta(recipe.id, { ...dish, onMenu: true, sellingPrice: price });
   refresh(recipe.id);
 
   return {
@@ -65,15 +58,15 @@ export async function saveAndPrice(
 
 /** Save changes to a dish already on the menu, leaving its price alone. */
 export async function saveChanges(recipe: Recipe, dish: Partial<DishMeta>): Promise<Ack> {
-  putRecipe(recipe);
-  putMeta(recipe.id, dish);
+  await saveRecipe(recipe, undefined);
+  await saveMeta(recipe.id, dish);
   refresh(recipe.id);
 
   return { message: `${recipe.name} saved.`, undoable: true };
 }
 
 export async function removeFromMenu(id: string): Promise<Ack> {
-  putMeta(id, { onMenu: false, sellingPrice: null });
+  await saveMeta(id, { onMenu: false, sellingPrice: null });
   refresh(id);
   return { message: 'Taken off the menu. The recipe is kept.', undoable: true };
 }
@@ -90,13 +83,13 @@ export async function setIngredientRate(
   packPrice: number,
   recipeId: string,
 ): Promise<Ack> {
-  const ingredient = allIngredients().find((i) => i.id === ingredientId);
+  const ingredient = (await book()).ingredients.find((i) => i.id === ingredientId);
   if (ingredient === undefined) {
     return { message: 'That ingredient is no longer in your list.', undoable: false };
   }
 
-  putIngredient(withRate(ingredient, packPrice));
-  const also = recipesUsing(ingredientId).length;
+  await saveIngredient(withRate(ingredient, packPrice));
+  const also = (await recipesUsing(ingredientId)).length;
   refresh(recipeId);
 
   const perUnit = (packPrice / ingredient.purchaseQty) * baseFactor(ingredient.purchaseUnit);
@@ -118,14 +111,14 @@ function baseFactor(unit: string): number {
 
 /** Put back exactly what was there, for the Undo on a toast. */
 export async function undoTo(recipe: Recipe, dish: DishMeta): Promise<Ack> {
-  putRecipe(recipe);
-  putMeta(recipe.id, dish);
+  await saveRecipe(recipe, undefined);
+  await saveMeta(recipe.id, dish);
   refresh(recipe.id);
   return { message: 'Put back.', undoable: false };
 }
 
 export async function currentMeta(id: string): Promise<DishMeta | undefined> {
-  return getMeta(id);
+  return (await getMeta(id));
 }
 
 /**
@@ -136,7 +129,7 @@ export async function currentMeta(id: string): Promise<DishMeta | undefined> {
  * edit to the menu price.
  */
 export async function saveDeliveryPrice(id: string, price: number): Promise<Ack> {
-  putMeta(id, { deliveryPrice: price });
+  await saveMeta(id, { deliveryPrice: price });
   refresh(id);
   return {
     message: `Delivery price set. Your counter price has not moved.`,

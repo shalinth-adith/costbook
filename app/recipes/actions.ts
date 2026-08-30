@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 
-import { getMeta, getRecipe, putMeta, putRecipe } from '@/lib/store';
+import { book, getMeta, getRecipe, saveIngredient, saveMeta, saveRecipe } from '@/lib/book';
 
 export interface Ack {
   readonly message: string;
@@ -25,8 +25,8 @@ function refresh(): void {
  * deciding what to charge for something nobody has costed yet.
  */
 export async function duplicateRecipe(id: string): Promise<Ack> {
-  const recipe = getRecipe(id);
-  const dish = getMeta(id);
+  const recipe = (await getRecipe(id));
+  const dish = (await getMeta(id));
   if (recipe === undefined || dish === undefined) {
     return { message: 'That recipe is no longer here.', undoable: false };
   }
@@ -34,10 +34,10 @@ export async function duplicateRecipe(id: string): Promise<Ack> {
   const copyId = `${id}-copy-${Date.now().toString(36)}`;
   const name = `${recipe.name} (copy)`;
 
-  putRecipe({ ...recipe, id: copyId, name });
-  putMeta(copyId, dish);
+  await saveRecipe({ ...recipe, id: copyId, name }, undefined);
+  await saveMeta(copyId, dish);
   // putMeta only patches what exists, so seed the copy's own entry first.
-  putMeta(copyId, {
+  await saveMeta(copyId, {
     ...dish,
     onMenu: false,
     sellingPrice: null,
@@ -59,10 +59,10 @@ export async function duplicateRecipe(id: string): Promise<Ack> {
  * no bulk selection and nothing here removes a recipe.
  */
 export async function archiveRecipe(id: string, archived: boolean): Promise<Ack> {
-  const dish = getMeta(id);
+  const dish = (await getMeta(id));
   if (dish === undefined) return { message: 'That recipe is no longer here.', undoable: false };
 
-  putMeta(id, archived ? { archived: true, onMenu: false } : { archived: false });
+  await saveMeta(id, archived ? { archived: true, onMenu: false } : { archived: false });
   refresh();
 
   return {
@@ -90,7 +90,7 @@ export async function createDish(input: {
 
   const id = `dish-${Date.now().toString(36)}`;
 
-  putRecipe({
+  await saveRecipe({
     id,
     name,
     family: 'count',
@@ -98,8 +98,8 @@ export async function createDish(input: {
     outputUnit: 'pc',
     portions: input.portions,
     components: [],
-  });
-  putMeta(id, {
+  }, undefined);
+  await saveMeta(id, {
     category: input.category,
     station: null,
     portionSize: null,

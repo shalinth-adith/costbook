@@ -1,16 +1,8 @@
 import { AppShell } from '@/components/app-shell';
-import { DashboardView } from '@/components/dashboard-view';
-import {
-  allIngredients,
-  allMeta,
-  allRecipes,
-  currencyCode,
-  currencyIsSettable,
-  orgModel,
-  pantry,
-  org,
-} from '@/lib/store';
 import { CurrencyProvider } from '@/components/currency-provider';
+import { DashboardView } from '@/components/dashboard-view';
+
+import { book, orgModel, pantry } from '@/lib/book';
 import { dashboard } from '@/lib/dashboard';
 import { requireSetup } from '@/lib/guard';
 
@@ -22,23 +14,28 @@ import { requireSetup } from '@/lib/guard';
  */
 export const dynamic = 'force-dynamic';
 
-export default function DashboardPage() {
-  requireSetup();
-  const model = orgModel();
-  // Read through the store, so a dish saved a moment ago is here.
+export default async function DashboardPage() {
+  await requireSetup();
+
+  const b = await book();
+  const model = await orgModel();
+
   const data = dashboard({
-    ids: allRecipes().map((r) => r.id),
-    pantry: pantry(),
-    meta: allMeta(),
+    ids: b.recipes.map((r) => r.id),
+    pantry: await pantry(),
+    meta: b.meta,
     model,
   });
 
-  const code = currencyCode();
-
-
   return (
-    <AppShell orgName={org().name} current="Dashboard" currencyCode={code} currencySettable={currencyIsSettable()} dishCount={allRecipes().length}>
-      <CurrencyProvider code={code}>
+    <AppShell
+      orgName={b.org.name}
+      current="Dashboard"
+      currencyCode={b.org.currency}
+      currencySettable={b.recipes.length === 0}
+      dishCount={b.recipes.length}
+    >
+      <CurrencyProvider code={b.org.currency}>
         <DashboardView data={data} target={model.foodCostTarget} />
       </CurrencyProvider>
     </AppShell>

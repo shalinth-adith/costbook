@@ -1,53 +1,41 @@
 import { AppShell } from '@/components/app-shell';
 import { CurrencyProvider } from '@/components/currency-provider';
 import { LibraryView } from '@/components/library-view';
+
+import { book, orgModel, pantry } from '@/lib/book';
+import { requireSetup } from '@/lib/guard';
 import { library } from '@/lib/library';
-import {
-  allMeta,
-  allRecipes,
-  currencyCode,
-  currencyIsSettable,
-  orgModel,
-  pantry,
-  org,
-} from '@/lib/store';
 
 import { archiveRecipe, createDish, duplicateRecipe } from './actions';
-import { requireSetup } from '@/lib/guard';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * A16. Everything the kitchen has a recipe for, grouped for retrieval.
- *
- * Costed on the server: this screen answers a question about the whole book
- * and nothing on it is being edited.
- */
-export default function RecipesPage() {
-  requireSetup();
-  const model = orgModel();
-  const store = pantry();
-  const code = currencyCode();
+export default async function RecipesPage() {
+  await requireSetup();
+
+  const b = await book();
+  const model = await orgModel();
+  const p = await pantry();
 
   const data = library({
-    ids: allRecipes().map((r) => r.id),
-    pantry: store,
-    meta: allMeta(),
+    ids: b.recipes.map((r) => r.id),
+    pantry: p,
+    meta: b.meta,
     model,
   });
 
   return (
     <AppShell
-      orgName={org().name}
+      orgName={b.org.name}
       current="Recipes"
-      currencyCode={code}
-      currencySettable={currencyIsSettable()}
-      dishCount={allRecipes().length}
+      currencyCode={b.org.currency}
+      currencySettable={b.recipes.length === 0}
+      dishCount={b.recipes.length}
     >
-      <CurrencyProvider code={code}>
+      <CurrencyProvider code={b.org.currency}>
         <LibraryView
           data={data}
-          pantry={store}
+          pantry={p}
           target={model.foodCostTarget}
           onDuplicate={duplicateRecipe}
           onArchive={archiveRecipe}

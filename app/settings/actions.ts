@@ -7,17 +7,8 @@ import type { PresetName } from '@/core/rounding';
 
 import { type Impact, impactOf } from '@/lib/impact';
 import type { Role, TaxTreatment } from '@/lib/org';
-import {
-  allIngredients,
-  allMeta,
-  allRecipes,
-  inviteMember,
-  orgModel,
-  removeMember,
-  setMemberRole,
-  setOrg,
-  setPlan,
-} from '@/lib/store';
+import { book, orgModel, saveOrg } from '@/lib/book';
+import { inviteMember, removeMember, setMemberRole, setPlan } from '@/lib/store';
 
 /**
  * Save a costing change.
@@ -32,7 +23,7 @@ export async function saveCosting(patch: {
   readonly packagingPerPortion?: number;
   readonly rounding?: PresetName;
 }): Promise<{ readonly ok: true }> {
-  setOrg(patch);
+  await saveOrg(patch);
   revalidatePath('/', 'layout');
   return { ok: true };
 }
@@ -44,14 +35,14 @@ export async function saveOrganisation(patch: {
   readonly defaultMassUnit?: 'g' | 'kg';
   readonly defaultVolumeUnit?: 'ml' | 'l';
 }): Promise<{ readonly ok: true }> {
-  setOrg(patch);
+  await saveOrg(patch);
   revalidatePath('/', 'layout');
   return { ok: true };
 }
 
 /** The whole stack at once — order is a property of the list, not of a row. */
 export async function saveCharges(charges: readonly Charge[]): Promise<{ readonly ok: true }> {
-  setOrg({ charges: charges.map((c, i) => ({ ...c, order: i + 1 })) });
+  await saveOrg({ charges: charges.map((c, i) => ({ ...c, order: i + 1 })) });
   revalidatePath('/', 'layout');
   return { ok: true };
 }
@@ -94,11 +85,11 @@ export async function previewCosting(next: {
   readonly packagingPerPortion: number;
   readonly rounding: PresetName;
 }): Promise<Impact> {
-  const model = orgModel();
+  const model = await orgModel();
   return impactOf({
-    recipes: allRecipes(),
-    ingredients: allIngredients(),
-    meta: allMeta(),
+    recipes: (await book()).recipes,
+    ingredients: (await book()).ingredients,
+    meta: (await book()).meta,
     model,
     nextModel: { ...model, ...next },
   });

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { supabaseServer } from '@/lib/supabase/server';
-import { org, setOrg } from '@/lib/store';
+import { book, saveOrg } from '@/lib/book';
 
 /**
  * Development sign-in bypass.
@@ -88,8 +88,10 @@ export async function POST(): Promise<NextResponse> {
     }
   }
 
-  // The half that goes when the store does.
-  setOrg({
+  // Marks the org past setup so the guard does not bounce every request back
+  // to the wizard. Written to Postgres like any other org edit — this is the
+  // real record now, not a memory flag.
+  await saveOrg({
     name: DEV_ORG_NAME,
     taxTreatment: 'absorbed',
     foodCostTarget: 30,
@@ -100,7 +102,7 @@ export async function POST(): Promise<NextResponse> {
     ok: true,
     email: DEV_EMAIL,
     session,
-    org: org().name,
+    org: (await book()).org.name,
     note: 'No dishes or ingredients were created. The book is empty.',
   });
 }
@@ -110,11 +112,11 @@ export async function DELETE(): Promise<NextResponse> {
   const refused = forbiddenInProduction();
   if (refused !== null) return refused;
 
+  await saveOrg({ name: '', taxTreatment: null, setupDone: false });
+
   if (supabaseConfigured()) {
     const supabase = await supabaseServer();
     await supabase.auth.signOut();
   }
-
-  setOrg({ name: '', taxTreatment: null, setupDone: false });
   return NextResponse.json({ ok: true, note: 'Signed out; setup is unfinished again.' });
 }
