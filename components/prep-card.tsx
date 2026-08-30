@@ -4,7 +4,7 @@ import type { CostedLine } from '@/core/recipe';
 
 import type { DishMeta } from '@/lib/data';
 import { ORG } from '@/lib/data';
-import { qty } from '@/lib/format';
+import { lineQty, qty } from '@/lib/format';
 
 /**
  * A8, and the chef's half of the product.
@@ -83,7 +83,7 @@ export function PrepCard({
                 <span className="prep-line-mark">{line.kind === 'recipe' ? 'SUB' : ''}</span>
                 <span className="prep-line-name">{line.name}</span>
                 <span className="prep-line-qty">
-                  {line.kind === 'flat' ? '' : `${qty(line.qty)} ${line.unit}`}
+                  {line.kind === 'flat' ? '' : `${lineQty(line.qty, line.unit)} ${line.unit}`}
                 </span>
                 <span className="prep-line-note">
                   {line.scope === 'portion' ? 'one per plate' : ''}

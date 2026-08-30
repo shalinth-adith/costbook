@@ -2,7 +2,7 @@
 
 import type { CostedLine } from '@/core/recipe';
 
-import { DASH, qty } from '@/lib/format';
+import { DASH, lineQty, lineRate, qty } from '@/lib/format';
 
 import { useMoney } from './currency-provider';
 
@@ -101,12 +101,12 @@ export function ComponentTable({
 
               <span className="ctable-qty-cell">
                 {line.kind === 'flat' ? null : (
-                  <span className="figure ctable-qty">{qty(line.qty)}</span>
+                  <span className="figure ctable-qty">{lineQty(line.qty, line.unit)}</span>
                 )}
               </span>
 
               <span className="figure ctable-unit">{line.unit}</span>
-              <span className="figure end ctable-dim">{m.rate(line.ratePerBaseUnit)}</span>
+              <span className="figure end ctable-dim">{m.rate(lineRate(line.ratePerBaseUnit, line.unit))}</span>
 
               <span className="ctable-cost">
                 {line.scope === 'portion' ? (
@@ -171,7 +171,7 @@ function LineDetail({
               figure it was showing (A13). */}
           <Stepper
             label={`quantity of ${line.name}`}
-            value={`${qty(line.qty)} ${line.unit}`}
+            value={`${lineQty(line.qty, line.unit)} ${line.unit}`}
             min={line.qty <= 1}
             disabled={line.kind === 'flat'}
             onDown={() => handlers.onQty(index, stepDown(line.qty))}

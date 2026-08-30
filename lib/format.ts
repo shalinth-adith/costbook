@@ -1,4 +1,5 @@
 import { formatMoney, formatRate } from '@/core/currency';
+import { ratePerUnit } from '@/core/ingredient';
 import { fromBase } from '@/core/units';
 
 /**
@@ -58,4 +59,37 @@ export function outputText(baseQty: number, unit: string): string {
 
 export function points(value: number, places = 1): string {
   return `${value > 0 ? '+' : ''}${value.toFixed(places)}`;
+}
+
+/**
+ * A component line's quantity, in the unit beside it.
+ *
+ * Every quantity in the system is stored in base units (TRD 3), so a line of
+ * 1 kg is held as 1000. Printing that raw next to its display unit says
+ * "1000 kg" — a batch of rice a thousand times heavier than the one the
+ * operator typed, and the reason a plate of jeera rice read as 23,000.
+ *
+ * Note the inversion, which is the same one `ratePerUnit` documents from the
+ * other side. A quantity converts *out* of base by dividing: 1000 g is 1 kg.
+ * A rate converts by multiplying: 0.023 per g is 23 per kg.
+ */
+export function lineQty(baseQty: number, unit: string): string {
+  if (unit === '') return qty(baseQty);
+  try {
+    return qty(fromBase(baseQty, unit));
+  } catch {
+    // An unknown unit is not convertible, so the figure is left as it stands
+    // rather than shown through a conversion that does not exist.
+    return qty(baseQty);
+  }
+}
+
+/** A line's rate, expressed per the unit shown beside it rather than per base. */
+export function lineRate(ratePerBaseUnit: number | null, unit: string): number | null {
+  if (ratePerBaseUnit === null || unit === '') return ratePerBaseUnit;
+  try {
+    return ratePerUnit(ratePerBaseUnit, unit);
+  } catch {
+    return ratePerBaseUnit;
+  }
 }

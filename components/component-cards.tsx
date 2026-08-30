@@ -2,7 +2,7 @@
 
 import type { CostedLine } from '@/core/recipe';
 
-import { DASH, qty } from '@/lib/format';
+import { DASH, lineQty, lineRate, qty } from '@/lib/format';
 
 import { useMoney } from './currency-provider';
 
@@ -76,7 +76,7 @@ export function ComponentCards({
                       type="number"
                       min={0}
                       step="any"
-                      value={qty(line.qty)}
+                      value={lineQty(line.qty, line.unit)}
                       aria-label={`Quantity of ${line.name}`}
                       onChange={(e) => handlers.onQty(i, Number(e.target.value))}
                     />
@@ -92,7 +92,7 @@ export function ComponentCards({
 
               <span className="ccard-field">
                 <span className="label">Rate / unit</span>
-                <span className="figure ccard-value">{m.rate(line.ratePerBaseUnit)}</span>
+                <span className="figure ccard-value">{m.rate(lineRate(line.ratePerBaseUnit, line.unit))}</span>
               </span>
 
               <span className="ccard-field end">
