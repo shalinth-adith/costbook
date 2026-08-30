@@ -154,11 +154,39 @@
    already on its way to the button. The surface moves; the ink does not. */
 .field-control.is-locked { background: var(--surface-sunken); }
 
-.field-input {
-  flex: 1; min-width: 0;
-  border: 0; outline: 0; background: none;
+/*
+ * These two rules exist because `.field` collides.
+ *
+ * app.css is global and carries `.field input { border: 1px … }` for the
+ * application's own forms. The entry screens use `.field` too, so that rule
+ * reaches inside them — and it is a descendant selector, (0,1,1), which beats
+ * a bare `.field-input` at (0,1,0). A plain `border: 0` here loses to it no
+ * matter where it sits in the file.
+ *
+ * So both cases are stated at (0,2,0), which wins, and neither depends on what
+ * app.css happens to say:
+ *
+ *   A31/A32/A33 — a bare input draws its own box, with Show in the label row.
+ *   A10         — the input sits inside .field-control, which draws the box,
+ *                 so the input itself must draw nothing or you get two.
+ */
+.field .field-input {
+  block-size: 48px; padding-inline: var(--sp-3);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-field);
+  background: var(--surface-card);
+  flex: 1; min-width: 0; outline: 0;
   font: inherit; font-size: 14.5px;
   color: var(--text-primary);
+  transition: border-color var(--dur-micro) var(--ease-enter);
+}
+.field .field-input:hover { border-color: var(--border-control-hover); }
+
+/* Inside the wrapper the wrapper owns the box. Must come after the rule above:
+   same specificity, so source order settles it. */
+.field-control .field-input {
+  block-size: auto; padding-inline: 0;
+  border: 0; background: none;
 }
 .field-input::placeholder { color: var(--border-control-hover); }
 .field-input:disabled { color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary); }
