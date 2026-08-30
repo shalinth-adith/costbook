@@ -60,6 +60,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
         dish={dish}
         usageCounts={usageCounts}
         orgModel={orgModel()}
+        orgCharges={org().charges}
       />
       </CurrencyProvider>
     </AppShell>

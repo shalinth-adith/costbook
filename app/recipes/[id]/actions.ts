@@ -127,3 +127,19 @@ export async function undoTo(recipe: Recipe, dish: DishMeta): Promise<Ack> {
 export async function currentMeta(id: string): Promise<DishMeta | undefined> {
   return getMeta(id);
 }
+
+/**
+ * A price of its own on the platform (A26).
+ *
+ * The dine-in price never moves — a channel price is a channel price, not a
+ * repricing. That is the whole reason this is a separate field rather than an
+ * edit to the menu price.
+ */
+export async function saveDeliveryPrice(id: string, price: number): Promise<Ack> {
+  putMeta(id, { deliveryPrice: price });
+  refresh(id);
+  return {
+    message: `Delivery price set. Your counter price has not moved.`,
+    undoable: false,
+  };
+}

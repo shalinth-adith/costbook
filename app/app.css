@@ -1916,3 +1916,80 @@
   .imp-foot-note { flex-basis: 100%; }
   .imp-table { font-size: 12px; }
 }
+
+/* ── A26 · channels on the cost sheet ────────────────────────────────────── */
+.chan {
+  margin-block-start: var(--sp-8); padding-block-start: var(--sp-6);
+  border-block-start: 1px solid var(--border-strong);
+}
+.chan-h { font-size: 18px; font-weight: 600; margin: 0 0 var(--sp-2); }
+.chan-lede {
+  font-size: 13px; line-height: 1.6; color: var(--text-secondary);
+  margin: 0 0 var(--sp-5); max-inline-size: 76ch;
+}
+.chan-target { margin-inline-start: var(--sp-2); color: var(--text-tertiary); white-space: nowrap; }
+.chan-empty {
+  padding: var(--sp-5); background: var(--surface-sunken);
+  border: 1px dashed var(--border-control); border-radius: var(--radius-panel);
+  max-inline-size: 560px;
+}
+.chan-empty p { font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin: 0 0 var(--sp-3); }
+
+/* The answer is above the arithmetic: someone who reads only the first line
+   has the whole finding, and no arithmetic is required to reach it. */
+.chan-finding {
+  padding: var(--sp-5); border-radius: var(--radius-panel);
+  background: var(--surface-card); border: 1px solid var(--border-hairline);
+}
+.chan-finding[data-breaks='true'] { background: var(--over-tint); border-color: var(--over-edge); }
+.chan-finding h3 { font-size: 19px; font-weight: 600; margin: 0 0 var(--sp-2); letter-spacing: -0.01em; }
+.chan-finding p { font-size: 13.5px; line-height: 1.65; color: var(--text-secondary); margin: 0 0 var(--sp-4); max-inline-size: 74ch; }
+.chan-pair { display: flex; gap: var(--sp-8); flex-wrap: wrap; }
+.chan-pair > div { display: grid; gap: 2px; }
+.chan-pair span { font-size: 11.5px; color: var(--text-tertiary); }
+.chan-pair b { font-size: 34px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+.chan-pair b[data-over='true'] { color: var(--over-ink); }
+.chan-pair em { font-style: normal; font-size: 11px; color: var(--text-tertiary); }
+
+.chan-solve {
+  margin-block-start: var(--sp-4); padding: var(--sp-5);
+  background: var(--on-tint); border: 1px solid var(--on-edge);
+  border-radius: var(--radius-panel);
+}
+.chan-solve h3 { font-size: 15px; font-weight: 600; margin: 0 0 var(--sp-2); }
+.chan-solve p { font-size: 13px; line-height: 1.65; color: var(--text-secondary); margin: 0 0 var(--sp-4); max-inline-size: 72ch; }
+
+.chan-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--sp-4); margin-block-start: var(--sp-5); }
+.chan-col {
+  padding: var(--sp-4); background: var(--surface-card);
+  border: 1px solid var(--border-hairline); border-radius: var(--radius-panel);
+}
+.chan-col[data-over='true'] { border-color: var(--over-edge-soft); }
+.chan-col h4 { font-size: 14px; font-weight: 600; margin: 0 0 var(--sp-3); }
+.chan-col h4 em { display: block; font-style: normal; font-size: 11px; font-weight: 400; color: var(--text-tertiary); }
+.chan-row {
+  display: flex; justify-content: space-between; gap: var(--sp-3);
+  padding-block: 7px; font-size: 12.5px;
+  border-block-end: 1px dotted var(--border-row);
+}
+.chan-row em { font-style: normal; font-size: 10.5px; color: var(--text-tertiary); display: block; }
+/* Who bears it is a visible property: guest rows add up to the bill, operator
+   rows take the ochre and a minus sign and say so in words. */
+.chan-row.is-borne {
+  background: var(--near-tint); margin-inline: calc(var(--sp-4) * -1);
+  padding-inline: var(--sp-4); border-block-end-color: transparent;
+}
+.chan-row.is-borne .figure { color: var(--near-ink-strong); font-weight: 600; }
+.chan-row.is-sub, .chan-row.is-keeps {
+  border-block-end: 0; border-block-start: 1px solid var(--border-strong);
+  font-weight: 600; font-size: 13.5px; margin-block-start: 2px;
+}
+.chan-row.is-fc .figure { font-size: 15px; font-weight: 600; }
+.chan-row.is-fc .figure[data-over='true'] { color: var(--over-ink); }
+
+@media (max-width: 900px) {
+  /* 768 · the columns stack, the comparison does not. */
+  .chan-cols { grid-template-columns: 1fr; }
+  .chan-pair { gap: var(--sp-5); }
+  .chan-pair b { font-size: 28px; }
+}

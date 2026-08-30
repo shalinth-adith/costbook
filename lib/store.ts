@@ -17,7 +17,7 @@ import type { Ingredient } from '@/core/ingredient';
 import { type Pantry, type Recipe, pantryOf } from '@/core/recipe';
 
 import type { CostingModel } from './costing';
-import { ORG, type DishMeta, meta as seedMeta, members as seedMembers, recipes as seedRecipes, shelf as seedShelf } from './data';
+import { ORG, charges as seedCharges, type DishMeta, meta as seedMeta, members as seedMembers, recipes as seedRecipes, shelf as seedShelf } from './data';
 import { BLANK_ORG, type Member, type Org, type Plan } from './org';
 
 interface State {
@@ -65,6 +65,9 @@ function state(): State {
       currency: ORG.currencyCode,
       taxTreatment: 'absorbed',
       foodCostTarget: ORG.foodCostTarget,
+      // The fixture café lists on one platform. A real new account starts with
+      // BLANK_ORG, which has no charges at all — nothing here is a default.
+      charges: [...seedCharges],
       setupDone: true,
     },
     members: [...seedMembers],

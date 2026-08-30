@@ -108,6 +108,12 @@ export interface DishMeta {
   /** Prints on the prep card. Not used in the costing. */
   readonly portionSize: string | null;
   readonly sellingPrice: number | null;
+  /**
+   * A price of its own on the delivery platform (A26). Null means it is listed
+   * at the counter price — which is the case that usually loses money, since a
+   * platform's commission comes out of the operator rather than the guest.
+   */
+  readonly deliveryPrice?: number | null;
   readonly note: string;
   readonly onMenu: boolean;
 }
@@ -438,4 +444,27 @@ export const members = [
   { name: 'Karthik R.', email: 'karthik@srikrishnacafe.in', role: 'owner' as const, lastIn: 'today', accepted: true },
   { name: 'Suresh M.', email: 'suresh@srikrishnacafe.in', role: 'manager' as const, lastIn: '3 days ago', accepted: true },
   { name: 'Priya S.', email: 'priya@srikrishnacafe.in', role: 'manager' as const, lastIn: null, accepted: false },
+];
+
+/**
+ * What the fixture café's bills carry.
+ *
+ * A commission is borne by the operator and applies to delivery alone — it is
+ * not added to the guest's bill, it comes out of the price. That direction is
+ * the whole of A26, and it is why a dish that works at the counter can lose
+ * money on every delivery order.
+ *
+ * Fixture data. A real new account starts with no charges at all.
+ */
+export const charges = [
+  {
+    name: 'Platform commission', mode: 'percent' as const, value: 24,
+    base: 'net_subtotal' as const, order: 1, compounds: false,
+    borneBy: 'operator' as const, channels: ['delivery' as const],
+  },
+  {
+    name: 'Payment gateway', mode: 'percent' as const, value: 2,
+    base: 'net_subtotal' as const, order: 2, compounds: false,
+    borneBy: 'operator' as const, channels: ['delivery' as const],
+  },
 ];

@@ -11,6 +11,7 @@ import {
   removeFromMenu,
   saveAndPrice,
   saveChanges,
+  saveDeliveryPrice,
   saveDraft,
   setIngredientRate,
 } from '@/app/recipes/[id]/actions';
@@ -22,6 +23,7 @@ import { suggestPrice } from '@/lib/costing';
 import { ComponentCards } from './component-cards';
 import { PrepCard } from './prep-card';
 import { Toast, type ToastState } from './toast';
+import { ChannelSection } from './channel-section';
 import { ChargesSheet } from './sheets/charges-sheet';
 import { DishSheet } from './sheets/dish-sheet';
 import { PasteSheet, type PastedRow } from './sheets/paste-sheet';
@@ -32,7 +34,9 @@ import { ComponentTable, type LineHandlers } from './component-table';
 import { ComponentPicker, type PickerChoice } from './component-picker';
 import { CostRail } from './cost-rail';
 import { StatusChip } from './status-chip';
-import { DEFAULT_MODEL, buildUp, foodCostPercent } from '@/lib/costing';
+import { type CostingModel, DEFAULT_MODEL, buildUp, foodCostPercent } from '@/lib/costing';
+import type { Charge } from '@/core/charges';
+import { compareChannels } from '@/lib/channels';
 import type { PresetName } from '@/core/rounding';
 import { unitFamily } from '@/core/units';
 import { addComponent, pantryWith, removeLine, setQty, toggleScope } from '@/lib/edit';
@@ -62,6 +66,7 @@ export function RecipeSheet({
   dish,
   usageCounts,
   orgModel,
+  orgCharges,
 }: {
   initialRecipe: Recipe;
   otherRecipes: readonly Recipe[];
@@ -69,7 +74,9 @@ export function RecipeSheet({
   dish: DishMeta;
   usageCounts: Readonly<Record<string, number>>;
   /** Wastage and packaging as the account has them, packaging being money. */
-  orgModel: { wastagePercent: number; packagingPerPortion: number };
+  orgModel: CostingModel;
+  /** The account's charge stack, so the delivery comparison is theirs. */
+  orgCharges: readonly Charge[];
 }) {
   const [recipe, setRecipe] = useState<Recipe>(initialRecipe);
   const [layout, setLayout] = useState<Layout>('table');
@@ -187,6 +194,24 @@ export function RecipeSheet({
 
   const suggestion =
     build.complete && build.total !== null ? suggestPrice(build.total, model) : null;
+
+  /*
+   * The delivery comparison (A26). Computed here beside the plate cost because
+   * it only means anything next to it — a commission is a number until you see
+   * what it does to this dish.
+   */
+  const channels = useMemo(
+    () => compareChannels({
+      charges: orgCharges,
+      plateCost: build.complete && build.total !== null ? build.total : 0,
+      packaging: model.packagingPerPortion,
+      target: model.foodCostTarget,
+      dineInPrice: dish.sellingPrice,
+      deliveryPrice: dish.deliveryPrice ?? null,
+      rounding,
+    }),
+    [orgCharges, build, model, dish.sellingPrice, dish.deliveryPrice, rounding],
+  );
 
   /** Paste rows: parsed by the importer's own code, then appended as real lines. */
   const addPasted = (rows: readonly PastedRow[]) => {
@@ -494,6 +519,15 @@ export function RecipeSheet({
           busy={saving}
           isDefault={charges === null}
         />
+
+      <ChannelSection
+        comparison={channels}
+        target={model.foodCostTarget}
+        onAddChannel={() => { window.location.href = '/settings'; }}
+        onUseSuggested={(price) => {
+          void commit(() => saveDeliveryPrice(recipe.id, price));
+        }}
+      />
       </div>
 
       <DishSheet
