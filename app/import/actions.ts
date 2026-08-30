@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 
 import type { ImportPlan } from '@/lib/import';
-import { saveBook } from '@/lib/book';
+import { currencyIsSettable, saveBook, saveOrg } from '@/lib/book';
 import type { DishMeta } from '@/lib/data';
 
 /**
@@ -25,9 +25,11 @@ export async function commitImport(plan: ImportPlan): Promise<{
       category: r.category,
       station: null,
       portionSize: null,
-      sellingPrice: null,
-      note: 'Brought in from your sheet. Set the batch size and the price.',
-      onMenu: false,
+      // What the sheet already knew. A price it states is the operator's own
+      // figure, not one Costbook invented.
+      sellingPrice: r.sellingPrice,
+      note: r.method ?? 'Brought in from your sheet. Set the batch size and the price.',
+      onMenu: r.sellingPrice !== null,
       updatedAt: today,
     };
   }
@@ -51,4 +53,19 @@ export async function commitImport(plan: ImportPlan): Promise<{
       `${s.dishes} ${s.dishes === 1 ? 'dish' : 'dishes'} created.${skipped}`,
     undoable: false,
   };
+}
+
+/**
+ * Take the sheet's currency as the account's.
+ *
+ * Offered only while nothing is costed. Once a rate has been typed, changing
+ * the label would leave every figure on file under the wrong symbol — Costbook
+ * does not convert, and pretending otherwise here is exactly the quiet
+ * wrongness the currency screen exists to prevent.
+ */
+export async function adoptCurrency(code: string): Promise<{ readonly ok: boolean }> {
+  if (!(await currencyIsSettable())) return { ok: false };
+  await saveOrg({ currency: code.toUpperCase() });
+  revalidatePath('/', 'layout');
+  return { ok: true };
 }

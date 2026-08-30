@@ -15,7 +15,7 @@ import { ingredientFromPack } from '@/core/ingredient';
 import type { ParseResult, ParsedBlock, ParsedLine } from '@/core/parse';
 import type { Recipe, RecipeComponent } from '@/core/recipe';
 import { flatComponent, ingredientComponent } from '@/core/recipe';
-import { type UnitFamily, unitFamily } from '@/core/units';
+import { type UnitFamily, unitFamily, toBase } from '@/core/units';
 
 export interface PlannedIngredient {
   readonly ingredient: Ingredient;
@@ -39,6 +39,10 @@ export interface PlannedIngredient {
 export interface PlannedRecipe {
   readonly recipe: Recipe;
   readonly category: string;
+  /** What the sheet says the dish sells for, where it says so. */
+  readonly sellingPrice: number | null;
+  /** The method, which prints on the prep card and costs nothing. */
+  readonly method: string | null;
   /** Lines the sheet carried that could not be turned into components. */
   readonly skipped: number;
 }
@@ -168,20 +172,34 @@ export function planImport(
       continue;
     }
 
+    /*
+     * Portions and output come from the sheet when the sheet states them, and
+     * from nowhere when it does not.
+     *
+     * These are not inferred from the inputs — the reference workbook infers
+     * them and gets it wrong three ways (TRD 6.3). But when a column says
+     * "Output (NO): 50", that is the operator stating it, and ignoring it costs
+     * a batch of fifty as though it plated one. Every figure on the dish then
+     * reads fifty times what it should, which is what a plate of jeera rice
+     * priced at 23,000 turned out to be.
+     */
+    const portions = block.portions !== null && block.portions > 0 ? block.portions : 1;
+    const stated = block.outputQty !== null && block.outputQty > 0;
+
     recipes.push({
       recipe: {
         id: idFor(block.name === '' ? `sheet-${block.row}` : block.name),
         name: block.name === '' ? 'Untitled from your sheet' : block.name,
-        family: 'count',
-        // Output and portions are the operator's to state, never inferred from
-        // the inputs - the reference workbook infers them and gets it wrong
-        // three ways (TRD 6.3). One portion until they say otherwise.
-        outputQty: 1,
-        outputUnit: 'pc',
-        portions: 1,
+        family: stated ? 'mass' : 'count',
+        outputQty: stated ? toBase(block.outputQty ?? 1, 'kg') : 1,
+        outputUnit: stated ? 'kg' : 'pc',
+        portions,
         components,
       },
       category: 'From your sheet',
+      // Carried so the dish arrives with what the sheet already knew about it.
+      sellingPrice: block.sellingPrice !== null && block.sellingPrice > 0 ? block.sellingPrice : null,
+      method: block.method,
       skipped,
     });
     skippedTotal += skipped;

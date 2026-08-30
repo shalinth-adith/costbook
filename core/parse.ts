@@ -27,7 +27,21 @@ export type Field =
   | 'unit'
   | 'rate'
   | 'total'
-  | 'yield';
+  | 'yield'
+  /**
+   * How many portions one batch plates.
+   *
+   * Without it a batch written to serve fifty is costed as though it served
+   * one, and every figure on the dish is fifty times what it should be. The
+   * reference workbook carries it as "Output (NO)".
+   */
+  | 'portions'
+  /** What one batch yields, e.g. "Output (KG)". */
+  | 'output'
+  /** What the dish sells for, e.g. "Expected SP". */
+  | 'sellingPrice'
+  /** The method, which prints on the prep card rather than costing anything. */
+  | 'method';
 
 /**
  * The fields a sheet has to place before it can become a menu.
@@ -82,6 +96,18 @@ export interface ParsedBlock {
   readonly name: string;
   readonly row: number;
   readonly lines: readonly ParsedLine[];
+  /**
+   * Read from the recipe's first row, where a sheet that carries them puts
+   * them once for the whole block rather than on every line.
+   *
+   * Portions is the one that matters most: without it a batch written to serve
+   * fifty is costed as though it served one.
+   */
+  readonly portions: number | null;
+  readonly outputQty: number | null;
+  readonly outputUnit: string | null;
+  readonly sellingPrice: number | null;
+  readonly method: string | null;
 }
 
 export interface ParseResult {
@@ -176,13 +202,69 @@ const HEADER_ALIASES: Readonly<Record<Field, readonly string[]>> = {
   name: ['ingredient', 'ingredients', 'ingredient name', 'item', 'item description', 'description', 'particulars', 'material', 'product'],
   qty: ['qty', 'quantity', 'qnty', 'weight', 'wt', 'used', 'qty used'],
   unit: ['unit', 'units', 'uom', 'u.o.m'],
-  rate: ['rate', 'rate/unit', 'rate per unit', 'unit rate', 'price', 'unit price', 'cost/unit', 'rate per kg'],
-  total: ['total', 'amount', 'value', 'cost', 'line total', 'total cost'],
+  rate: ['rate', 'rate/unit', 'rate per unit', 'unit rate', 'unit price', 'cost/unit', 'rate per kg'],
+  /*
+   * "Price" belongs here rather than with the rate. In the reference workbook
+   * the Price column is `=Quantity * Unit Rate` — a line total — while Unit
+   * Rate is the rate. A sheet that carries both and calls the second one Price
+   * is the common shape, and reading it as a rate divides by the quantity
+   * twice.
+   */
+  total: ['total', 'amount', 'value', 'cost', 'line total', 'total cost', 'price', 'line cost', 'line value'],
   yield: ['yield', 'yield%', 'yield %', 'yield percent'],
+  /*
+   * A batch that plates into fifty and a batch that plates into one differ by
+   * a factor of fifty in every figure the operator reads, so these are worth
+   * recognising rather than leaving to be mapped by hand.
+   */
+  portions: ['output no', 'output nos', 'portions', 'portion', 'serves', 'yield nos', 'no of portions', 'pieces', 'pcs', 'qty produced'],
+  output: ['output kg', 'output', 'batch size', 'batch output', 'output qty', 'total output', 'yield kg'],
+  sellingPrice: ['expected sp', 'sp', 'selling price', 'menu price', 'mrp', 'price to customer', 'expected selling price'],
+  method: ['preparation method', 'method', 'preparation', 'procedure', 'recipe method', 'instructions', 'prep method'],
 };
 
+/**
+ * Columns a sheet computes and Costbook computes again.
+ *
+ * These must not be mapped. "Cost per Item" reads as a cost and would take the
+ * line-total slot from the column that actually holds one — and importing a
+ * figure Costbook derives means importing the sheet's answer instead of
+ * checking it.
+ */
+const DERIVED_HEADERS: readonly string[] = [
+  'cost per item', 'cost per portion', 'cost per plate', 'cost per unit produced',
+  'food cost', 'food cost %', 'margin', 'profit', 'gp', 'gp %',
+];
+
+/** Currency codes a header may carry, e.g. "Price (AED)". */
+const CURRENCY_IN_HEADER = /\b(aed|inr|usd|eur|gbp|sar|qar|omr|bhd|kwd|lkr|bdt|npr|pkr|myr|sgd|aud|cad|zar|kes|ngn|jpy)\b/;
+
+/**
+ * The currency a sheet prices in, read off its own headings.
+ *
+ * A sheet whose money column says "Price (AED)" is telling us what its figures
+ * are in. Asking the operator to state it again, and silently costing in
+ * something else until they do, is the kind of quiet wrongness this product
+ * exists to avoid.
+ */
+export function currencyFromHeader(header: readonly string[]): string | null {
+  for (const cell of header) {
+    const match = CURRENCY_IN_HEADER.exec(String(cell ?? '').toLowerCase());
+    if (match !== null && match[1] !== undefined) return match[1].toUpperCase();
+  }
+  return null;
+}
+
 const normaliseHeader = (raw: string): string =>
-  raw.toLowerCase().replace(/[().]/g, '').replace(/\s+/g, ' ').trim();
+  raw
+    .toLowerCase()
+    .replace(/[().]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    // "price aed" is the same column as "price". The currency is read
+    // separately by currencyFromHeader.
+    .replace(CURRENCY_IN_HEADER, '')
+    .trim();
 
 /** Match column headings against the words real sheets use. */
 export function detectMapping(header: readonly string[]): ColumnMapping {
@@ -191,6 +273,7 @@ export function detectMapping(header: readonly string[]): ColumnMapping {
   header.forEach((cell, index) => {
     const key = normaliseHeader(text(cell));
     if (key === '') return;
+    if (DERIVED_HEADERS.includes(key)) return;
 
     for (const [field, aliases] of Object.entries(HEADER_ALIASES)) {
       if (mapping[field] !== undefined) continue;
@@ -429,6 +512,11 @@ export function parseRows(
     name: string;
     row: number;
     lines: ParsedLine[];
+    portions: number | null;
+    outputQty: number | null;
+    outputUnit: string | null;
+    sellingPrice: number | null;
+    method: string | null;
   }
 
   const blocks: OpenBlock[] = [];
@@ -479,14 +567,36 @@ export function parseRows(
       if (line === null) continue;
 
       const key = recipeName.toLowerCase();
-      const block = byRecipe.get(key) ?? { name: recipeName, row: i, lines: [] };
+      const block =
+        byRecipe.get(key) ??
+        {
+          name: recipeName,
+          row: i,
+          lines: [],
+          // Taken from the row that names the recipe, which is where a sheet
+          // laid out in blocks states them.
+          portions: mapping.portions === undefined ? null : parseNumber(row[mapping.portions]),
+          outputQty: mapping.output === undefined ? null : parseNumber(row[mapping.output]),
+          outputUnit: mapping.output === undefined ? null : 'kg',
+          sellingPrice: mapping.sellingPrice === undefined ? null : parseNumber(row[mapping.sellingPrice]),
+          method: mapping.method === undefined ? null : (text(row[mapping.method]) || null),
+        };
       block.lines.push(line);
       byRecipe.set(key, block);
     }
 
     const grouped: ParsedBlock[] = [...byRecipe.values()]
       .filter((b) => b.lines.length > 0)
-      .map((b) => ({ name: b.name, row: b.row, lines: [...b.lines] }));
+      .map((b) => ({
+        name: b.name,
+        row: b.row,
+        lines: [...b.lines],
+        portions: b.portions,
+        outputQty: b.outputQty,
+        outputUnit: b.outputUnit,
+        sellingPrice: b.sellingPrice,
+        method: b.method,
+      }));
 
     for (const block of grouped) {
       for (const line of block.lines) warnings.push(...line.warnings);
@@ -496,7 +606,10 @@ export function parseRows(
   }
 
   const open = (name: string, row: number): OpenBlock => {
-    const block: OpenBlock = { name, row, lines: [] };
+    const block: OpenBlock = {
+      name, row, lines: [],
+      portions: null, outputQty: null, outputUnit: null, sellingPrice: null, method: null,
+    };
     blocks.push(block);
     return block;
   };
@@ -530,7 +643,16 @@ export function parseRows(
   // Blocks that never gathered a line were headings for nothing.
   const settled: ParsedBlock[] = blocks
     .filter((b) => b.lines.length > 0)
-    .map((b) => ({ name: b.name, row: b.row, lines: [...b.lines] }));
+    .map((b) => ({
+      name: b.name,
+      row: b.row,
+      lines: [...b.lines],
+      portions: b.portions,
+      outputQty: b.outputQty,
+      outputUnit: b.outputUnit,
+      sellingPrice: b.sellingPrice,
+      method: b.method,
+    }));
 
   for (const block of settled) {
     for (const line of block.lines) warnings.push(...line.warnings);

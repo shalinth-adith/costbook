@@ -2052,3 +2052,16 @@
 .sheet-fault-title { font-size: 14px; font-weight: 600; margin: 0 0 6px; color: var(--over-ink-strong); }
 .sheet-fault-copy { font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin: 0 0 6px; }
 .sheet-fault-copy:last-child { margin-block-end: 0; }
+
+/* ── Import: things the sheet itself tells us ────────────────────────────── */
+.import-alarm, .import-note {
+  grid-column: 1 / -1;
+  padding: var(--sp-4); margin-block-end: var(--sp-4);
+  border-radius: var(--radius-panel);
+}
+.import-alarm { background: var(--over-tint); border: 1px solid var(--over-edge); }
+.import-note  { background: var(--near-tint); border: 1px solid var(--near-edge); }
+.import-alarm-title { font-size: 14px; font-weight: 600; margin: 0 0 6px; }
+.import-alarm-copy { font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin: 0 0 var(--sp-2); max-inline-size: 78ch; }
+.import-alarm-copy:last-child { margin-block-end: 0; }
+.import-note .btn { margin-block-start: var(--sp-3); }

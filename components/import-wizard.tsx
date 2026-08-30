@@ -12,6 +12,7 @@ import {
   parseRows,
   readRow,
   sampleRows,
+  currencyFromHeader,
 } from '@/core/parse';
 
 import { type ImportPlan, groupWarnings, looksLikeMappingError, planImport } from '@/lib/import';
@@ -57,9 +58,15 @@ export function ImportWizard({
   existing,
   knownRecipes,
   onCommit,
+  currencyCode,
+  onUseCurrency,
 }: {
   existing: readonly Ingredient[];
   knownRecipes: readonly string[];
+  /** What the account prices in, so a sheet in another currency can say so. */
+  currencyCode: string;
+  /** Adopt the sheet's currency. Only offered while nothing is costed. */
+  onUseCurrency?: ((code: string) => Promise<unknown>) | undefined;
   onCommit: (plan: ImportPlan) => Promise<{ message: string; undoable: boolean }>;
 }) {
   const m = useMoney();
@@ -72,6 +79,8 @@ export function ImportWizard({
   const [rows, setRows] = useState<readonly (readonly string[])[]>([]);
   const [mapping, setMapping] = useState<ColumnMapping>({});
   const [busy, setBusy] = useState(false);
+  /** Formula cells whose results the file does not carry. */
+  const [uncomputed, setUncomputed] = useState(0);
   const [problem, setProblem] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   /** Which sample row the preview is reading back. */
@@ -101,6 +110,13 @@ export function ImportWizard({
     [parsed, lineCount],
   );
   const mappingFault = useMemo(() => looksLikeMappingError(warnings), [warnings]);
+
+  /** Read off the sheet's own headings — "Price (AED)" says what it is in. */
+  const detectedCurrency = useMemo(() => {
+    if (parsed === null) return null;
+    const header = parsed.headerRow === null ? [] : (rows[parsed.headerRow] ?? []);
+    return currencyFromHeader(header);
+  }, [parsed, rows]);
 
   const samples = useMemo(
     () => (parsed === null ? [] : sampleRows(rows, mapping, parsed.headerRow)),
@@ -134,6 +150,30 @@ export function ImportWizard({
         raw: false,
         defval: '',
       });
+
+      /*
+       * A formula with no cached result is not an empty cell.
+       *
+       * Some exports write the formula and not the figure it produced —
+       * Google Sheets does this, and so does anything that never opened the
+       * file in a spreadsheet. SheetJS reads the cached value, so those cells
+       * arrive blank, and a whole column of prices vanishes without a word.
+       *
+       * The same workbook exported the other way imports perfectly, which is
+       * why this is worth naming rather than treating as an empty sheet.
+       */
+      let formulaCells = 0;
+      let emptyFormulaCells = 0;
+      for (const [ref, cell] of Object.entries(sheet)) {
+        if (ref.startsWith('!')) continue;
+        const c = cell as { f?: string; v?: unknown };
+        if (c.f === undefined) continue;
+        formulaCells += 1;
+        if (c.v === undefined || c.v === null || c.v === '') emptyFormulaCells += 1;
+      }
+      setUncomputed(
+        formulaCells > 0 && emptyFormulaCells / formulaCells > 0.5 ? emptyFormulaCells : 0,
+      );
 
       setFileName(file.name);
       setSheetName(first);
@@ -341,6 +381,42 @@ export function ImportWizard({
 
         {step === 'map' && parsed !== null ? (
           <div className="map-grid">
+            {/* Stated before anything is mapped, because a column that arrived
+                empty cannot be mapped to anything and the operator would spend
+                the screen wondering why. */}
+            {uncomputed > 0 ? (
+              <div className="import-alarm" role="alert">
+                <p className="import-alarm-title">
+                  This file carries its formulas but not their answers.
+                </p>
+                <p className="import-alarm-copy">
+                  <b className="figure">{uncomputed}</b> cells hold a formula with no result saved
+                  alongside it, so Costbook reads them as blank — most likely your price, output and
+                  selling-price columns. It is how some exports write a spreadsheet; nothing is
+                  wrong with your figures.
+                </p>
+                <p className="import-alarm-copy">
+                  Open the file in Excel, Numbers or Google Sheets and save it again, and the
+                  answers travel with it. Import that copy instead.
+                </p>
+              </div>
+            ) : null}
+
+            {detectedCurrency !== null && detectedCurrency !== currencyCode ? (
+              <div className="import-note">
+                <p className="import-alarm-title">
+                  This sheet prices in {detectedCurrency}, and your account is set to {currencyCode}.
+                </p>
+                <p className="import-alarm-copy">
+                  Costbook does not convert. Importing as it stands would file{' '}
+                  {detectedCurrency} figures under a {currencyCode} symbol, and every price it
+                  suggests would be wrong by the exchange rate.
+                </p>
+                <button type="button" className="btn" onClick={() => void onUseCurrency?.(detectedCurrency)}>
+                  Price this account in {detectedCurrency}
+                </button>
+              </div>
+            ) : null}
             {/* Their sheet stays visible throughout. Nothing is asked twice. */}
             <section className="card sheet-preview">
               <div className="card-head"><h2 className="card-title">Your sheet</h2></div>

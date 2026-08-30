@@ -3,7 +3,7 @@ import { CurrencyProvider } from '@/components/currency-provider';
 import { ImportWizard } from '@/components/import-wizard';
 import { book } from '@/lib/book';
 
-import { commitImport } from './actions';
+import { adoptCurrency, commitImport } from './actions';
 import { requireSetup } from '@/lib/guard';
 
 export const dynamic = 'force-dynamic';
@@ -30,6 +30,8 @@ export default async function ImportPage() {
         <ImportWizard
           existing={b.ingredients}
           knownRecipes={b.recipes.map((r) => r.name)}
+          currencyCode={code}
+          onUseCurrency={adoptCurrency}
           onCommit={commitImport}
         />
       </CurrencyProvider>
