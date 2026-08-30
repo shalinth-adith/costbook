@@ -2031,3 +2031,16 @@
   border-block-end: 1px dotted var(--border-row);
 }
 .rate-history-note { font-size: 11px; color: var(--text-tertiary); margin-block-start: 4px; }
+
+/* A dish with a line the engine cannot measure. Not an error page: the sheet
+   stays, the lines stay, and the sentence says which one to fix. */
+.sheet-fault {
+  margin: var(--sp-4) var(--sp-6) 0;
+  padding: var(--sp-4);
+  background: var(--over-tint);
+  border: 1px solid var(--over-edge);
+  border-radius: var(--radius-panel);
+}
+.sheet-fault-title { font-size: 14px; font-weight: 600; margin: 0 0 6px; color: var(--over-ink-strong); }
+.sheet-fault-copy { font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin: 0 0 6px; }
+.sheet-fault-copy:last-child { margin-block-end: 0; }

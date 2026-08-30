@@ -13,9 +13,9 @@
  * gap from a missing rate, and it says so.
  */
 
-import { type Pantry, recipeCost } from '@/core/recipe';
+import type { Pantry } from '@/core/recipe';
 
-import { type CostingModel, type TargetStatus, buildUp, foodCostPercent, statusFor } from './costing';
+import { type CostingModel, type TargetStatus, buildUp, foodCostPercent, statusFor, tryRecipeCost } from './costing';
 import { type DishMeta } from './data';
 
 /** Pixels per percentage point on the bar. 240px of track shows 60%. */
@@ -78,8 +78,12 @@ export function dashboard(input: DashboardInput): Dashboard {
     const dish = meta[id];
     if (recipe === undefined || dish === undefined) continue;
 
-    const cost = recipeCost(recipe, pantry);
-    const build = buildUp(cost, model);
+    // A dish with a line we cannot measure is skipped, not thrown. The board
+    // exists to rank a whole menu, and one bad row should cost the operator
+    // that row rather than the page.
+    const attempt = tryRecipeCost(recipe, pantry);
+    if (!attempt.ok) continue;
+    const build = buildUp(attempt.cost, model);
 
     const costPerPortion = build.complete ? build.total : null;
     const fc = costPerPortion === null ? null : foodCostPercent(costPerPortion, dish.sellingPrice);

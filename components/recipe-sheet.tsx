@@ -35,7 +35,7 @@ import { ComponentTable, type LineHandlers } from './component-table';
 import { ComponentPicker, type PickerChoice } from './component-picker';
 import { CostRail } from './cost-rail';
 import { StatusChip } from './status-chip';
-import { type CostingModel, DEFAULT_MODEL, buildUp, foodCostPercent } from '@/lib/costing';
+import { type CostingModel, DEFAULT_MODEL, buildUp, emptyCost, foodCostPercent, tryRecipeCost } from '@/lib/costing';
 import type { Charge } from '@/core/charges';
 import { compareChannels } from '@/lib/channels';
 import { inspect } from '@/lib/inspector';
@@ -128,7 +128,19 @@ export function RecipeSheet({
     [rounding, charges, orgModel],
   );
 
-  const cost = useMemo(() => recipeCost(recipe, pantry), [recipe, pantry]);
+  /*
+   * A line the engine cannot measure must not take the screen down.
+   *
+   * `recipeCost` throws rather than return a figure it cannot stand behind,
+   * which is correct — but this runs on every keystroke, and an error boundary
+   * reading SOMETHING BROKE tells an operator nothing about which line is
+   * wrong. The throw becomes a value, and the sheet says what to fix.
+   */
+  const attempt = useMemo(() => tryRecipeCost(recipe, pantry), [recipe, pantry]);
+  const cost = useMemo(
+    () => (attempt.ok ? attempt.cost : emptyCost(recipe)),
+    [attempt, recipe],
+  );
   const build = useMemo(() => buildUp(cost, model), [cost, model]);
   const fc =
     build.complete && build.total !== null
@@ -291,6 +303,18 @@ export function RecipeSheet({
 
   return (
     <>
+      {/* Named, not shrugged at. The operator can fix a line they can find. */}
+      {!attempt.ok && (
+        <div className="sheet-fault" role="alert">
+          <p className="sheet-fault-title">This dish cannot be costed yet</p>
+          <p className="sheet-fault-copy">{attempt.message}</p>
+          <p className="sheet-fault-copy">
+            Nothing has been lost — the lines below are as you left them. Fix or remove that one and
+            the figures come straight back.
+          </p>
+        </div>
+      )}
+
       <div className="page-head">
         <div className="page-title-block">
           <nav className="crumbs" aria-label="Breadcrumb">

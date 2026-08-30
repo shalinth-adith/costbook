@@ -305,6 +305,25 @@ export function ingredientComponent(
     );
   }
 
+  /*
+   * Refused here, not only at costing time.
+   *
+   * `recipeCost` has always rejected a quantity of zero, but this function did
+   * not — so a zero could be built into a component, stored, and only explode
+   * when something tried to cost it. Every caller already wraps construction in
+   * a try/catch and skips what it cannot measure, so validating here turns a
+   * page that crashes later into a line that is quietly left out now.
+   */
+  if (!Number.isFinite(qty) || qty <= 0) {
+    throw new RecipeError(
+      'invalid_qty',
+      `${ingredient.name} needs a quantity above zero. A line with no quantity ` +
+        'costs nothing and means nothing, so it is left out rather than guessed at.',
+      'qty',
+      ingredient.name,
+    );
+  }
+
   return {
     kind: 'ingredient',
     scope: options.scope ?? 'batch',
@@ -330,6 +349,17 @@ export function recipeComponent(
       'family_mismatch',
       `${child.name} is made in ${child.family}, so it cannot be used in ${unit}.`,
       'unit',
+      child.name,
+    );
+  }
+
+  // Same reason as ingredientComponent: refuse it here rather than let it be
+  // stored and crash whatever tries to cost it later.
+  if (!Number.isFinite(qty) || qty <= 0) {
+    throw new RecipeError(
+      'invalid_qty',
+      `${child.name} needs a quantity above zero.`,
+      'qty',
       child.name,
     );
   }

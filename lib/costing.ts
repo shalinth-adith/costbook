@@ -12,7 +12,7 @@
  * one place and labelled everywhere they appear. Nothing about them is hidden.
  */
 
-import { type RecipeCost, isComplete } from '@/core/recipe';
+import { type Pantry, type Recipe, type RecipeCost, isComplete, RecipeError, recipeCost } from '@/core/recipe';
 import {
   PRESETS,
   type PresetName,
@@ -200,5 +200,59 @@ export function suggestPrice(total: number, model: CostingModel): PriceSuggestio
     alternative,
     alternativeFoodCost: (total / alternative) * 100,
     ruleLabel: ROUNDING_LABEL[model.rounding],
+  };
+}
+
+/**
+ * Cost a recipe without letting a bad line take the page down.
+ *
+ * `recipeCost` throws on a recipe it cannot measure, which is right: a figure
+ * derived from a line with no quantity would be a wrong number wearing a
+ * confident face, and this product's whole argument is that it does not
+ * produce those.
+ *
+ * But a screen that renders a hundred dishes should not go blank because one
+ * of them has a bad row, and the operator who sees it needs to be told which
+ * dish and which line — not "something broke". So the throw is turned into a
+ * value the interface can render.
+ */
+export type CostAttempt =
+  | { readonly ok: true; readonly cost: RecipeCost }
+  | { readonly ok: false; readonly message: string; readonly field: string | null };
+
+export function tryRecipeCost(recipe: Recipe, pantry: Pantry): CostAttempt {
+  try {
+    return { ok: true, cost: recipeCost(recipe, pantry) };
+  } catch (error) {
+    if (error instanceof RecipeError) {
+      return { ok: false, message: error.message, field: error.field ?? null };
+    }
+    throw error;
+  }
+}
+
+/**
+ * A cost shaped like a floor with nothing in it.
+ *
+ * What a screen shows while a recipe has a line it cannot measure: no figures,
+ * because there are none to show, and no zeros, because a zero would read as a
+ * cost of nothing. The message beside it says which line to fix.
+ */
+export function emptyCost(recipe: Recipe): RecipeCost {
+  return {
+    kind: 'floor',
+    id: recipe.id,
+    name: recipe.name,
+    portions: recipe.portions,
+    outputQty: recipe.outputQty,
+    outputUnit: recipe.outputUnit,
+    lines: [],
+    assumed: [],
+    batchFloor: 0,
+    portionAddFloor: 0,
+    perPortionFloor: null,
+    totalFloor: 0,
+    costPerBaseFloor: 0,
+    unpriced: [],
   };
 }

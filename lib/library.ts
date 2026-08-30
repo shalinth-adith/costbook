@@ -10,7 +10,7 @@
 import { ingredientCost } from '@/core/ingredient';
 import { type Pantry, isComplete, recipeCost } from '@/core/recipe';
 
-import { type CostingModel, type TargetStatus, buildUp, foodCostPercent, statusFor } from './costing';
+import { type CostingModel, type TargetStatus, buildUp, foodCostPercent, statusFor, tryRecipeCost } from './costing';
 import type { DishMeta } from './data';
 
 /**
@@ -111,7 +111,9 @@ export function library(input: LibraryInput): Library {
     const dish = meta[id];
     if (recipe === undefined || dish === undefined) continue;
 
-    const cost = recipeCost(recipe, pantry);
+    const attempt = tryRecipeCost(recipe, pantry);
+    if (!attempt.ok) continue;
+    const cost = attempt.cost;
     const build = buildUp(cost, model);
     const complete = isComplete(cost);
     const kind: LibraryKind = recipe.portions === null ? 'batch' : 'dish';
