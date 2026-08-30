@@ -10,7 +10,9 @@ import {
   recordAttempts,
   verify,
 } from '@/lib/accounts';
-import { type SignInState, nextAttempts, signIn } from '@/lib/auth';
+import { type SignInState, emailFault, nextAttempts, signIn } from '@/lib/auth';
+import { supabaseConfigured } from '@/lib/supabase/env';
+import { supabaseServer } from '@/lib/supabase/server';
 
 /**
  * The password is compared here and nowhere else.
@@ -22,6 +24,8 @@ export async function attemptSignIn(_previous: SignInState, form: FormData): Pro
   const email = String(form.get('email') ?? '');
   const password = String(form.get('password') ?? '');
   const now = Date.now();
+
+  if (supabaseConfigured()) return await signInWithSupabase(email, password);
 
   const result = signIn(email, password, {
     account: lookup(email),
@@ -52,4 +56,49 @@ export async function attemptSignIn(_previous: SignInState, form: FormData): Pro
 export async function resendVerification(email: string): Promise<{ readonly sentAt: number }> {
   markVerificationSent(email);
   return { sentAt: Date.now() };
+}
+
+
+/**
+ * Sign in for real.
+ *
+ * A10 asks for eight states and Supabase answers with one message, so the
+ * distinctions it does draw are kept and the rest collapse honestly. In
+ * particular an unknown address and a wrong password come back identically —
+ * which is correct, and deliberate on Supabase's part: a sign-in screen that
+ * tells you an address is unknown is a screen that tells anybody which
+ * addresses have accounts.
+ *
+ * The near-miss suggestion in A10 · 05 therefore cannot be offered against a
+ * real directory, and is not faked.
+ */
+async function signInWithSupabase(email: string, password: string): Promise<SignInState> {
+  const faults = [
+    ...(email.trim() === '' ? [{ field: 'email' as const, message: 'Your email address goes here.' }] : []),
+    ...(password === '' ? [{ field: 'password' as const, message: 'And your password.' }] : []),
+  ];
+  if (faults.length > 0) return { kind: 'fields', faults };
+
+  const shape = emailFault(email);
+  if (shape !== null) return { kind: 'fields', faults: [shape] };
+
+  const supabase = await supabaseServer();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error === null) redirect('/dashboard');
+
+  const message = error.message.toLowerCase();
+
+  // Supabase rate-limits rather than locking an account. Same consequence for
+  // the operator, so it lands on the state written for it.
+  if (message.includes('rate limit') || message.includes('too many')) {
+    return { kind: 'locked', unlocksInMs: 60_000 };
+  }
+  if (message.includes('confirm')) {
+    return { kind: 'unverified', email, sentDaysAgo: null };
+  }
+
+  // Everything else is "those two do not go together", which is the only thing
+  // it is safe to say.
+  return { kind: 'wrong-password', triesLeft: 0 };
 }

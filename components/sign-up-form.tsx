@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { createAccount } from '@/app/sign-up/actions';
+
 import { MIN_PASSWORD, PASSWORD_RULE } from './entry-shell';
 
 /**
@@ -27,11 +29,21 @@ export function SignUpForm() {
   const longEnough = password.length >= MIN_PASSWORD;
   const short = MIN_PASSWORD - password.length;
 
+  const [fault, setFault] = useState<string | null>(null);
+  const [exists, setExists] = useState(false);
+
   const submit = () => {
     if (!longEnough) { setTooEarly(true); return; }
+    setFault(null);
+    setExists(false);
     start(async () => {
-      // No account is created here yet — auth lands with Supabase at step 12.
-      setSent(email);
+      const out = await createAccount(email, password);
+      // A successful sign-up redirects on the server, so anything that comes
+      // back is something the operator has to be told about.
+      if (out.kind === 'exists') { setExists(true); return; }
+      if (out.kind === 'fields') { setFault(out.message); return; }
+      if (out.kind === 'failed') { setFault(out.message); return; }
+      if (out.kind === 'sent') setSent(out.email);
     });
   };
 
@@ -139,6 +151,21 @@ export function SignUpForm() {
               : `${short} more character${short === 1 ? '' : 's'}`}
         </span>
       </label>
+
+      {/* Worded identically whether the address has an account or not, with a
+          route to sign-in — so the form cannot be used to find out who does. */}
+      {exists && (
+        <div className="notice notice-flat">
+          <p className="notice-title">If this address already has an account, we&rsquo;ve sent a sign-in link to it.</p>
+          <p className="notice-text">
+            Check your email rather than making a second account.{' '}
+            <Link href="/sign-in" className="link link-sm">Sign in instead</Link>
+          </p>
+        </div>
+      )}
+      {fault !== null && (
+        <p className="field-fault field-fault-over">{fault}</p>
+      )}
 
       <button type="button" className="btn btn-primary entry-action" disabled={pending} onClick={submit}>
         {pending ? 'Creating your account…' : 'Create my account'}
