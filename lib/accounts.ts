@@ -22,8 +22,8 @@ interface FixtureAccount extends Account {
 
 /**
  * The three states the entry screen needs to demonstrate: a verified owner,
- * a manager who never opened her link (A10 · 06), and the standard dev-login
- * account this workspace uses for automated verification.
+ * a manager who never opened her link (A10 · 06), and Costbook's own
+ * development account, which matches /api/auth/dev-login.
  */
 const FIXTURE: readonly FixtureAccount[] = [
   {
@@ -39,8 +39,10 @@ const FIXTURE: readonly FixtureAccount[] = [
     verificationSentAt: Date.now() - 4 * DAY,
   },
   {
-    email: 'admin@thebrewapps.com',
-    password: 'thebrewapps',
+    // Costbook's own development account, on a domain RFC 2606 reserves so it
+    // can never reach a real inbox. Matches /api/auth/dev-login.
+    email: 'dev@costbook.test',
+    password: 'costbook-dev',
     verifiedAt: Date.now() - 30 * DAY,
     verificationSentAt: Date.now() - 30 * DAY,
   },

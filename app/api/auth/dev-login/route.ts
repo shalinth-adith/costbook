@@ -28,8 +28,16 @@ import { org, setOrg } from '@/lib/store';
  * looking at screens is not a licence to invent a menu.
  */
 
-const DEV_EMAIL = 'admin@thebrewapps.com';
-const DEV_PASSWORD = 'thebrewapps';
+/*
+ * A local address on a reserved domain. `.test` is reserved by RFC 2606 and can
+ * never be registered, so this cannot collide with a real inbox or accidentally
+ * mail a stranger if confirmations are ever turned on.
+ *
+ * Costbook's own, deliberately. It is this project's development account and it
+ * lives in this project's database.
+ */
+const DEV_EMAIL = 'dev@costbook.test';
+const DEV_PASSWORD = 'costbook-dev';
 
 /**
  * Obviously fake, and greppable. A dev session must never be mistakable for a

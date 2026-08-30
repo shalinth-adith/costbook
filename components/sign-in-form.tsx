@@ -104,8 +104,8 @@ export function SignInForm() {
   useEffect(() => {
     if (process.env.NODE_ENV === 'production') return;
     if (!new URLSearchParams(window.location.search).has('dev-login')) return;
-    setEmail('admin@thebrewapps.com');
-    setPassword('thebrewapps');
+    setEmail('dev@costbook.test');
+    setPassword('costbook-dev');
   }, []);
   const [shown, setShown] = useState(false);
   /**
