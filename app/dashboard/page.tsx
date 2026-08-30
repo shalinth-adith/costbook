@@ -1,7 +1,5 @@
 import { AppShell } from '@/components/app-shell';
 import { DashboardView } from '@/components/dashboard-view';
-import { DEFAULT_MODEL } from '@/lib/costing';
-import { ORG } from '@/lib/data';
 import {
   allIngredients,
   allMeta,
@@ -10,6 +8,7 @@ import {
   currencyIsSettable,
   orgModel,
   pantry,
+  org,
 } from '@/lib/store';
 import { CurrencyProvider } from '@/components/currency-provider';
 import { dashboard } from '@/lib/dashboard';
@@ -23,7 +22,7 @@ import { dashboard } from '@/lib/dashboard';
 export const dynamic = 'force-dynamic';
 
 export default function DashboardPage() {
-  const model = { ...DEFAULT_MODEL, ...orgModel(), foodCostTarget: ORG.foodCostTarget };
+  const model = orgModel();
   // Read through the store, so a dish saved a moment ago is here.
   const data = dashboard({
     ids: allRecipes().map((r) => r.id),
@@ -36,7 +35,7 @@ export default function DashboardPage() {
 
 
   return (
-    <AppShell current="Dashboard" currencyCode={code} currencySettable={currencyIsSettable()} dishCount={allRecipes().length}>
+    <AppShell orgName={org().name} current="Dashboard" currencyCode={code} currencySettable={currencyIsSettable()} dishCount={allRecipes().length}>
       <CurrencyProvider code={code}>
         <DashboardView data={data} target={model.foodCostTarget} />
       </CurrencyProvider>

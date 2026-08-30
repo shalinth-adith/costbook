@@ -8,6 +8,7 @@ import {
   currencyCode,
   currencyIsSettable,
   pantry,
+  org,
 } from '@/lib/store';
 
 import { addIngredient, setRate, setRates, setYield } from './actions';
@@ -22,6 +23,7 @@ export default function IngredientsPage() {
 
   return (
     <AppShell
+      orgName={org().name}
       current="Ingredients"
       currencyCode={code}
       currencySettable={currencyIsSettable()}

@@ -16,21 +16,20 @@ import { isKnownCurrency } from '@/core/currency';
 import type { Ingredient } from '@/core/ingredient';
 import { type Pantry, type Recipe, pantryOf } from '@/core/recipe';
 
-import { DEFAULT_MODEL } from './costing';
+import type { CostingModel } from './costing';
 import { ORG, type DishMeta, meta as seedMeta, recipes as seedRecipes, shelf as seedShelf } from './data';
+import { BLANK_ORG, type Org } from './org';
 
 interface State {
   recipes: Recipe[];
   ingredients: Ingredient[];
   meta: Record<string, DishMeta>;
-  currency: string;
   /**
-   * The figures every new dish starts from. Wastage is a share and survives a
-   * currency change untouched; packaging is an amount, which makes it money,
-   * which means it converts like every other amount.
+   * Every answer the operator gave about their place, in one object. Holding
+   * it whole rather than as loose fields is what lets the wizard and Settings
+   * write the same thing — they are one form rendered twice, not two forms.
    */
-  wastagePercent: number;
-  packagingPerPortion: number;
+  org: Org;
 }
 
 /**
@@ -49,9 +48,15 @@ function state(): State {
     recipes: [...seedRecipes],
     ingredients: [...seedShelf],
     meta: { ...seedMeta },
-    currency: ORG.currencyCode,
-    wastagePercent: DEFAULT_MODEL.wastagePercent,
-    packagingPerPortion: DEFAULT_MODEL.packagingPerPortion,
+    // The fixture café is already set up, so the seeded org is past the wizard.
+    org: {
+      ...BLANK_ORG,
+      name: ORG.name,
+      currency: ORG.currencyCode,
+      taxTreatment: 'absorbed',
+      foodCostTarget: ORG.foodCostTarget,
+      setupDone: true,
+    },
   };
   return holder[KEY];
 }
@@ -150,22 +155,48 @@ export function restore(recipe: Recipe, dishMeta: DishMeta | undefined): void {
 }
 
 export function currencyCode(): string {
-  return state().currency;
+  return state().org.currency;
 }
 
-/** The costing model as it stands, in the account's own currency. */
-export function orgModel(): { wastagePercent: number; packagingPerPortion: number } {
+/** Everything the operator answered. Read whole; written by patch. */
+export function org(): Org {
+  return state().org;
+}
+
+/**
+ * The costing model as it stands.
+ *
+ * Every screen that costs anything reads this rather than `DEFAULT_MODEL`, so
+ * a target changed in Settings reaches the dashboard, the library and the cost
+ * sheet without any of them being told about it.
+ */
+export function orgModel(): CostingModel {
+  const o = state().org;
+  return {
+    wastagePercent: o.wastagePercent,
+    packagingPerPortion: o.packagingPerPortion,
+    foodCostTarget: o.foodCostTarget,
+    rounding: o.rounding,
+  };
+}
+
+/**
+ * Write part of the org.
+ *
+ * Currency is refused here and goes through `setCurrency`, which is the only
+ * field with a precondition: it cannot move once a rate has been typed in it.
+ */
+export function setOrg(patch: Partial<Omit<Org, 'currency'>>): void {
   const s = state();
-  return { wastagePercent: s.wastagePercent, packagingPerPortion: s.packagingPerPortion };
+  s.org = { ...s.org, ...patch };
 }
 
+/** Kept for the callers that only ever wrote these two. */
 export function setOrgModel(patch: {
   wastagePercent?: number;
   packagingPerPortion?: number;
 }): void {
-  const s = state();
-  if (patch.wastagePercent !== undefined) s.wastagePercent = patch.wastagePercent;
-  if (patch.packagingPerPortion !== undefined) s.packagingPerPortion = patch.packagingPerPortion;
+  setOrg(patch);
 }
 
 /**
@@ -192,7 +223,8 @@ export function currencyIsSettable(): boolean {
 export function setCurrency(code: string): void {
   if (!isKnownCurrency(code)) return;
   if (!currencyIsSettable()) return;
-  state().currency = code.toUpperCase();
+  const s = state();
+  s.org = { ...s.org, currency: code.toUpperCase() };
 }
 
 /** Empty the account, so setup can be walked through again. */

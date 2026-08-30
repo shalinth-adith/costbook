@@ -1,8 +1,6 @@
 import { AppShell } from '@/components/app-shell';
 import { CurrencyProvider } from '@/components/currency-provider';
 import { LibraryView } from '@/components/library-view';
-import { DEFAULT_MODEL } from '@/lib/costing';
-import { ORG } from '@/lib/data';
 import { library } from '@/lib/library';
 import {
   allMeta,
@@ -11,6 +9,7 @@ import {
   currencyIsSettable,
   orgModel,
   pantry,
+  org,
 } from '@/lib/store';
 
 import { archiveRecipe, createDish, duplicateRecipe } from './actions';
@@ -24,7 +23,7 @@ export const dynamic = 'force-dynamic';
  * and nothing on it is being edited.
  */
 export default function RecipesPage() {
-  const model = { ...DEFAULT_MODEL, ...orgModel(), foodCostTarget: ORG.foodCostTarget };
+  const model = orgModel();
   const store = pantry();
   const code = currencyCode();
 
@@ -37,6 +36,7 @@ export default function RecipesPage() {
 
   return (
     <AppShell
+      orgName={org().name}
       current="Recipes"
       currencyCode={code}
       currencySettable={currencyIsSettable()}

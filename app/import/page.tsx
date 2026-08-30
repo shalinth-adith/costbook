@@ -6,6 +6,7 @@ import {
   allRecipes,
   currencyCode,
   currencyIsSettable,
+  org,
 } from '@/lib/store';
 
 import { commitImport } from './actions';
@@ -21,6 +22,7 @@ export default function ImportPage() {
 
   return (
     <AppShell
+      orgName={org().name}
       current="Import"
       currencyCode={code}
       currencySettable={currencyIsSettable()}

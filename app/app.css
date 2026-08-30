@@ -1446,3 +1446,26 @@
   color: var(--text-on-inverse); background: var(--text-secondary);
   border-radius: 2px; padding: 1px 4px;
 }
+
+/* ── A34 · the wordmark as a control ─────────────────────────────────────── */
+/* The mark is 20px tall; the target is padded to 44. A 56px header does not
+   make its logo tappable on its own. Clear space is the mark's own height. */
+.wordmark {
+  display: inline-flex; align-items: center; gap: 9px;
+  min-height: 44px; padding-inline-end: 20px;
+  font-family: inherit; font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+  color: var(--text-primary); text-decoration: none;
+  background: none; border: 0; cursor: pointer;
+  transition: color var(--dur-micro) var(--ease-enter);
+}
+.wordmark:hover { color: var(--accent-ink); }
+.wordmark:focus-visible {
+  outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 3px;
+}
+/* Inert during setup and import: drawn, no hover, not focusable. Per A1 it
+   keeps full contrast — it is not disabled, it simply has nowhere to go. */
+.wordmark.is-inert { cursor: default; padding-inline-end: 20px; }
+.wordmark.is-inert:hover { color: var(--text-primary); }
+/* Below 480 the bars carry the mark alone: the word stops reading at 11.5px,
+   where the four bars fill in and close up. */
+@media (max-width: 479px) { .wordmark > span { display: none; } }

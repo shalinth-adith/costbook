@@ -10,9 +10,7 @@ import { chooseCurrency } from '@/app/actions';
 import { CurrencySheet } from './sheets/currency-sheet';
 import { Toast, type ToastState } from './toast';
 
-import { ORG } from '@/lib/data';
-
-import { Mark } from './mark';
+import { Wordmark } from './wordmark';
 
 /**
  * Import is one of the five, per A16. A repeat import is a monthly rhythm once
@@ -39,12 +37,15 @@ function initialsOf(name: string): string {
 
 export function AppShell({
   current,
+  orgName,
   currencyCode,
   currencySettable,
   dishCount,
   children,
 }: {
   current: string;
+  /** The operator's own name for their place, as answered at setup. */
+  orgName: string;
   currencyCode: string;
   /** False once anything has been priced, which settles the currency. */
   currencySettable: boolean;
@@ -68,10 +69,7 @@ export function AppShell({
   return (
     <div className="shell">
       <header className="topbar">
-        <Link href="/" className="brand">
-          <Mark />
-          <span>Costbook</span>
-        </Link>
+        <Wordmark mode="app" />
 
         <nav className="nav" aria-label="Main">
           {NAV.map((item) => (
@@ -96,8 +94,8 @@ export function AppShell({
               <path d="m3 4.8 3 3 3-3" />
             </svg>
           </button>
-          <span className="topbar-org">{ORG.name}</span>
-          <span className="avatar" aria-hidden="true">{initialsOf(ORG.name)}</span>
+          <span className="topbar-org">{orgName}</span>
+          <span className="avatar" aria-hidden="true">{initialsOf(orgName)}</span>
         </div>
       </header>
       {children}

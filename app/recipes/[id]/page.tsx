@@ -13,6 +13,7 @@ import {
   getRecipe,
   orgModel,
   pantry,
+  org,
 } from '@/lib/store';
 import { CurrencyProvider } from '@/components/currency-provider';
 
@@ -50,7 +51,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
   const code = currencyCode();
 
   return (
-    <AppShell current="Recipes" currencyCode={code} currencySettable={currencyIsSettable()} dishCount={allRecipes().length}>
+    <AppShell orgName={org().name} current="Recipes" currencyCode={code} currencySettable={currencyIsSettable()} dishCount={allRecipes().length}>
       <CurrencyProvider code={code}>
       <RecipeSheet
         initialRecipe={recipe}
