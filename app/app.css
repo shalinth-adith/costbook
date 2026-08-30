@@ -1693,3 +1693,158 @@
   .wiz-top, .wiz-foot { padding-inline: var(--sp-4); }
   .wiz-sentence { font-size: 19px; }
 }
+
+/* ── A27 · Settings ──────────────────────────────────────────────────────── */
+.set { max-inline-size: 1100px; margin-inline: auto; padding: var(--sp-6); }
+.set-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-6); }
+.set-h { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 var(--sp-2); }
+.set-lede { font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); margin: 0; max-inline-size: 68ch; }
+.set-who { font-size: 12.5px; color: var(--text-tertiary); white-space: nowrap; }
+.set-h2 {
+  display: flex; align-items: baseline; gap: var(--sp-3);
+  font-size: 17px; font-weight: 600; margin: 0 0 var(--sp-2);
+}
+.set-h2-note { font-size: 11.5px; color: var(--text-tertiary); font-weight: 400; }
+.set-h3 { font-size: 14px; font-weight: 600; margin: var(--sp-6) 0 var(--sp-3); }
+
+.set-tabs { display: flex; gap: 2px; margin-block: var(--sp-6) 0; border-block-end: 1px solid var(--border-hairline); }
+.set-tab {
+  padding: var(--sp-3) var(--sp-4); font: inherit; font-size: 13.5px;
+  color: var(--text-secondary); background: none; border: 0; cursor: pointer;
+  border-block-end: 2px solid transparent; margin-block-end: -1px;
+}
+.set-tab:hover { color: var(--text-primary); }
+.set-tab[aria-selected='true'] { color: var(--text-primary); font-weight: 600; border-block-end-color: var(--text-primary); }
+.set-tab:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.set-body { padding-block-start: var(--sp-6); }
+
+.set-row { padding-block: var(--sp-5); border-block-end: 1px solid var(--border-row); max-inline-size: 720px; }
+.set-row-head { display: flex; align-items: center; gap: var(--sp-3); }
+.set-row-label { font-size: 14px; font-weight: 600; }
+.set-row-help { font-size: 12.5px; line-height: 1.55; color: var(--text-secondary); margin: 4px 0 var(--sp-3); }
+/* Scope is a fact about the field, so it is stated rather than discovered. */
+.set-scope {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+  color: var(--text-tertiary); padding: 2px 6px;
+  border: 1px solid var(--border-hairline); border-radius: var(--radius-chip);
+}
+.set-input {
+  block-size: var(--row-default); padding-inline: var(--sp-3); inline-size: 100%;
+  max-inline-size: 340px; font: inherit; font-size: 14px;
+  background: var(--surface-card); color: var(--text-primary);
+  border: 1px solid var(--border-control); border-radius: var(--radius-field);
+}
+.set-input.is-narrow { inline-size: 72px; text-align: end; }
+.set-input:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.set-fixed { font-size: 14px; margin: 0 0 6px; }
+.set-note { font-size: 12.5px; line-height: 1.6; color: var(--text-tertiary); margin: var(--sp-2) 0 0; max-inline-size: 66ch; }
+.set-inline { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: 13px; }
+.set-seg { display: inline-flex; border: 1px solid var(--border-control); border-radius: var(--radius-field); overflow: hidden; }
+.set-seg-item {
+  padding: 8px var(--sp-4); font: inherit; font-size: 13px; cursor: pointer;
+  background: var(--surface-card); color: var(--text-secondary); border: 0;
+  border-inline-start: 1px solid var(--border-hairline);
+}
+.set-seg-item:first-child { border-inline-start: 0; }
+.set-seg-item[data-on='true'] { background: var(--surface-inverse); color: var(--text-on-inverse); }
+
+/* The formula is a sentence with fields in it, so the arithmetic is legible
+   as English rather than as a form. */
+.set-formula {
+  font-size: 16px; line-height: 2.1; max-inline-size: 62ch;
+  margin: 0 0 var(--sp-6);
+}
+.set-inline-field {
+  inline-size: 58px; block-size: 30px; padding-inline: 6px; text-align: end;
+  font: inherit; font-size: 15px; background: var(--surface-sunken);
+  border: 1px solid var(--border-control); border-radius: 4px;
+}
+.set-inline-select {
+  font: inherit; font-size: 14px; block-size: 30px; padding-inline: 6px;
+  background: var(--surface-sunken); border: 1px solid var(--border-control); border-radius: 4px;
+}
+.set-inline-field:focus-visible, .set-inline-select:focus-visible {
+  outline: 2px solid var(--focus-ring); outline-offset: 2px;
+}
+.set-overrides { display: flex; gap: var(--sp-8); margin-block-end: var(--sp-4); }
+.set-overrides p { font-size: 13px; margin: 6px 0 0; }
+.set-apply { margin-block-start: var(--sp-6); padding-block-start: var(--sp-5); border-block-start: 1px solid var(--border-row); }
+.set-radius {
+  padding: var(--sp-5); background: var(--surface-card);
+  border: 1px solid var(--near-edge); border-radius: var(--radius-panel);
+}
+.set-radius h3 { font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; color: var(--near-ink); margin: 0 0 var(--sp-2); }
+.set-radius > p { font-size: 15px; line-height: 1.5; margin: 0 0 var(--sp-3); }
+.set-radius-foot { display: flex; gap: var(--sp-3); margin-block-start: var(--sp-4); }
+
+.set-charges { display: grid; gap: 6px; max-inline-size: 900px; margin-block-end: var(--sp-5); }
+.set-charge { display: flex; align-items: center; gap: var(--sp-2); }
+.set-charge-n { inline-size: 20px; font-size: 12px; color: var(--text-tertiary); }
+.set-charge .set-input { max-inline-size: 220px; }
+.set-pill {
+  block-size: 30px; padding-inline: 10px; font: inherit; font-size: 12px;
+  color: var(--text-secondary); background: var(--surface-card); cursor: pointer;
+  border: 1px solid var(--border-control); border-radius: var(--radius-chip);
+  white-space: nowrap;
+}
+.set-pill:hover { background: var(--surface-sunken); }
+.set-pill.is-static { cursor: default; background: var(--surface-sunken); }
+.set-pill:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+.set-table { inline-size: 100%; max-inline-size: 780px; border-collapse: collapse; font-size: 13.5px; }
+.set-table th {
+  text-align: start; font-size: 11.5px; font-weight: 600; color: var(--text-tertiary);
+  padding-block: var(--sp-2); border-block-end: 1px solid var(--border-strong);
+}
+.set-table td { padding-block: var(--sp-3); border-block-end: 1px solid var(--border-row); vertical-align: top; }
+.set-email { display: block; font-size: 12px; color: var(--text-tertiary); margin-block-start: 2px; }
+.set-invite { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.set-limit {
+  padding: var(--sp-5); margin-block-end: var(--sp-5);
+  background: var(--near-tint); border: 1px solid var(--near-edge);
+  border-radius: var(--radius-panel); max-inline-size: 680px;
+}
+.set-limit h3 { font-size: 15px; font-weight: 600; margin: 0 0 var(--sp-2); }
+.set-limit p { font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin: 0 0 var(--sp-4); }
+
+.wiz-bill-row em { font-style: normal; font-size: 11px; color: var(--text-tertiary); margin-inline-start: 6px; }
+.wiz-bill-row[data-borne='operator'] { background: var(--near-tint); margin-inline: -8px; padding-inline: 8px; }
+
+/* ── A24 / A25 / A27 · what moved ────────────────────────────────────────── */
+.imp-table { inline-size: 100%; border-collapse: collapse; font-size: 13px; margin-block-start: var(--sp-4); }
+.imp-table th {
+  text-align: start; font-size: 11px; font-weight: 600; color: var(--text-tertiary);
+  padding-block: var(--sp-2); border-block-end: 1px solid var(--border-strong);
+}
+.imp-table th:not(:first-child), .imp-table td:not(:first-child) { text-align: end; }
+.imp-group td {
+  padding-block: var(--sp-3) 4px; font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.06em; color: var(--text-tertiary); text-align: start !important;
+}
+.imp-group em { font-style: normal; font-weight: 400; letter-spacing: 0; margin-inline-start: var(--sp-2); }
+.imp-row td { padding-block: var(--sp-3); border-block-end: 1px solid var(--border-row); }
+/* Only the crossers take a surface. A panel of red gets closed and never
+   opened again, and the whole value is that this gets opened. */
+.imp-row[data-crosses='true'] td { background: var(--over-tint); }
+.imp-row[data-crosses='true'] .imp-move { color: var(--over-ink); font-weight: 600; }
+.imp-name { font-size: 15px; font-weight: 600; }
+.imp-via { display: block; font-size: 12px; color: var(--text-secondary); margin-block-start: 2px; }
+.imp-mark {
+  display: inline-block; margin-block-start: 4px; padding: 1px 6px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+  color: var(--over-ink); border: 1px solid var(--over-edge); border-radius: var(--radius-chip);
+}
+.imp-pair { white-space: nowrap; }
+.imp-was { color: var(--text-tertiary); }
+.imp-move { font-size: 15px; font-weight: 600; }
+.imp-more { font-size: 12px; color: var(--text-tertiary); margin-block-start: var(--sp-3); }
+
+@media (max-width: 900px) {
+  /* 768 · tabs become a list. */
+  .set-tabs { flex-direction: column; border-block-end: 0; gap: 0; }
+  .set-tab { text-align: start; border-block-end: 1px solid var(--border-row); margin: 0; }
+  .set-tab[aria-selected='true'] { background: var(--surface-sunken); border-block-end-color: var(--text-primary); }
+  .set-overrides { flex-direction: column; gap: var(--sp-4); }
+  .set-charge { flex-wrap: wrap; }
+  .set-formula { font-size: 15px; }
+}

@@ -115,3 +115,46 @@ export function taxLabel(t: TaxTreatment | null): string {
   if (t === 'absorbed') return 'Absorbed — rates entered with tax included';
   return 'Not answered yet';
 }
+
+
+/**
+ * Two roles, on purpose (A27).
+ *
+ * Owner can change costing, charges, billing and people. Manager can cost
+ * dishes, edit rates and print cards, but cannot reprice the menu or see the
+ * bill. A kitchen does not need a permissions matrix, and every role added is
+ * one more thing to get wrong in the middle of service.
+ */
+export type Role = 'owner' | 'manager';
+
+export interface Member {
+  readonly name: string;
+  readonly email: string;
+  readonly role: Role;
+  /** Null for someone invited who has not signed in yet. */
+  readonly lastIn: string | null;
+  readonly accepted: boolean;
+}
+
+export type Plan = 'free' | 'paid';
+
+/**
+ * What the free tier holds. Enough to prove it works, not enough to run a
+ * kitchen on — and nothing is deleted or locked away at the limit, only added
+ * to (A27 Billing).
+ */
+export const FREE_LIMITS = {
+  recipes: 40,
+  ingredients: 250,
+  importsPerMonth: 1,
+  rateHistory: 3,
+} as const;
+
+export function atFreeLimit(recipeCount: number, p: Plan): boolean {
+  return p === 'free' && recipeCount >= FREE_LIMITS.recipes;
+}
+
+export function canDo(role: Role, what: 'costing' | 'charges' | 'billing' | 'team' | 'recipes' | 'rates'): boolean {
+  if (role === 'owner') return true;
+  return what === 'recipes' || what === 'rates';
+}

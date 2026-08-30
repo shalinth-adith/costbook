@@ -17,8 +17,8 @@ import type { Ingredient } from '@/core/ingredient';
 import { type Pantry, type Recipe, pantryOf } from '@/core/recipe';
 
 import type { CostingModel } from './costing';
-import { ORG, type DishMeta, meta as seedMeta, recipes as seedRecipes, shelf as seedShelf } from './data';
-import { BLANK_ORG, type Org } from './org';
+import { ORG, type DishMeta, meta as seedMeta, members as seedMembers, recipes as seedRecipes, shelf as seedShelf } from './data';
+import { BLANK_ORG, type Member, type Org, type Plan } from './org';
 
 interface State {
   recipes: Recipe[];
@@ -30,6 +30,9 @@ interface State {
    * write the same thing — they are one form rendered twice, not two forms.
    */
   org: Org;
+  /** Two roles only, per A27. A kitchen does not need a permissions matrix. */
+  members: Member[];
+  plan: Plan;
 }
 
 /**
@@ -64,6 +67,8 @@ function state(): State {
       foodCostTarget: ORG.foodCostTarget,
       setupDone: true,
     },
+    members: [...seedMembers],
+    plan: 'free',
   };
   return holder[KEY];
 }
@@ -240,4 +245,39 @@ export function clearBook(): void {
   s.recipes = [];
   s.ingredients = [];
   s.meta = {};
+}
+
+
+/** Who is on the book. Owner and manager; nothing else exists. */
+export function members(): readonly Member[] {
+  return state().members;
+}
+
+export function inviteMember(name: string, email: string, role: Member['role']): void {
+  const s = state();
+  if (s.members.some((m) => m.email.toLowerCase() === email.toLowerCase())) return;
+  s.members.push({ name, email, role, lastIn: null, accepted: false });
+}
+
+export function removeMember(email: string): void {
+  const s = state();
+  // The owner cannot be removed: an account with nobody who can pay for it or
+  // change its costing is an account nobody can fix.
+  s.members = s.members.filter((m) => m.email !== email || m.role === 'owner');
+}
+
+export function setMemberRole(email: string, role: Member['role']): void {
+  const s = state();
+  const at = s.members.findIndex((m) => m.email === email);
+  const found = s.members[at];
+  if (found === undefined) return;
+  s.members[at] = { ...found, role };
+}
+
+export function plan(): Plan {
+  return state().plan;
+}
+
+export function setPlan(next: Plan): void {
+  state().plan = next;
 }

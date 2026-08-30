@@ -429,3 +429,13 @@ export const KIND_HINT: Readonly<Record<ComponentKind, string>> = {
   ingredient: 'Things you buy. Each one has a pack size and a rate you entered.',
   dish: 'Things you make. Each carries its own cost and yield across into this one.',
 };
+
+/**
+ * Who is on the fixture book. The owner is whoever set it up; the manager is
+ * the person who actually keeps the rates current (PRD 7).
+ */
+export const members = [
+  { name: 'Karthik R.', email: 'karthik@srikrishnacafe.in', role: 'owner' as const, lastIn: 'today', accepted: true },
+  { name: 'Suresh M.', email: 'suresh@srikrishnacafe.in', role: 'manager' as const, lastIn: '3 days ago', accepted: true },
+  { name: 'Priya S.', email: 'priya@srikrishnacafe.in', role: 'manager' as const, lastIn: null, accepted: false },
+];
