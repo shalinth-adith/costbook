@@ -47,9 +47,7 @@ export default function Landing() {
         <Wordmark mode="public" />
         <nav>
           <Link href="/sign-in" className="lp-link">Sign in</Link>
-          <a href="mailto:hello@costbook.in?subject=My%20recipe%20sheet" className="btn btn-primary">
-            Send us your sheet
-          </a>
+          <Link href="/import" className="btn btn-primary">Import your sheet</Link>
         </nav>
       </header>
 
@@ -61,12 +59,12 @@ export default function Landing() {
             ago. Costbook reads that file, keeps every dish costed as rates move, and tells you
             which ones stopped making money.
           </p>
-          <a href="mailto:hello@costbook.in?subject=My%20recipe%20sheet" className="btn btn-primary btn-lg">
-            Send us your spreadsheet and see your five worst dishes
-          </a>
+          <Link href="/import" className="btn btn-primary btn-lg">
+            Import your spreadsheet
+          </Link>
           <p className="lp-fine">
-            Free, no account needed to read the answer. Your file comes back exactly as it went in —
-            we only read it.
+            Free for your first 40 dishes, and no card. Your file comes back exactly as it went in —
+            Costbook only reads it.
           </p>
         </div>
 
@@ -192,19 +190,21 @@ export default function Landing() {
       </section>
 
       <section className="lp-offer">
-        <h2>Send us your spreadsheet and see your five worst dishes.</h2>
+        <h2>Bring your spreadsheet in and see your worst dishes.</h2>
         <p>
-          Email the file, in whatever state it&rsquo;s in. We cost it and send back the five dishes
-          eating your margin, with the arithmetic behind each one so you can check it. No account,
-          no card, and we don&rsquo;t keep the file unless you ask us to.
+          Upload the file in whatever state it&rsquo;s in. Costbook shows you which column it thinks
+          is which, reads one of your own rows back as a sentence so a mistake is obvious before it
+          becomes a thousand wrong numbers, and asks you to confirm before anything is saved.
+          Nothing is committed until you say so.
         </p>
         <div className="lp-actions">
-          <a href="mailto:hello@costbook.in?subject=My%20recipe%20sheet" className="btn btn-primary btn-lg">
-            Send your sheet
-          </a>
+          <Link href="/import" className="btn btn-primary btn-lg">Import your spreadsheet</Link>
           <Link href="/setup" className="btn btn-lg">Or cost one dish yourself, free</Link>
         </div>
-        <p className="lp-fine">Usually back the same day. A real person reads it.</p>
+        <p className="lp-fine">
+          Four steps, about a minute. Your file is only ever read — we never write to it, and you
+          keep it.
+        </p>
       </section>
 
       <section className="lp-price">
