@@ -61,6 +61,18 @@ export function CurrencySheet({
         </p>
       )}
 
+      {/*
+        Sits directly above the figures, because that is where the eye goes.
+        The same amount appears beside every currency, which is exactly what a
+        conversion table looks like — so the column has to say what it is
+        before someone reads a rate into it.
+      */}
+      <p className="currency-caption">
+        <strong>Nothing below is converted.</strong> It is the same amount —{' '}
+        <span className="figure">1,234.50</span> — written the way each currency writes it, so you
+        can see where the symbol sits and how many decimals it carries.
+      </p>
+
       <ul className="currency-list">
         {CURRENCIES.map((item) => {
           const chosen = item.code === c.code;
@@ -83,9 +95,12 @@ export function CurrencySheet({
                 </span>
                 <span className="figure currency-code">{item.code}</span>
                 <span className="currency-name">{item.name}</span>
-                {/* The same figure, written the way each currency writes it —
-                    which is the part a symbol alone does not tell you. */}
-                <span className="figure currency-sample">{formatMoney(1234.5, item.code)}</span>
+                {/* Prefixed in words. A bare figure in a right-hand column
+                    reads as a rate no matter what the prose above it says. */}
+                <span className="currency-sample">
+                  <span className="currency-sample-label">writes as</span>{' '}
+                  <span className="figure">{formatMoney(1234.5, item.code)}</span>
+                </span>
               </button>
             </li>
           );
