@@ -1,0 +1,116 @@
+/* ── A29 · the landing page ──────────────────────────────────────────────── */
+/* One idea, argued with the product's own screens. No illustrations, no
+   chefs, no tier table, no testimonials. */
+.lp { max-inline-size: 1180px; margin-inline: auto; padding-inline: var(--sp-6); }
+.lp-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  block-size: var(--sp-14); gap: var(--sp-4);
+}
+.lp-nav nav { display: flex; align-items: center; gap: var(--sp-4); }
+.lp-link { font-size: 13.5px; color: var(--text-secondary); text-decoration: none; }
+.lp-link:hover { color: var(--text-primary); }
+.btn-lg { block-size: 44px; padding-inline: var(--sp-5); font-size: 14.5px; }
+
+.lp-hero {
+  display: grid; grid-template-columns: 1.05fr 0.95fr; gap: var(--sp-10);
+  align-items: start; padding-block: var(--sp-10) var(--sp-14);
+}
+.lp-hero h1 {
+  font-size: 44px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1;
+  margin: 0 0 var(--sp-4); text-wrap: balance;
+}
+.lp-lede { font-size: 16px; line-height: 1.6; color: var(--text-secondary); margin: 0 0 var(--sp-5); max-inline-size: 54ch; }
+.lp-fine { font-size: 12.5px; line-height: 1.6; color: var(--text-tertiary); margin: var(--sp-3) 0 0; max-inline-size: 56ch; }
+
+.lp-shot {
+  margin: 0; padding: var(--sp-4); background: var(--surface-card);
+  border: 1px solid var(--border-hairline); border-radius: var(--radius-panel);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.04);
+}
+.lp-shot figcaption { font-size: 11px; color: var(--text-tertiary); margin-block-end: var(--sp-3); }
+.lp-shot-head {
+  display: flex; justify-content: space-between; font-size: 11.5px;
+  color: var(--text-tertiary); padding-block-end: var(--sp-2);
+  border-block-end: 1px solid var(--border-strong);
+}
+.lp-shot-row {
+  display: flex; justify-content: space-between; gap: var(--sp-3);
+  padding-block: 9px; font-size: 13px; border-block-end: 1px solid var(--border-row);
+}
+.lp-shot-row .figure[data-over='true'] { color: var(--over-ink); font-weight: 600; }
+.lp-shot-foot { font-size: 11px; color: var(--text-tertiary); margin: var(--sp-3) 0 0; }
+
+.lp section { padding-block: var(--sp-14); border-block-start: 1px solid var(--border-hairline); }
+.lp section h2 {
+  font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2;
+  margin: 0 0 var(--sp-5); max-inline-size: 24ch; text-wrap: pretty;
+}
+.lp-quote-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--sp-6); }
+.lp-quote-grid blockquote { margin: 0; }
+.lp-said { font-size: 18px; font-weight: 500; letter-spacing: -0.01em; margin: 0 0 var(--sp-2); }
+.lp-then { font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); margin: 0; }
+.lp-punch { font-size: 15px; line-height: 1.6; margin: var(--sp-8) 0 0; max-inline-size: 62ch; }
+
+.lp-step {
+  display: grid; grid-template-columns: 40px 1fr 1fr; gap: var(--sp-5);
+  align-items: start; padding-block: var(--sp-8);
+  border-block-end: 1px solid var(--border-row);
+}
+.lp-step:last-child { border-block-end: 0; }
+.lp-step-n { font-size: 13px; color: var(--text-tertiary); }
+.lp-step h3 { font-size: 19px; font-weight: 600; margin: 0 0 var(--sp-2); }
+.lp-step p { font-size: 13.5px; line-height: 1.65; color: var(--text-secondary); margin: 0; }
+.lp-card {
+  padding: var(--sp-4); background: var(--surface-card);
+  border: 1px solid var(--border-hairline); border-radius: var(--radius-panel);
+}
+.lp-card-h { display: block; font-size: 11px; color: var(--text-tertiary); margin-block-end: var(--sp-3); }
+.lp-map { display: flex; gap: var(--sp-2); font-size: 12px; padding-block: 5px; color: var(--text-secondary); }
+.lp-map span:last-child { color: var(--text-primary); font-weight: 600; }
+.lp-readback {
+  display: grid; gap: 3px; margin: var(--sp-3) 0 0; padding: var(--sp-3);
+  background: var(--surface-sunken); border-radius: var(--radius-field);
+}
+.lp-readback span { font-size: 10.5px; color: var(--text-tertiary); }
+.lp-readback b { font-size: 13px; }
+.lp-readback em { font-style: normal; font-size: 11px; color: var(--text-tertiary); }
+.lp-line {
+  display: grid; grid-template-columns: 1fr auto auto; gap: var(--sp-3);
+  padding-block: 7px; font-size: 12.5px; border-block-end: 1px dotted var(--border-row);
+  align-items: baseline;
+}
+.lp-line em { font-style: normal; font-size: 10px; color: var(--text-tertiary); margin-inline-start: 5px; }
+.lp-line.is-quiet { color: var(--text-tertiary); }
+.lp-line.is-total { font-weight: 600; font-size: 13.5px; border-block-end: 0; border-block-start: 1px solid var(--border-strong); }
+.lp-was { color: var(--text-tertiary); }
+.lp-headline { font-size: 15px; font-weight: 600; margin: 0 0 var(--sp-3); }
+
+.lp-delivery p { font-size: 14.5px; line-height: 1.65; color: var(--text-secondary); max-inline-size: 64ch; margin: 0 0 var(--sp-5); }
+.lp-pair { display: flex; gap: var(--sp-10); }
+.lp-pair span { display: block; font-size: 11.5px; color: var(--text-tertiary); }
+.lp-pair b { font-size: 40px; font-weight: 600; letter-spacing: -0.02em; }
+.lp-pair b[data-over='true'] { color: var(--over-ink); }
+
+.lp-offer p, .lp-price p { font-size: 14.5px; line-height: 1.65; color: var(--text-secondary); max-inline-size: 64ch; margin: 0 0 var(--sp-4); }
+.lp-actions { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-block: var(--sp-5) 0; }
+.lp-figure b { font-size: 34px; font-weight: 600; letter-spacing: -0.02em; }
+.lp-figure span { font-size: 13px; color: var(--text-secondary); }
+
+.lp-foot {
+  display: flex; align-items: center; gap: var(--sp-5); flex-wrap: wrap;
+  padding-block: var(--sp-8); border-block-start: 1px solid var(--border-hairline);
+}
+.lp-foot p { font-size: 12.5px; color: var(--text-tertiary); margin: 0; }
+.lp-foot nav { margin-inline-start: auto; display: flex; gap: var(--sp-4); }
+.lp-foot a { font-size: 12.5px; color: var(--text-secondary); text-decoration: none; }
+.lp-foot a:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+@media (max-width: 900px) {
+  .lp-hero { grid-template-columns: 1fr; gap: var(--sp-6); padding-block: var(--sp-8); }
+  .lp-hero h1 { font-size: 32px; }
+  .lp-step { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .lp section { padding-block: var(--sp-10); }
+  .lp section h2 { font-size: 23px; }
+  .lp-pair { gap: var(--sp-6); }
+  .lp-pair b { font-size: 30px; }
+}
