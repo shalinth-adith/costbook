@@ -242,3 +242,18 @@
   .entry-headline { font-size: 28px; }
   .entry-side { padding: var(--sp-8) var(--sp-6); }
 }
+
+/* ── A31 / A32 · the panel's list ────────────────────────────────────────── */
+/* The wizard is announced before the button is pressed: someone who knows four
+   questions are coming answers them; someone ambushed by one closes the tab. */
+.entry-steps {
+  list-style: none; margin: var(--sp-6) 0 0; padding: 0;
+  display: grid; gap: var(--sp-3);
+}
+.entry-steps li {
+  display: flex; gap: var(--sp-3); align-items: baseline;
+  font-size: 13px; line-height: 1.55; color: var(--text-on-inverse-secondary);
+}
+.entry-steps span { font-size: 11px; color: var(--text-on-inverse-tertiary); }
+.entry-steps.is-plain li::before { content: '·'; color: var(--text-on-inverse-tertiary); }
+.field-label[data-ok='true'] { color: var(--on-ink-inverse); }

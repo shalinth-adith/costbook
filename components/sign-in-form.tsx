@@ -5,6 +5,7 @@ import { useActionState, useEffect, useState } from 'react';
 
 import { attemptSignIn, resendVerification } from '@/app/sign-in/actions';
 import { type FieldName, IDLE, type SignInState, emailFault } from '@/lib/auth';
+import { FREE_LIMITS } from '@/lib/org';
 
 import { StatusGlyph } from './status-chip';
 
@@ -139,7 +140,7 @@ export function SignInForm() {
             </span>
           </div>
         </div>
-        <Link className="btn btn-primary entry-action" href="/reset-password">
+        <Link className="btn btn-primary entry-action" href="/reset">
           Send a reset link
         </Link>
         <Countdown ms={live.unlocksInMs} onExpire={() => setDismissed(state)} />
@@ -286,7 +287,7 @@ export function SignInForm() {
       <div className="field">
         <div className="field-label-row">
           <label className="field-label" htmlFor="password">Password</label>
-          <Link className="link link-sm" href="/reset-password">Forgot it?</Link>
+          <Link className="link link-sm" href="/reset">Forgot it?</Link>
         </div>
         <div
           className={`field-control${passwordMessage || wrong ? ' is-wrong' : ''}${pending ? ' is-locked' : ''}`}
@@ -356,8 +357,15 @@ export function SignInForm() {
         <span />
       </div>
 
-      <Link className="btn entry-action" href="/sign-up">Create an account</Link>
-      <span className="entry-foot">Free for your first 20 dishes. No card.</span>
+      {/*
+        A33: this slot used to hold a second filled button, which left the card
+        with two primary actions. Account creation is a foot line now — where
+        people look for it — and the card has one thing to press.
+      */}
+      <span className="entry-foot">
+        New here? <Link className="link link-sm" href="/sign-up">Create an account.</Link>
+        {' '}Free for your first {FREE_LIMITS.recipes} dishes. No card.
+      </span>
     </form>
   );
 }
