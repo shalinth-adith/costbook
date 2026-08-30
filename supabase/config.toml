@@ -225,6 +225,13 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
+#
+# Off deliberately. A31's verify screen is built and stays built, but it is not
+# in the path yet: Supabase's built-in sender is rate-limited on the free tier,
+# and putting an inbox round-trip in front of every test account would make
+# verifying anything downstream of sign-up slower than the thing being tested.
+# Turn this on when a real mail provider is configured, and the screen is
+# already there to receive it.
 enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
