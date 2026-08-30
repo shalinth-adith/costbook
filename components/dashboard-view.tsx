@@ -16,7 +16,6 @@ import { DASH, percent, points } from '@/lib/format';
 
 import { useMoney } from './currency-provider';
 import { StatusChip } from './status-chip';
-import { Empty } from './empty';
 
 /** Status is a word plus a shape, so a greyscale printout loses nothing. */
 function Glyph({ row }: { row: DashboardRow }) {
@@ -38,17 +37,23 @@ function Glyph({ row }: { row: DashboardRow }) {
 }
 
 export function DashboardView({ data, target }: { data: Dashboard; target: number }) {
-  // Nothing costed yet. The dashboard's whole argument is the sort order, and
-  // there is nothing to sort — so it says what would fill it instead.
+  // Nothing costed yet. The dashboard's whole argument is its sort order, and
+  // there is nothing to sort — so it says what would fill it instead. Written
+  // in the same classes as every other empty state in the app.
   if (data.rows.length === 0) {
     return (
-      <Empty
-        title="Nothing costed yet."
-        lede="This is where every dish lands once it has a cost — worst food cost first, read against your target. Bring your spreadsheet in and it fills itself."
-        primary={{ label: 'Import your spreadsheet', href: '/import' }}
-        secondary={{ label: 'Cost one dish by hand', href: '/recipes' }}
-        note="Keep your file — Costbook only reads it."
-      />
+      <div className="card empty">
+        <p className="empty-title">Nothing costed yet</p>
+        <p className="empty-copy">
+          This is where every dish lands once it has a cost, worst food cost first, read against
+          your target. If you keep your recipes in a spreadsheet — and almost everyone does —
+          importing it takes about a minute and fills this page. Costbook only reads your file.
+        </p>
+        <div className="empty-actions">
+          <Link href="/import" className="btn btn-primary">Import your spreadsheet</Link>
+          <Link href="/recipes" className="btn">Cost one dish by hand</Link>
+        </div>
+      </div>
     );
   }
   const [filter, setFilter] = useState<DashboardFilter>('all');

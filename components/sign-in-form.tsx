@@ -93,6 +93,20 @@ export function SignInForm() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  /*
+   * `?dev-login=true` fills the standard test credentials, in development only.
+   *
+   * It fills the form rather than submitting it: the point is to skip the
+   * typing, not to skip the screen. Anyone checking that sign-in works still
+   * presses the button and still sees what it does.
+   */
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') return;
+    if (!new URLSearchParams(window.location.search).has('dev-login')) return;
+    setEmail('admin@thebrewapps.com');
+    setPassword('thebrewapps');
+  }, []);
   const [shown, setShown] = useState(false);
   /**
    * Checked as they leave the field, not while they type. Correcting someone
@@ -246,6 +260,7 @@ export function SignInForm() {
             autoComplete="username"
             placeholder="you@yourcafé.com"
             className="field-input"
+            data-testid="email-input"
             value={email}
             disabled={pending}
             aria-invalid={emailMessage !== null || unknown !== null}
@@ -298,6 +313,7 @@ export function SignInForm() {
             type={shown ? 'text' : 'password'}
             autoComplete="current-password"
             className={`field-input${shown ? '' : ' is-masked'}`}
+            data-testid="password-input"
             value={password}
             disabled={pending}
             aria-invalid={passwordMessage !== null || wrong !== null}
