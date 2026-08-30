@@ -11,7 +11,7 @@ import {
   org,
 } from '@/lib/store';
 
-import { addIngredient, setRate, setRates, setYield } from './actions';
+import { addIngredient, previewRate, setRate, setRates, setYield } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +34,8 @@ export default function IngredientsPage() {
           board={data}
           onAdd={addIngredient}
           onSetRate={setRate}
+          onPreviewRate={previewRate}
+          currencyCode={code}
           onSetRates={setRates}
           onSetYield={setYield}
         />

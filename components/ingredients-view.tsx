@@ -11,7 +11,10 @@ import {
 } from '@/lib/ingredients';
 import { DASH } from '@/lib/format';
 
+import type { RatePreview } from '@/app/ingredients/actions';
+
 import { useMoney } from './currency-provider';
+import { ImpactPanel } from './impact-panel';
 import { IngredientEntry, type NewIngredient } from './ingredient-entry';
 import { Stepper } from './stepper';
 import { Toast, type ToastState } from './toast';
@@ -31,10 +34,15 @@ export function IngredientsView({
   onSetRate,
   onSetRates,
   onSetYield,
+  onPreviewRate,
+  currencyCode,
 }: {
   board: IngredientBoard;
   onAdd: (i: NewIngredient) => Promise<Ack & { id: string | null }>;
   onSetRate: (id: string, packPrice: number) => Promise<Ack>;
+  /** Costs the menu twice and reports what moved. Writes nothing (A24). */
+  onPreviewRate: (id: string, packPrice: number) => Promise<RatePreview | null>;
+  currencyCode: string;
   onSetRates: (changes: readonly { id: string; packPrice: number }[]) => Promise<Ack>;
   onSetYield: (id: string, yieldPercent: number) => Promise<Ack>;
 }) {
@@ -55,6 +63,32 @@ export function IngredientsView({
   );
 
   const act = (run: () => Promise<Ack>) => start(async () => setToast(await run()));
+
+  /*
+   * A rate does not commit on its own. It opens the impact panel first, which
+   * is the whole argument of the product: eleven dishes move and three cross
+   * the target, and six of them never list this ingredient at all. Committing
+   * silently would spend that moment on a toast.
+   */
+  const [pendingRate, setPendingRate] = useState<{ id: string; packPrice: number } | null>(null);
+  const [preview, setPreview] = useState<RatePreview | null>(null);
+
+  const proposeRate = (id: string, packPrice: number) => {
+    setPendingRate({ id, packPrice });
+    start(async () => setPreview(await onPreviewRate(id, packPrice)));
+  };
+
+  const applyPending = () => {
+    const p = pendingRate;
+    if (p === null) return;
+    start(async () => {
+      setToast(await onSetRate(p.id, p.packPrice));
+      setPreview(null);
+      setPendingRate(null);
+    });
+  };
+
+  const keepOldRate = () => { setPreview(null); setPendingRate(null); };
 
   const changed = Object.entries(edits).filter(([id, value]) => {
     const row = board.rows.find((r) => r.id === id);
@@ -202,13 +236,21 @@ export function IngredientsView({
                 isOpen={open === row.id}
                 busy={pending}
                 onToggle={() => setOpen(open === row.id ? null : row.id)}
-                onSetRate={(p) => act(() => onSetRate(row.id, p))}
+                onSetRate={(p) => proposeRate(row.id, p)}
                 onSetYield={(y) => act(() => onSetYield(row.id, y))}
               />
             ))}
           </div>
         )}
       </div>
+
+      <ImpactPanel
+        preview={preview}
+        currencyCode={currencyCode}
+        busy={pending}
+        onKeep={keepOldRate}
+        onApply={applyPending}
+      />
 
       <Toast toast={toast} onUndo={() => setToast(null)} onDismiss={() => setToast(null)} />
     </>

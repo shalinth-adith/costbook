@@ -5,7 +5,20 @@ import { revalidatePath } from 'next/cache';
 import { ingredientFromPack, withRate, withYield } from '@/core/ingredient';
 import type { UnitFamily } from '@/core/units';
 
-import { allIngredients, putIngredient, recipesUsing } from '@/lib/store';
+import { type Impact, headlineFor, impactOf } from '@/lib/impact';
+import { allIngredients, allMeta, allRecipes, orgModel, putIngredient, recipesUsing } from '@/lib/store';
+
+/** What the impact panel needs, computed on the server where the costing is. */
+export interface RatePreview {
+  readonly name: string;
+  readonly unit: string;
+  readonly from: number | null;
+  readonly to: number | null;
+  readonly percent: number | null;
+  readonly impact: Impact;
+  readonly headline: string;
+  readonly target: number;
+}
 
 export interface Ack {
   readonly message: string;
@@ -143,5 +156,45 @@ export async function setYield(id: string, yieldPercent: number): Promise<Ack> {
         ? `${ingredient.name} set to lose nothing in preparation.`
         : `${ingredient.name} at ${yieldPercent}% yield. The usable rate is now what its recipes pay.`,
     undoable: true,
+  };
+}
+
+/**
+ * What a new rate would do, before it is applied (A24).
+ *
+ * Nothing is repriced by this. The menu stays exactly as it is until the
+ * operator applies it, which is the sentence the panel puts under its headline
+ * and the reason the panel is worth opening at all.
+ */
+export async function previewRate(id: string, packPrice: number): Promise<RatePreview | null> {
+  const ingredient = allIngredients().find((i) => i.id === id);
+  if (ingredient === undefined) return null;
+
+  const next = withRate(ingredient, packPrice, undefined, today());
+  const model = orgModel();
+
+  const impact = impactOf({
+    recipes: allRecipes(),
+    ingredients: allIngredients(),
+    meta: allMeta(),
+    model,
+    nextIngredients: allIngredients().map((i) => (i.id === id ? next : i)),
+    ingredientId: id,
+  });
+
+  return {
+    name: ingredient.name,
+    unit: ingredient.purchaseUnit,
+    from: ingredient.purchasePrice,
+    to: next.purchasePrice,
+    // Null rather than 0 when there was no rate on file: a first rate is not a
+    // rise of infinity, it is an ingredient that had no rate.
+    percent:
+      ingredient.purchasePrice === null || ingredient.purchasePrice === 0 || next.purchasePrice === null
+        ? null
+        : ((next.purchasePrice - ingredient.purchasePrice) / ingredient.purchasePrice) * 100,
+    impact,
+    headline: headlineFor(impact, model.foodCostTarget),
+    target: model.foodCostTarget,
   };
 }

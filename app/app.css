@@ -1848,3 +1848,71 @@
   .set-charge { flex-wrap: wrap; }
   .set-formula { font-size: 15px; }
 }
+
+/* ── A24 / A25 · the impact panel ────────────────────────────────────────── */
+/* The scrim is 10%, deliberately weak: the rate just typed is still visible
+   behind the panel, and checking it is the first thing anyone does. Per A1
+   nothing containing text rests below full opacity. */
+.imp-scrim {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgb(0 0 0 / 0.10);
+  animation: imp-fade var(--dur-reveal) var(--ease-enter);
+}
+.imp-panel {
+  position: fixed; inset-block: 0; inset-inline-end: 0; z-index: 41;
+  inline-size: min(760px, 100vw);
+  display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--surface-card);
+  border-inline-start: 1px solid var(--border-strong);
+  box-shadow: -12px 0 40px rgb(0 0 0 / 0.10);
+  animation: imp-in var(--dur-reveal) var(--ease-enter);
+}
+@keyframes imp-fade { from { opacity: 0; } }
+@keyframes imp-in { from { transform: translateX(16px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .imp-panel, .imp-scrim { animation: none; }
+}
+.imp-panel-top { padding: var(--sp-5) var(--sp-6); border-block-end: 1px solid var(--border-hairline); }
+.imp-kicker {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.07em; color: var(--text-tertiary);
+}
+.imp-panel-top h2 { font-size: 17px; font-weight: 600; margin: 6px 0 var(--sp-3); }
+.imp-rate { display: flex; align-items: baseline; gap: var(--sp-3); flex-wrap: wrap; }
+.imp-rate em { display: block; font-style: normal; font-size: 10.5px; color: var(--text-tertiary); }
+.imp-rate b { font-size: 22px; }
+.imp-rate-was b { color: var(--text-tertiary); }
+.imp-arrow { color: var(--text-tertiary); }
+.imp-rate-unit { font-size: 12.5px; color: var(--text-secondary); }
+.imp-pct {
+  margin-inline-start: auto; padding: 2px 8px; font-size: 13px; font-weight: 600;
+  border-radius: var(--radius-chip);
+}
+.imp-pct[data-up='true'] { color: var(--over-ink); background: var(--over-tint); }
+.imp-pct[data-up='false'] { color: var(--on-ink); background: var(--on-tint); }
+
+.imp-panel-body { overflow-y: auto; padding: var(--sp-5) var(--sp-6); }
+.imp-headline { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 var(--sp-3); }
+.imp-headline[data-good='true'] { color: var(--on-ink-strong); }
+.imp-safe { font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0; }
+.imp-none p { font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); }
+
+.imp-panel-foot {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-6);
+  border-block-start: 1px solid var(--border-hairline); background: var(--surface-header);
+}
+.imp-foot-note { flex: 1; font-size: 12px; color: var(--text-tertiary); }
+
+@media (max-width: 900px) {
+  /* 768 · a sheet, not a side panel. */
+  .imp-panel {
+    inset: auto 0 0 0; inline-size: 100%; block-size: min(88dvh, 100%);
+    border-inline-start: 0; border-block-start: 1px solid var(--border-strong);
+    border-start-start-radius: var(--radius-panel); border-start-end-radius: var(--radius-panel);
+    animation: imp-up var(--dur-reveal) var(--ease-enter);
+  }
+  @keyframes imp-up { from { transform: translateY(20px); opacity: 0; } }
+  .imp-panel-foot { flex-wrap: wrap; }
+  .imp-foot-note { flex-basis: 100%; }
+  .imp-table { font-size: 12px; }
+}
