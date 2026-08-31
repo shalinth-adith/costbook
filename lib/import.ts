@@ -176,8 +176,41 @@ export function planImport(
       try {
         components.push(ingredientComponent(ingredient, line.qty, line.unit));
       } catch {
-        // A line Costbook cannot measure is skipped rather than guessed at.
-        skipped += 1;
+        /*
+         * A line Costbook cannot MEASURE, it can still COST.
+         *
+         * A real sheet writes ghee in kilos on one dish and litres on another
+         * — eight ingredients do it, across 75 lines, and they are the
+         * expensive ones. Converting between the two needs a density Costbook
+         * does not hold, so one ingredient cannot carry both families and the
+         * line was dropped.
+         *
+         * Dropping it took the money with it. Kichadi lost 7.50 of ghee from
+         * an 18.15 batch and reported 41% under its own sheet. That is a wrong
+         * figure arrived at silently, which is the one thing this product must
+         * not produce.
+         *
+         * The quantity is unmeasurable against this ingredient; the spend is
+         * not. It becomes a cost with a label — the mechanism TRD 3.1 already
+         * gives "as req", "lot" and "pinch" — so the batch total is right and
+         * the line says plainly what it is.
+         */
+        const spend = rateOf(line);
+        const money = spend === null || line.qty === null ? null : spend * line.qty;
+
+        if (money !== null && money > 0) {
+          try {
+            components.push(
+              flatComponent(`${line.name} (${line.rawUnit ?? line.unit ?? ''})`.trim(), money),
+            );
+          } catch {
+            skipped += 1;
+          }
+        } else {
+          // No rate and no total: no cost to keep, only a quantity nobody can
+          // measure. That one is genuinely skipped.
+          skipped += 1;
+        }
       }
     }
 

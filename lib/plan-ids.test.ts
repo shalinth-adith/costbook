@@ -75,3 +75,62 @@ describe('what counts as blocking', () => {
     expect(codes).toContain('unrecognised_unit');
   });
 });
+
+/**
+ * A line Costbook cannot measure, it can still cost.
+ *
+ * A real sheet writes ghee in kilos on one dish and litres on another — eight
+ * ingredients do it across 75 lines, and they are the expensive ones.
+ * Converting between the two needs a density Costbook does not hold, so one
+ * ingredient cannot carry both families and the line used to be dropped.
+ *
+ * Dropping it took the money with it: Kichadi lost 7.50 of ghee from an 18.15
+ * batch and reported 41% under its own sheet. A wrong figure arrived at
+ * silently is the one thing this product must not produce.
+ */
+describe('an ingredient written in two unit families', () => {
+  const rows = [
+    ['Kichadi', 'Rava', '1.4', 'kg', '3.286'],
+    ['Kichadi', 'Ghee', '0.2', 'kg', '37.5'],
+    ['Dosa', 'Ghee', '0.05', 'l', '34'],
+  ];
+
+  it('keeps the cost of the line it cannot measure', () => {
+    const out = plan(rows);
+    const kichadi = out.recipes.find((r) => r.recipe.id === 'kichadi');
+    // Both lines survive: one measured, one as a cost with a label.
+    expect(kichadi?.recipe.components).toHaveLength(2);
+  });
+
+  /*
+   * The clash lands on whichever dish is read second: the first sets the
+   * ingredient's family, and the second cannot be measured against it.
+   */
+  it('costs it at quantity times rate, which is not in doubt', () => {
+    const dosa = plan(rows).recipes.find((r) => r.recipe.id === 'dosa');
+    const flat = dosa?.recipe.components.find((c) => c.kind === 'flat');
+    expect(flat).toBeDefined();
+    if (flat?.kind !== 'flat') return;
+    expect(flat.amount).toBeCloseTo(0.05 * 34, 6);
+  });
+
+  it('says in the label which unit the sheet wrote', () => {
+    const dosa = plan(rows).recipes.find((r) => r.recipe.id === 'dosa');
+    const flat = dosa?.recipe.components.find((c) => c.kind === 'flat');
+    if (flat?.kind !== 'flat') return;
+    expect(flat.label).toContain('Ghee');
+    expect(flat.label).toMatch(/l/);
+  });
+
+  it('still drops a line with no rate, because there is no cost to keep', () => {
+    const out = plan([
+      ['Kichadi', 'Rava', '1.4', 'kg', '3.286'],
+      ['Kichadi', 'Ghee', '0.2', 'kg', '37.5'],
+      // Same clash, but nothing to cost it with.
+      ['Dosa', 'Ghee', '0.05', 'l', ''],
+      ['Dosa', 'Rava', '1', 'kg', '3'],
+    ]);
+    const dosa = out.recipes.find((r) => r.recipe.id === 'dosa');
+    expect(dosa?.recipe.components).toHaveLength(1);
+  });
+});
