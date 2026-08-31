@@ -93,7 +93,7 @@ describe('the suggested price shows its working', () => {
 
   it('divides the cost by the target', () => {
     const s = suggestPrice(build.total, DEFAULT_MODEL);
-    expect(s.exact).toBeCloseTo(build.total / 0.32, 10);
+    expect(s.exact).toBeCloseTo(build.total / (DEFAULT_MODEL.foodCostTarget / 100), 10);
   });
 
   it('always rounds up, never down', () => {

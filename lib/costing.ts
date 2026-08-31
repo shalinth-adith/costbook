@@ -39,7 +39,10 @@ export interface CostingModel {
 export const DEFAULT_MODEL: CostingModel = {
   wastagePercent: 2,
   packagingPerPortion: 0.35,
-  foodCostTarget: 32,
+  // 30, matching what the setup wizard starts at. It carried 32 while setup
+  // offered 30, so an account that skipped the question priced two points
+  // apart from one that accepted the suggestion — for no stated reason.
+  foodCostTarget: 30,
   rounding: 'next_9',
 };
 
@@ -254,5 +257,44 @@ export function emptyCost(recipe: Recipe): RecipeCost {
     totalFloor: 0,
     costPerBaseFloor: 0,
     unpriced: [],
+  };
+}
+
+/**
+ * The model one dish prices by: the account's, with that dish's overrides on
+ * top of it.
+ *
+ * This lived inside the cost sheet's `useMemo`, where a line reading
+ * `foodCostTarget: ORG.foodCostTarget` sat after the spread of the real
+ * account and silently overwrote it with the demo café's 32% — so an operator
+ * who set 20% in Settings was still priced at 32% on the only screen where
+ * that figure is used, with no test able to see it. Composition order is
+ * business logic; it belongs here, where it can be held to account.
+ *
+ * `null` for an override means "follow the account", not "zero", so a dish
+ * that was never given its own target keeps tracking one that changes.
+ */
+export function dishModel(
+  orgModel: CostingModel,
+  overrides: {
+    readonly rounding?: PresetName | undefined;
+    readonly foodCostTarget?: number | null | undefined;
+    readonly wastagePercent?: number | null | undefined;
+    readonly packagingPerPortion?: number | null | undefined;
+  } = {},
+): CostingModel {
+  return {
+    ...DEFAULT_MODEL,
+    ...orgModel,
+    ...(overrides.rounding === undefined ? {} : { rounding: overrides.rounding }),
+    ...(overrides.foodCostTarget === null || overrides.foodCostTarget === undefined
+      ? {}
+      : { foodCostTarget: overrides.foodCostTarget }),
+    ...(overrides.wastagePercent === null || overrides.wastagePercent === undefined
+      ? {}
+      : { wastagePercent: overrides.wastagePercent }),
+    ...(overrides.packagingPerPortion === null || overrides.packagingPerPortion === undefined
+      ? {}
+      : { packagingPerPortion: overrides.packagingPerPortion }),
   };
 }

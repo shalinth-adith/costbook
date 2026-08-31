@@ -2307,3 +2307,40 @@
 }
 /* Never let a figure wrap. A date broken across two lines reads as damage. */
 .lib-updated, .lib-row .figure { white-space: nowrap; }
+
+/* ── the target, changed where it is stated ────────────────────────── */
+
+/* The target is the operator's decision, so it is editable at the point of
+   effect rather than three screens away in Settings (PRD 8). It sits inside
+   the label, which is why it inherits every one of the label's own type
+   properties instead of restating them and drifting. */
+.label-edit {
+  font: inherit; letter-spacing: inherit; text-transform: inherit;
+  color: inherit; background: none; border: 0; padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.label-edit:hover { color: var(--text-primary); }
+
+.rule-note {
+  text-transform: uppercase; letter-spacing: 0.07em;
+  font-size: 9.5px; font-weight: 600; color: var(--text-tertiary);
+  margin-inline-start: 7px;
+}
+
+.target-typed { margin-block-start: var(--sp-4); }
+.target-typed-label {
+  display: block; font-size: 12.5px; color: var(--text-secondary);
+  margin-block-end: 8px;
+}
+.target-typed-row { display: flex; align-items: center; gap: 8px; }
+.target-typed-unit { font-size: 13px; color: var(--text-secondary); }
+/* Pushes the button to the end and gives the price a stable column, so
+   typing does not shuffle the control under the cursor. */
+.target-typed-price {
+  margin-inline-start: auto; font-size: 15px; font-weight: 600;
+  min-width: 74px; text-align: end;
+}

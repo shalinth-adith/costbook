@@ -33,12 +33,13 @@ import { DishSheet } from './sheets/dish-sheet';
 import { PasteSheet, type PastedRow } from './sheets/paste-sheet';
 import { RateSheet } from './sheets/rate-sheet';
 import { RoundingSheet } from './sheets/rounding-sheet';
+import { TargetSheet } from './sheets/target-sheet';
 import { AddSheet } from './sheets/add-sheet';
 import { ComponentTable, type LineHandlers } from './component-table';
 import { ComponentPicker, type PickerChoice } from './component-picker';
 import { CostRail } from './cost-rail';
 import { StatusChip } from './status-chip';
-import { type CostingModel, DEFAULT_MODEL, buildUp, emptyCost, foodCostPercent, tryRecipeCost } from '@/lib/costing';
+import { type CostingModel, DEFAULT_MODEL, buildUp, dishModel, emptyCost, foodCostPercent, tryRecipeCost } from '@/lib/costing';
 import type { Charge } from '@/core/charges';
 import { compareChannels } from '@/lib/channels';
 import { inspect } from '@/lib/inspector';
@@ -46,7 +47,6 @@ import type { PresetName } from '@/core/rounding';
 import { unitFamily } from '@/core/units';
 import { addComponent, pantryWith, removeLine, setQty, toggleScope } from '@/lib/edit';
 import type { DishMeta } from '@/lib/data';
-import { ORG } from '@/lib/data';
 import { ROUNDING_LABEL } from '@/lib/costing';
 import { money, percent } from '@/lib/format';
 
@@ -93,12 +93,20 @@ export function RecipeSheet({
   const [layout, setLayout] = useState<Layout>('table');
   const [expanded, setExpanded] = useState(-1);
   const [rounding, setRounding] = useState<PresetName>(DEFAULT_MODEL.rounding);
+  /**
+   * This dish's own target, or null to follow the account's.
+   *
+   * Settings states that a dish may override the target; this is where it
+   * does. Null rather than a copy of the org figure, so a dish that has never
+   * been given one keeps tracking the account when the account changes.
+   */
+  const [dishTarget, setDishTarget] = useState<number | null>(null);
   const [dirty, setDirty] = useState(false);
   const [blocked, setBlocked] = useState<string | null>(null);
 
   /** Which secondary surface is up. Only ever one at a time. */
   const [sheet, setSheet] = useState<
-    'dish' | 'paste' | 'add' | 'charges' | 'rounding' | 'inspector' | 'flag' | null
+    'dish' | 'paste' | 'add' | 'charges' | 'rounding' | 'target' | 'inspector' | 'flag' | null
   >(null);
   /** The line whose rate is being answered, if any. */
   const [rateFor, setRateFor] = useState<string | null>(null);
@@ -127,14 +135,8 @@ export function RecipeSheet({
   );
 
   const model = useMemo(
-    () => ({
-      ...DEFAULT_MODEL,
-      ...orgModel,
-      foodCostTarget: ORG.foodCostTarget,
-      rounding,
-      ...(charges ?? {}),
-    }),
-    [rounding, charges, orgModel],
+    () => ({ ...dishModel(orgModel, { rounding, foodCostTarget: dishTarget }), ...(charges ?? {}) }),
+    [rounding, dishTarget, charges, orgModel],
   );
 
   /*
@@ -500,6 +502,7 @@ export function RecipeSheet({
           onRounding={setRounding}
           onOpenCharges={() => setSheet('charges')}
           onOpenRounding={() => setSheet('rounding')}
+          onOpenTarget={() => setSheet('target')}
           onOpenInspector={() => setSheet('inspector')}
           onUsePrice={() => {
             if (suggestion === null) return;
@@ -701,6 +704,26 @@ export function RecipeSheet({
           setSheet(null);
           setToast({
             message: 'Wastage and packaging updated — every figure above recalculated',
+            undoable: false,
+          });
+        }}
+      />
+
+      <TargetSheet
+        open={sheet === 'target'}
+        onClose={() => setSheet(null)}
+        cost={build.total ?? build.linesTotal}
+        orgTarget={orgModel.foodCostTarget}
+        current={model.foodCostTarget}
+        rounding={rounding}
+        onPick={(percent) => {
+          setDishTarget(percent);
+          setSheet(null);
+          setToast({
+            message:
+              percent === null
+                ? `This dish follows your account again, at ${orgModel.foodCostTarget.toFixed(1)}%.`
+                : `This dish aims for ${percent.toFixed(1)}%.`,
             undoable: false,
           });
         }}

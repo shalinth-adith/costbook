@@ -13,6 +13,7 @@ import {
   readRow,
   sampleRows,
   currencyFromHeader,
+  targetFromSheet,
   type RowEdit,
 } from '@/core/parse';
 import { suspectUnits } from '@/core/units-suspect';
@@ -92,6 +93,8 @@ export function ImportWizard({
   onCommit,
   currencyCode,
   onUseCurrency,
+  targetPercent,
+  onUseTarget,
 }: {
   existing: readonly Ingredient[];
   knownRecipes: readonly string[];
@@ -99,6 +102,10 @@ export function ImportWizard({
   currencyCode: string;
   /** Adopt the sheet's currency. Only offered while nothing is costed. */
   onUseCurrency?: ((code: string) => Promise<unknown>) | undefined;
+  /** The food cost percentage the account prices at today. */
+  targetPercent: number;
+  /** Adopt the target the sheet itself prices at. */
+  onUseTarget?: ((percent: number) => Promise<unknown>) | undefined;
   onCommit: (plan: ImportPlan) => Promise<{ message: string; undoable: boolean }>;
 }) {
   const m = useMoney();
@@ -186,6 +193,18 @@ export function ImportWizard({
     if (parsed === null) return null;
     const header = parsed.headerRow === null ? [] : (rows[parsed.headerRow] ?? []);
     return currencyFromHeader(header);
+  }, [parsed, rows]);
+
+  /**
+   * The target the sheet prices at, read off its own cost and price columns.
+   *
+   * Costbook's default is 32%. The reference workbook divides by 0.2 on every
+   * row. Applying ours to theirs tells an operator to drop a price they set on
+   * purpose — so where the sheet has stated a target, we ask before ours wins.
+   */
+  const sheetTarget = useMemo(() => {
+    if (parsed === null) return null;
+    return targetFromSheet(rows, parsed.headerRow);
   }, [parsed, rows]);
 
   const samples = useMemo(
@@ -732,6 +751,29 @@ export function ImportWizard({
                 </p>
                 <button type="button" className="btn" onClick={() => void onUseCurrency?.(detectedCurrency)}>
                   Price this account in {detectedCurrency}
+                </button>
+              </div>
+            ) : null}
+
+            {sheetTarget !== null && Math.abs(sheetTarget.percent - targetPercent) >= 0.1 ? (
+              <div className="import-note">
+                <p className="import-alarm-title">
+                  Your sheet prices at {sheetTarget.percent.toFixed(1)}%. Your account is set to{' '}
+                  {targetPercent.toFixed(1)}%.
+                </p>
+                <p className="import-alarm-copy">
+                  {sheetTarget.rows} of the {sheetTarget.of} dishes carrying both{' '}
+                  {sheetTarget.costHeader} and {sheetTarget.priceHeader} divide by the same figure,
+                  so it is a decision rather than an accident. Costbook&rsquo;s{' '}
+                  {targetPercent.toFixed(1)}% would suggest prices below the ones you set. The
+                  target decides what price is suggested and nothing else — no cost on file moves.
+                </p>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => void onUseTarget?.(sheetTarget.percent)}
+                >
+                  Price at {sheetTarget.percent.toFixed(1)}%, as your sheet does
                 </button>
               </div>
             ) : null}

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import type { ImportPlan } from '@/lib/import';
 import { currencyIsSettable, saveBook, saveOrg } from '@/lib/book';
 import type { DishMeta } from '@/lib/data';
+import { TARGET_MAX, TARGET_MIN } from '@/lib/org';
 
 /**
  * Commit an import.
@@ -80,6 +81,24 @@ export async function commitImport(plan: ImportPlan): Promise<{
 export async function adoptCurrency(code: string): Promise<{ readonly ok: boolean }> {
   if (!(await currencyIsSettable())) return { ok: false };
   await saveOrg({ currency: code.toUpperCase() });
+  revalidatePath('/', 'layout');
+  return { ok: true };
+}
+
+/**
+ * Take the sheet's target food cost as the account's.
+ *
+ * Unlike the currency this is safe at any time and reversible from Settings:
+ * the target changes what price Costbook *suggests*, never what anything on
+ * file costs. It is offered because a sheet that divides by 0.2 on every row
+ * has already answered the question, and Costbook applying its own 32% to it
+ * would advise the operator to cut prices they set deliberately.
+ */
+export async function adoptTarget(percent: number): Promise<{ readonly ok: boolean }> {
+  if (!Number.isFinite(percent) || percent < TARGET_MIN || percent > TARGET_MAX) {
+    return { ok: false };
+  }
+  await saveOrg({ foodCostTarget: percent });
   revalidatePath('/', 'layout');
   return { ok: true };
 }

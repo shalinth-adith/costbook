@@ -42,6 +42,7 @@ export function CostRail({
   onRounding,
   onOpenCharges,
   onOpenRounding,
+  onOpenTarget,
   onOpenInspector,
   onUsePrice,
   onKeepPrice,
@@ -59,6 +60,8 @@ export function CostRail({
   onOpenCharges: () => void;
   /** Opens the rounding sheet, which shows what each rule would charge. */
   onOpenRounding: () => void;
+  /** Change what this dish aims for, without leaving it. */
+  onOpenTarget: () => void;
   /** The full arithmetic, step by step (A28). */
   onOpenInspector: () => void;
   onUsePrice: () => void;
@@ -199,7 +202,12 @@ export function CostRail({
         </section>
       ) : (
         <section className="card price-card">
-          <div className="label">Price at {percent(model.foodCostTarget, 1)}</div>
+          <div className="label">
+            Price at{' '}
+            <button type="button" className="label-edit" onClick={onOpenTarget}>
+              {percent(model.foodCostTarget, 1)}
+            </button>
+          </div>
 
           <div className="price-work">
             <div className="figure price-formula">

@@ -308,6 +308,106 @@ export function currencyFromHeader(header: readonly string[]): string | null {
 }
 
 /**
+ * Headings that hold what a dish costs to make, and what the sheet expects to
+ * sell it for. Both are figures Costbook derives rather than imports — but the
+ * ratio between them is not a derived figure. It is the operator's target,
+ * written down.
+ */
+const COST_HEADERS: readonly string[] = [
+  'cost per item', 'cost per portion', 'cost per plate', 'cost per unit produced',
+  'cost per dish', 'cost/item', 'cost per serving',
+];
+
+const PRICE_HEADERS: readonly string[] = [
+  'expected sp', 'expected selling price', 'suggested sp', 'suggested price',
+  'expected price', 'selling price', 'sp', 'menu price', 'target sp',
+];
+
+/** How near two rows must be to count as saying the same thing, in points. */
+const TARGET_TOLERANCE = 0.35;
+
+/** Below this the sheet is not stating a target, it is recording an accident. */
+const TARGET_MIN_ROWS = 4;
+
+/** The share of rows that must agree before we call it the sheet's target. */
+const TARGET_AGREEMENT = 0.7;
+
+export interface SheetTarget {
+  /** The food cost percentage the sheet prices at, e.g. 20 for cost ÷ 0.2. */
+  readonly percent: number;
+  /** How many rows priced at it. */
+  readonly rows: number;
+  /** How many rows carried both figures at all. */
+  readonly of: number;
+  /** The sheet's own heading for the cost column, for quoting back. */
+  readonly costHeader: string;
+  /** The sheet's own heading for the price column. */
+  readonly priceHeader: string;
+}
+
+/**
+ * The food cost percentage a sheet prices at, read off its own two columns.
+ *
+ * A sheet carrying "Cost per Item" beside "Expected SP" has already answered
+ * the question the setup wizard asks. The reference workbook divides by 0.2 on
+ * every row — the operator's target is 20%, stated 36 times, and Costbook
+ * defaulting to 32% and suggesting they drop their prices is exactly the kind
+ * of confident wrongness this product exists to avoid.
+ *
+ * We read the ratio rather than the formula because a formula survives only in
+ * `.xlsx`, and the same sheet exported to CSV states the same thing in its
+ * figures. Returns null unless the sheet is consistent about it — a handful of
+ * rows at scattered percentages is a menu priced by hand, not a target.
+ */
+export function targetFromSheet(
+  rows: readonly (readonly string[])[],
+  headerRow: number | null,
+): SheetTarget | null {
+  if (headerRow === null) return null;
+  const header = rows[headerRow];
+  if (header === undefined) return null;
+
+  let costAt = -1;
+  let priceAt = -1;
+  header.forEach((cell, index) => {
+    const key = normaliseHeader(text(cell));
+    if (key === '') return;
+    if (costAt < 0 && COST_HEADERS.includes(key)) costAt = index;
+    if (priceAt < 0 && PRICE_HEADERS.includes(key)) priceAt = index;
+  });
+  if (costAt < 0 || priceAt < 0) return null;
+
+  const seen: number[] = [];
+  for (let r = headerRow + 1; r < rows.length; r += 1) {
+    const row = rows[r];
+    if (row === undefined) continue;
+    const cost = parseNumber(row[costAt]);
+    const price = parseNumber(row[priceAt]);
+    if (cost === null || price === null) continue;
+    if (cost <= 0 || price <= 0 || cost > price) continue;
+    seen.push((cost / price) * 100);
+  }
+  if (seen.length < TARGET_MIN_ROWS) return null;
+
+  // The mode rather than the mean: one hand-edited row should not drag the
+  // figure a fraction off the round number the operator actually typed.
+  let best = { percent: 0, rows: 0 };
+  for (const candidate of seen) {
+    const agreeing = seen.filter((v) => Math.abs(v - candidate) <= TARGET_TOLERANCE).length;
+    if (agreeing > best.rows) best = { percent: candidate, rows: agreeing };
+  }
+  if (best.rows / seen.length < TARGET_AGREEMENT) return null;
+
+  return {
+    percent: Math.round(best.percent * 10) / 10,
+    rows: best.rows,
+    of: seen.length,
+    costHeader: text(header[costAt]),
+    priceHeader: text(header[priceAt]),
+  };
+}
+
+/**
  * The cells in columns nothing was mapped to, under the names the operator
  * chose — which default to the sheet's own headings.
  */
