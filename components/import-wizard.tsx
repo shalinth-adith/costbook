@@ -23,19 +23,38 @@ import { useMoney } from './currency-provider';
 
 type Step = 'upload' | 'map' | 'warnings' | 'done';
 
-const FIELDS: readonly { value: Field | 'ignore'; label: string }[] = [
-  { value: 'recipe', label: 'Recipe name' },
-  { value: 'section', label: 'Section' },
-  { value: 'name', label: 'Ingredient name' },
-  { value: 'qty', label: 'Quantity' },
-  { value: 'unit', label: 'Unit' },
-  { value: 'rate', label: 'Rate per unit' },
-  { value: 'total', label: 'Line total' },
-  { value: 'yield', label: 'Yield %' },
+/*
+ * Every place a column can go, grouped the way an operator thinks about their
+ * sheet rather than the way the engine stores it.
+ *
+ * The labels say what the column is FOR, not what Costbook calls it — "how
+ * many portions one batch makes" rather than "portions" — because the question
+ * on this screen is which of their columns means that, and a one-word label
+ * makes them guess. The sheet's own heading stays beside it, unaltered.
+ */
+const FIELDS: readonly { value: Field | 'ignore'; label: string; group: string }[] = [
+  { value: 'recipe', label: 'Recipe name — the dish this row belongs to', group: 'What the row is' },
+  { value: 'section', label: 'Menu section or category', group: 'What the row is' },
+  { value: 'name', label: 'Ingredient name', group: 'What the row is' },
+
+  { value: 'qty', label: 'Quantity used in the recipe', group: 'How much, and what it costs' },
+  { value: 'unit', label: 'Unit — kg, g, l, ml, nos', group: 'How much, and what it costs' },
+  { value: 'rate', label: 'Rate per unit — what one kg or one litre costs', group: 'How much, and what it costs' },
+  { value: 'total', label: 'Line total — quantity times rate', group: 'How much, and what it costs' },
+  { value: 'yield', label: 'Yield % — how much survives peeling and trimming', group: 'How much, and what it costs' },
+
+  { value: 'portions', label: 'Portions per batch — how many plates it serves', group: 'About the batch' },
+  { value: 'output', label: 'Batch output — what one batch weighs or yields', group: 'About the batch' },
+  { value: 'sellingPrice', label: 'Selling price — what the dish sells for', group: 'About the batch' },
+  { value: 'method', label: 'Preparation method — prints on the prep card', group: 'About the batch' },
+
   // Not a default. Anything left unplaced arrives as a field on the
   // ingredient rather than being thrown away (A6).
-  { value: 'ignore', label: 'Keep as a custom field' },
+  { value: 'ignore', label: 'Keep as it is, under its own name', group: 'Keep, do not cost' },
 ];
+
+/** The groups, in the order they appear, without repeating any. */
+const FIELD_GROUPS: readonly string[] = [...new Set(FIELDS.map((f) => f.group))];
 
 const STEPS: readonly { key: Step; label: string }[] = [
   { key: 'upload', label: 'Upload' },
@@ -81,6 +100,11 @@ export function ImportWizard({
   const [busy, setBusy] = useState(false);
   /** Formula cells whose results the file does not carry. */
   const [uncomputed, setUncomputed] = useState(0);
+  /**
+   * What to call a column Costbook keeps but does not cost. Defaults to the
+   * sheet's own heading, because that is what the operator will look for.
+   */
+  const [customNames, setCustomNames] = useState<Readonly<Record<number, string>>>({});
   const [problem, setProblem] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   /** Which sample row the preview is reading back. */
@@ -92,8 +116,8 @@ export function ImportWizard({
     () =>
       rows.length === 0
         ? null
-        : parseRows(rows, { mapping, knownRecipes }),
-    [rows, mapping, knownRecipes],
+        : parseRows(rows, { mapping, knownRecipes, keepAs: customNames }),
+    [rows, mapping, knownRecipes, customNames],
   );
 
   const plan = useMemo(
@@ -466,10 +490,35 @@ export function ImportWizard({
                       aria-label={`What column ${i + 1} holds`}
                       onChange={(e) => setField(i, e.target.value as Field | 'ignore')}
                     >
-                      {FIELDS.map((f) => (
-                        <option key={f.value} value={f.value}>{f.label}</option>
+                      {FIELD_GROUPS.map((g) => (
+                        <optgroup key={g} label={g}>
+                          {FIELDS.filter((f) => f.group === g).map((f) => (
+                            <option key={f.value} value={f.value}>{f.label}</option>
+                          ))}
+                        </optgroup>
                       ))}
                     </select>
+
+                    {/*
+                      A column Costbook does not cost is still the operator's
+                      column. It keeps the sheet's own heading by default, and
+                      the name is theirs to change — shortening "Preparation
+                      Method" to "method" on their behalf is how a sheet stops
+                      looking like the one they keep.
+                    */}
+                    {fieldFor(i) === 'ignore' && h !== '' ? (
+                      <label className="map-keep">
+                        <span className="map-keep-label">Keep it as</span>
+                        <input
+                          className="map-keep-input"
+                          value={customNames[i] ?? h}
+                          onChange={(e) =>
+                            setCustomNames((n) => ({ ...n, [i]: e.target.value }))
+                          }
+                          aria-label={`What to call ${h}`}
+                        />
+                      </label>
+                    ) : null}
                   </div>
                 ))}
               </div>

@@ -111,6 +111,7 @@ export interface RecipeRow {
   archived: boolean;
   notes: string | null;
   updated_at: string | null;
+  custom: unknown;
 }
 
 /**
@@ -184,6 +185,10 @@ export function toMeta(row: RecipeRow): DishMeta {
     note: row.notes ?? '',
     onMenu: row.on_menu,
     archived: row.archived,
+    custom:
+      row.custom !== null && typeof row.custom === 'object'
+        ? (row.custom as Record<string, string>)
+        : {},
     ...(row.updated_at === null ? {} : { updatedAt: row.updated_at }),
   };
 }
@@ -205,6 +210,7 @@ export function fromRecipe(r: Recipe, meta: DishMeta | undefined, orgId: string)
     on_menu: meta?.onMenu ?? false,
     archived: meta?.archived ?? false,
     notes: meta?.note ?? null,
+    custom: meta?.custom ?? {},
     // A sub-recipe is one that plates into nothing of its own.
     is_sub_recipe: r.portions === null,
     updated_at: new Date().toISOString(),

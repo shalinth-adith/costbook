@@ -43,6 +43,8 @@ export interface PlannedRecipe {
   readonly sellingPrice: number | null;
   /** The method, which prints on the prep card and costs nothing. */
   readonly method: string | null;
+  /** Columns the sheet carried that Costbook keeps but does not cost. */
+  readonly custom: Readonly<Record<string, string>>;
   /** Lines the sheet carried that could not be turned into components. */
   readonly skipped: number;
 }
@@ -200,6 +202,7 @@ export function planImport(
       // Carried so the dish arrives with what the sheet already knew about it.
       sellingPrice: block.sellingPrice !== null && block.sellingPrice > 0 ? block.sellingPrice : null,
       method: block.method,
+      custom: block.custom,
       skipped,
     });
     skippedTotal += skipped;

@@ -108,6 +108,14 @@ export interface ParsedBlock {
   readonly outputUnit: string | null;
   readonly sellingPrice: number | null;
   readonly method: string | null;
+  /**
+   * Columns Costbook does not cost, under the sheet's own headings.
+   *
+   * Kept rather than discarded (PRD 6). The sheet is the operator's record of
+   * how they cost; an import that drops a third of it is one they cannot check
+   * against what they had.
+   */
+  readonly custom: Readonly<Record<string, string>>;
 }
 
 export interface ParseResult {
@@ -120,6 +128,12 @@ export interface ParseResult {
 }
 
 export interface ParseOptions {
+  /**
+   * What to call a column Costbook keeps but does not cost, by index. Defaults
+   * to the sheet's own heading — shortening it on the operator's behalf is how
+   * a book stops looking like the sheet they keep.
+   */
+  readonly keepAs?: Readonly<Record<number, string>>;
   /** Skip header detection and use this row. */
   readonly headerRow?: number;
   /** Skip column detection and use this mapping. */
@@ -253,6 +267,29 @@ export function currencyFromHeader(header: readonly string[]): string | null {
     if (match !== null && match[1] !== undefined) return match[1].toUpperCase();
   }
   return null;
+}
+
+/**
+ * The cells in columns nothing was mapped to, under the names the operator
+ * chose — which default to the sheet's own headings.
+ */
+function keptFrom(
+  row: readonly string[],
+  header: readonly string[],
+  mapping: ColumnMapping,
+  keepAs: Readonly<Record<number, string>>,
+): Record<string, string> {
+  const taken = new Set(Object.values(mapping));
+  const out: Record<string, string> = {};
+  for (let i = 0; i < header.length; i += 1) {
+    if (taken.has(i)) continue;
+    const value = text(row[i]);
+    if (value === '') continue;
+    const label = keepAs[i] ?? text(header[i]);
+    if (label === '') continue;
+    out[label] = value;
+  }
+  return out;
 }
 
 const normaliseHeader = (raw: string): string =>
@@ -469,6 +506,9 @@ export function parseRows(
 ): ParseResult {
   const warnings: ParseWarning[] = [];
   const knownRecipes = options.knownRecipes ?? [];
+  // What the operator chose to call each kept column, by index. Empty means
+  // the sheet's own heading stands.
+  const keepAs = options.keepAs ?? {};
 
   const headerRow = options.headerRow ?? detectHeaderRow(rows);
 
@@ -517,6 +557,7 @@ export function parseRows(
     outputUnit: string | null;
     sellingPrice: number | null;
     method: string | null;
+    custom: Record<string, string>;
   }
 
   const blocks: OpenBlock[] = [];
@@ -580,6 +621,7 @@ export function parseRows(
           outputUnit: mapping.output === undefined ? null : 'kg',
           sellingPrice: mapping.sellingPrice === undefined ? null : parseNumber(row[mapping.sellingPrice]),
           method: mapping.method === undefined ? null : (text(row[mapping.method]) || null),
+          custom: keptFrom(row, header, mapping, keepAs),
         };
       block.lines.push(line);
       byRecipe.set(key, block);
@@ -596,6 +638,7 @@ export function parseRows(
         outputUnit: b.outputUnit,
         sellingPrice: b.sellingPrice,
         method: b.method,
+        custom: b.custom,
       }));
 
     for (const block of grouped) {
@@ -609,6 +652,7 @@ export function parseRows(
     const block: OpenBlock = {
       name, row, lines: [],
       portions: null, outputQty: null, outputUnit: null, sellingPrice: null, method: null,
+      custom: {},
     };
     blocks.push(block);
     return block;
@@ -652,6 +696,7 @@ export function parseRows(
       outputUnit: b.outputUnit,
       sellingPrice: b.sellingPrice,
       method: b.method,
+      custom: b.custom,
     }));
 
   for (const block of settled) {

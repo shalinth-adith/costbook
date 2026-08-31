@@ -116,6 +116,11 @@ export interface DishMeta {
   readonly deliveryPrice?: number | null;
   readonly note: string;
   readonly onMenu: boolean;
+  /**
+   * Columns from the operator's own sheet, under their own headings. Kept and
+   * shown, never costed (PRD 6).
+   */
+  readonly custom?: Readonly<Record<string, string>>;
 }
 
 const gravy: Recipe = {

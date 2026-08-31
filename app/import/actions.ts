@@ -30,6 +30,7 @@ export async function commitImport(plan: ImportPlan): Promise<{
       sellingPrice: r.sellingPrice,
       note: r.method ?? 'Brought in from your sheet. Set the batch size and the price.',
       onMenu: r.sellingPrice !== null,
+      custom: r.custom,
       updatedAt: today,
     };
   }

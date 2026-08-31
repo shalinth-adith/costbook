@@ -561,6 +561,29 @@ export function RecipeSheet({
         onSetForThisDish={() => setSheet('charges')}
       />
 
+      {/*
+        What the operator's own sheet said, kept under their own headings.
+        Costbook has no opinion about any of it and does not cost it — but the
+        sheet is their record of how they cost, and an import that drops a
+        third of it is one they cannot check against what they had (PRD 6).
+      */}
+      {Object.keys(dish.custom ?? {}).length > 0 && (
+        <section className="from-sheet">
+          <h2 className="from-sheet-h">From your sheet</h2>
+          <p className="from-sheet-lede">
+            Columns Costbook kept but does not cost. Yours, under your own headings.
+          </p>
+          <dl className="from-sheet-list">
+            {Object.entries(dish.custom ?? {}).map(([k, v]) => (
+              <div className="from-sheet-row" key={k}>
+                <dt>{k}</dt>
+                <dd className="figure">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+
       <ChannelSection
         comparison={channels}
         target={model.foodCostTarget}
