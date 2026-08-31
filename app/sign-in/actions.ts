@@ -40,9 +40,16 @@ export async function attemptSignIn(_previous: SignInState, form: FormData): Pro
   }
 
   if (result.kind === 'ok') {
-    // No session yet — that arrives with Supabase Auth at build step 12.
-    // Until then the redirect is the whole of "you are in".
-    redirect('/');
+    /*
+     * The fixture path, used only when no Supabase project is configured. It
+     * sent people to the landing page while the real path sent them to the
+     * dashboard, so the two disagreed about what signing in means.
+     *
+     * One landing for everyone: an owner and a manager hold the same
+     * permissions and differ only in what they came to do, which is not
+     * something a different first screen can tell them.
+     */
+    redirect('/dashboard');
   }
 
   return result;
