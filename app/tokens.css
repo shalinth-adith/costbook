@@ -18,6 +18,10 @@
   --text-primary: #171B24;
   --text-secondary: #4A5262;
   --text-tertiary: #5C6577;
+  /* A fourth tone, for a figure that has been superseded: the struck-through
+     old rate beside a new one, and the timestamp under it. Never for a
+     sentence — it is the quietest thing allowed to carry a number. */
+  --text-quiet: #7E8695;
   --text-on-inverse: #FFFFFF;
   /* The dark panel is the one place ink runs the other way. Three steps, same
      jobs as the light three, lifted enough to clear AA on #171B24. */

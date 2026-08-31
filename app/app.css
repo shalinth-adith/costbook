@@ -2358,3 +2358,48 @@
   letter-spacing: 0.06em; text-transform: uppercase;
 }
 .prep-method-head:first-child { margin-block-start: 0; }
+
+/* ── settings: what the numbers do (A27) ───────────────────────────── */
+
+.set-units { display: flex; flex-wrap: wrap; gap: var(--sp-5); }
+.set-unit-group { display: flex; flex-direction: column; gap: 7px; }
+.set-unit-family {
+  font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--text-secondary); font-weight: 600;
+}
+
+/* The formula's arithmetic on one of their own dishes. Set as a list of
+   sums rather than a table: it is read down, one line at a time. */
+.set-worked {
+  margin-block-start: var(--sp-5);
+  background: var(--surface-sunken); border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-field); padding: var(--sp-4) 16px;
+}
+.set-worked-dish {
+  margin-inline-start: 10px; font-weight: 500; color: var(--text-secondary);
+}
+.set-worked-rows { margin: var(--sp-3) 0 0; display: flex; flex-direction: column; }
+.set-worked-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-4);
+  padding-block: 7px;
+}
+.set-worked-row dt { font-size: 13.5px; color: var(--text-secondary); }
+.set-worked-row dd { margin: 0; font-size: 15px; text-align: end; }
+/* The two figures a reader is looking for: the plate cost and the price. */
+.set-worked-row.is-strong {
+  border-block-start: 1px solid var(--border-hairline); padding-block-start: 9px;
+}
+.set-worked-row.is-strong dt { color: var(--text-primary); font-weight: 500; }
+.set-worked-row.is-strong dd { font-weight: 600; font-size: 16px; }
+.set-worked .set-note { margin-block-start: var(--sp-3); }
+
+.set-rounding-eg { margin-block-start: var(--sp-5); }
+.set-rounding-rows { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-block-start: 10px; }
+.set-rounding-row {
+  display: flex; align-items: baseline; gap: 9px;
+  border: 1px solid var(--border-hairline); border-radius: var(--radius-field);
+  padding: 9px 13px;
+}
+.set-rounding-from { font-size: 14px; color: var(--text-tertiary); }
+.set-rounding-arrow { font-size: 13px; color: var(--text-quiet); }
+.set-rounding-to { font-size: 16px; font-weight: 600; }

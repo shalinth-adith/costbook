@@ -4,11 +4,11 @@ import { useMemo, useState, useTransition } from 'react';
 
 import { type Charge, applyCharges } from '@/core/charges';
 import { currency, formatMoney } from '@/core/currency';
-import { PRESETS, type PresetName, describeRule } from '@/core/rounding';
+import { PRESETS, type PresetName, applyRounding, describeRule } from '@/core/rounding';
 
 import { changeRole, choosePlan, drop, invite, previewCosting, saveCharges, saveCosting, saveOrganisation }
   from '@/app/settings/actions';
-import { ROUNDING_CHOICES, type CostingModel } from '@/lib/costing';
+import { ROUNDING_CHOICES, type CostingModel, dishModel, suggestPrice } from '@/lib/costing';
 import { FREE_LIMITS, type Member, type Org, type Plan, type Role, taxLabel } from '@/lib/org';
 import type { Impact } from '@/lib/impact';
 
@@ -18,6 +18,25 @@ const TABS = ['Organisation', 'Costing', 'Charges', 'Team', 'Billing'] as const;
 type Tab = (typeof TABS)[number];
 
 const EXAMPLE_PRICE = 100;
+
+/**
+ * Three prices to show a rounding rule on.
+ *
+ * Chosen to land in different places on every lattice: one just under a whole
+ * number, one just over, one mid-range. A rule shown on a single price looks
+ * like it does nothing.
+ */
+const ROUNDING_SHOWN: readonly number[] = [46.3, 118.7, 232.4];
+
+/** One line of the worked example. The figure column stays a figure. */
+function WorkedRow({ said, figure, strong }: { said: string; figure: string; strong?: boolean }) {
+  return (
+    <div className={`set-worked-row${strong === true ? ' is-strong' : ''}`}>
+      <dt>{said}</dt>
+      <dd className="figure">{figure}</dd>
+    </div>
+  );
+}
 
 export interface SettingsData {
   readonly org: Org;
@@ -30,8 +49,8 @@ export interface SettingsData {
   /** One real dish, costed, so the worked example is theirs and not made up. */
   readonly sample: {
     readonly name: string;
-    readonly ingredients: number;
-    readonly portions: number | null;
+    /** Ingredient cost for one portion, before wastage and packaging. */
+    readonly ingredientCost: number;
   } | null;
 }
 
@@ -61,6 +80,21 @@ export function SettingsView({
   const [wastage, setWastage] = useState(data.model.wastagePercent);
   const [packaging, setPackaging] = useState(data.model.packagingPerPortion);
   const [rounding, setRounding] = useState<PresetName>(data.model.rounding);
+  /**
+   * The worked example, computed the way the sentence above reads it — in that
+   * order, so a reader can follow the arithmetic line by line rather than
+   * being handed a total.
+   */
+  const sampleIngredients = data.sample?.ingredientCost ?? 0;
+  const sampleWaste = sampleIngredients * (wastage / 100);
+  const samplePlate = sampleIngredients + sampleWaste + packaging;
+  // Through the same function the cost sheet uses, so the example on this
+  // screen and the price on the dish can never disagree about the arithmetic.
+  const sampleSuggestion = suggestPrice(
+    samplePlate,
+    dishModel(data.model, { foodCostTarget: target, rounding }),
+  );
+
   const [showRadius, setShowRadius] = useState(false);
   /** Null until "show me what moves" is pressed; the server does the costing. */
   const [blastRadius, setBlastRadius] = useState<Impact | null>(null);
@@ -173,6 +207,50 @@ export function SettingsView({
               </p>
             </SettingRow>
 
+            {/* A29's currency is set once; this is the opposite kind of setting
+                and says so. It decides what a line *starts* in, and every line
+                can be changed as it is typed. */}
+            <SettingRow
+              label="Default units"
+              help="What a new component line starts in. Any line can be changed as you type it."
+              scope="EVERY LINE CAN OVERRIDE"
+            >
+              <div className="set-units">
+                <div className="set-unit-group">
+                  <span className="set-unit-family">Mass</span>
+                  <div className="set-seg">
+                    {([['g', 'g — grams'], ['kg', 'kg — kilos']] as const).map(([u, said]) => (
+                      <button
+                        key={u}
+                        type="button"
+                        className="set-seg-item"
+                        data-on={data.org.defaultMassUnit === u}
+                        onClick={() => start(async () => { await saveOrganisation({ defaultMassUnit: u }); })}
+                      >
+                        {said}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="set-unit-group">
+                  <span className="set-unit-family">Volume</span>
+                  <div className="set-seg">
+                    {([['ml', 'ml — millilitres'], ['l', 'L — litres']] as const).map(([u, said]) => (
+                      <button
+                        key={u}
+                        type="button"
+                        className="set-seg-item"
+                        data-on={data.org.defaultVolumeUnit === u}
+                        onClick={() => start(async () => { await saveOrganisation({ defaultVolumeUnit: u }); })}
+                      >
+                        {said}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </SettingRow>
+
             <SettingRow
               label="When a rate counts as stale"
               help="After this long we mark the rate on the ingredient, and any dish that leans on it."
@@ -222,6 +300,50 @@ export function SettingsView({
                 ))}
               </select>.
             </p>
+
+            {/*
+              The formula is a description of how their place works. This is
+              the same arithmetic on one of their own dishes, following on the
+              keystroke — which is what makes the figures above feel theirs
+              rather than like a form they are filling in.
+            */}
+            {data.sample === null ? null : (
+              <section className="set-worked">
+                <h3 className="set-h3">
+                  On one of your dishes, right now
+                  <span className="set-worked-dish">{data.sample.name}</span>
+                </h3>
+                <dl className="set-worked-rows">
+                  <WorkedRow said="Ingredients, as costed today" figure={money(sampleIngredients)} />
+                  <WorkedRow said={`Wastage at ${wastage}%`} figure={`+ ${money(sampleWaste)}`} />
+                  <WorkedRow said="Packaging" figure={`+ ${money(packaging)}`} />
+                  <WorkedRow said="Plate cost" figure={money(samplePlate)} strong />
+                  <WorkedRow said={`Divided by ${target}%`} figure={money(sampleSuggestion.exact)} />
+                  <WorkedRow said="Suggested price" figure={money(sampleSuggestion.rounded)} strong />
+                </dl>
+                <p className="set-note">
+                  This is your dish and your rates, not an illustration. Change a figure in the
+                  sentence above and this follows on the same keystroke.
+                </p>
+              </section>
+            )}
+
+            {/* Nobody can predict what a rounding rule does to their menu from
+                its name, so it is shown on three prices rather than described. */}
+            <section className="set-rounding-eg">
+              <h3 className="set-h3">What that rounding does to real prices</h3>
+              <div className="set-rounding-rows">
+                {ROUNDING_SHOWN.map((raw) => (
+                  <div className="set-rounding-row" key={raw}>
+                    <span className="figure set-rounding-from">{money(raw)}</span>
+                    <span className="figure set-rounding-arrow" aria-hidden="true">&rarr;</span>
+                    <span className="figure set-rounding-to">
+                      {money(applyRounding(raw, PRESETS[rounding]))}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
 
             <div className="set-overrides">
               <div>
