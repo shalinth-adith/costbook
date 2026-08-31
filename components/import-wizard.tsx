@@ -113,6 +113,8 @@ export function ImportWizard({
   const [busy, setBusy] = useState(false);
   /** Formula cells whose results the file does not carry. */
   const [uncomputed, setUncomputed] = useState(0);
+  /** Whether a file is being dragged over the target. */
+  const [dragging, setDragging] = useState(false);
   /**
    * What to call a column Costbook keeps but does not cost. Defaults to the
    * sheet's own heading, because that is what the operator will look for.
@@ -434,35 +436,104 @@ export function ImportWizard({
       </Sheet>
 
       <div className="import-wrap">
+        {/*
+          A37 step 1 · the drop.
+          
+          A file being dragged needs somewhere to land, so the target takes the
+          screen — a large target is the feature, not padding. The old version
+          was a small card in a corner of a page-sized void, which is the same
+          fault A35 names on the empty Recipes screen.
+        */}
         {step === 'upload' ? (
-          <section className="card empty">
-            <p className="empty-title">Choose your sheet</p>
-            <p className="empty-copy">
-              An .xlsx or a .csv. Costbook reads the file and never writes to it — nothing on your
-              machine changes, and you can throw the import away afterwards.
-            </p>
-            <div className="empty-actions">
-              <input
-                ref={fileField}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                className="visually-hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
+          <div className="rx-empty">
+            <div className="rx-empty-lead">
+              <h1 className="rx-empty-h">Drop your spreadsheet here</h1>
+              <p className="rx-empty-lede">
+                Everything in it comes in. Nothing is dropped, nothing is guessed, and your file is
+                only ever read.
+              </p>
+            </div>
+
+            <div className="rx-empty-grid">
+              <label
+                className={`rx-drop is-target${dragging ? ' is-over' : ''}`}
+                onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragging(false);
+                  const file = e.dataTransfer.files?.[0];
                   if (file !== undefined) void read(file);
                 }}
-              />
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={busy}
-                onClick={() => fileField.current?.click()}
               >
-                {busy ? 'Reading…' : 'Choose a file'}
-              </button>
+                <input
+                  ref={fileField}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="visually-hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file !== undefined) void read(file);
+                  }}
+                />
+                <span className="rx-drop-title">
+                  {dragging ? 'Let go' : busy ? 'Reading it…' : 'Drop it anywhere in here'}
+                </span>
+                <span className="rx-drop-copy">
+                  Or choose it from your machine. Merged cells, blank rows, three sheets in one
+                  file, prices with the currency typed in — we&rsquo;ve read all of it.
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-primary rx-drop-btn"
+                  disabled={busy}
+                  onClick={() => fileField.current?.click()}
+                >
+                  {busy ? 'Reading…' : 'Choose a file'}
+                </button>
+                <span className="rx-drop-formats figure">.xlsx · .xls · .csv</span>
+                <span className="rx-drop-trust">Your file is read, never altered</span>
+              </label>
+
+              <div className="rx-empty-side">
+                {/* A sheet that won't parse. Not a mistake on their part. */}
+                {problem === null ? null : (
+                  <section className="import-alarm" role="alert">
+                    <p className="import-alarm-title">We couldn&rsquo;t open that one.</p>
+                    <p className="import-alarm-copy">{problem}</p>
+                    <p className="import-alarm-copy">
+                      None of this is a mistake on your part, and your file is not altered.
+                    </p>
+                  </section>
+                )}
+
+                <section className="rx-panel">
+                  <h2 className="rx-panel-h">Everything comes in</h2>
+                  <p className="rx-panel-copy">
+                    Columns we can&rsquo;t place are kept under your own headings rather than
+                    dropped. Nothing in your sheet is thrown away, and nothing is guessed.
+                  </p>
+                </section>
+
+                <section className="rx-panel">
+                  <h2 className="rx-panel-h">Then one question</h2>
+                  <p className="rx-panel-copy">
+                    We read one of your own rows back as a sentence. If it reads right, everything
+                    else will be too — the whole sheet was read the same way. It takes about a
+                    minute.
+                  </p>
+                </section>
+
+                <section className="rx-panel">
+                  <h2 className="rx-panel-h">Nothing lands until you say so</h2>
+                  <p className="rx-panel-copy">
+                    You see what would arrive before any of it does, and the whole import can be put
+                    back for seven days afterwards.
+                  </p>
+                </section>
+              </div>
             </div>
-            {problem === null ? null : <p className="empty-copy warn-ink">{problem}</p>}
-          </section>
+          </div>
         ) : null}
 
         {/*

@@ -2281,3 +2281,18 @@
 /* The dashboard's preview has two columns, not three. */
 .rx-shot-row.is-two, .rx-shot-head:has(+ .rx-shot-row.is-two) { grid-template-columns: minmax(0, 1fr) 118px; }
 .rx-shot-row .figure[data-over='true'] { color: var(--over-ink); font-weight: 600; }
+
+/* ── A37 · the drop target ───────────────────────────────────────────────── */
+/* A file being dragged needs somewhere to land. The target takes the column;
+   a large target is the feature, not padding. */
+.rx-drop.is-target { cursor: pointer; }
+.rx-drop.is-over {
+  border-color: var(--text-primary);
+  border-style: solid;
+  background: var(--surface-sunken);
+}
+.rx-drop.is-target:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+/* The confirm and result steps get the page's measure rather than a card's. */
+.ic, .ac { margin-inline: auto; }
+.wizard-body > .ic, .wizard-body > .ac { max-inline-size: 1100px; }
