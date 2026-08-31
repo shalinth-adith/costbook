@@ -14,6 +14,7 @@ import {
   sampleRows,
   currencyFromHeader,
 } from '@/core/parse';
+import { suspectUnits } from '@/core/units-suspect';
 
 import { type ImportPlan, groupWarnings, looksLikeMappingError, planImport } from '@/lib/import';
 import { qty } from '@/lib/format';
@@ -105,6 +106,8 @@ export function ImportWizard({
    * sheet's own heading, because that is what the operator will look for.
    */
   const [customNames, setCustomNames] = useState<Readonly<Record<number, string>>>({});
+  /** Which suspect labels the operator has agreed to read differently. */
+  const [rereadUnits, setRereadUnits] = useState<Readonly<Record<string, string>>>({});
   const [problem, setProblem] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   /** Which sample row the preview is reading back. */
@@ -116,8 +119,8 @@ export function ImportWizard({
     () =>
       rows.length === 0
         ? null
-        : parseRows(rows, { mapping, knownRecipes, keepAs: customNames }),
-    [rows, mapping, knownRecipes, customNames],
+        : parseRows(rows, { mapping, knownRecipes, keepAs: customNames, rereadUnits }),
+    [rows, mapping, knownRecipes, customNames, rereadUnits],
   );
 
   const plan = useMemo(
@@ -134,6 +137,22 @@ export function ImportWizard({
     [parsed, lineCount],
   );
   const mappingFault = useMemo(() => looksLikeMappingError(warnings), [warnings]);
+
+  /**
+   * Unit labels the sheet contradicts itself about.
+   *
+   * Never applied on its own. The operator is shown their own rows and asked,
+   * because either answer is possible — a bakery really might weigh saffron in
+   * grams — and guessing is what produced a 23,000 plate of rice.
+   */
+  const suspects = useMemo(() => {
+    if (parsed === null) return [];
+    return suspectUnits(
+      parsed.blocks.flatMap((b) =>
+        b.lines.map((l) => ({ row: l.row, qty: l.qty, unit: l.rawUnit })),
+      ),
+    );
+  }, [parsed]);
 
   /** Read off the sheet's own headings — "Price (AED)" says what it is in. */
   const detectedCurrency = useMemo(() => {
@@ -425,6 +444,62 @@ export function ImportWizard({
                 </p>
               </div>
             ) : null}
+
+            {/*
+              The sheet contradicting itself about a unit. Shown before the
+              mapping, because it changes what every figure below it means —
+              and asked rather than decided, because either answer is possible.
+            */}
+            {suspects.map((sus) => {
+              const applied = rereadUnits[sus.wrote] === sus.means;
+              return (
+                <div className="import-note" key={sus.wrote} role="alert">
+                  <p className="import-alarm-title">
+                    <b className="figure">{sus.rows}</b> rows say &ldquo;{sus.wrote}&rdquo;, but the
+                    quantities beside them look like {sus.means}.
+                  </p>
+                  <p className="import-alarm-copy">
+                    A {sus.wrote} is a thousandth of a {sus.means}, so those quantities should be
+                    about a thousand times larger than the rows written in {sus.means}. They are
+                    not — the middle one is{' '}
+                    <b className="figure">{sus.median}</b> against{' '}
+                    <b className="figure">{sus.against}</b>. Read literally, an ingredient at 23 a{' '}
+                    {sus.means} becomes 23 a {sus.wrote}, and one plate costs a thousand times what
+                    it should.
+                  </p>
+                  <p className="import-alarm-copy">
+                    Your rows:{' '}
+                    {sus.examples.map((e) => (
+                      <span className="figure" key={e.row}>
+                        row {e.row} · {e.qty} {sus.wrote}&nbsp;&nbsp;
+                      </span>
+                    ))}
+                  </p>
+                  <div className="import-choice">
+                    <button
+                      type="button"
+                      className={applied ? 'btn btn-primary' : 'btn'}
+                      onClick={() => setRereadUnits((r) => ({ ...r, [sus.wrote]: sus.means }))}
+                    >
+                      Read them as {sus.means}
+                    </button>
+                    <button
+                      type="button"
+                      className={applied ? 'btn' : 'btn btn-primary'}
+                      onClick={() =>
+                        setRereadUnits((r) => {
+                          const next = { ...r };
+                          delete next[sus.wrote];
+                          return next;
+                        })
+                      }
+                    >
+                      No — they really are {sus.wrote}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
 
             {detectedCurrency !== null && detectedCurrency !== currencyCode ? (
               <div className="import-note">

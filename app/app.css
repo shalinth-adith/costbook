@@ -2092,3 +2092,4 @@
 }
 .from-sheet-row dt { color: var(--text-secondary); }
 .from-sheet-row dd { margin: 0; color: var(--text-primary); }
+.import-choice { display: flex; gap: var(--sp-3); margin-block-start: var(--sp-3); flex-wrap: wrap; }

@@ -134,6 +134,15 @@ export interface ParseOptions {
    * a book stops looking like the sheet they keep.
    */
   readonly keepAs?: Readonly<Record<number, string>>;
+  /**
+   * Unit labels to read as something else, agreed by the operator.
+   *
+   * A sheet that writes "gm" beside quantities the size of kilos is
+   * contradicting itself; `suspectUnits` finds that and the operator settles
+   * it. Applied here so every figure downstream is already right, rather than
+   * corrected in six places afterwards.
+   */
+  readonly rereadUnits?: Readonly<Record<string, string>>;
   /** Skip header detection and use this row. */
   readonly headerRow?: number;
   /** Skip column detection and use this mapping. */
@@ -376,6 +385,7 @@ function parseLine(
   index: number,
   mapping: ColumnMapping,
   knownRecipes: readonly string[],
+  reread: Readonly<Record<string, string>> = {},
 ): ParsedLine | null {
   const nameCol = mapping.name;
   if (nameCol === undefined) return null;
@@ -390,7 +400,12 @@ function parseLine(
   const rate = mapping.rate === undefined ? null : parseNumber(row[mapping.rate]);
   const total = mapping.total === undefined ? null : parseNumber(row[mapping.total]);
 
-  const unit = rawUnit === null ? null : normaliseUnit(rawUnit);
+  /*
+   * The operator's answer about a label the sheet contradicts itself over is
+   * applied here, before anything is measured or costed with it.
+   */
+  const canonical = rawUnit === null ? null : normaliseUnit(rawUnit);
+  const unit = canonical === null ? null : (reread[canonical] ?? canonical);
 
   // A word that is not a unit makes this a cost with a label, not a
   // measurement. `as req`, `lot`, `pinch`, `pkt`, `box` all land here rather
@@ -509,6 +524,7 @@ export function parseRows(
   // What the operator chose to call each kept column, by index. Empty means
   // the sheet's own heading stands.
   const keepAs = options.keepAs ?? {};
+  const rereadUnits = options.rereadUnits ?? {};
 
   const headerRow = options.headerRow ?? detectHeaderRow(rows);
 
@@ -604,7 +620,7 @@ export function parseRows(
       const recipeName = carriedRecipe;
       if (recipeName === '') continue;
 
-      const line = parseLine(row, i, mapping, knownRecipes);
+      const line = parseLine(row, i, mapping, knownRecipes, rereadUnits);
       if (line === null) continue;
 
       const key = recipeName.toLowerCase();
@@ -669,7 +685,7 @@ export function parseRows(
       continue;
     }
 
-    const line = parseLine(row, i, mapping, knownRecipes);
+    const line = parseLine(row, i, mapping, knownRecipes, rereadUnits);
     if (line === null) continue;
 
     // A name carrying no quantity and no money is a heading, not a line.
