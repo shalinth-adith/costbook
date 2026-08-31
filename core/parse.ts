@@ -51,6 +51,16 @@ export type Field =
  */
 export const NEEDED_FIELDS: readonly Field[] = ['recipe', 'name', 'qty', 'unit'];
 
+/** What the operator corrected on one row of their sheet. */
+export interface RowEdit {
+  readonly qty?: string;
+  readonly unit?: string;
+  readonly rate?: string;
+  readonly name?: string;
+  /** Leave the row out entirely. */
+  readonly drop?: boolean;
+}
+
 /** Which column holds which field. Column indices, zero based. */
 export type ColumnMapping = Partial<Record<Field, number>>;
 
@@ -143,6 +153,15 @@ export interface ParseOptions {
    * corrected in six places afterwards.
    */
   readonly rereadUnits?: Readonly<Record<string, string>>;
+  /**
+   * Corrections the operator typed for individual rows, by row number.
+   *
+   * A warning nobody can act on moves the work back to Excel: re-open, find
+   * the row, fix it, export, upload again. These let a row be corrected where
+   * it is flagged, before anything is committed, and the sheet on disk is
+   * never touched — Costbook only ever reads it.
+   */
+  readonly rowEdits?: Readonly<Record<number, RowEdit>>;
   /** Skip header detection and use this row. */
   readonly headerRow?: number;
   /** Skip column detection and use this mapping. */
@@ -386,18 +405,32 @@ function parseLine(
   mapping: ColumnMapping,
   knownRecipes: readonly string[],
   reread: Readonly<Record<string, string>> = {},
+  edit: RowEdit | undefined = undefined,
 ): ParsedLine | null {
+  // A row the operator struck out is not read at all.
+  if (edit?.drop === true) return null;
+
   const nameCol = mapping.name;
   if (nameCol === undefined) return null;
 
-  const name = text(row[nameCol]);
+  const name = edit?.name !== undefined ? edit.name.trim() : text(row[nameCol]);
   if (name === '') return null;
 
   const warnings: ParseWarning[] = [];
 
-  const qty = mapping.qty === undefined ? null : parseNumber(row[mapping.qty]);
-  const rawUnit = mapping.unit === undefined ? null : text(row[mapping.unit]) || null;
-  const rate = mapping.rate === undefined ? null : parseNumber(row[mapping.rate]);
+  /*
+   * The operator's correction stands in for the cell, and nothing distinguishes
+   * it downstream — a row they fixed is a row, not a special case.
+   */
+  const qty = edit?.qty !== undefined
+    ? parseNumber(edit.qty)
+    : mapping.qty === undefined ? null : parseNumber(row[mapping.qty]);
+  const rawUnit = edit?.unit !== undefined
+    ? (edit.unit.trim() || null)
+    : mapping.unit === undefined ? null : text(row[mapping.unit]) || null;
+  const rate = edit?.rate !== undefined
+    ? parseNumber(edit.rate)
+    : mapping.rate === undefined ? null : parseNumber(row[mapping.rate]);
   const total = mapping.total === undefined ? null : parseNumber(row[mapping.total]);
 
   /*
@@ -525,6 +558,7 @@ export function parseRows(
   // the sheet's own heading stands.
   const keepAs = options.keepAs ?? {};
   const rereadUnits = options.rereadUnits ?? {};
+  const rowEdits = options.rowEdits ?? {};
 
   const headerRow = options.headerRow ?? detectHeaderRow(rows);
 
@@ -620,7 +654,7 @@ export function parseRows(
       const recipeName = carriedRecipe;
       if (recipeName === '') continue;
 
-      const line = parseLine(row, i, mapping, knownRecipes, rereadUnits);
+      const line = parseLine(row, i, mapping, knownRecipes, rereadUnits, rowEdits[i]);
       if (line === null) continue;
 
       const key = recipeName.toLowerCase();
@@ -685,7 +719,7 @@ export function parseRows(
       continue;
     }
 
-    const line = parseLine(row, i, mapping, knownRecipes, rereadUnits);
+    const line = parseLine(row, i, mapping, knownRecipes, rereadUnits, rowEdits[i]);
     if (line === null) continue;
 
     // A name carrying no quantity and no money is a heading, not a line.

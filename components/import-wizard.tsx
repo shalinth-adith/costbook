@@ -13,10 +13,11 @@ import {
   readRow,
   sampleRows,
   currencyFromHeader,
+  type RowEdit,
 } from '@/core/parse';
 import { suspectUnits } from '@/core/units-suspect';
 
-import { type ImportPlan, groupWarnings, looksLikeMappingError, planImport } from '@/lib/import';
+import { type ImportPlan, flaggedRows, groupWarnings, looksLikeMappingError, planImport } from '@/lib/import';
 import { qty } from '@/lib/format';
 
 import { Sheet } from './sheet';
@@ -108,6 +109,8 @@ export function ImportWizard({
   const [customNames, setCustomNames] = useState<Readonly<Record<number, string>>>({});
   /** Which suspect labels the operator has agreed to read differently. */
   const [rereadUnits, setRereadUnits] = useState<Readonly<Record<string, string>>>({});
+  /** Corrections typed on the review screen, by row number. */
+  const [rowEdits, setRowEdits] = useState<Readonly<Record<number, RowEdit>>>({});
   const [problem, setProblem] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   /** Which sample row the preview is reading back. */
@@ -119,8 +122,8 @@ export function ImportWizard({
     () =>
       rows.length === 0
         ? null
-        : parseRows(rows, { mapping, knownRecipes, keepAs: customNames, rereadUnits }),
-    [rows, mapping, knownRecipes, customNames, rereadUnits],
+        : parseRows(rows, { mapping, knownRecipes, keepAs: customNames, rereadUnits, rowEdits }),
+    [rows, mapping, knownRecipes, customNames, rereadUnits, rowEdits],
   );
 
   const plan = useMemo(
@@ -137,6 +140,9 @@ export function ImportWizard({
     [parsed, lineCount],
   );
   const mappingFault = useMemo(() => looksLikeMappingError(warnings), [warnings]);
+
+  /** The rows those warnings are actually about, ready to be corrected. */
+  const flagged = useMemo(() => (parsed === null ? [] : flaggedRows(parsed)), [parsed]);
 
   /**
    * Unit labels the sheet contradicts itself about.
@@ -715,6 +721,90 @@ export function ImportWizard({
                 ? 'None of these are mistakes on your part — spreadsheets kept by hand always carry a few. They are counted and sorted by consequence, and you can leave every one of them and fix it later.'
                 : 'The others below are the usual few, and you can leave them and fix them later. The first one is large enough that it is probably not about your sheet at all.'}
             </p>
+
+            {/*
+              The rows the warnings are about, with their own figures, editable.
+              A warning nobody can act on moves the work back to Excel — re-open
+              the file, find the row, fix it, export, upload again — which is
+              the same as not warning at all.
+
+              The sheet on disk is never touched. Costbook only ever reads it.
+            */}
+            {flagged.length > 0 ? (
+              <div className="fix">
+                <div className="fix-head">
+                  <h3 className="fix-title">
+                    <b className="figure">{flagged.length}</b>{' '}
+                    {flagged.length === 1 ? 'row is' : 'rows are'} worth a look — fix them here
+                  </h3>
+                  <p className="fix-copy">
+                    Type over anything that is wrong and the figures below update as you go. Your
+                    file is not changed; nothing is saved until you commit.
+                  </p>
+                </div>
+
+                <table className="fix-table">
+                  <thead>
+                    <tr>
+                      <th>Row</th>
+                      <th>Ingredient</th>
+                      <th>Qty</th>
+                      <th>Unit</th>
+                      <th>Rate</th>
+                      <th>Why</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {flagged.slice(0, 60).map((f) => {
+                      const e = rowEdits[f.row] ?? {};
+                      const dropped = e.drop === true;
+                      const set = (patch: Record<string, string | boolean>) =>
+                        setRowEdits((r) => ({ ...r, [f.row]: { ...(r[f.row] ?? {}), ...patch } }));
+                      return (
+                        <tr key={f.row} data-severity={f.severity} data-dropped={dropped}>
+                          <td className="figure fix-n">{f.row}</td>
+                          <td>
+                            <input className="fix-input" value={e.name ?? f.name}
+                              aria-label={`Ingredient on row ${f.row}`}
+                              onChange={(ev) => set({ name: ev.target.value })} />
+                          </td>
+                          <td>
+                            <input className="fix-input figure is-num" value={e.qty ?? (f.qty ?? '')}
+                              aria-label={`Quantity on row ${f.row}`}
+                              onChange={(ev) => set({ qty: ev.target.value })} />
+                          </td>
+                          <td>
+                            <input className="fix-input is-unit" value={e.unit ?? (f.unit ?? '')}
+                              aria-label={`Unit on row ${f.row}`}
+                              onChange={(ev) => set({ unit: ev.target.value })} />
+                          </td>
+                          <td>
+                            <input className="fix-input figure is-num" value={e.rate ?? (f.rate ?? '')}
+                              aria-label={`Rate on row ${f.row}`}
+                              onChange={(ev) => set({ rate: ev.target.value })} />
+                          </td>
+                          <td className="fix-why">{f.why}</td>
+                          <td>
+                            {/* Leaving a row out is a decision, and a reversible
+                                one. Nothing is deleted from the sheet. */}
+                            <button type="button" className="set-pill"
+                              onClick={() => set({ drop: !dropped })}>
+                              {dropped ? 'Put it back' : 'Leave it out'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {flagged.length > 60 ? (
+                  <p className="fix-copy figure">
+                    60 of {flagged.length} shown. Fix these and the rest are usually the same thing.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="warn-list">
               {warnings.map((w) => (

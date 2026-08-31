@@ -2093,3 +2093,36 @@
 .from-sheet-row dt { color: var(--text-secondary); }
 .from-sheet-row dd { margin: 0; color: var(--text-primary); }
 .import-choice { display: flex; gap: var(--sp-3); margin-block-start: var(--sp-3); flex-wrap: wrap; }
+
+/* ── Import review: the rows a warning is about, editable in place ───────── */
+.fix {
+  margin-block-end: var(--sp-6); padding: var(--sp-4);
+  background: var(--surface-card);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-panel);
+}
+.fix-head { margin-block-end: var(--sp-3); }
+.fix-title { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+.fix-copy { font-size: 12.5px; line-height: 1.55; color: var(--text-secondary); margin: 0; max-inline-size: 72ch; }
+.fix-table { inline-size: 100%; border-collapse: collapse; font-size: 12.5px; margin-block-start: var(--sp-3); }
+.fix-table th {
+  text-align: start; font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em;
+  color: var(--text-tertiary); padding-block: var(--sp-2);
+  border-block-end: 1px solid var(--border-strong);
+}
+.fix-table td { padding: 4px 6px 4px 0; border-block-end: 1px solid var(--border-row); vertical-align: middle; }
+/* A row that stops a dish being costed is not the same as one that only
+   simplifies a line, and the list is sorted so the first kind comes first. */
+.fix-table tr[data-severity='stops-costing'] td { background: var(--over-tint); }
+.fix-table tr[data-dropped='true'] td { opacity: 1; background: var(--surface-sunken); }
+.fix-table tr[data-dropped='true'] .fix-input { text-decoration: line-through; color: var(--text-tertiary); }
+.fix-n { inline-size: 40px; color: var(--text-tertiary); }
+.fix-input {
+  inline-size: 100%; min-inline-size: 0; block-size: 28px; padding-inline: 6px;
+  font: inherit; font-size: 12.5px; color: var(--text-primary);
+  background: var(--surface-card);
+  border: 1px solid var(--border-control); border-radius: 4px;
+}
+.fix-input.is-num { inline-size: 76px; text-align: end; }
+.fix-input.is-unit { inline-size: 64px; }
+.fix-input:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.fix-why { font-size: 11.5px; color: var(--text-secondary); line-height: 1.45; max-inline-size: 32ch; }

@@ -377,3 +377,66 @@ export function groupWarnings(parsed: ParseResult, totalRows = 0): readonly Warn
 export function looksLikeMappingError(groups: readonly WarningGroup[]): WarningGroup | null {
   return groups.find((g) => g.likelyMapping) ?? null;
 }
+
+/**
+ * The rows a warning is actually about, with what the sheet said in each cell.
+ *
+ * A warning nobody can act on moves the work back to Excel: re-open the file,
+ * find the row, fix it, export, upload again. So the flagged rows are gathered
+ * here with their own figures, ready to be corrected where they are flagged.
+ *
+ * Sorted by consequence rather than by row: a rate that cannot be trusted stops
+ * a dish being costed, and a missing unit only makes a line a flat charge.
+ */
+export interface FlaggedRow {
+  readonly row: number;
+  readonly name: string;
+  readonly qty: number | null;
+  readonly unit: string | null;
+  readonly rate: number | null;
+  readonly total: number | null;
+  /** Why it is here, in the operator's words. */
+  readonly why: string;
+  /** How much it matters: a dish uncosted, or a line simplified. */
+  readonly severity: 'stops-costing' | 'worth-a-look';
+}
+
+const STOPS_COSTING: readonly string[] = [
+  'magnitude_suspect', 'inconsistent_total', 'no_quantity', 'unrecognised_unit',
+];
+
+export function flaggedRows(parsed: ParseResult): readonly FlaggedRow[] {
+  const byRow = new Map<number, { line: ParsedLine; reasons: string[]; severe: boolean }>();
+
+  const lines = new Map<number, ParsedLine>();
+  for (const b of parsed.blocks) for (const l of b.lines) lines.set(l.row, l);
+
+  for (const w of parsed.warnings) {
+    if (w.row === undefined || w.row === null) continue;
+    const at = w.row;
+    const line = lines.get(at);
+    if (line === undefined) continue;
+    const seen = byRow.get(at);
+    const severe = STOPS_COSTING.includes(w.code);
+    if (seen === undefined) byRow.set(at, { line, reasons: [w.message], severe });
+    else {
+      seen.reasons.push(w.message);
+      if (severe) seen.severe = true;
+    }
+  }
+
+  return [...byRow.values()]
+    .map(({ line, reasons, severe }) => ({
+      row: line.row,
+      name: line.name,
+      qty: line.qty,
+      unit: line.rawUnit,
+      rate: line.rate,
+      total: line.total,
+      why: reasons.join(' '),
+      severity: severe ? ('stops-costing' as const) : ('worth-a-look' as const),
+    }))
+    .sort((a, b) =>
+      a.severity === b.severity ? a.row - b.row : a.severity === 'stops-costing' ? -1 : 1,
+    );
+}
