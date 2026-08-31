@@ -116,3 +116,57 @@ describe('a channel price of its own', () => {
     );
   });
 });
+
+/**
+ * A26's three findings, evaluated in the order the frame specifies.
+ *
+ * Over at the counter is tested first, because a dish that fails before anyone
+ * takes a cut has a problem the platform did not cause — and sending its owner
+ * to negotiate with a platform is sending them to the wrong argument.
+ */
+describe('a dish already over target at the counter', () => {
+  // Same dosa, priced too low to hold 32% before anyone takes a cut.
+  const cheap = { ...dosa, dineInPrice: 100, plateTxt: undefined } as typeof dosa;
+
+  it('is the finding, ahead of anything about delivery', () => {
+    const out = compareChannels(cheap);
+    expect(out.overAtCounter).toBe(true);
+    // It cannot also be the delivery finding: the states are ordered, not
+    // overlapping.
+    expect(out.breaksOnDelivery).toBe(false);
+  });
+
+  it('is not offered a delivery price', () => {
+    const out = compareChannels(cheap);
+    expect(out.suggestedDeliveryPrice).toBeNull();
+    expect(out.suggestedKeeps).toBeNull();
+    expect(out.suggestedFoodCost).toBeNull();
+  });
+
+  it('states the figure it refuses to suggest', () => {
+    const out = compareChannels(cheap);
+    expect(out.deliveryNeeded).not.toBeNull();
+    // The frame's claim: it always lands past 1.5x what it sells for.
+    expect(out.deliveryNeededRatio ?? 0).toBeGreaterThan(1.5);
+  });
+
+  it('points at the counter price, which is where the fix is', () => {
+    const out = compareChannels(cheap);
+    expect(out.counterSuggest).not.toBeNull();
+    // Holding the target at this plate cost needs more than it currently sells for.
+    expect(out.counterSuggest ?? 0).toBeGreaterThan(cheap.dineInPrice ?? 0);
+  });
+});
+
+describe('a dish sound at the counter', () => {
+  it('still gets a delivery price offered', () => {
+    const out = compareChannels(dosa);
+    expect(out.overAtCounter).toBe(false);
+    expect(out.suggestedDeliveryPrice).not.toBeNull();
+    expect(out.deliveryNeeded).toBeNull();
+  });
+
+  it('has a counter suggestion too, for the cost sheet above', () => {
+    expect(compareChannels(dosa).counterSuggest).not.toBeNull();
+  });
+});

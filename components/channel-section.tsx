@@ -51,8 +51,40 @@ export function ChannelSection({
       ) : (
         <>
           {/* The finding, before any arithmetic. */}
-          <div className="chan-finding" data-breaks={comparison.breaksOnDelivery}>
-            {comparison.breaksOnDelivery ? (
+          {/*
+            Three findings, and the order is the design (A26). Over at the
+            counter is tested first, because a dish that fails before anyone
+            takes a cut has a problem the platform did not cause. Only a dish
+            sound at the counter can reach the delivery finding, and only a
+            dish sound on delivery can reach "the target survives".
+          */}
+          <div className="chan-finding" data-breaks={comparison.overAtCounter || comparison.breaksOnDelivery}>
+            {comparison.overAtCounter ? (
+              <>
+                <h3>
+                  This dish is already over your {target.toFixed(1)}% target at the counter, at{' '}
+                  {pct(dineIn.foodCostPercent)}.
+                </h3>
+                <p>
+                  Delivery makes it worse — the platform&rsquo;s and the gateway&rsquo;s cuts take
+                  it to {pct(delivery.foodCostPercent)} — but a delivery price will not fix a dish
+                  that does not work at the counter. Look at the plate cost or the menu price first.
+                </p>
+
+                <div className="chan-pair">
+                  <div>
+                    <span>At the counter</span>
+                    <b className="figure" data-over="true">{pct(dineIn.foodCostPercent)}</b>
+                    <em>before anyone takes a cut</em>
+                  </div>
+                  <div>
+                    <span>On delivery</span>
+                    <b className="figure" data-over={delivery.overTarget}>{pct(delivery.foodCostPercent)}</b>
+                    <em>context, not the finding</em>
+                  </div>
+                </div>
+              </>
+            ) : comparison.breaksOnDelivery ? (
               <>
                 <h3>This dish stops working on delivery.</h3>
                 <p>
@@ -63,51 +95,66 @@ export function ChannelSection({
                   <b className="figure">{m.withSymbol(comparison.marginGap ?? 0)}</b> worse off than
                   the same dish at the counter.
                 </p>
-              </>
-            ) : delivery.overTarget ? (
-              <>
-                {/* Over on both. Delivery is not the problem here and saying so
-                    would send the operator to fix the wrong thing. */}
-                <h3>This dish is over target at the counter too.</h3>
-                <p>
-                  Delivery makes it worse — what the platform and the gateway take comes out of your
-                  side, so you keep <b className="figure">{m.withSymbol(delivery.keeps)}</b> of a{' '}
-                  <b className="figure">{m.withSymbol(delivery.price)}</b> order. But the dish is
-                  already above {target.toFixed(1)}% at the counter, so a channel price alone
-                  won&rsquo;t fix it.
-                </p>
+
+                <div className="chan-pair">
+                  <div><span>At the counter</span><b className="figure">{pct(dineIn.foodCostPercent)}</b></div>
+                  <div><span>On delivery</span><b className="figure" data-over="true">{pct(delivery.foodCostPercent)}</b></div>
+                  <div>
+                    <span>Difference</span>
+                    <b className="figure">
+                      {comparison.gapPoints === null ? '—' : comparison.gapPoints.toFixed(1)}
+                    </b>
+                    <em>points of food cost</em>
+                  </div>
+                </div>
               </>
             ) : (
               <>
                 <h3>The target survives on delivery.</h3>
                 <p>
                   After commission and the gateway you keep{' '}
-                  <b className="figure">{m.withSymbol(delivery.keeps)}</b> — which is the point of a
-                  channel price rather than a discount.
+                  <b className="figure">{m.withSymbol(delivery.keeps)}</b> — more than the counter
+                  leaves you, which is the point of a channel price rather than a discount.
                 </p>
+                <div className="chan-pair">
+                  <div><span>At the counter</span><b className="figure">{pct(dineIn.foodCostPercent)}</b></div>
+                  <div><span>On delivery</span><b className="figure">{pct(delivery.foodCostPercent)}</b></div>
+                </div>
               </>
             )}
-
-            <div className="chan-pair">
-              <div>
-                <span>At the counter</span>
-                <b className="figure">{pct(dineIn.foodCostPercent)}</b>
-              </div>
-              <div>
-                <span>On delivery</span>
-                <b className="figure" data-over={delivery.overTarget}>{pct(delivery.foodCostPercent)}</b>
-              </div>
-              <div>
-                <span>Difference</span>
-                <b className="figure">
-                  {comparison.gapPoints === null ? '—' : `${comparison.gapPoints.toFixed(1)}`}
-                </b>
-                <em>points of food cost</em>
-              </div>
-            </div>
           </div>
 
-          {comparison.suggestedDeliveryPrice !== null && delivery.overTarget && (
+          {/*
+            Where the fix actually is. A price nobody would charge is stated and
+            refused: solving the target backwards through the deduction on a
+            dish already over target always lands past 1.5x what it sells for,
+            and a suggestion nobody would act on costs more trust than silence.
+          */}
+          {comparison.overAtCounter && comparison.counterSuggest !== null ? (
+            <div className="chan-solve">
+              <h3>The fix is on the cost sheet above, not on the platform.</h3>
+              <p>
+                {target.toFixed(1)}% at a plate cost of{' '}
+                <b className="figure">{m.withSymbol(dineIn.cost)}</b> means a counter price of{' '}
+                <b className="figure">{m.withSymbol(comparison.counterSuggest)}</b>, and it is
+                listed at <b className="figure">{m.withSymbol(dineIn.price)}</b>. Raise the price or
+                take cost out of the plate — the sub-recipes are where it usually is.
+              </p>
+              {comparison.deliveryNeeded !== null ? (
+                <p className="chan-refused">
+                  And no, a delivery price will not rescue it. To hit {target.toFixed(1)}% on the
+                  platform this would have to list at{' '}
+                  <b className="figure">{m.withSymbol(comparison.deliveryNeeded)}</b>.{' '}
+                  {comparison.deliveryNeededRatio === null
+                    ? null
+                    : `That is ${comparison.deliveryNeededRatio.toFixed(1)} times what it sells for now. `}
+                  The cost is the thing to change, so we are not suggesting it as a price.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {comparison.suggestedDeliveryPrice !== null && (
             <div className="chan-solve">
               <h3>Charge more on the platform than at the counter.</h3>
               <p>

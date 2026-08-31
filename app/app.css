@@ -2126,3 +2126,6 @@
 .fix-input.is-unit { inline-size: 64px; }
 .fix-input:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 .fix-why { font-size: 11.5px; color: var(--text-secondary); line-height: 1.45; max-inline-size: 32ch; }
+/* The figure that is named and refused. Full contrast: it is the reasoning,
+   not a disabled control. */
+.chan-refused { border-block-start: 1px dotted var(--border-row); padding-block-start: var(--sp-3); }
