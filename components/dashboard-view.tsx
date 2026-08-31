@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+
+import { DashboardEmpty } from './dashboard-empty';
 import { useMemo, useState } from 'react';
 
 import {
@@ -37,25 +39,14 @@ function Glyph({ row }: { row: DashboardRow }) {
 }
 
 export function DashboardView({ data, target }: { data: Dashboard; target: number }) {
-  // Nothing costed yet. The dashboard's whole argument is its sort order, and
-  // there is nothing to sort — so it says what would fill it instead. Written
-  // in the same classes as every other empty state in the app.
-  if (data.rows.length === 0) {
-    return (
-      <div className="card empty">
-        <p className="empty-title">Nothing costed yet</p>
-        <p className="empty-copy">
-          This is where every dish lands once it has a cost, worst food cost first, read against
-          your target. If you keep your recipes in a spreadsheet — and almost everyone does —
-          importing it takes about a minute and fills this page. Costbook only reads your file.
-        </p>
-        <div className="empty-actions">
-          <Link href="/import" className="btn btn-primary">Import your spreadsheet</Link>
-          <Link href="/recipes" className="btn">Cost one dish by hand</Link>
-        </div>
-      </div>
-    );
-  }
+  /*
+   * Nothing to rank. The whole argument of this page is its sort order, and
+   * with nothing to sort there is no argument to make — so it explains what it
+   * would become rather than showing an empty frame of one.
+   *
+   * No frame exists for this screen; built in A35's shape.
+   */
+  if (data.rows.length === 0) return <DashboardEmpty target={target} />;
   const [filter, setFilter] = useState<DashboardFilter>('all');
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');

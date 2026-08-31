@@ -162,7 +162,13 @@ export function IngredientsView({
         </div>
 
         <div className="chips" role="group" aria-label="Filter">
-          {FILTERS.map((f) => (
+          {/*
+            A chip reading "Stale 0" is a filter for nothing — the same fault
+            A35 names on the empty Recipes screen, in miniature. A filter earns
+            its place by having something to find, except All, which is where
+            you go back to.
+          */}
+          {FILTERS.filter((f) => f.value === 'all' || board.counts[f.value] > 0).map((f) => (
             <button
               key={f.value}
               type="button"

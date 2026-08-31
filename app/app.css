@@ -2278,3 +2278,6 @@
   padding-block: var(--sp-3); margin-block-start: var(--sp-3);
   border-block-start: 1px solid var(--border-row); font-size: 13px; color: var(--text-secondary);
 }
+/* The dashboard's preview has two columns, not three. */
+.rx-shot-row.is-two, .rx-shot-head:has(+ .rx-shot-row.is-two) { grid-template-columns: minmax(0, 1fr) 118px; }
+.rx-shot-row .figure[data-over='true'] { color: var(--over-ink); font-weight: 600; }
