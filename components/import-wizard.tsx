@@ -23,7 +23,14 @@ import { qty } from '@/lib/format';
 import { Sheet } from './sheet';
 import { useMoney } from './currency-provider';
 
-type Step = 'upload' | 'map' | 'warnings' | 'done';
+/*
+ * A37 inverts the default path. Everything comes in, then one question a chef
+ * can answer: is this how your sheet reads? The mapping panel is demoted
+ * behind "No, let me set the columns", not deleted — and a sheet missing
+ * something Costbook cannot guess goes there directly, because there is no
+ * sentence to read back without a rate or a unit.
+ */
+type Step = 'upload' | 'confirm' | 'map' | 'warnings' | 'done';
 
 /*
  * Every place a column can go, grouped the way an operator thinks about their
@@ -58,11 +65,15 @@ const FIELDS: readonly { value: Field | 'ignore'; label: string; group: string }
 /** The groups, in the order they appear, without repeating any. */
 const FIELD_GROUPS: readonly string[] = [...new Set(FIELDS.map((f) => f.group))];
 
+/*
+ * Two steps, not four. A37: "Your file · Did we read it right? · Your menu".
+ * Mapping is not a step any more — it is a door off the second one, and most
+ * people never open it.
+ */
 const STEPS: readonly { key: Step; label: string }[] = [
-  { key: 'upload', label: 'Upload' },
-  { key: 'map', label: 'Map columns' },
-  { key: 'warnings', label: 'Review warnings' },
-  { key: 'done', label: 'Commit' },
+  { key: 'upload', label: 'Your file' },
+  { key: 'confirm', label: 'Did we read it right?' },
+  { key: 'done', label: 'Your menu' },
 ];
 
 /**
@@ -143,6 +154,14 @@ export function ImportWizard({
 
   /** The rows those warnings are actually about, ready to be corrected. */
   const flagged = useMemo(() => (parsed === null ? [] : flaggedRows(parsed)), [parsed]);
+
+  /*
+   * Split by whether it stops a dish being costed. A38 counts only the first
+   * kind on the card — clear those and it goes, whatever is left in the other
+   * group — because 516 is not a number anyone can act on.
+   */
+  const blocking = useMemo(() => flagged.filter((f) => f.severity === 'stops-costing'), [flagged]);
+  const mild = useMemo(() => flagged.length - blocking.length, [flagged, blocking]);
 
   /**
    * Unit labels the sheet contradicts itself about.
@@ -227,9 +246,17 @@ export function ImportWizard({
       setFileName(file.name);
       setSheetName(first);
       setRows(grid.map((r) => r.map((c) => String(c ?? ''))));
-      // Detection runs first; the operator corrects it on the next step.
-      setMapping(parseRows(grid.map((r) => r.map((c) => String(c ?? ''))), {}).mapping);
-      setStep('map');
+      /*
+       * Detection runs first, and decides which question to ask.
+       *
+       * With everything placed there is a sentence to read back, and reading
+       * it is a question a chef can answer. With a rate or a unit missing
+       * there is no sentence — the mapping step is not a fallback here, it is
+       * the only thing that can be asked.
+       */
+      const detected = parseRows(grid.map((r) => r.map((c) => String(c ?? ''))), {}).mapping;
+      setMapping(detected);
+      setStep(missingFields(detected).length === 0 ? 'confirm' : 'map');
     } catch {
       setProblem(
         'Costbook could not read that. It takes .xlsx and .csv — if yours is something else, ' +
@@ -256,6 +283,14 @@ export function ImportWizard({
     return (hit?.[0] as Field | undefined) ?? 'ignore';
   };
 
+  /*
+   * Commit does not wait on the warnings any more (A38).
+   *
+   * Nothing on the result screen blocks the menu: a row nobody fixes leaves
+   * its dish reporting a floor, which is a true figure and a lower one than
+   * the real cost. Holding 1,140 rows hostage to 516 notes about odd units is
+   * how an import ends in a spreadsheet again.
+   */
   const commit = () => {
     if (plan === null) return;
     setBusy(true);
@@ -266,6 +301,8 @@ export function ImportWizard({
       })
       .finally(() => setBusy(false));
   };
+
+
 
   return (
     <>
@@ -428,8 +465,113 @@ export function ImportWizard({
           </section>
         ) : null}
 
+        {/*
+          A37. One real line from their file, put back into words. If it reads
+          right, everything else will be too — the whole sheet was read the
+          same way. Twenty dropdowns ask a question a chef cannot answer; this
+          asks one they can.
+        */}
+        {step === 'confirm' && parsed !== null && reading !== null ? (
+          <section className="card ic">
+            <div className="card-head">
+              <h2 className="card-title">This is how we read your sheet.</h2>
+            </div>
+
+            <p className="sheet-copy map-copy">
+              One real line from your file, put back into words. If it reads right, everything else
+              will be too — the whole sheet was read the same way.
+            </p>
+
+            <div className="ic-row">
+              <span className="ic-where figure">Row {reading.row + 1} of {lineCount}</span>
+              <span className="ic-of figure">{(sample % Math.max(1, samples.length)) + 1} of {samples.length}</span>
+              <span className="ic-step">
+                <button
+                  type="button"
+                  className="set-pill"
+                  aria-label="Previous row"
+                  onClick={() => setSample((n) => (n - 1 + samples.length) % Math.max(1, samples.length))}
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  className="set-pill"
+                  aria-label="Next row"
+                  onClick={() => setSample((n) => (n + 1) % Math.max(1, samples.length))}
+                >
+                  ›
+                </button>
+              </span>
+            </div>
+
+            {/* The sentence is the screen. */}
+            <p className="ic-sentence">
+              <b>{reading.name}</b>, <span className="figure">{qty(reading.qty ?? 0)}</span>{' '}
+              {reading.unit} at <span className="figure">{m.withSymbol(reading.rate)}</span> per{' '}
+              {reading.unit}, <span className="figure">{m.withSymbol(reading.lineTotal)}</span> the
+              lot.
+            </p>
+
+            <div className="ic-meta">
+              {reading.recipe === null ? null : <span>Recipe: {reading.recipe}</span>}
+              {reading.section === null ? null : <span>Section: {reading.section}</span>}
+            </div>
+
+            {/* Only where the sheet's own total disagrees with the reading. */}
+            {reading.sheetTotal !== null && !reading.agrees ? (
+              <div className="import-note">
+                <p className="import-alarm-title">Read that sentence again.</p>
+                <p className="import-alarm-copy">
+                  Your sheet says this line came to{' '}
+                  <b className="figure">{m.withSymbol(reading.sheetTotal)}</b>, and read this way it
+                  comes to <b className="figure">{m.withSymbol(reading.lineTotal)}</b>. If that is
+                  not what your sheet means, two columns are the wrong way round — say no below and
+                  put them right.
+                </p>
+              </div>
+            ) : null}
+
+            <div className="wizard-foot">
+              {/* Straight to the commit. A38: nothing on the result screen
+                  blocks the menu, so nothing before it needs to either. */}
+              <button type="button" className="btn btn-primary" disabled={busy || plan === null} onClick={commit}>
+                {busy ? 'Bringing it in…' : "Yes, that's right"}
+              </button>
+              <button type="button" className="btn" onClick={() => setStep('map')}>
+                No — let me set the columns
+              </button>
+            </div>
+            <p className="ic-reassure">
+              Saying yes costs nothing. Anything read wrong is fixable afterwards without importing
+              again.
+            </p>
+          </section>
+        ) : null}
+
         {step === 'map' && parsed !== null ? (
           <div className="map-grid">
+            {/*
+              A37: a sheet reaches this step because something could not be
+              guessed, so that is what it opens on. The rest are placed and do
+              not need anyone — they are behind "Show all columns".
+            */}
+            {missing.length > 0 ? (
+              <div className="import-note" role="alert">
+                <p className="import-alarm-title">
+                  {missing.length === 1 ? 'One thing we' : `${missing.length} things we`} couldn&rsquo;t
+                  find in your sheet.
+                </p>
+                <p className="import-alarm-copy">
+                  Everything else was read fine — we&rsquo;ve placed{' '}
+                  <b className="figure">{header.length - missing.length}</b> of your{' '}
+                  <b className="figure">{header.length}</b> columns.{' '}
+                  {missing.length === 1 ? 'This one we can' : 'These we can'}&rsquo;t guess, and
+                  without {missing.length === 1 ? 'it' : 'them'} nothing can be costed. Point at{' '}
+                  {missing.length === 1 ? 'it' : 'them'} and we&rsquo;ll carry on.
+                </p>
+              </div>
+            ) : null}
             {/* Stated before anything is mapped, because a column that arrived
                 empty cannot be mapped to anything and the operator would spend
                 the screen wondering why. */}
@@ -869,25 +1011,128 @@ export function ImportWizard({
           </section>
         ) : null}
 
-        {step === 'done' ? (
-          <section className="card empty">
-            <p className="empty-title">Brought in</p>
-            <p className="empty-copy">{result}</p>
-            <div className="empty-actions">
-              <button type="button" className="btn btn-primary" onClick={() => router.push('/recipes')}>
-                See your recipes
-              </button>
-              <button type="button" className="btn" onClick={() => router.push('/ingredients')}>
-                See your ingredients
-              </button>
-              <button
-                type="button"
-                className="btn"
-                onClick={() => { setStep('upload'); setRows([]); setFileName(''); setResult(null); }}
-              >
-                Import another sheet
-              </button>
+        {/*
+          A38. Seven warning cards totalling 516, 83, 41, 9 and 7 become one
+          number a chef recognises: dishes. A chef thinks "is my dosa costed",
+          never "are 1,140 rows valid" — so the screen opens on the count with
+          the menu one press away, and nothing on it blocks the menu.
+        */}
+        {step === 'done' && plan !== null ? (
+          <section className="ac">
+            <p className="ac-file figure">
+              {fileName} · imported just now · undo for 7 days
+            </p>
+
+            <div className="ac-counts">
+              <div>
+                <b className="figure">{plan.summary.dishes}</b>
+                <span>dishes costed.</span>
+              </div>
+              <div>
+                <b className="figure">{plan.summary.ingredientsNew + plan.summary.ratesUpdated}</b>
+                <span>ingredients priced.</span>
+              </div>
             </div>
+
+            <p className="ac-copy">
+              Every one of them has a plate cost, a suggested price and a food cost you can open and
+              read step by step. Your sheet is untouched.
+            </p>
+
+            <button type="button" className="btn btn-primary btn-lg" onClick={() => router.push('/recipes')}>
+              See your menu
+            </button>
+
+            {blocking.length > 0 ? (
+              <div className="ac-fix">
+                <h2 className="ac-fix-h">
+                  <b className="figure">{blocking.length}</b>{' '}
+                  {blocking.length === 1 ? 'dish needs' : 'dishes need'} something we
+                  couldn&rsquo;t guess
+                  <span className="ac-fix-note">worst first · nothing here blocks your menu</span>
+                </h2>
+                <p className="ac-copy">
+                  None of these are mistakes on your part — they are places your sheet was written
+                  for a person to read rather than a machine. Fix one now, or all of them next week;
+                  the list waits on your dashboard either way.
+                </p>
+
+                <table className="fix-table">
+                  <thead>
+                    <tr>
+                      <th>Row</th><th>Ingredient</th><th>Qty</th><th>Unit</th><th>Rate</th>
+                      <th>Your sheet says</th><th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {blocking.slice(0, 40).map((f) => {
+                      const e = rowEdits[f.row] ?? {};
+                      const dropped = e.drop === true;
+                      const set = (patch: Record<string, string | boolean>) =>
+                        setRowEdits((r) => ({ ...r, [f.row]: { ...(r[f.row] ?? {}), ...patch } }));
+                      return (
+                        <tr key={f.row} data-severity={f.severity} data-dropped={dropped}>
+                          <td className="figure fix-n">{f.row}</td>
+                          <td>
+                            <input className="fix-input" value={e.name ?? f.name}
+                              aria-label={`Ingredient on row ${f.row}`}
+                              onChange={(ev) => set({ name: ev.target.value })} />
+                          </td>
+                          <td>
+                            <input className="fix-input figure is-num" value={e.qty ?? (f.qty ?? '')}
+                              aria-label={`Quantity on row ${f.row}`}
+                              onChange={(ev) => set({ qty: ev.target.value })} />
+                          </td>
+                          <td>
+                            <input className="fix-input is-unit" value={e.unit ?? (f.unit ?? '')}
+                              aria-label={`Unit on row ${f.row}`}
+                              onChange={(ev) => set({ unit: ev.target.value })} />
+                          </td>
+                          <td>
+                            <input className="fix-input figure is-num" value={e.rate ?? (f.rate ?? '')}
+                              aria-label={`Rate on row ${f.row}`}
+                              onChange={(ev) => set({ rate: ev.target.value })} />
+                          </td>
+                          {/* The original, kept beside the correction. */}
+                          <td className="fix-why figure">
+                            {f.qty ?? '—'} {f.unit ?? ''}{f.rate === null ? '' : ` at ${f.rate}`}
+                          </td>
+                          <td>
+                            <button type="button" className="set-pill" onClick={() => set({ drop: !dropped })}>
+                              {dropped ? 'Put it back' : 'Leave it for now'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <p className="ac-copy">
+                  Left alone, the dish reports a floor rather than a cost — the real figure is
+                  higher.
+                </p>
+              </div>
+            ) : (
+              <div className="ac-clear">
+                <h2 className="ac-fix-h">Nothing needs you. Every dish is costed.</h2>
+                <p className="ac-copy">
+                  Your sheet had a rate, a quantity and a unit on every line that mattered. That is
+                  rarer than you&rsquo;d think.
+                </p>
+              </div>
+            )}
+
+            {/* Collapsed to one line. 516 is not a number anyone can act on. */}
+            {mild > 0 ? (
+              <p className="ac-mild">
+                <b className="figure">{mild}</b> other notes about your sheet — units that look odd,
+                rows without a quantity, columns we did not read. None of them stop a dish being
+                costed.{' '}
+                <button type="button" className="link link-sm" onClick={() => router.push('/ingredients')}>
+                  Look at them later
+                </button>
+              </p>
+            ) : null}
           </section>
         ) : null}
       </div>
