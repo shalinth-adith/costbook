@@ -243,8 +243,18 @@ const HEADER_ALIASES: Readonly<Record<Field, readonly string[]>> = {
   section: ['section', 'category', 'group', 'menu section', 'course'],
   name: ['ingredient', 'ingredients', 'ingredient name', 'item', 'item description', 'description', 'particulars', 'material', 'product'],
   qty: ['qty', 'quantity', 'qnty', 'weight', 'wt', 'used', 'qty used'],
+  /*
+   * Rate is tested before unit, and the order is load-bearing.
+   *
+   * Matching is exact-or-prefix, and "unit rate" and "unit price" both start
+   * with "unit ". Tested the other way round, a sheet with no separate Unit
+   * column has its rate column read as the unit — which is what
+   * "Unit Price (AED/kg)" and "Unit Rate" were both doing.
+   *
+   * Nothing here claims a bare "unit", so the ordinary sheet is unaffected.
+   */
+  rate: ['rate', 'rate/unit', 'rate per unit', 'unit rate', 'unit price', 'unit cost', 'cost/unit', 'rate per kg'],
   unit: ['unit', 'units', 'uom', 'u.o.m'],
-  rate: ['rate', 'rate/unit', 'rate per unit', 'unit rate', 'unit price', 'cost/unit', 'rate per kg'],
   /*
    * "Price" belongs here rather than with the rate. In the reference workbook
    * the Price column is `=Quantity * Unit Rate` — a line total — while Unit

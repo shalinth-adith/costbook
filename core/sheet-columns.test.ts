@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { currencyFromHeader, detectMapping } from './parse';
+import { currencyFromHeader, detectMapping, missingFields } from './parse';
 
 /** The reference workbook's header row, verbatim. */
 const HEADER = [
@@ -98,5 +98,35 @@ describe('other names for the same columns', () => {
       const m = detectMapping(['Recipe', 'Ingredient', 'Qty', 'Unit', word]);
       expect(m.method, word).toBe(4);
     }
+  });
+});
+
+/**
+ * Rate is tested before unit, and the order is load-bearing.
+ *
+ * Matching is exact-or-prefix, and "unit rate" and "unit price" both start
+ * with "unit ". Tested the other way round, a sheet with no separate Unit
+ * column has its rate column read as the unit — found on two fixture sheets,
+ * one of which then reported no missing fields and would have skipped the
+ * mapping step entirely.
+ */
+describe('a rate column that starts with the word unit', () => {
+  it('is a rate, not a unit', () => {
+    for (const word of ['Unit Rate', 'Unit Price', 'Unit Price (AED/kg)', 'Unit Cost']) {
+      const m = detectMapping(['Ingredient', 'Quantity', word]);
+      expect(m.rate, word).toBe(2);
+      expect(m.unit, word).toBeUndefined();
+    }
+  });
+
+  it('still finds a plain Unit column beside one', () => {
+    const m = detectMapping(['Ingredient', 'Quantity', 'Unit', 'Unit Rate']);
+    expect(m.unit).toBe(2);
+    expect(m.rate).toBe(3);
+  });
+
+  it('reports the unit as missing when the sheet truly has none', () => {
+    const m = detectMapping(['Recipe Name', 'Ingredient', 'Quantity', 'Unit Rate']);
+    expect(missingFields(m)).toContain('unit');
   });
 });
