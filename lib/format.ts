@@ -112,3 +112,19 @@ export function ago(days: number | null): string {
   const years = Math.round(days / 365);
   return years === 1 ? 'a year ago' : `${years} years ago`;
 }
+
+
+/**
+ * A timestamp as a person reads it (A19's rule, applied to the library).
+ *
+ * The library printed "2026-08-31T13:47:27.325+00" and wrapped it across two
+ * lines. Nobody reads a timestamp to learn the millisecond; they read it to
+ * learn whether the figure beside it is old.
+ */
+export function when(iso: string | null, today: string): string {
+  if (iso === null) return DASH;
+  const then = iso.slice(0, 10);
+  const days = Math.round((Date.parse(today) - Date.parse(then)) / 86_400_000);
+  if (Number.isNaN(days)) return then;
+  return ago(Math.max(0, days));
+}

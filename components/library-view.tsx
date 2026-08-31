@@ -14,7 +14,7 @@ import {
   groupByCategory,
   search,
 } from '@/lib/library';
-import { DASH, percent } from '@/lib/format';
+import { DASH, percent, when } from '@/lib/format';
 
 import { useMoney } from './currency-provider';
 import { StatusChip } from './status-chip';
@@ -57,6 +57,20 @@ export function LibraryView({
   const [toast, setToast] = useState<ToastState | null>(null);
   const [creating, setCreating] = useState(false);
   const [pending, start] = useTransition();
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  /*
+   * Shown only when the dates differ. Straight after an import all 79 dishes
+   * carry the same timestamp, and a column of identical figures is a column
+   * that costs width and gives nothing back.
+   */
+  const showUpdated = useMemo(() => {
+    const dates = new Set(
+      [...data.dishes, ...data.batches].map((r) => (r.updatedAt ?? '').slice(0, 10)),
+    );
+    return dates.size > 1;
+  }, [data.dishes, data.batches]);
 
   const source = tab === 'dishes' ? data.dishes : data.batches;
 
@@ -231,7 +245,7 @@ export function LibraryView({
                 </button>
 
                 {open ? (
-                  <div className={tab === 'dishes' ? 'lib-table' : 'lib-table is-batches'}>
+                  <div className={tab === 'dishes' ? 'lib-table' : 'lib-table is-batches'} data-updated={showUpdated}>
                     <div className="lib-head">
                       <span>{tab === 'dishes' ? 'Dish' : 'Batch'}</span>
                       <span className="end">Components</span>
@@ -239,12 +253,17 @@ export function LibraryView({
                       {tab === 'dishes' ? <span className="end">Menu price</span> : null}
                       {tab === 'dishes' ? <span className="end">Food cost</span> : <span className="end">Used in</span>}
                       {tab === 'dishes' ? <span>Status</span> : null}
-                      <span>Updated</span>
+                      {/* A19's rule: a column where every row says the same
+                          thing teaches nothing. Right after an import, every
+                          dish carries the same timestamp. */}
+                      {showUpdated ? <span>Updated</span> : null}
                       <span />
                     </div>
 
                     {group.rows.map((row) => (
                       <Row
+                        showUpdated={showUpdated}
+                        today={today}
                         key={row.id}
                         row={row}
                         isDish={tab === 'dishes'}
@@ -282,12 +301,16 @@ export function LibraryView({
 
 function Row({
   row,
+  showUpdated,
+  today,
   isDish,
   money,
   busy,
   onDuplicate,
   onArchive,
 }: {
+  showUpdated: boolean;
+  today: string;
   row: LibraryRow;
   isDish: boolean;
   money: ReturnType<typeof useMoney>;
@@ -338,7 +361,7 @@ function Row({
         </span>
       ) : null}
 
-      <span className="lib-dim lib-updated">{row.updatedAt ?? DASH}</span>
+      {showUpdated ? <span className="lib-dim lib-updated">{when(row.updatedAt, today)}</span> : null}
 
       {/* Both actions stay visible. A kitchen with six biryanis builds five of
           them by duplicating the first, and an action that only exists under a

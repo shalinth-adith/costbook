@@ -2296,3 +2296,14 @@
 /* The confirm and result steps get the page's measure rather than a card's. */
 .ic, .ac { margin-inline: auto; }
 .wizard-body > .ic, .wizard-body > .ac { max-inline-size: 1100px; }
+/* The Updated column narrows out with its own content (A19's rule). */
+.lib-table[data-updated='false'] .lib-head,
+.lib-table[data-updated='false'] .lib-row {
+  grid-template-columns: minmax(0, 1fr) 100px 116px 112px 92px 132px 152px;
+}
+.lib-table.is-batches[data-updated='false'] .lib-head,
+.lib-table.is-batches[data-updated='false'] .lib-row {
+  grid-template-columns: minmax(0, 1fr) 100px 140px 132px 152px;
+}
+/* Never let a figure wrap. A date broken across two lines reads as damage. */
+.lib-updated, .lib-row .figure { white-space: nowrap; }
