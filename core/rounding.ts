@@ -215,7 +215,7 @@ function latticeFor(rule: Exclude<RoundingRule, { mode: 'none' }>): Lattice {
  *
  * A suggestion nobody would act on costs more trust than silence (A26).
  */
-function scaleToFit(rule: RoundingRule, value: number): RoundingRule {
+function scaleToFit<R extends RoundingRule>(rule: R, value: number): R {
   if (rule.mode !== 'charm') return rule;
   if (!Number.isFinite(value) || value <= 0) return rule;
 
