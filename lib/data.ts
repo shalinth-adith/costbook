@@ -115,6 +115,12 @@ export interface DishMeta {
    */
   readonly deliveryPrice?: number | null;
   readonly note: string;
+  /**
+   * The preparation method as the operator wrote it — their own numbering and
+   * their own group titles. Prints on the prep card, costs nothing. Separate
+   * from `note`, which is the operator's own remark about the dish.
+   */
+  readonly method?: string | null;
   readonly onMenu: boolean;
   /**
    * Columns from the operator's own sheet, under their own headings. Kept and

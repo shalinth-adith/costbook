@@ -117,6 +117,12 @@ export interface ParsedBlock {
   readonly outputQty: number | null;
   readonly outputUnit: string | null;
   readonly sellingPrice: number | null;
+  /**
+   * The sheet's own grouping for this recipe — "BREAKFAST - BATTERS & DOUGHS".
+   * Costbook filed every imported dish under "From your sheet" while the
+   * operator's own section sat in a column beside it.
+   */
+  readonly section: string | null;
   readonly method: string | null;
   /**
    * Columns Costbook does not cost, under the sheet's own headings.
@@ -716,6 +722,7 @@ export function parseRows(
     outputQty: number | null;
     outputUnit: string | null;
     sellingPrice: number | null;
+    section: string | null;
     method: string | null;
     custom: Record<string, string>;
   }
@@ -780,6 +787,7 @@ export function parseRows(
           outputQty: mapping.output === undefined ? null : parseNumber(row[mapping.output]),
           outputUnit: mapping.output === undefined ? null : 'kg',
           sellingPrice: mapping.sellingPrice === undefined ? null : parseNumber(row[mapping.sellingPrice]),
+          section: mapping.section === undefined ? null : (text(row[mapping.section]) || null),
           method: mapping.method === undefined ? null : (text(row[mapping.method]) || null),
           custom: keptFrom(row, header, mapping, keepAs),
         };
@@ -797,6 +805,7 @@ export function parseRows(
         outputQty: b.outputQty,
         outputUnit: b.outputUnit,
         sellingPrice: b.sellingPrice,
+        section: b.section,
         method: b.method,
         custom: b.custom,
       }));
@@ -811,7 +820,8 @@ export function parseRows(
   const open = (name: string, row: number): OpenBlock => {
     const block: OpenBlock = {
       name, row, lines: [],
-      portions: null, outputQty: null, outputUnit: null, sellingPrice: null, method: null,
+      portions: null, outputQty: null, outputUnit: null, sellingPrice: null,
+      section: null, method: null,
       custom: {},
     };
     blocks.push(block);
@@ -832,15 +842,21 @@ export function parseRows(
     const line = parseLine(row, i, mapping, knownRecipes, rereadUnits, rowEdits[i]);
     if (line === null) continue;
 
+    /** The sheet's own grouping, from whichever row first states one. */
+    const sectionHere =
+      mapping.section === undefined ? null : (text(row[mapping.section]) || null);
+
     // A name carrying no quantity and no money is a heading, not a line.
     const hasFigures = line.qty !== null || line.rate !== null || line.total !== null;
     if (!hasFigures) {
       current = open(line.name, i);
+      current.section = sectionHere;
       continue;
     }
 
     // Lines before any heading: a pasted block with no title of its own.
     current ??= open('', i);
+    current.section ??= sectionHere;
     current.lines.push(line);
   }
 
@@ -855,6 +871,7 @@ export function parseRows(
       outputQty: b.outputQty,
       outputUnit: b.outputUnit,
       sellingPrice: b.sellingPrice,
+      section: b.section,
       method: b.method,
       custom: b.custom,
     }));

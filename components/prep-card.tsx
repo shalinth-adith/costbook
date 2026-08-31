@@ -3,8 +3,8 @@
 import type { CostedLine } from '@/core/recipe';
 
 import type { DishMeta } from '@/lib/data';
-import { ORG } from '@/lib/data';
 import { lineQty, qty } from '@/lib/format';
+import type { MethodLine } from '@/lib/prep';
 
 /**
  * A8, and the chef's half of the product.
@@ -25,17 +25,21 @@ export function PrepCard({
   prepTime,
   contains,
   doNot,
+  orgName,
   onBack,
 }: {
   name: string;
   dish: DishMeta;
   portions: number | null;
   lines: readonly CostedLine[];
-  steps: readonly string[];
+  /** The method as written, never renumbered. */
+  steps: readonly MethodLine[];
   prepTime: string | null;
   /** Allergens, in the kitchen's words. Printed, never costed. */
   contains: readonly string[];
   doNot: string | null;
+  /** The café's own name. This sheet is taped up in their kitchen. */
+  orgName: string;
   onBack: () => void;
 }) {
   return (
@@ -93,17 +97,30 @@ export function PrepCard({
           </ul>
         </section>
 
-        {steps.length === 0 ? null : (
+        {/* An absent method is stated, not omitted. This sheet is read at arm's
+            length by someone holding a pan, and a missing section reads as a
+            printing fault rather than as an answer. */}
+        {steps.length === 0 ? (
           <section className="prep-section">
             <h2 className="prep-h2">METHOD</h2>
-            <ol className="prep-steps">
-              {steps.map((step, i) => (
-                <li key={i} className="prep-step">
-                  <span className="prep-step-n">{i + 1}</span>
-                  <span>{step}</span>
-                </li>
-              ))}
-            </ol>
+            <p className="prep-absent">
+              Not written down yet. Add it on the dish and it prints here.
+            </p>
+          </section>
+        ) : (
+          <section className="prep-section">
+            <h2 className="prep-h2">METHOD</h2>
+            {/* No list markers and no numbering of our own: the operator's
+                text already carries theirs, and the kitchen knows it by it. */}
+            <div className="prep-method">
+              {steps.map((line, i) =>
+                line.heading ? (
+                  <p key={i} className="prep-method-head">{line.text}</p>
+                ) : (
+                  <p key={i} className="prep-method-line">{line.text}</p>
+                ),
+              )}
+            </div>
           </section>
         )}
 
@@ -115,7 +132,7 @@ export function PrepCard({
         )}
 
         <footer className="prep-foot">
-          <span>{ORG.name.toUpperCase()} · COSTBOOK · REVISION 1</span>
+          <span>{orgName.toUpperCase()} · COSTBOOK</span>
           <span>CHECKED BY ___________</span>
         </footer>
       </article>

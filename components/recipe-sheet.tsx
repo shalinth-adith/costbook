@@ -48,6 +48,7 @@ import { unitFamily } from '@/core/units';
 import { addComponent, pantryWith, removeLine, setQty, toggleScope } from '@/lib/edit';
 import type { DishMeta } from '@/lib/data';
 import { ROUNDING_LABEL } from '@/lib/costing';
+import { allergensFrom, methodLines, prepTimeFrom } from '@/lib/prep';
 import { money, percent } from '@/lib/format';
 
 import { useMoney } from './currency-provider';
@@ -74,6 +75,7 @@ export function RecipeSheet({
   orgCharges,
   owner,
   flags,
+  orgName,
 }: {
   initialRecipe: Recipe;
   otherRecipes: readonly Recipe[];
@@ -88,6 +90,8 @@ export function RecipeSheet({
   owner: string;
   /** What has already been said about this dish (A40). */
   flags: readonly Flag[];
+  /** The café's own name, which the prep card prints where it is taped up. */
+  orgName: string;
 }) {
   const [recipe, setRecipe] = useState<Recipe>(initialRecipe);
   const [layout, setLayout] = useState<Layout>('table');
@@ -303,10 +307,11 @@ export function RecipeSheet({
         dish={{ ...dish, category: fields.category, station: fields.station }}
         portions={recipe.portions}
         lines={cost.lines}
-        steps={PREP_STEPS}
-        prepTime="9 min"
-        contains={['Milk', 'Sesame']}
-        doNot="Podi the idlys before they are ordered — they go soft. Send within 60 seconds of the tawa."
+        steps={methodLines(dish.method)}
+        prepTime={prepTimeFrom(dish.custom)}
+        contains={allergensFrom(dish.custom)}
+        doNot={null}
+        orgName={orgName}
         onBack={() => setView('costing')}
       />
     );
@@ -763,19 +768,6 @@ export function RecipeSheet({
     </>
   );
 }
-
-/**
- * The method, until a dish carries its own. The prep card is the chef's half
- * of the product and the reason the data stays current (FLOWS 7), so it shows
- * something real rather than an empty section.
- */
-const PREP_STEPS: readonly string[] = [
-  'Steam the idlies and let them stand two minutes before they are handled.',
-  'Heat ghee on the tawa until it just moves, not until it colours.',
-  'Toss the idlies until every face has taken colour. Do not crowd the tawa.',
-  'Podi at the pass, not before — podi sitting on a hot idly goes soft.',
-  'Chutney cup on the side. Send within 60 seconds of the tawa.',
-];
 
 /** Which family a pasted unit belongs to, so a new ingredient is measurable. */
 function familyOf(unit: string): 'mass' | 'volume' | 'count' {

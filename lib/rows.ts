@@ -110,6 +110,7 @@ export interface RecipeRow {
   on_menu: boolean;
   archived: boolean;
   notes: string | null;
+  method: string | null;
   updated_at: string | null;
   custom: unknown;
 }
@@ -183,6 +184,7 @@ export function toMeta(row: RecipeRow): DishMeta {
     sellingPrice: nullableNum(row.selling_price),
     deliveryPrice: nullableNum(row.delivery_price),
     note: row.notes ?? '',
+    method: row.method ?? null,
     onMenu: row.on_menu,
     archived: row.archived,
     custom:
@@ -210,6 +212,7 @@ export function fromRecipe(r: Recipe, meta: DishMeta | undefined, orgId: string)
     on_menu: meta?.onMenu ?? false,
     archived: meta?.archived ?? false,
     notes: meta?.note ?? null,
+    method: meta?.method ?? null,
     custom: meta?.custom ?? {},
     // A sub-recipe is one that plates into nothing of its own.
     is_sub_recipe: r.portions === null,

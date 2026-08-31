@@ -990,6 +990,9 @@
 .prep-size { font-size: 11.5px; color: var(--text-tertiary); align-self: center; margin-inline-start: auto; }
 .prep-donot { border: 1px solid var(--surface-inverse); padding: var(--sp-3); margin-block-start: var(--sp-5); }
 .prep-donot-copy { margin: 0; font-size: 13.5px; line-height: 1.5; }
+/* Stated absence. It prints, so it stays ink rather than a grey that a laser
+   printer renders as nothing. */
+.prep-absent { margin: 0; font-size: 13.5px; line-height: 1.5; }
 
 
 /* ── A12 layout details ─────────────────────────────────────────────── */
@@ -2344,3 +2347,14 @@
   margin-inline-start: auto; font-size: 15px; font-weight: 600;
   min-width: 74px; text-align: end;
 }
+
+/* The method, as the operator wrote it. Their own numbering and their own
+   group titles — the card adds none, so nothing is renumbered away from the
+   sheet the kitchen already knows. */
+.prep-method { display: flex; flex-direction: column; gap: 7px; }
+.prep-method-line { margin: 0; font-size: 13.5px; line-height: 1.55; text-wrap: pretty; }
+.prep-method-head {
+  margin: 10px 0 1px; font-size: 12px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.prep-method-head:first-child { margin-block-start: 0; }

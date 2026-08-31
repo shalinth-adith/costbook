@@ -29,7 +29,10 @@ export async function commitImport(plan: ImportPlan): Promise<{
       // What the sheet already knew. A price it states is the operator's own
       // figure, not one Costbook invented.
       sellingPrice: r.sellingPrice,
-      note: r.method ?? 'Brought in from your sheet. Set the batch size and the price.',
+      // The note is the operator's, and stays theirs. Costbook writing a
+      // sentence into 79 of them is 79 sentences they have to delete.
+      note: '',
+      method: r.method,
       onMenu: r.sellingPrice !== null,
       custom: r.custom,
       updatedAt: today,

@@ -262,7 +262,9 @@ export function planImport(
         portions,
         components,
       },
-      category: 'From your sheet',
+      // The sheet's own Menu Section, which it was carrying in a column all
+      // along. "From your sheet" only where the sheet grouped nothing.
+      category: block.section ?? 'From your sheet',
       // Carried so the dish arrives with what the sheet already knew about it.
       sellingPrice: block.sellingPrice !== null && block.sellingPrice > 0 ? block.sellingPrice : null,
       method: block.method,

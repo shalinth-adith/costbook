@@ -80,6 +80,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           orgCharges={b.org.charges}
           owner={b.members.find((mm) => mm.role === 'owner')?.name ?? 'the owner'}
           flags={b.flags.filter((f) => f.recipeId === id)}
+          orgName={b.org.name}
         />
       </CurrencyProvider>
     </AppShell>
