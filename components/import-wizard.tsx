@@ -1019,9 +1019,26 @@ export function ImportWizard({
         */}
         {step === 'done' && plan !== null ? (
           <section className="ac">
-            <p className="ac-file figure">
-              {fileName} · imported just now · undo for 7 days
-            </p>
+            {/*
+              A failed import must say so here. The result message was rendered
+              on the old screen and not on this one, so an import that wrote
+              nothing showed a fix list and a file name and looked like it had
+              worked.
+            */}
+            {result !== null && result.startsWith('Nothing was imported') ? (
+              <div className="import-alarm" role="alert">
+                <p className="import-alarm-title">Nothing was imported.</p>
+                <p className="import-alarm-copy">{result.replace('Nothing was imported. ', '')}</p>
+                <p className="import-alarm-copy">
+                  Your sheet is untouched and nothing was half-written. Try again, or send us the
+                  file and we&rsquo;ll look at it.
+                </p>
+              </div>
+            ) : (
+              <p className="ac-file figure">
+                {fileName} · imported just now · undo for 7 days
+              </p>
+            )}
 
             <div className="ac-counts">
               <div>

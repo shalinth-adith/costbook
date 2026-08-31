@@ -249,7 +249,9 @@ export async function saveOrg(patch: Partial<Org>): Promise<void> {
     return;
   }
   const b = await book();
-  if (b.orgId === null) return;
+  // Loud, not silent. A write that quietly does nothing is worse than one that
+  // fails: nothing prompts the operator to look.
+  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
   const supabase = await supabaseServer();
   check('your settings', await supabase.from('organizations').update(fromOrg(patch)).eq('id', b.orgId));
 }
@@ -263,7 +265,9 @@ export async function saveIngredient(
     return;
   }
   const b = await book();
-  if (b.orgId === null) return;
+  // Loud, not silent. A write that quietly does nothing is worse than one that
+  // fails: nothing prompts the operator to look.
+  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
   const supabase = await supabaseServer();
 
   // Read the rate as it stands before overwriting it, so the record has both
@@ -328,7 +332,9 @@ export async function saveRecipe(recipe: Recipe, meta: DishMeta | undefined): Pr
     return;
   }
   const b = await book();
-  if (b.orgId === null) return;
+  // Loud, not silent. A write that quietly does nothing is worse than one that
+  // fails: nothing prompts the operator to look.
+  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
   const supabase = await supabaseServer();
 
   check(recipe.name, await supabase.from('recipes').upsert(fromRecipe(recipe, meta, b.orgId), { onConflict: 'id' }));
@@ -357,7 +363,9 @@ export async function saveBook(input: {
   }
 
   const b = await book();
-  if (b.orgId === null) return;
+  // Loud, not silent. A write that quietly does nothing is worse than one that
+  // fails: nothing prompts the operator to look.
+  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
   const supabase = await supabaseServer();
   const orgId = b.orgId;
 
@@ -419,7 +427,9 @@ export async function clearBook(): Promise<void> {
     return;
   }
   const b = await book();
-  if (b.orgId === null) return;
+  // Loud, not silent. A write that quietly does nothing is worse than one that
+  // fails: nothing prompts the operator to look.
+  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
   const supabase = await supabaseServer();
   await supabase.from('recipes').delete().eq('org_id', b.orgId);
   await supabase.from('ingredients').delete().eq('org_id', b.orgId);
@@ -471,7 +481,9 @@ export async function saveMeta(id: string, patch: Partial<DishMeta>): Promise<vo
     return;
   }
   const b = await book();
-  if (b.orgId === null) return;
+  // Loud, not silent. A write that quietly does nothing is worse than one that
+  // fails: nothing prompts the operator to look.
+  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
 
   const current = b.meta[id];
   const next: DishMeta = {

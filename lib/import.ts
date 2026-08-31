@@ -137,9 +137,21 @@ export function planImport(
         continue;
       }
 
-      const key = line.name.toLowerCase();
+      /*
+       * Keyed by the id the database will use, not by the name.
+       *
+       * "Salt" and "Salt." are two names and one id — a real sheet carries
+       * both, a trailing full stop apart. Keyed by name they stayed two
+       * entries, and an upsert given the same id twice in one batch is
+       * refused outright, so a sheet with a single stray full stop
+       * imported nothing at all and said so nowhere.
+       *
+       * Merging is also right on its own terms: they are the same
+       * ingredient, typed twice.
+       */
+      const key = idFor(line.name);
       const already = planned.get(key);
-      const onFile = byName.get(key);
+      const onFile = byName.get(key) ?? byName.get(line.name.toLowerCase());
 
       // A row Costbook has already flagged does not get to set a rate. The
       // ingredient still arrives, unpriced, and its dishes report a floor.
@@ -188,9 +200,28 @@ export function planImport(
     const portions = block.portions !== null && block.portions > 0 ? block.portions : 1;
     const stated = block.outputQty !== null && block.outputQty > 0;
 
+    const recipeId = idFor(block.name === '' ? `sheet-${block.row}` : block.name);
+
+    // Two blocks whose names slugify the same are one dish written twice. The
+    // later lines join the first rather than becoming a row the database will
+    // refuse.
+    const existing = recipes.findIndex((r) => r.recipe.id === recipeId);
+    if (existing !== -1) {
+      const prev = recipes[existing];
+      if (prev !== undefined) {
+        recipes[existing] = {
+          ...prev,
+          recipe: { ...prev.recipe, components: [...prev.recipe.components, ...components] },
+          skipped: prev.skipped + skipped,
+        };
+      }
+      skippedTotal += skipped;
+      continue;
+    }
+
     recipes.push({
       recipe: {
-        id: idFor(block.name === '' ? `sheet-${block.row}` : block.name),
+        id: recipeId,
         name: block.name === '' ? 'Untitled from your sheet' : block.name,
         family: stated ? 'mass' : 'count',
         outputQty: stated ? toBase(block.outputQty ?? 1, 'kg') : 1,
@@ -401,8 +432,22 @@ export interface FlaggedRow {
   readonly severity: 'stops-costing' | 'worth-a-look';
 }
 
+/*
+ * What genuinely stops a dish being costed.
+ *
+ * `unrecognised_unit` used to be here and does not belong. A row reading
+ * "Blending, 1 lot at 50" or "Salt, as req at 1.16" is a complete, costable
+ * line — a cost with a label, which is exactly what TRD 3.1 says should happen
+ * to "as req", "lot", "pinch", "pkt" and "box" rather than forcing them into a
+ * unit family that produces nonsense.
+ *
+ * Counting them as blocking put 82 dishes on a list demanding attention, most
+ * of them for having been written the way kitchens write. A list that long is
+ * one nobody works through, and the four rows that actually needed a rate were
+ * buried in it.
+ */
 const STOPS_COSTING: readonly string[] = [
-  'magnitude_suspect', 'inconsistent_total', 'no_quantity', 'unrecognised_unit',
+  'magnitude_suspect', 'inconsistent_total', 'no_quantity',
 ];
 
 export function flaggedRows(parsed: ParseResult): readonly FlaggedRow[] {
