@@ -5,6 +5,8 @@ import { Wordmark } from '@/components/wordmark';
 
 import './landing.css';
 
+import { FREE_LIMITS } from '@/lib/org';
+
 export const metadata: Metadata = {
   title: 'Costbook — keep your spreadsheet, we make it answer questions',
   description:
@@ -63,7 +65,7 @@ export default function Landing() {
             Import your spreadsheet
           </Link>
           <p className="lp-fine">
-            Free for your first 40 dishes, and no card. Your file comes back exactly as it went in —
+            Free for your first {FREE_LIMITS.recipes} dishes, and no card. Your file comes back exactly as it went in —
             Costbook only reads it.
           </p>
         </div>

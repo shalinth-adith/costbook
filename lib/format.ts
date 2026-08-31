@@ -93,3 +93,22 @@ export function lineRate(ratePerBaseUnit: number | null, unit: string): number |
     return ratePerBaseUnit;
   }
 }
+
+
+/**
+ * When a rate was last given, in the words a kitchen uses (A19).
+ *
+ * "3 days ago" rather than "2026-08-14". An absolute date makes the reader do
+ * the arithmetic, and the question this column answers is how old the figure
+ * is, not what the calendar said when it was typed.
+ */
+export function ago(days: number | null): string {
+  if (days === null) return 'never';
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 14) return `${days} days ago`;
+  if (days < 60) return `${Math.round(days / 7)} weeks ago`;
+  if (days < 365) return `${Math.round(days / 30)} months ago`;
+  const years = Math.round(days / 365);
+  return years === 1 ? 'a year ago' : `${years} years ago`;
+}

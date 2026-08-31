@@ -889,7 +889,10 @@
 }
 .toast-dismiss {
   font: inherit; font-size: 18px; line-height: 1; color: var(--text-on-inverse);
-  background: none; border: 0; padding: 0 2px; cursor: pointer; opacity: 0.75; flex: none;
+  background: none; border: 0; padding: 0 2px; cursor: pointer; flex: none;
+  /* A1: nothing containing text rests at reduced opacity. This is a control
+     with a glyph in it, so it recedes by colour rather than by fading. */
+  color: var(--text-on-inverse-secondary);
 }
 .toast-dismiss:hover { opacity: 1; }
 
@@ -1250,7 +1253,7 @@
   border-radius: var(--radius-field); padding: var(--sp-3) var(--sp-4);
 }
 .bulk-said { font-size: 13px; flex: 1; min-width: 240px; }
-.bulk-count { font-size: 12.5px; opacity: 0.85; }
+.bulk-count { font-size: 12.5px; color: var(--text-on-inverse-secondary); }
 .bulk-bar .btn { background: transparent; color: var(--text-on-inverse); border-color: #4A5262; }
 .bulk-bar .btn:hover { background: #2C3444; }
 .bulk-bar .btn-primary { background: var(--surface-card); color: var(--text-primary); border-color: var(--surface-card); }
@@ -2129,3 +2132,14 @@
 /* The figure that is named and refused. Full contrast: it is the reasoning,
    not a disabled control. */
 .chan-refused { border-block-start: 1px dotted var(--border-row); padding-block-start: var(--sp-3); }
+/* A19: the two columns that earn their place or disappear. The grid narrows
+   with them, so nothing is left holding an empty track. */
+.ing-table[data-cols=''] .ing-head, .ing-table[data-cols=''] .ing-row {
+  grid-template-columns: minmax(0, 1fr) 148px 104px 116px 44px;
+}
+.ing-table[data-cols='y'] .ing-head, .ing-table[data-cols='y'] .ing-row {
+  grid-template-columns: minmax(0, 1fr) 148px 140px 104px 116px 44px;
+}
+.ing-table[data-cols='s'] .ing-head, .ing-table[data-cols='s'] .ing-row {
+  grid-template-columns: minmax(0, 1fr) 148px 104px 116px 132px 44px;
+}

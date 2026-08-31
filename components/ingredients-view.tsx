@@ -9,7 +9,7 @@ import {
   type IngredientRow,
   applyIngredientFilter,
 } from '@/lib/ingredients';
-import { DASH } from '@/lib/format';
+import { DASH, ago } from '@/lib/format';
 
 import type { RatePreview } from '@/app/ingredients/actions';
 
@@ -61,6 +61,16 @@ export function IngredientsView({
     () => applyIngredientFilter(board.rows, filter, query),
     [board.rows, filter, query],
   );
+
+  /*
+   * Two columns that earn their place or disappear (A19).
+   *
+   * A usable rate identical to the bought rate on every row is a column of
+   * repeated figures; a status column where nothing has a status is a column of
+   * blanks. Both are removed rather than shown empty.
+   */
+  const anyYield = useMemo(() => rows.some((r) => r.yieldPercent < 100), [rows]);
+  const anyStatus = useMemo(() => rows.some((r) => r.status !== 'ok'), [rows]);
 
   const act = (run: () => Promise<Ack>) => start(async () => setToast(await run()));
 
@@ -214,14 +224,17 @@ export function IngredientsView({
             </p>
           </div>
         ) : (
-          <div className="card ing-table">
+          <div className="card ing-table" data-cols={`${anyYield ? 'y' : ''}${anyStatus ? 's' : ''}`}>
             <div className="ing-head">
               <span>Ingredient</span>
               <span className="end">Rate</span>
-              <span className="end">Usable rate</span>
+              {/* A19: shown only where a yield is below 100%. A column of
+                  figures identical to the one beside it teaches nothing. */}
+              {anyYield ? <span className="end">Usable rate</span> : null}
               <span className="end">Used in</span>
               <span>Priced</span>
-              <span>Status</span>
+              {/* Collapses when nothing carries a status. */}
+              {anyStatus ? <span>Status</span> : null}
               <span />
             </div>
 
@@ -229,6 +242,8 @@ export function IngredientsView({
               <Row
                 key={row.id}
                 row={row}
+                showYield={anyYield}
+                showStatus={anyStatus}
                 money={m}
                 bulk={bulk}
                 edit={edits[row.id] ?? ''}
@@ -264,6 +279,8 @@ function packPriceOf(row: IngredientRow): number | null {
 
 function Row({
   row,
+  showYield,
+  showStatus,
   money,
   bulk,
   edit,
@@ -275,6 +292,8 @@ function Row({
   onSetYield,
 }: {
   row: IngredientRow;
+  showYield: boolean;
+  showStatus: boolean;
   money: ReturnType<typeof useMoney>;
   bulk: boolean;
   edit: string;
@@ -321,31 +340,34 @@ function Row({
             </button>
           )}
         </span>
-
-        <span className="figure end ing-dim">
-          {row.usableRate === null
-            ? DASH
-            : `${money.money(row.usableRate)} / ${row.unit}`}
-        </span>
+        {showYield ? (
+          <span className="figure end ing-dim">
+            {row.usableRate === null
+              ? DASH
+              : `${money.money(row.usableRate)} / ${row.unit}`}
+          </span>
+        ) : null}
 
         <span className="figure end ing-dim">{row.usedIn}</span>
-        <span className="ing-dim ing-when">{row.pricedAt ?? 'never'}</span>
+        <span className="ing-dim ing-when">{ago(row.ageDays)}</span>
 
-        <span className="ing-status">
-          {row.status === 'no_rate' ? (
-            <span className="chip chip-over">NO RATE</span>
-          ) : row.status === 'stale' ? (
-            <span className="chip chip-near">
-              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor"
-                strokeWidth="1.5" aria-hidden="true">
-                <circle cx="6" cy="6" r="4.6" /><path d="M6 3.4V6l1.8 1.2" />
-              </svg>
-              STALE
-            </span>
-          ) : row.status === 'locked' ? (
-            <span className="chip chip-incomplete">LOCKED</span>
-          ) : null}
-        </span>
+        {showStatus ? (
+          <span className="ing-status">
+            {row.status === 'no_rate' ? (
+              <span className="chip chip-over">NO RATE</span>
+            ) : row.status === 'stale' ? (
+              <span className="chip chip-near">
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                  strokeWidth="1.5" aria-hidden="true">
+                  <circle cx="6" cy="6" r="4.6" /><path d="M6 3.4V6l1.8 1.2" />
+                </svg>
+                STALE
+              </span>
+            ) : row.status === 'locked' ? (
+              <span className="chip chip-incomplete">LOCKED</span>
+            ) : null}
+          </span>
+        ) : null}
 
         <span className="ing-more">
           <button
