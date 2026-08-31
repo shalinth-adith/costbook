@@ -20,6 +20,7 @@ import { useMoney } from './currency-provider';
 import { StatusChip } from './status-chip';
 import { NewDishSheet } from './sheets/new-dish-sheet';
 import { Toast, type ToastState } from './toast';
+import { RecipesEmpty } from './recipes-empty';
 
 const FILTERS: readonly { readonly value: LibraryFilter; readonly label: string }[] = [
   { value: 'all', label: 'All' },
@@ -78,28 +79,62 @@ export function LibraryView({
     });
 
 
+  const total = data.dishCount + data.batchCount;
+
+  /*
+   * Empty is not a list with nothing in it — it is a different screen (A35).
+   * No toolbar for filtering nothing, no search for searching nothing, no tab
+   * counts reading zero, and no second filled button proposing a slower
+   * journey than the one beside it.
+   */
+  if (total === 0) return <RecipesEmpty />;
+
+  /*
+   * And one dish in is still nearly empty: a one-row table under a full filter
+   * bar is the same mistake in miniature, so the toolbar waits until the list
+   * earns it.
+   */
+  const bare = total <= 2;
+
   return (
     <>
       <div className="page-head">
         <div className="page-title-block">
           <h1 className="page-title">Recipes</h1>
           <p className="page-sub">
-            <span className="figure ink">{data.dishCount}</span> dishes and{' '}
-            <span className="figure ink">{data.batchCount}</span> batches — everything you have a
-            recipe for, on the menu or not.
+            {bare ? (
+              <>
+                <span className="figure ink">{data.dishCount}</span>{' '}
+                {data.dishCount === 1 ? 'dish' : 'dishes'}, costed. Nothing else yet.
+              </>
+            ) : (
+              <>
+                <span className="figure ink">{data.dishCount}</span> dishes and{' '}
+                <span className="figure ink">{data.batchCount}</span> batches — everything you have
+                a recipe for, on the menu or not.
+              </>
+            )}
           </p>
         </div>
         <div className="page-actions">
-          <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
+          {/* A quieter control while the list is still one row: the import is
+              the faster journey and should not be competing with a filled
+              button beside it. */}
+          <button
+            type="button"
+            className={bare ? 'btn' : 'btn btn-primary'}
+            onClick={() => setCreating(true)}
+          >
             <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor"
               strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
               <path d="M6 2v8M2 6h8" />
             </svg>
-            New dish
+            {bare ? 'Add another' : 'New dish'}
           </button>
         </div>
       </div>
 
+      {bare ? null : (
       <div className="toolbar library-toolbar">
         <div className="segmented segmented-sm" role="group" aria-label="What to list">
           <button
@@ -155,6 +190,7 @@ export function LibraryView({
           <span className="figure">{outcome.rows.length}</span> shown
         </span>
       </div>
+      )}
 
       {/* Why each row is here. A dish surfacing because of an ingredient three
           levels down is otherwise a mystery. */}

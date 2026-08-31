@@ -2143,3 +2143,65 @@
 .ing-table[data-cols='s'] .ing-head, .ing-table[data-cols='s'] .ing-row {
   grid-template-columns: minmax(0, 1fr) 148px 104px 116px 132px 44px;
 }
+
+/* ── A35 · Recipes with nothing in it ────────────────────────────────────── */
+/* Empty is a different screen, not a list with nothing in it. */
+.rx-empty { max-inline-size: 1180px; margin-inline: auto; padding: var(--sp-8) var(--sp-6) var(--sp-14); }
+.rx-empty-lead { max-inline-size: 60ch; margin-block-end: var(--sp-6); }
+.rx-empty-h { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 var(--sp-3); }
+.rx-empty-lede { font-size: 14.5px; line-height: 1.65; color: var(--text-secondary); margin: 0; text-wrap: pretty; }
+.rx-empty-grid { display: grid; grid-template-columns: 620px minmax(0, 1fr); gap: var(--sp-6); align-items: start; }
+
+/* The target is the feature. A file being dragged needs somewhere to land, so
+   the drop zone takes the column rather than sitting in a page-sized void. */
+.rx-drop {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-3);
+  min-block-size: 520px; padding: var(--sp-8);
+  background: var(--surface-card);
+  border: 2px dashed var(--border-control); border-radius: var(--radius-panel);
+  text-decoration: none; color: inherit;
+  transition: border-color var(--dur-state) var(--ease-enter),
+              background var(--dur-state) var(--ease-enter);
+}
+.rx-drop:hover { border-color: var(--text-primary); background: var(--surface-sunken); }
+.rx-drop:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.rx-drop-title { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+.rx-drop-copy { font-size: 13.5px; line-height: 1.65; color: var(--text-secondary); max-inline-size: 52ch; }
+.rx-drop-btn { margin-block-start: auto; }
+.rx-drop-formats { font-size: 12px; color: var(--text-tertiary); }
+.rx-drop-trust { font-size: 12px; color: var(--text-tertiary); }
+
+.rx-empty-side { display: grid; gap: var(--sp-4); }
+.rx-panel {
+  padding: var(--sp-4); background: var(--surface-card);
+  border: 1px solid var(--border-hairline); border-radius: var(--radius-panel);
+}
+.rx-panel-h { font-size: 14px; font-weight: 600; margin: 0 0 var(--sp-3); }
+.rx-panel-copy { font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin: 0; text-wrap: pretty; }
+.rx-panel-btn { margin-block-start: var(--sp-3); }
+.rx-panel-note { font-size: 11.5px; color: var(--text-tertiary); margin: var(--sp-3) 0 0; line-height: 1.5; }
+.rx-shot-head, .rx-shot-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) 72px 62px; gap: var(--sp-2);
+  padding-block: 7px; font-size: 12.5px;
+}
+.rx-shot-head { font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-tertiary); border-block-end: 1px solid var(--border-strong); }
+.rx-shot-row { border-block-end: 1px solid var(--border-row); }
+.rx-shot-head .end, .rx-shot-row .end { text-align: end; }
+
+/* One dish in: the invitation returns as a band, arguing from something the
+   owner has now watched work. */
+.rx-band {
+  margin-block-start: var(--sp-5); padding: var(--sp-5);
+  background: var(--surface-card);
+  border: 1px solid var(--border-hairline); border-radius: var(--radius-panel);
+  max-inline-size: 720px;
+}
+.rx-band-h { font-size: 16px; font-weight: 600; margin: 0 0 var(--sp-2); }
+.rx-band-copy { font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin: 0 0 var(--sp-4); text-wrap: pretty; }
+
+@media (max-width: 1100px) {
+  /* 768 · the drop zone stays the screen. */
+  .rx-empty-grid { grid-template-columns: minmax(0, 1fr); }
+  .rx-drop { min-block-size: 340px; padding: var(--sp-6); }
+  .rx-empty-h { font-size: 26px; }
+}

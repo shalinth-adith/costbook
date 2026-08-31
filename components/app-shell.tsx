@@ -88,7 +88,10 @@ export function AppShell({
           {/* The chip already says which currency this is, so it is also the
               way to change it. */}
           <button type="button" className="currency-chip" onClick={() => setOpen(true)}>
-            <span className="figure">{c.symbol} {c.code}</span>
+            {/* Several currencies use their code as their symbol — AED, SAR,
+                OMR — so printing both renders "AED AED". The code is the
+                label in that case. */}
+            <span className="figure">{c.symbol === c.code ? c.code : `${c.symbol} ${c.code}`}</span>
             <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor"
               strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
               <path d="m3 4.8 3 3 3-3" />

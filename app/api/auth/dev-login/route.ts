@@ -40,10 +40,14 @@ const DEV_EMAIL = 'dev@costbook.test';
 const DEV_PASSWORD = 'costbook-dev';
 
 /**
- * Obviously fake, and greppable. A dev session must never be mistakable for a
- * real one at a glance, so the name says what it is wherever it renders.
+ * Obviously a development account, without putting a code label on screen.
+ *
+ * It was PLACEHOLDER_Dev Kitchen, which is greppable and unmistakable — and
+ * rendered in the header of every screen. A prefix meant for a grep does not
+ * belong in the interface. The constant's own name and this file's
+ * environment gate carry that job instead.
  */
-const DEV_ORG_NAME = 'PLACEHOLDER_Dev Kitchen';
+const DEV_ORG_NAME = 'Dev Kitchen';
 
 function forbiddenInProduction(): NextResponse | null {
   if (process.env.NODE_ENV === 'production') {
