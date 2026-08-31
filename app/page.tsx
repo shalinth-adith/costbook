@@ -61,7 +61,7 @@ export default function Landing() {
             ago. Costbook reads that file, keeps every dish costed as rates move, and tells you
             which ones stopped making money.
           </p>
-          <Link href="/import" className="btn btn-primary btn-lg">
+          <Link href="/import" className="btn btn-primary lp-btn-lg">
             Import your spreadsheet
           </Link>
           <p className="lp-fine">
@@ -200,8 +200,8 @@ export default function Landing() {
           Nothing is committed until you say so.
         </p>
         <div className="lp-actions">
-          <Link href="/import" className="btn btn-primary btn-lg">Import your spreadsheet</Link>
-          <Link href="/setup" className="btn btn-lg">Or cost one dish yourself, free</Link>
+          <Link href="/import" className="btn btn-primary lp-btn-lg">Import your spreadsheet</Link>
+          <Link href="/setup" className="btn lp-btn-lg">Or cost one dish yourself, free</Link>
         </div>
         <p className="lp-fine">
           Four steps, about a minute. Your file is only ever read — we never write to it, and you
@@ -227,7 +227,7 @@ export default function Landing() {
           Less than one mutton biryani a week. Cancel in the product, keep everything you costed,
           and it stays readable and exportable on the free tier afterwards.
         </p>
-        <Link href="/setup" className="btn btn-primary btn-lg">Start free — decide later</Link>
+        <Link href="/setup" className="btn btn-primary lp-btn-lg">Start free — decide later</Link>
       </section>
 
       <footer className="lp-foot">

@@ -29,7 +29,7 @@ const PROOF: readonly { name: string; cost: string; foodCost: string; status: Ta
 
 export default function SignInPage() {
   return (
-    <main className="entry">
+    <main className="gate">
       <section className="entry-brand" aria-label="What Costbook does">
         <div className="entry-brand-mark">
           <Mark size={20} />

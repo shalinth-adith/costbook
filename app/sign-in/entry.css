@@ -1,93 +1,107 @@
+
+
 /**
  * A10 — the entry screen.
  *
- * Scoped to this route rather than added to app.css: nothing else in the
- * product is two halves, and the dark half exists only here. Everything asks
+ * Every selector is scoped under `.gate`, the root this screen renders into.
+ * It said "scoped to this route" and was not: a plain .css import in Next is
+ * global, only .module.css is scoped. `.entry` here is min-height 100vh and a
+ * 600px/1fr split, and the Add-an-ingredient card on Ingredients is also
+ * `.entry` — so that card grew to fill the viewport, its head and its fields
+ * fell into two columns, and the rows below it were pushed off the screen.
+ * `.field`, `.notice`, `.proof`, `.spinner`, `.suggestion`, `.countdown` and
+ * `.lock-badge` were leaking the same way.
+ *
+ * Nothing else in the product is two halves, and the dark half exists only
+ * here. Everything asks
  * tokens.css for its colour, including the inverse panel.
  */
-
-.entry {
+.gate {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 600px 1fr;
   background: var(--surface-page);
 }
 
-/* ── the half that argues ──────────────────────────────────────────── */
 
-.entry-brand {
+
+/* ── the half that argues ──────────────────────────────────────────── */
+.gate .entry-brand {
   background: var(--surface-inverse);
   color: var(--text-on-inverse);
   padding: 44px 48px;
   display: flex; flex-direction: column; justify-content: space-between;
   gap: var(--sp-10);
 }
-.entry-brand-mark {
+.gate .entry-brand-mark {
   display: flex; align-items: center; gap: 10px;
   font-size: 16px; font-weight: 600; letter-spacing: -0.01em;
 }
 
-.entry-pitch { display: flex; flex-direction: column; gap: 22px; }
-.entry-headline {
+.gate .entry-pitch { display: flex; flex-direction: column; gap: 22px; }
+.gate .entry-headline {
   font-size: 38px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.1;
   margin: 0; text-wrap: pretty;
 }
-.entry-copy {
+.gate .entry-copy {
   font-size: 15px; line-height: 1.6; margin: 0;
   color: var(--text-on-inverse-secondary);
   max-width: 440px; text-wrap: pretty;
 }
 
+
 /* The argument, costed. Three dishes and two of them over target. */
-.proof {
+.gate .proof {
   border: 1px solid var(--border-on-inverse);
   border-radius: var(--radius-field);
   overflow: hidden;
   max-width: 470px;
 }
-.proof-head,
-.proof-row {
+.gate .proof-head,
+.gate .proof-row {
   display: grid;
   grid-template-columns: 1fr 78px 62px 26px;
   gap: 10px; align-items: center;
 }
-.proof-head {
+.gate .proof-head {
   padding: var(--sp-2) 13px;
   background: var(--surface-on-inverse-header);
   border-block-end: 1px solid var(--border-on-inverse);
   font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
   font-weight: 600; color: var(--text-on-inverse-secondary);
 }
-.proof-head .end { text-align: end; }
-.proof-row {
+.gate .proof-head .end { text-align: end; }
+.gate .proof-row {
   padding: 9px 13px;
   border-block-end: 1px solid var(--border-on-inverse-row);
   font-size: 13px;
   color: var(--text-on-inverse-row);
 }
-.proof-row:last-child { border-block-end: 0; }
-.proof-name { min-width: 0; }
-.proof-glyph { display: flex; justify-content: flex-end; }
-/* Status is a shape first; the colour only confirms what the shape said. */
-.proof-fc-on { color: var(--on-ink-inverse); }
-.proof-fc-over { color: var(--over-ink-inverse); }
-.proof-fc.proof-fc-over { font-weight: 600; }
+.gate .proof-row:last-child { border-block-end: 0; }
+.gate .proof-name { min-width: 0; }
+.gate .proof-glyph { display: flex; justify-content: flex-end; }
 
-.entry-trust {
+/* Status is a shape first; the colour only confirms what the shape said. */
+.gate .proof-fc-on { color: var(--on-ink-inverse); }
+.gate .proof-fc-over { color: var(--over-ink-inverse); }
+.gate .proof-fc.proof-fc-over { font-weight: 600; }
+
+.gate .entry-trust {
   display: flex; gap: var(--sp-5); align-items: center;
   font-size: 12.5px; color: var(--text-on-inverse-tertiary);
 }
-.entry-trust-rule { width: 1px; height: 13px; background: var(--border-on-inverse); }
+.gate .entry-trust-rule { width: 1px; height: 13px; background: var(--border-on-inverse); }
+
+
 
 /* ── the half that works ───────────────────────────────────────────── */
-
-.entry-side {
+.gate .entry-side {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   padding: var(--sp-10); gap: 18px;
 }
 
-.entry-card {
+.gate .entry-card {
   width: 404px; max-width: 100%;
   background: var(--surface-card);
   border: 1px solid var(--border-hairline);
@@ -95,49 +109,51 @@
   padding: 30px 32px;
   display: flex; flex-direction: column; gap: 18px;
 }
-.entry-head { display: flex; flex-direction: column; gap: 5px; }
-.entry-title { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
-.entry-sub { font-size: 13px; color: var(--text-secondary); }
+.gate .entry-head { display: flex; flex-direction: column; gap: 5px; }
+.gate .entry-title { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+.gate .entry-sub { font-size: 13px; color: var(--text-secondary); }
+
 
 /* Every control on this card is 48px, not the 44px of the app shell — this is
    the one screen someone meets before they trust it. */
-.entry-action {
+.gate .entry-action {
   height: 48px; width: 100%;
   justify-content: center;
   font-size: 14.5px;
   text-decoration: none;
 }
-.entry-row { display: flex; gap: 9px; }
-.entry-row .entry-action { flex: 1; width: auto; }
-.entry-row .btn { height: 44px; }
-.entry-row .entry-action { height: 44px; }
+.gate .entry-row { display: flex; gap: 9px; }
+.gate .entry-row .entry-action { flex: 1; width: auto; }
+.gate .entry-row .btn { height: 44px; }
+.gate .entry-row .entry-action { height: 44px; }
 
-.entry-divider { display: flex; align-items: center; gap: var(--sp-3); }
-.entry-divider > span:first-child,
-.entry-divider > span:last-child { flex: 1; height: 1px; background: var(--border-hairline); }
-.entry-divider-label { font-size: 11.5px; color: var(--text-tertiary); }
+.gate .entry-divider { display: flex; align-items: center; gap: var(--sp-3); }
+.gate .entry-divider > span:first-child,
+.gate .entry-divider > span:last-child { flex: 1; height: 1px; background: var(--border-hairline); }
+.gate .entry-divider-label { font-size: 11.5px; color: var(--text-tertiary); }
 
-.entry-foot {
+.gate .entry-foot {
   font-size: 12px; color: var(--text-tertiary);
   line-height: 1.5; text-align: center;
 }
-.entry-status { font-size: 11.5px; color: var(--text-secondary); text-align: center; }
-.countdown { font-size: 12px; color: var(--text-secondary); text-align: center; }
+.gate .entry-status { font-size: 11.5px; color: var(--text-secondary); text-align: center; }
+.gate .countdown { font-size: 12px; color: var(--text-secondary); text-align: center; }
 
-.entry-links { display: flex; gap: var(--sp-4); font-size: 12.5px; }
-.entry-links a { color: var(--text-tertiary); text-underline-offset: 2px; }
-.entry-links a:hover { color: var(--text-primary); }
+.gate .entry-links { display: flex; gap: var(--sp-4); font-size: 12.5px; }
+.gate .entry-links a { color: var(--text-tertiary); text-underline-offset: 2px; }
+.gate .entry-links a:hover { color: var(--text-primary); }
+
+
 
 /* ── fields ────────────────────────────────────────────────────────── */
-
-.field { display: flex; flex-direction: column; gap: 6px; }
-.field-label-row { display: flex; align-items: baseline; justify-content: space-between; }
-.field-label {
+.gate .field { display: flex; flex-direction: column; gap: 6px; }
+.gate .field-label-row { display: flex; align-items: baseline; justify-content: space-between; }
+.gate .field-label {
   font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--text-secondary); font-weight: 600;
 }
 
-.field-control {
+.gate .field-control {
   height: 48px;
   display: flex; align-items: center; gap: 10px;
   border: 1px solid var(--border-control);
@@ -146,31 +162,29 @@
   padding-inline: var(--sp-3);
   transition: border-color var(--dur-micro) var(--ease-enter);
 }
-.field-control:focus-within { border-color: var(--border-control-hover); }
+.gate .field-control:focus-within { border-color: var(--border-control-hover); }
+
 /* 1.5px, not a second colour: the message beside it does the explaining. */
-.field-control.is-wrong { border: 1.5px solid var(--over-ink); }
-.field-control.is-near { border: 1.5px solid var(--near-control); }
+.gate .field-control.is-wrong { border: 1.5px solid var(--over-ink); }
+.gate .field-control.is-near { border: 1.5px solid var(--near-control); }
+
 /* A10 · 08. Fields lock rather than vanish, so nothing shifts under a finger
    already on its way to the button. The surface moves; the ink does not. */
-.field-control.is-locked { background: var(--surface-sunken); }
+.gate .field-control.is-locked { background: var(--surface-sunken); }
+
 
 /*
- * These two rules exist because `.field` collides.
- *
- * app.css is global and carries `.field input { border: 1px … }` for the
- * application's own forms. The entry screens use `.field` too, so that rule
- * reaches inside them — and it is a descendant selector, (0,1,1), which beats
- * a bare `.field-input` at (0,1,0). A plain `border: 0` here loses to it no
- * matter where it sits in the file.
- *
- * So both cases are stated at (0,2,0), which wins, and neither depends on what
- * app.css happens to say:
+ * `.field` is app.css's name too, and app.css carries `.field input` for the
+ * application's own forms. Both files are global, so that rule used to reach
+ * inside these screens and had to be out-specified. The `.gate` scope settles
+ * it structurally now — these are the entry screens' fields and nothing
+ * else's — but the two cases still have to be stated apart from each other:
  *
  *   A31/A32/A33 — a bare input draws its own box, with Show in the label row.
  *   A10         — the input sits inside .field-control, which draws the box,
  *                 so the input itself must draw nothing or you get two.
  */
-.field .field-input {
+.gate .field .field-input {
   block-size: 48px; padding-inline: var(--sp-3);
   border: 1px solid var(--border-control);
   border-radius: var(--radius-field);
@@ -180,23 +194,25 @@
   color: var(--text-primary);
   transition: border-color var(--dur-micro) var(--ease-enter);
 }
-.field .field-input:hover { border-color: var(--border-control-hover); }
+.gate .field .field-input:hover { border-color: var(--border-control-hover); }
+
 
 /* Inside the wrapper the wrapper owns the box. Must come after the rule above:
    same specificity, so source order settles it. */
-.field-control .field-input {
+.gate .field-control .field-input {
   block-size: auto; padding-inline: 0;
   border: 0; background: none;
 }
-.field-input::placeholder { color: var(--border-control-hover); }
-.field-input:disabled { color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary); }
+.gate .field-input::placeholder { color: var(--border-control-hover); }
+.gate .field-input:disabled { color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary); }
+
 /* A masked password is a row of figures, so it is set like every other figure. */
-.field-input.is-masked {
+.gate .field-input.is-masked {
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 15px; letter-spacing: 0.16em;
 }
 
-.field-toggle {
+.gate .field-toggle {
   height: 44px; flex: none;
   display: flex; align-items: center;
   padding-inline: var(--sp-3);
@@ -204,40 +220,42 @@
   font: inherit; font-size: 13px; font-weight: 500;
   color: var(--text-secondary); cursor: pointer;
 }
-.field-toggle:hover { background: var(--surface-sunken); }
+.gate .field-toggle:hover { background: var(--surface-sunken); }
+
 
 /* One message, in plain words, attached to the field that caused it. */
-.field-fault {
+.gate .field-fault {
   display: flex; gap: 6px; align-items: flex-start;
   font-size: 12px; line-height: 1.45;
 }
-.field-fault svg { flex: none; margin-block-start: 2px; }
-.field-fault-over { color: var(--over-ink-strong); }
-.field-fault-near { color: var(--near-ink-strong); }
+.gate .field-fault svg { flex: none; margin-block-start: 2px; }
+.gate .field-fault-over { color: var(--over-ink-strong); }
+.gate .field-fault-near { color: var(--near-ink-strong); }
 
-.suggestion {
+.gate .suggestion {
   border: 0; background: none; padding: 0;
   font: inherit; font-weight: 600; color: inherit;
   text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
 }
 
-/* ── notices that replace the form ─────────────────────────────────── */
 
-.notice {
+
+/* ── notices that replace the form ─────────────────────────────────── */
+.gate .notice {
   display: flex; gap: 11px; align-items: flex-start;
   border-radius: var(--radius-field);
   padding: 13px;
 }
-.notice > svg { flex: none; margin-block-start: 2px; }
-.notice-text { display: flex; flex-direction: column; gap: var(--sp-1); }
-.notice-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-.notice-copy { font-size: 12px; color: var(--text-secondary); line-height: 1.5; text-wrap: pretty; }
+.gate .notice > svg { flex: none; margin-block-start: 2px; }
+.gate .notice-text { display: flex; flex-direction: column; gap: var(--sp-1); }
+.gate .notice-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.gate .notice-copy { font-size: 12px; color: var(--text-secondary); line-height: 1.5; text-wrap: pretty; }
 
-.notice-over { border: 1px solid var(--over-edge-soft); background: var(--over-tint); }
-.notice-near { border: 1px solid var(--near-edge); background: var(--near-tint); color: var(--near-ink); }
-.notice-flat { border: 1px solid var(--border-strong); background: var(--surface-sunken); color: var(--text-secondary); }
+.gate .notice-over { border: 1px solid var(--over-edge-soft); background: var(--over-tint); }
+.gate .notice-near { border: 1px solid var(--near-edge); background: var(--near-tint); color: var(--near-ink); }
+.gate .notice-flat { border: 1px solid var(--border-strong); background: var(--surface-sunken); color: var(--text-secondary); }
 
-.lock-badge {
+.gate .lock-badge {
   flex: none; width: 22px; height: 22px;
   border-radius: var(--radius-chip);
   background: var(--over-ink); color: var(--text-on-inverse);
@@ -248,16 +266,17 @@
 
 @keyframes cb-spin { to { transform: rotate(360deg); } }
 
-.spinner {
+.gate .spinner {
   width: 16px; height: 16px; flex: none;
   border: 1.5px solid var(--text-on-inverse-tertiary);
   border-block-start-color: var(--text-on-inverse);
   border-radius: 50%;
   animation: cb-spin 700ms linear infinite;
 }
+
 /* The button stays lit while it works — a primary control that greys out mid
    press reads as a refusal. */
-.entry-action:disabled {
+.gate .entry-action:disabled {
   background: #2C3444; border-color: #2C3444;
   color: var(--text-on-inverse); cursor: progress;
 }
@@ -265,23 +284,24 @@
 /* ── tablet ────────────────────────────────────────────────────────── */
 
 @media (max-width: 1000px) {
-  .entry { grid-template-columns: 1fr; }
-  .entry-brand { padding: var(--sp-8) var(--sp-6); gap: var(--sp-6); }
-  .entry-headline { font-size: 28px; }
-  .entry-side { padding: var(--sp-8) var(--sp-6); }
+  .gate { grid-template-columns: 1fr; }
+  .gate .entry-brand { padding: var(--sp-8) var(--sp-6); gap: var(--sp-6); }
+  .gate .entry-headline { font-size: 28px; }
+  .gate .entry-side { padding: var(--sp-8) var(--sp-6); }
 }
 
-/* ── A31 / A32 · the panel's list ────────────────────────────────────────── */
-/* The wizard is announced before the button is pressed: someone who knows four
+
+
+/* ── A31 / A32 · the panel's list ────────────────────────────────────────── *//* The wizard is announced before the button is pressed: someone who knows four
    questions are coming answers them; someone ambushed by one closes the tab. */
-.entry-steps {
+.gate .entry-steps {
   list-style: none; margin: var(--sp-6) 0 0; padding: 0;
   display: grid; gap: var(--sp-3);
 }
-.entry-steps li {
+.gate .entry-steps li {
   display: flex; gap: var(--sp-3); align-items: baseline;
   font-size: 13px; line-height: 1.55; color: var(--text-on-inverse-secondary);
 }
-.entry-steps span { font-size: 11px; color: var(--text-on-inverse-tertiary); }
-.entry-steps.is-plain li::before { content: '·'; color: var(--text-on-inverse-tertiary); }
-.field-label[data-ok='true'] { color: var(--on-ink-inverse); }
+.gate .entry-steps span { font-size: 11px; color: var(--text-on-inverse-tertiary); }
+.gate .entry-steps.is-plain li::before { content: '·'; color: var(--text-on-inverse-tertiary); }
+.gate .field-label[data-ok='true'] { color: var(--on-ink-inverse); }

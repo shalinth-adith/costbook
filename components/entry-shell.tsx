@@ -21,7 +21,7 @@ export function EntryShell({
   children: React.ReactNode;
 }) {
   return (
-    <main className="entry">
+    <main className="gate">
       <section className="entry-brand" aria-label="What Costbook does">
         <div className="entry-brand-mark">
           <Wordmark mode="public" size={20} />
