@@ -19,6 +19,7 @@ import type { Ingredient } from '@/core/ingredient';
 import { type Pantry, type Recipe, pantryOf } from '@/core/recipe';
 
 import type { CostingModel } from './costing';
+import type { Flag } from './flags';
 import type { DishMeta } from './data';
 import { BLANK_ORG, type Member, type Org, type Plan, type RateChange, type RateSource } from './org';
 import {
@@ -70,6 +71,8 @@ export interface Book {
   readonly members: readonly Member[];
   readonly plan: Plan;
   readonly history: Readonly<Record<string, readonly RateChange[]>>;
+  /** What the kitchen has said about a dish (A40). Newest first. */
+  readonly flags: readonly Flag[];
 }
 
 /** What a signed-out visitor sees: nothing, and no pretence of anything. */
@@ -82,6 +85,7 @@ const EMPTY: Book = {
   members: [],
   plan: 'free',
   history: {},
+  flags: [],
 };
 
 function fromMemory(): Book {
@@ -94,6 +98,7 @@ function fromMemory(): Book {
     members: [...memory.members()],
     plan: memory.plan(),
     history: {},
+    flags: [],
   };
 }
 
@@ -117,17 +122,18 @@ export const book = cache(async (): Promise<Book> => {
 
   // RLS scopes every one of these to the caller's org, so none of them carries
   // a where-clause of its own. The policy is the filter.
-  const [recipesRes, componentsRes, ingredientsRes, membersRes, subRes, historyRes] =
+  const [recipesRes, componentsRes, ingredientsRes, membersRes, subRes, historyRes, flagsRes] =
     await Promise.all([
       supabase.from('recipes').select('*'),
       supabase.from('recipe_components').select('*'),
       supabase.from('ingredients').select('*'),
-      supabase.from('memberships').select('role, user_id'),
+      supabase.from('memberships').select('role, user_id, display_name'),
       supabase.from('subscriptions').select('plan').limit(1),
       supabase
         .from('ingredient_rate_history')
         .select('ingredient_id, price_from, price_to, changed_at, source')
         .order('changed_at', { ascending: false }),
+      supabase.from('flags').select('*').order('sent_at', { ascending: false }),
     ]);
 
   const recipeRows = (recipesRes.data ?? []) as RecipeRow[];
@@ -158,7 +164,10 @@ export const book = cache(async (): Promise<Book> => {
     });
   }
 
-  const rows = membersRes.data as { role: 'owner' | 'manager'; user_id: string }[] | null;
+  const rows = membersRes.data as
+    { role: 'owner' | 'manager'; user_id: string; display_name: string | null }[] | null;
+
+  const dishName = new Map(recipeRows.map((r) => [r.id, r.name]));
 
   return {
     orgId: orgRow.id,
@@ -170,7 +179,15 @@ export const book = cache(async (): Promise<Book> => {
       // The email lives in auth.users, which RLS does not expose to a client.
       // A member the caller cannot name is shown by role until the invitation
       // record supplies one, rather than by a fabricated address.
-      name: m.user_id === auth.user?.id ? 'You' : m.role === 'owner' ? 'Owner' : 'Manager',
+      /*
+       * A40 needs a person, not a role. Emails live in auth.users and RLS does
+       * not expose them, so the name is carried on the membership — given at
+       * signup or by whoever sent the invitation. Falling back to the role is
+       * honest about not knowing rather than inventing one.
+       */
+      name:
+        m.display_name ??
+        (m.user_id === auth.user?.id ? 'You' : m.role === 'owner' ? 'Owner' : 'Manager'),
       email: m.user_id === auth.user?.id ? (auth.user?.email ?? '') : '',
       role: m.role,
       lastIn: null,
@@ -178,8 +195,29 @@ export const book = cache(async (): Promise<Book> => {
     })),
     plan: ((subRes.data as { plan: Plan }[] | null)?.[0]?.plan ?? 'free') as Plan,
     history,
+    flags: ((flagsRes.data ?? []) as FlagRow[]).map((f) => ({
+      id: f.id,
+      recipeId: f.recipe_id,
+      dish: dishName.get(f.recipe_id) ?? 'A dish',
+      from: f.sent_by_name,
+      note: f.note,
+      cost: f.cost === null ? null : Number(f.cost),
+      price: f.price === null ? null : Number(f.price),
+      foodCost: f.food_cost === null ? null : Number(f.food_cost),
+      target: f.target === null ? null : Number(f.target),
+      sentAt: f.sent_at,
+      openedAt: f.opened_at,
+      seenAt: f.seen_at,
+    })),
   };
 });
+
+interface FlagRow {
+  id: string; recipe_id: string; sent_by_name: string; note: string | null;
+  cost: string | number | null; price: string | number | null;
+  food_cost: string | number | null; target: string | number | null;
+  sent_at: string; opened_at: string | null; seen_at: string | null;
+}
 
 /* ── reads the screens use ────────────────────────────────────────────────── */
 

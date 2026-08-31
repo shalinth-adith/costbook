@@ -23,7 +23,10 @@ import { suggestPrice } from '@/lib/costing';
 import { ComponentCards } from './component-cards';
 import { PrepCard } from './prep-card';
 import { Toast, type ToastState } from './toast';
+import { type Flag, deliveryState, whenSent } from '@/lib/flags';
+
 import { ChannelSection } from './channel-section';
+import { FlagSheet } from './flag-sheet';
 import { InspectorSheet } from './sheets/inspector-sheet';
 import { ChargesSheet } from './sheets/charges-sheet';
 import { DishSheet } from './sheets/dish-sheet';
@@ -69,6 +72,8 @@ export function RecipeSheet({
   usageCounts,
   orgModel,
   orgCharges,
+  owner,
+  flags,
 }: {
   initialRecipe: Recipe;
   otherRecipes: readonly Recipe[];
@@ -79,6 +84,10 @@ export function RecipeSheet({
   orgModel: CostingModel;
   /** The account's charge stack, so the delivery comparison is theirs. */
   orgCharges: readonly Charge[];
+  /** Who a flag goes to, by name. A message to a role is a message to nobody. */
+  owner: string;
+  /** What has already been said about this dish (A40). */
+  flags: readonly Flag[];
 }) {
   const [recipe, setRecipe] = useState<Recipe>(initialRecipe);
   const [layout, setLayout] = useState<Layout>('table');
@@ -89,7 +98,7 @@ export function RecipeSheet({
 
   /** Which secondary surface is up. Only ever one at a time. */
   const [sheet, setSheet] = useState<
-    'dish' | 'paste' | 'add' | 'charges' | 'rounding' | 'inspector' | null
+    'dish' | 'paste' | 'add' | 'charges' | 'rounding' | 'inspector' | 'flag' | null
   >(null);
   /** The line whose rate is being answered, if any. */
   const [rateFor, setRateFor] = useState<string | null>(null);
@@ -360,6 +369,19 @@ export function RecipeSheet({
         </div>
 
         <div className="page-actions">
+          {/* A40: the only signal in this product that does not come from a
+              spreadsheet. The dish keeps a mark so nobody sends it twice. */}
+          {flags.length > 0 ? (
+            <span className="flag-mark" title={deliveryState(flags[0]!, owner)}>
+              SENT TO {owner.toUpperCase()}
+              <em>{whenSent(flags[0]!.sentAt, new Date().toISOString().slice(0, 10))} · {deliveryState(flags[0]!, owner)}</em>
+            </span>
+          ) : (
+            <button type="button" className="btn" onClick={() => setSheet('flag')}>
+              Send this to {owner}
+            </button>
+          )}
+
           <button type="button" className="btn" onClick={() => setSheet('dish')}>
             <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor"
               strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
@@ -551,6 +573,19 @@ export function RecipeSheet({
           busy={saving}
           isDefault={charges === null}
         />
+
+      <FlagSheet
+        open={sheet === 'flag'}
+        onClose={() => setSheet(null)}
+        dish={fields.name}
+        recipeId={recipe.id}
+        to={owner}
+        cost={build.complete ? build.total : null}
+        price={dish.sellingPrice}
+        foodCost={fc}
+        target={model.foodCostTarget}
+        onSent={(message) => setToast({ message, undoable: false })}
+      />
 
       <InspectorSheet
         open={sheet === 'inspector'}

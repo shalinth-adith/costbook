@@ -78,6 +78,8 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           usageCounts={usageCounts}
           orgModel={await orgModel()}
           orgCharges={b.org.charges}
+          owner={b.members.find((mm) => mm.role === 'owner')?.name ?? 'the owner'}
+          flags={b.flags.filter((f) => f.recipeId === id)}
         />
       </CurrencyProvider>
     </AppShell>

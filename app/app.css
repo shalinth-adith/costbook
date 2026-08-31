@@ -2244,3 +2244,37 @@
   .ac-counts { gap: var(--sp-6); }
   .ac-counts b { font-size: 34px; }
 }
+
+/* ── A40 · flags ─────────────────────────────────────────────────────────── */
+.flag-dish { padding: var(--sp-4); background: var(--surface-sunken); border-radius: var(--radius-panel); margin-block: var(--sp-4); }
+.flag-dish-name { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
+.flag-dish-figures { font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin: 0 0 6px; }
+.flag-dish-note { font-size: 11.5px; color: var(--text-tertiary); margin: 0; }
+/* The mark a dish keeps, so nobody flags it three days running wondering
+   whether it went. Honest about delivery, never a tick implying it was read. */
+.flag-mark {
+  display: inline-flex; flex-direction: column; gap: 1px;
+  padding: 4px 10px; border-radius: var(--radius-chip);
+  background: var(--on-tint); border: 1px solid var(--on-edge);
+  font-size: 10px; font-weight: 600; letter-spacing: 0.05em; color: var(--on-ink-strong);
+}
+.flag-mark em { font-style: normal; font-weight: 400; letter-spacing: 0; font-size: 10.5px; color: var(--text-secondary); }
+
+.kc {
+  margin: var(--sp-5) var(--sp-6) 0; padding: var(--sp-5);
+  background: var(--surface-card); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-panel); max-inline-size: 760px;
+}
+.kc-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); margin-block-end: var(--sp-4); }
+.kc-title { font-size: 15px; font-weight: 600; margin: 0; }
+.kc-count { font-size: 12px; color: var(--text-tertiary); }
+.kc-who { font-size: 12px; color: var(--text-tertiary); margin: 0 0 4px; }
+.kc-what { font-size: 17px; font-weight: 600; margin: 0 0 6px; }
+.kc-note { font-size: 14px; line-height: 1.55; margin: 0 0 6px; color: var(--text-primary); }
+.kc-figures { font-size: 12px; color: var(--text-secondary); margin: 0 0 var(--sp-4); }
+.kc-actions { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
+.kc-more {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  padding-block: var(--sp-3); margin-block-start: var(--sp-3);
+  border-block-start: 1px solid var(--border-row); font-size: 13px; color: var(--text-secondary);
+}
