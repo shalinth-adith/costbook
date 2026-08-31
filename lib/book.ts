@@ -39,6 +39,28 @@ import * as memory from './store';
 import { supabaseConfigured } from './supabase/env';
 import { supabaseServer } from './supabase/server';
 
+/**
+ * A write that failed, in words.
+ *
+ * Every Supabase call returns `{ error }` and none of these used to look at
+ * it. An import of 74 recipes hit a type mismatch on the very first row,
+ * reported "74 dishes created", and wrote nothing — which is worse than
+ * failing, because the operator has no reason to look.
+ */
+export class WriteFailed extends Error {
+  readonly detail: string;
+  constructor(what: string, detail: string) {
+    super(`Costbook could not save ${what}. ${detail}`);
+    this.name = 'WriteFailed';
+    this.detail = detail;
+  }
+}
+
+/** Throw on a failed write rather than carrying on as though it worked. */
+function check(what: string, result: { error: { message: string } | null }): void {
+  if (result.error !== null) throw new WriteFailed(what, result.error.message);
+}
+
 export interface Book {
   readonly orgId: string | null;
   readonly org: Org;
@@ -189,7 +211,7 @@ export async function saveOrg(patch: Partial<Org>): Promise<void> {
   const b = await book();
   if (b.orgId === null) return;
   const supabase = await supabaseServer();
-  await supabase.from('organizations').update(fromOrg(patch)).eq('id', b.orgId);
+  check('your settings', await supabase.from('organizations').update(fromOrg(patch)).eq('id', b.orgId));
 }
 
 export async function saveIngredient(ingredient: Ingredient): Promise<void> {
@@ -200,7 +222,10 @@ export async function saveIngredient(ingredient: Ingredient): Promise<void> {
   const b = await book();
   if (b.orgId === null) return;
   const supabase = await supabaseServer();
-  await supabase.from('ingredients').upsert(fromIngredient(ingredient, b.orgId), { onConflict: 'id' });
+  check(
+    ingredient.name,
+    await supabase.from('ingredients').upsert(fromIngredient(ingredient, b.orgId), { onConflict: 'id' }),
+  );
 }
 
 /**
@@ -220,11 +245,13 @@ export async function saveRecipe(recipe: Recipe, meta: DishMeta | undefined): Pr
   if (b.orgId === null) return;
   const supabase = await supabaseServer();
 
-  await supabase.from('recipes').upsert(fromRecipe(recipe, meta, b.orgId), { onConflict: 'id' });
-  await supabase.from('recipe_components').delete().eq('recipe_id', recipe.id);
+  check(recipe.name, await supabase.from('recipes').upsert(fromRecipe(recipe, meta, b.orgId), { onConflict: 'id' }));
+  check(recipe.name, await supabase.from('recipe_components').delete().eq('recipe_id', recipe.id));
 
   const lines = fromComponents(recipe);
-  if (lines.length > 0) await supabase.from('recipe_components').insert(lines);
+  if (lines.length > 0) {
+    check(`the lines of ${recipe.name}`, await supabase.from('recipe_components').insert(lines));
+  }
 }
 
 /** Everything an import produces, in as few round trips as it can be done. */
@@ -249,24 +276,30 @@ export async function saveBook(input: {
   const orgId = b.orgId;
 
   if (input.ingredients.length > 0) {
-    await supabase
-      .from('ingredients')
-      .upsert(input.ingredients.map((i) => fromIngredient(i, orgId)), { onConflict: 'id' });
+    check(
+      'your ingredients',
+      await supabase
+        .from('ingredients')
+        .upsert(input.ingredients.map((i) => fromIngredient(i, orgId)), { onConflict: 'id' }),
+    );
   }
 
   if (input.recipes.length > 0) {
-    await supabase
-      .from('recipes')
-      .upsert(input.recipes.map((r) => fromRecipe(r, input.meta[r.id], orgId)), { onConflict: 'id' });
+    check(
+      'your dishes',
+      await supabase
+        .from('recipes')
+        .upsert(input.recipes.map((r) => fromRecipe(r, input.meta[r.id], orgId)), { onConflict: 'id' }),
+    );
 
     const ids = input.recipes.map((r) => r.id);
-    await supabase.from('recipe_components').delete().in('recipe_id', ids);
+    check('the old lines', await supabase.from('recipe_components').delete().in('recipe_id', ids));
 
     const lines = input.recipes.flatMap(fromComponents);
     // Chunked: a large sheet produces thousands of lines, and one statement
     // carrying all of them is a request nobody's proxy is expecting.
     for (let i = 0; i < lines.length; i += 500) {
-      await supabase.from('recipe_components').insert(lines.slice(i, i + 500));
+      check('your recipe lines', await supabase.from('recipe_components').insert(lines.slice(i, i + 500)));
     }
   }
 }

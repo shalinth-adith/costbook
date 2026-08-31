@@ -37,11 +37,24 @@ export async function commitImport(plan: ImportPlan): Promise<{
 
   // Ingredients before recipes: a component line references an ingredient by
   // id, and the foreign key will not accept one that is not there yet.
-  await saveBook({
-    ingredients: plan.ingredients.map((p) => p.ingredient),
-    recipes: plan.recipes.map((r) => r.recipe),
-    meta,
-  });
+  try {
+    await saveBook({
+      ingredients: plan.ingredients.map((p) => p.ingredient),
+      recipes: plan.recipes.map((r) => r.recipe),
+      meta,
+    });
+  } catch (error) {
+    // Said plainly, and not as a success. An import that reports 74 dishes and
+    // writes none is worse than one that fails, because nothing prompts the
+    // operator to look.
+    return {
+      message:
+        error instanceof Error
+          ? `Nothing was imported. ${error.message}`
+          : 'Nothing was imported, and Costbook could not say why.',
+      undoable: false,
+    };
+  }
 
   revalidatePath('/', 'layout');
 
