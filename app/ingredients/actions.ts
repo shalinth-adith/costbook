@@ -198,3 +198,26 @@ export async function previewRate(id: string, packPrice: number): Promise<RatePr
     target: model.foodCostTarget,
   };
 }
+
+/**
+ * A chef looked at this rate and it is still right.
+ *
+ * Recorded even though nothing moved. "Days since anyone confirmed it" is not
+ * the same figure as "days since it last changed", and a morning spent
+ * checking six prices that had not moved is a morning's work — dropping it
+ * means the same six come up again tomorrow.
+ */
+export async function confirmRate(id: string): Promise<Ack> {
+  const ingredient = (await book()).ingredients.find((i) => i.id === id);
+  if (ingredient === undefined) {
+    return { message: 'That ingredient is no longer in your list.', undoable: false };
+  }
+  if (ingredient.purchasePrice === null) {
+    return { message: `${ingredient.name} has no rate to confirm yet.`, undoable: false };
+  }
+
+  await saveIngredient({ ...ingredient, pricedAt: today() }, 'confirmed');
+  refresh();
+
+  return { message: `${ingredient.name} confirmed at today's rate.`, undoable: false };
+}

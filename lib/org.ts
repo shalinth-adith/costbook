@@ -160,6 +160,16 @@ export function canDo(role: Role, what: 'costing' | 'charges' | 'billing' | 'tea
 }
 
 
+/**
+ * How a rate arrived.
+ *
+ * Only the application knows this — a database trigger sees the same UPDATE
+ * whether someone typed it, an import wrote it, or a chef confirmed it on the
+ * kitchen screen. Recording it as "manual" by omission made an import of 238
+ * rates look like 238 mornings of work.
+ */
+export type RateSource = 'manual' | 'import' | 'confirmed';
+
 /** One move of one rate. Append-only; see the store's `rateHistory`. */
 export interface RateChange {
   /** Null when this was the first rate the ingredient ever carried. */
@@ -167,4 +177,17 @@ export interface RateChange {
   readonly to: number;
   /** ISO date. */
   readonly on: string;
+  readonly source: RateSource;
+}
+
+/**
+ * Whether this record moved the figure.
+ *
+ * A confirmation carries the same rate on both sides. It is real work and
+ * belongs in the history — "confirmed today" is what A39's tie-breaker reads —
+ * but counting it as a movement would make an ingredient look volatile for
+ * having been checked.
+ */
+export function isMovement(change: RateChange): boolean {
+  return change.from !== change.to;
 }

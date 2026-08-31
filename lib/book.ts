@@ -20,7 +20,7 @@ import { type Pantry, type Recipe, pantryOf } from '@/core/recipe';
 
 import type { CostingModel } from './costing';
 import type { DishMeta } from './data';
-import { BLANK_ORG, type Member, type Org, type Plan, type RateChange } from './org';
+import { BLANK_ORG, type Member, type Org, type Plan, type RateChange, type RateSource } from './org';
 import {
   type ComponentRow,
   type IngredientRow,
@@ -126,7 +126,7 @@ export const book = cache(async (): Promise<Book> => {
       supabase.from('subscriptions').select('plan').limit(1),
       supabase
         .from('ingredient_rate_history')
-        .select('ingredient_id, price_from, price_to, changed_at')
+        .select('ingredient_id, price_from, price_to, changed_at, source')
         .order('changed_at', { ascending: false }),
     ]);
 
@@ -146,13 +146,15 @@ export const book = cache(async (): Promise<Book> => {
 
   const history: Record<string, RateChange[]> = {};
   for (const h of (historyRes.data ?? []) as {
-    ingredient_id: string; price_from: number | string | null; price_to: number | string; changed_at: string;
+    ingredient_id: string; price_from: number | string | null; price_to: number | string;
+    changed_at: string; source: string | null;
   }[]) {
     const list = history[h.ingredient_id] ?? (history[h.ingredient_id] = []);
     list.push({
       from: h.price_from === null ? null : Number(h.price_from),
       to: Number(h.price_to),
       on: h.changed_at.slice(0, 10),
+      source: (h.source ?? 'manual') as RateSource,
     });
   }
 
@@ -214,17 +216,63 @@ export async function saveOrg(patch: Partial<Org>): Promise<void> {
   check('your settings', await supabase.from('organizations').update(fromOrg(patch)).eq('id', b.orgId));
 }
 
-export async function saveIngredient(ingredient: Ingredient): Promise<void> {
+export async function saveIngredient(
+  ingredient: Ingredient,
+  source: RateSource = 'manual',
+): Promise<void> {
   if (!supabaseConfigured()) {
-    memory.putIngredient(ingredient);
+    memory.putIngredient(ingredient, source);
     return;
   }
   const b = await book();
   if (b.orgId === null) return;
   const supabase = await supabaseServer();
+
+  // Read the rate as it stands before overwriting it, so the record has both
+  // sides. The trigger that used to do this could not know the source.
+  const before = b.ingredients.find((i) => i.id === ingredient.id)?.purchasePrice ?? null;
+
   check(
     ingredient.name,
     await supabase.from('ingredients').upsert(fromIngredient(ingredient, b.orgId), { onConflict: 'id' }),
+  );
+
+  await recordRate(supabase, ingredient, before, source);
+}
+
+/**
+ * Write one history record, if there is one to write.
+ *
+ * A change is always recorded. A confirmation is recorded even though nothing
+ * moved, because "days since anyone confirmed it" is a different figure from
+ * "days since it last changed" — and a chef who checks a price and finds it
+ * unchanged has done the work.
+ *
+ * Anything else — a save that touched a yield or a supplier and left the rate
+ * alone — writes nothing. History that fills up with non-events answers no
+ * question.
+ */
+async function recordRate(
+  supabase: Awaited<ReturnType<typeof supabaseServer>>,
+  ingredient: Ingredient,
+  before: number | null,
+  source: RateSource,
+): Promise<void> {
+  const now = ingredient.purchasePrice;
+  if (now === null) return;
+
+  const moved = before !== now;
+  if (!moved && source !== 'confirmed') return;
+
+  check(
+    `the rate history for ${ingredient.name}`,
+    await supabase.from('ingredient_rate_history').insert({
+      ingredient_id: ingredient.id,
+      purchase_qty: ingredient.purchaseQty,
+      price_from: moved ? before : now,
+      price_to: now,
+      source,
+    }),
   );
 }
 
@@ -276,12 +324,35 @@ export async function saveBook(input: {
   const orgId = b.orgId;
 
   if (input.ingredients.length > 0) {
+    // Rates as they stand, before the import overwrites them.
+    const was = new Map(b.ingredients.map((i) => [i.id, i.purchasePrice]));
+
     check(
       'your ingredients',
       await supabase
         .from('ingredients')
         .upsert(input.ingredients.map((i) => fromIngredient(i, orgId)), { onConflict: 'id' }),
     );
+
+    /*
+     * Recorded as an import, not as manual. A price list that moves 238 rates
+     * is one event; logging it as 238 manual edits makes every ingredient in
+     * the book look like it was checked by hand this morning, which is exactly
+     * the signal the kitchen screen ranks on.
+     */
+    const moves = input.ingredients
+      .filter((i) => i.purchasePrice !== null && (was.get(i.id) ?? null) !== i.purchasePrice)
+      .map((i) => ({
+        ingredient_id: i.id,
+        purchase_qty: i.purchaseQty,
+        price_from: was.get(i.id) ?? null,
+        price_to: i.purchasePrice,
+        source: 'import' as const,
+      }));
+
+    for (let i = 0; i < moves.length; i += 500) {
+      check('the rate history', await supabase.from('ingredient_rate_history').insert(moves.slice(i, i + 500)));
+    }
   }
 
   if (input.recipes.length > 0) {
