@@ -201,6 +201,48 @@ function latticeFor(rule: Exclude<RoundingRule, { mode: 'none' }>): Lattice {
   }
 }
 
+/**
+ * Bring a charm lattice down to the size of the figure it is rounding.
+ *
+ * "The next figure ending in 9" means 9, 19, 29 — a lattice built for menu
+ * prices. Applied to a figure below its first rung it has no rung to offer and
+ * snaps everything up to 9: a dish costing 0.26 was being suggested at 9.00, an
+ * elevenfold jump, presented as confidently as any other price.
+ *
+ * The intent of the rule is charm pricing, and charm pricing at sub-unit
+ * figures is 0.89 rather than 9. So the lattice divides by ten until it fits
+ * under the figure, which preserves what the rule means at every magnitude.
+ *
+ * A suggestion nobody would act on costs more trust than silence (A26).
+ */
+function scaleToFit(rule: RoundingRule, value: number): RoundingRule {
+  if (rule.mode !== 'charm') return rule;
+  if (!Number.isFinite(value) || value <= 0) return rule;
+
+  /*
+   * Only a whole-number lattice scales, and only until it stops being one.
+   *
+   * An ending of 9 says "just under the next ten" — a menu-price rule. An
+   * ending of 0.99 or 0.95 is already a sub-unit rule and means exactly what it
+   * says at any size, so it is left alone: charm_99 on a 0.50 figure should
+   * give 0.99, not 0.099.
+   */
+  // Whether this was a whole-number lattice to begin with. An ending of 9 says
+  // "just under the next ten" and scales; an ending of 0.99 is already a
+  // sub-unit rule and means what it says at any size.
+  if (rule.ending < 1) return rule;
+
+  let { every, ending } = rule;
+  // Down to a hundredth and no further: money has two places, and a lattice
+  // finer than the currency's own precision rounds to figures it cannot print.
+  while (value < ending && ending > 0.01) {
+    every /= 10;
+    ending /= 10;
+  }
+
+  return every === rule.every ? rule : { ...rule, every, ending };
+}
+
 /** Apply a rounding rule to a figure. */
 export function applyRounding(value: number, rule: RoundingRule): number {
   if (!Number.isFinite(value)) {
@@ -212,7 +254,7 @@ export function applyRounding(value: number, rule: RoundingRule): number {
     return Math.round(value * factor) / factor;
   }
 
-  const { stepUnits, offsetUnits } = latticeFor(rule);
+  const { stepUnits, offsetUnits } = latticeFor(scaleToFit(rule, value));
   const units = toUnits(value);
 
   // Integers throughout, so a value already on the lattice stays put.

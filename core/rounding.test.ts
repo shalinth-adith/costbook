@@ -142,7 +142,10 @@ describe('the presets named in the document', () => {
     expect(applyRounding(34.5625, PRESETS.next_9)).toBe(39);
     expect(applyRounding(39, PRESETS.next_9)).toBe(39);
     expect(applyRounding(39.01, PRESETS.next_9)).toBe(49);
-    expect(applyRounding(1, PRESETS.next_9)).toBe(9);
+    // Not 9. A lattice of 9, 19, 29 has no rung under 9, and snapping a
+    // figure of 1 up to it is a ninefold jump presented as a price. The rule
+    // scales to the figure and keeps its ending: 1.9.
+    expect(applyRounding(1, PRESETS.next_9)).toBe(1.9);
     expect(describeRule(PRESETS.next_9)).toBe('round up to the next figure ending in 9');
   });
 });
@@ -216,5 +219,49 @@ describe('regression — the rule reads as a sentence', () => {
     expect(describeRule(charm(0.99, 'down'))).toBe(
       'round down to the previous figure ending in .99',
     );
+  });
+});
+
+/**
+ * A lattice built for menu prices, applied to a figure far below it.
+ *
+ * "The next figure ending in 9" means 9, 19, 29. Below its first rung it has no
+ * rung to offer, and every figure under 9 snapped up to 9 — a dish costing 0.26
+ * was suggested at 9.00, an elevenfold jump, presented as confidently as any
+ * other price. The intent of the rule is charm pricing, and charm pricing at
+ * sub-unit figures is 0.89 rather than 9.
+ */
+describe('a charm rule below its own first rung', () => {
+  const nine = PRESETS.next_9;
+
+  it('does not suggest 9.00 for a figure under a dirham', () => {
+    expect(applyRounding(0.26, nine)).toBeCloseTo(0.29, 6);
+    expect(applyRounding(0.8, nine)).toBeCloseTo(0.89, 6);
+  });
+
+  it('keeps the ending it was asked for, at every size', () => {
+    for (const v of [0.26, 0.8, 1.21, 2.5, 8.1, 12.4, 47.58]) {
+      const out = applyRounding(v, nine);
+      // Whatever the magnitude, the figure ends in a 9.
+      expect(String(out).replace('.', '')).toMatch(/9$/);
+    }
+  });
+
+  it('never moves a figure by more than the lattice it lands on', () => {
+    for (const v of [0.26, 0.8, 1.21, 2.5, 8.1, 12.4, 47.58, 129]) {
+      // A rule that doubles a price is a rule that does not fit it.
+      expect(applyRounding(v, nine)).toBeLessThan(v * 2);
+    }
+  });
+
+  it('leaves a menu-sized price exactly where it was', () => {
+    expect(applyRounding(129, nine)).toBe(129);
+    expect(applyRounding(47.58, nine)).toBe(49);
+  });
+
+  it('never rounds below the figure it was given', () => {
+    for (const v of [0.26, 0.8, 1.21, 2.5, 8.1, 12.4, 47.58]) {
+      expect(applyRounding(v, nine)).toBeGreaterThanOrEqual(v);
+    }
   });
 });
