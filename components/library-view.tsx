@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { useMemo, useRef, useState, useTransition } from 'react';
 
 import type { Pantry } from '@/core/recipe';
 
@@ -37,6 +38,7 @@ export function LibraryView({
   onDuplicate,
   onArchive,
   onCreate,
+  creating,
 }: {
   data: Library;
   pantry: Pantry;
@@ -48,6 +50,8 @@ export function LibraryView({
     undoable: boolean;
     id: string | null;
   }>;
+  /** Whether `?new=1` is on the URL. The sheet has no opinion of its own. */
+  creating: boolean;
 }) {
   const m = useMoney();
   const [tab, setTab] = useState<'dishes' | 'batches'>('dishes');
@@ -55,7 +59,26 @@ export function LibraryView({
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const [toast, setToast] = useState<ToastState | null>(null);
-  const [creating, setCreating] = useState(false);
+  /*
+   * Whether the sheet is open is the URL's answer, not ours. `pushed` records
+   * that we were the ones who put `?new=1` there, so closing can step back
+   * over our own entry rather than stacking a second one that Back would
+   * reopen. A sheet opened by a fresh load has nothing to step back to.
+   */
+  const router = useRouter();
+  const pushed = useRef(false);
+  const openCreate = () => {
+    pushed.current = true;
+    router.push('/recipes?new=1');
+  };
+  const closeCreate = () => {
+    if (pushed.current) {
+      pushed.current = false;
+      router.back();
+    } else {
+      router.replace('/recipes');
+    }
+  };
   const [pending, start] = useTransition();
 
   const today = new Date().toISOString().slice(0, 10);
@@ -137,7 +160,7 @@ export function LibraryView({
           <button
             type="button"
             className={bare ? 'btn' : 'btn btn-primary'}
-            onClick={() => setCreating(true)}
+            onClick={openCreate}
           >
             <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor"
               strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
@@ -221,7 +244,7 @@ export function LibraryView({
           filter={filter}
           target={target}
           onClear={() => { setQuery(''); setFilter('all'); }}
-          onCreate={() => setCreating(true)}
+          onCreate={openCreate}
         />
       ) : (
         <div className="library">
@@ -283,12 +306,12 @@ export function LibraryView({
 
       <NewDishSheet
         open={creating}
-        onClose={() => setCreating(false)}
+        onClose={closeCreate}
         busy={pending}
         onCreate={(dish) =>
           start(async () => {
             const ack = await onCreate(dish);
-            setCreating(false);
+            closeCreate();
             setToast(ack);
           })
         }

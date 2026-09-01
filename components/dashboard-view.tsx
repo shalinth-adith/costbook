@@ -3,6 +3,7 @@
 import Link from 'next/link';
 
 import { DashboardEmpty } from './dashboard-empty';
+import { DashboardFirst } from './dashboard-first';
 import { useMemo, useState } from 'react';
 
 import {
@@ -13,7 +14,7 @@ import {
   applyFilter,
   categoriesOf,
 } from '@/lib/dashboard';
-import { ORG } from '@/lib/data';
+import type { FirstDish } from '@/lib/first-dish';
 import { DASH, percent, points } from '@/lib/format';
 
 import { useMoney } from './currency-provider';
@@ -38,15 +39,28 @@ function Glyph({ row }: { row: DashboardRow }) {
   }
 }
 
-export function DashboardView({ data, target }: { data: Dashboard; target: number }) {
+export function DashboardView({
+  data,
+  target,
+  first,
+  today,
+}: {
+  data: Dashboard;
+  target: number;
+  /** A42's state, or null once the ordinary ranking has something to say. */
+  first: FirstDish | null;
+  today: string;
+}) {
   /*
-   * Nothing to rank. The whole argument of this page is its sort order, and
-   * with nothing to sort there is no argument to make — so it explains what it
-   * would become rather than showing an empty frame of one.
-   *
-   * No frame exists for this screen; built in A35's shape.
+   * Nothing to rank, or one thing. The whole argument of this page is its sort
+   * order, and with nothing to sort there is no argument to make — so A42
+   * takes over until there are two dishes to put in an order.
    */
-  if (data.rows.length === 0) return <DashboardEmpty target={target} />;
+  if (first !== null) {
+    return first.kind === 'none'
+      ? <DashboardEmpty target={target} />
+      : <DashboardFirst state={first} target={target} today={today} />;
+  }
   const [filter, setFilter] = useState<DashboardFilter>('all');
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');

@@ -2403,3 +2403,111 @@
 .set-rounding-from { font-size: 14px; color: var(--text-tertiary); }
 .set-rounding-arrow { font-size: 13px; color: var(--text-quiet); }
 .set-rounding-to { font-size: 16px; font-weight: 600; }
+
+/* ── A42 · where "start with one dish" lands ───────────────────────── */
+
+/* Per A35 there are no zeros here: no stat card reading 0, no chart frame
+   with no chart in it. A measure rather than a full-bleed grid, because the
+   page is a sentence and a list, not a dashboard pretending to be empty. */
+.fd {
+  padding: var(--sp-8) var(--sp-6) var(--sp-10);
+  max-inline-size: 940px;
+  display: flex; flex-direction: column; gap: var(--sp-9);
+}
+.fd-lead { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-4); }
+.fd-h {
+  margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.026em;
+  line-height: 1.18; max-inline-size: 20ch; text-wrap: pretty;
+}
+.fd-lede {
+  margin: 0; font-size: 16px; line-height: 1.6; color: var(--text-secondary);
+  max-inline-size: 62ch; text-wrap: pretty;
+}
+.fd-act { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.fd-btn { block-size: 46px; padding-inline: var(--sp-5); font-size: 15px; }
+.fd-act-said {
+  font-size: 13.5px; line-height: 1.55; color: var(--text-tertiary);
+  max-inline-size: 56ch; text-wrap: pretty;
+}
+/* The other door stays open, quietly. Never a banner and never a nag. */
+.fd-other { margin: 0; font-size: 13.5px; color: var(--text-tertiary); }
+.fd-other a { color: var(--text-secondary); text-underline-offset: 3px; }
+
+.fd-h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.fd-lands {
+  border-block-start: 1px solid var(--border-hairline); padding-block-start: var(--sp-6);
+  display: flex; flex-direction: column; gap: var(--sp-4);
+}
+.fd-land { display: flex; align-items: baseline; gap: 14px; }
+.fd-land-n {
+  font-size: 11.5px; letter-spacing: 0.1em; font-weight: 600; color: var(--on-ink);
+  flex: none;
+}
+.fd-land p { margin: 0; font-size: 15.5px; line-height: 1.5; text-wrap: pretty; }
+.fd-settled {
+  margin: var(--sp-2) 0 0; font-size: 13px; color: var(--text-tertiary);
+  line-height: 1.55; max-inline-size: 62ch; text-wrap: pretty;
+}
+
+/* ── state three: the rate moved it ────────────────────────────────── */
+
+.fd-moved { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-4); }
+/* A15: no figure animates its value. The was and the now stand together and
+   nothing counts between them. */
+.fd-swing { display: flex; gap: var(--sp-6); }
+.fd-swing-cell { display: flex; flex-direction: column; gap: 3px; }
+.fd-swing-label {
+  font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--text-secondary); font-weight: 600;
+}
+.fd-swing-was { font-size: 22px; color: var(--text-tertiary); text-decoration: line-through; }
+.fd-swing-now { font-size: 22px; font-weight: 600; }
+
+/* ── state two: the one dish ───────────────────────────────────────── */
+
+.fd-card {
+  border: 1px solid var(--border-hairline); border-radius: var(--radius-field);
+  background: var(--surface-card);
+}
+.fd-card-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--sp-4); padding: var(--sp-4) 18px;
+}
+.fd-card-said { margin: 5px 0 0; font-size: 13.5px; color: var(--text-tertiary); }
+
+.fd-dish {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-5);
+  padding: var(--sp-4) 18px;
+  border-block-start: 1px solid var(--border-hairline);
+  color: inherit; text-decoration: none;
+  min-block-size: 44px;
+}
+.fd-dish:hover { background: var(--surface-sunken); }
+.fd-dish-said { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fd-dish-name { font-size: 16.5px; font-weight: 600; letter-spacing: -0.008em; }
+.fd-dish-sub { font-size: 13px; color: var(--text-tertiary); }
+.fd-dish-figures { display: flex; align-items: baseline; gap: var(--sp-5); flex: none; }
+.fd-fig { display: flex; flex-direction: column; gap: 3px; text-align: end; }
+.fd-fig-said {
+  font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--text-secondary); font-weight: 600;
+}
+.fd-fig-value { font-size: 16px; }
+.fd-fig.is-strong .fd-fig-value { font-weight: 600; font-size: 18px; }
+
+.fd-rest {
+  border-block-start: 1px solid var(--border-hairline); padding-block-start: var(--sp-6);
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-3);
+}
+.fd-rest .btn { margin-block-start: 6px; }
+
+@media (max-width: 900px) {
+  .fd { padding: var(--sp-6) var(--sp-5) var(--sp-8); gap: var(--sp-7); }
+  .fd-h { font-size: 26px; }
+  .fd-card-head { flex-direction: column; }
+  /* The figures stop competing with the name for one line. */
+  .fd-dish { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .fd-dish-figures { inline-size: 100%; justify-content: space-between; gap: var(--sp-4); }
+  .fd-fig { text-align: start; }
+  .fd-fig:last-child { text-align: end; }
+}

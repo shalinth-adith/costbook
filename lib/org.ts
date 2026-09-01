@@ -172,9 +172,20 @@ export type RateSource = 'manual' | 'import' | 'confirmed';
 
 /** One move of one rate. Append-only; see the store's `rateHistory`. */
 export interface RateChange {
-  /** Null when this was the first rate the ingredient ever carried. */
+  /**
+   * The price of a pack, not a rate per unit — which is why `qty` travels with
+   * it. Null when this was the first rate the ingredient ever carried.
+   */
   readonly from: number | null;
   readonly to: number;
+  /**
+   * The pack size those prices were for, in the family's base unit.
+   *
+   * Recorded because a supplier who changes the price often changes the pack
+   * with it. Without this, recosting a dish "as it stood before" would divide
+   * last month's price by this month's pack.
+   */
+  readonly qty: number;
   /** ISO date. */
   readonly on: string;
   readonly source: RateSource;

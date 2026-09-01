@@ -162,6 +162,7 @@ export function putIngredient(ingredient: Ingredient, source: RateSource = 'manu
       log.unshift({
         from: moved ? before.purchasePrice : ingredient.purchasePrice,
         to: ingredient.purchasePrice,
+        qty: ingredient.purchaseQty,
         on: ingredient.pricedAt ?? new Date().toISOString().slice(0, 10),
         source,
       });

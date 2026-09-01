@@ -24,7 +24,7 @@ import { allIngredients, putIngredient, rateHistory, seedForTests } from './stor
 import { meta, recipes, shelf } from './data';
 
 const change = (from: number | null, to: number, on: string, source: RateChange['source'] = 'manual'): RateChange =>
-  ({ from, to, on, source });
+  ({ from, to, qty: 1, on, source });
 
 describe('what counts as a movement', () => {
   it('a changed figure does', () => {

@@ -153,12 +153,13 @@ export const book = cache(async (): Promise<Book> => {
   const history: Record<string, RateChange[]> = {};
   for (const h of (historyRes.data ?? []) as {
     ingredient_id: string; price_from: number | string | null; price_to: number | string;
-    changed_at: string; source: string | null;
+    purchase_qty: number | string; changed_at: string; source: string | null;
   }[]) {
     const list = history[h.ingredient_id] ?? (history[h.ingredient_id] = []);
     list.push({
       from: h.price_from === null ? null : Number(h.price_from),
       to: Number(h.price_to),
+      qty: Number(h.purchase_qty),
       on: h.changed_at.slice(0, 10),
       source: (h.source ?? 'manual') as RateSource,
     });

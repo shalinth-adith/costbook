@@ -10,8 +10,23 @@ import { archiveRecipe, createDish, duplicateRecipe } from './actions';
 
 export const dynamic = 'force-dynamic';
 
-export default async function RecipesPage() {
+export default async function RecipesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await requireSetup();
+
+  /*
+   * The new-dish sheet is a URL, not a piece of component state.
+   *
+   * A42's "Cost your first dish" has to land on the form itself rather than on
+   * a list with a button to find. Driving it from the query means Back closes
+   * it, and a link opened in a new tab behaves the same as a click — which a
+   * mount effect cannot do, because it has no way to tell the two apart.
+   */
+  const q = (await searchParams) ?? {};
+  const creating = q['new'] === '1';
 
   const b = await book();
   const model = await orgModel();
@@ -40,6 +55,7 @@ export default async function RecipesPage() {
           onDuplicate={duplicateRecipe}
           onArchive={archiveRecipe}
           onCreate={createDish}
+          creating={creating}
         />
       </CurrencyProvider>
     </AppShell>
