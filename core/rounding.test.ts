@@ -265,3 +265,79 @@ describe('a charm rule below its own first rung', () => {
     }
   });
 });
+
+/**
+ * A step lattice below its first rung.
+ *
+ * "Round up to the next 5" on a 0.71 figure has no rung under 5, so it offered
+ * 5.00 — a sevenfold markup presented beside a 0.79 as an equal choice. The
+ * charm lattice was fixed for this and the step one was not.
+ */
+describe('a step rule smaller than its own step', () => {
+  it('no longer snaps a sub-unit price up to the first rung', () => {
+    expect(applyRounding(0.71, PRESETS.up_to_5)).not.toBe(5);
+  });
+
+  it('rounds up to the next half, which is what the rule means at that size', () => {
+    expect(applyRounding(0.71, PRESETS.up_to_5)).toBeCloseTo(1, 10);
+    expect(applyRounding(1.4, PRESETS.up_to_5)).toBeCloseTo(1.5, 10);
+    expect(applyRounding(3.2, PRESETS.up_to_5)).toBeCloseTo(3.5, 10);
+  });
+
+  it('leaves the lattice alone once the figure reaches it', () => {
+    expect(applyRounding(5, PRESETS.up_to_5)).toBe(5);
+    expect(applyRounding(46.3, PRESETS.up_to_5)).toBe(50);
+    expect(applyRounding(118.7, PRESETS.up_to_5)).toBe(120);
+  });
+
+  it('descends as many rungs as the figure needs', () => {
+    // 5 -> 0.5 -> 0.05, because 0.06 is under both of the first two.
+    expect(applyRounding(0.06, PRESETS.up_to_5)).toBeCloseTo(0.1, 10);
+  });
+
+  /*
+   * The guarantee, stated as a rule rather than as a list of cases: rounding a
+   * figure up never more than doubles it. That is what makes the second
+   * candidate on the cost sheet a choice rather than a joke, and it holds at
+   * every magnitude a menu uses.
+   */
+  it('never more than doubles a figure, at any size', () => {
+    const steps = [PRESETS.up_to_5, PRESETS.up_to_10, PRESETS.up_to_half];
+    for (const value of [0.03, 0.21, 0.71, 1.4, 3.2, 12.5, 46.3, 118.7, 940]) {
+      for (const rule of steps) {
+        const out = applyRounding(value, rule);
+        expect(out).toBeGreaterThanOrEqual(value);
+        // Doubling, or one hundredth-scale rung — below about 0.05 the
+        // currency's own precision is the floor and every lattice must jump.
+        expect(out, `${value} under ${JSON.stringify(rule)}`)
+          .toBeLessThanOrEqual(Math.max(value * 2, value + 0.05));
+      }
+    }
+  });
+
+  it('scales a sub-unit step too — a step is a magnitude, not a suffix', () => {
+    // "Round up to the next half" on a 0.20 dish was returning 0.50. Unlike
+    // charm_99, whose meaning is in its trailing digits, a step of 0.5 has the
+    // same fault at 0.20 that a step of 5 has at 0.71.
+    expect(applyRounding(0.2, PRESETS.up_to_half)).not.toBe(0.5);
+    expect(applyRounding(0.03, PRESETS.up_to_half)).toBeLessThanOrEqual(0.05);
+  });
+
+  it('never rounds finer than the currency can print', () => {
+    const out = applyRounding(0.004, PRESETS.up_to_5);
+    expect(out).toBeGreaterThan(0);
+    expect(out).toBeLessThanOrEqual(0.05);
+  });
+
+  it('gives the cost sheet two candidates worth choosing between', () => {
+    // The dish in the screenshot: 0.2125 a portion at a 30% target.
+    const exact = 0.2125 / 0.3;
+    const nine = applyRounding(exact, PRESETS.next_9);
+    const five = applyRounding(exact, PRESETS.up_to_5);
+    expect(nine).toBeCloseTo(0.79, 10);
+    expect(five).toBeCloseTo(1, 10);
+    // Both land within a point or two of a price someone would put on a menu,
+    // rather than one real option and one seven times the cost.
+    expect(0.2125 / five).toBeGreaterThan(0.15);
+  });
+});

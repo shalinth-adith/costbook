@@ -202,7 +202,7 @@ function latticeFor(rule: Exclude<RoundingRule, { mode: 'none' }>): Lattice {
 }
 
 /**
- * Bring a charm lattice down to the size of the figure it is rounding.
+ * Bring a lattice down to the size of the figure it is rounding.
  *
  * "The next figure ending in 9" means 9, 19, 29 — a lattice built for menu
  * prices. Applied to a figure below its first rung it has no rung to offer and
@@ -213,11 +213,18 @@ function latticeFor(rule: Exclude<RoundingRule, { mode: 'none' }>): Lattice {
  * figures is 0.89 rather than 9. So the lattice divides by ten until it fits
  * under the figure, which preserves what the rule means at every magnitude.
  *
+ * A step lattice has the same fault and it was left in when the charm one was
+ * fixed. "Round up to the next 5" applied to 0.71 has no rung below 5, so it
+ * offered 5.00 — a sevenfold markup, sitting beside a 0.79 as though the two
+ * were comparable choices. Every dish on a menu priced under 5 got one real
+ * candidate and one absurd one.
+ *
  * A suggestion nobody would act on costs more trust than silence (A26).
  */
 function scaleToFit<R extends RoundingRule>(rule: R, value: number): R {
-  if (rule.mode !== 'charm') return rule;
   if (!Number.isFinite(value) || value <= 0) return rule;
+  if (rule.mode === 'step') return scaleStep(rule, value) as R;
+  if (rule.mode !== 'charm') return rule;
 
   /*
    * Only a whole-number lattice scales, and only until it stops being one.
@@ -241,6 +248,25 @@ function scaleToFit<R extends RoundingRule>(rule: R, value: number): R {
   }
 
   return every === rule.every ? rule : { ...rule, every, ending };
+}
+
+/**
+ * The same descent for a step lattice.
+ *
+ * Every step scales, including the sub-unit ones — unlike charm, where an
+ * ending of 0.99 is about the trailing digits and means the same thing at any
+ * size. A step is a magnitude, so "round up to the next half" has exactly the
+ * fault on a 0.03 figure that "the next 5" has on a 0.71 one: it was returning
+ * 0.50, sixteen times the figure.
+ */
+function scaleStep(rule: Extract<RoundingRule, { mode: 'step' }>, value: number) {
+  let { step } = rule;
+  // Never below a hundredth: a lattice finer than the currency's own precision
+  // rounds to figures it cannot print. Checked before dividing, so the step
+  // lands on 0.01 rather than stepping through it to 0.001.
+  while (value < step && step / 10 >= 0.01) step /= 10;
+
+  return step === rule.step ? rule : { ...rule, step };
 }
 
 /** Apply a rounding rule to a figure. */
