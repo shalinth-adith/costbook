@@ -1,9 +1,16 @@
-import { redirect } from 'next/navigation';
+import { redirect } from "next/navigation";
 
-import { book } from './book';
+import { book } from "./book";
 
 /**
  * Send an account that has not finished setup to the wizard.
+ *
+ * This is not an authentication check and never was, though for a long time it
+ * was the only thing on a page shaped like one. `proxy.ts` holds the gate; a
+ * signed-out visitor never reaches this function. What it owns is the setup
+ * question alone, and it stays because the proxy's redirect is optimistic —
+ * this runs on the server, after the session is known, and is what actually
+ * keeps an unfinished account out of a screen full of figures.
  *
  * A brand new book has no name, no currency answer, no tax answer and no
  * target. Landing on a dashboard reading "0 dishes · average food cost —"
@@ -15,5 +22,5 @@ import { book } from './book';
  */
 export async function requireSetup(): Promise<void> {
   const { org } = await book();
-  if (!org.setupDone) redirect('/setup');
+  if (!org.setupDone) redirect("/setup");
 }

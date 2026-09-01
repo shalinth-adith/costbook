@@ -45,6 +45,48 @@ export function isPublic(pathname: string): boolean {
   );
 }
 
+/** What the gate knows about whoever is asking. */
+export interface Caller {
+  readonly signedIn: boolean;
+  /** Meaningless when signed out; the four questions belong to an account. */
+  readonly setupDone: boolean;
+  readonly role: Role;
+}
+
+/**
+ * The rule table, as one function.
+ *
+ * Kept out of `proxy.ts` so it can be read on its own and tested without a
+ * request, a session or a database. The proxy does the fetching and the
+ * redirecting; this decides. Returns null to mean "let them through".
+ *
+ *   signed out              -> the public paths, else /sign-in?next=<path>
+ *   signed in, setup open   -> /setup, and nothing else
+ *   signed in, setup done   -> everything, and /setup sends them home
+ */
+export function gateFor(
+  caller: Caller,
+  path: string,
+  search = "",
+): string | null {
+  // Route handlers answer for themselves: a redirect is the wrong reply to a
+  // fetch, and /api/auth/dev-login exists to be called with no session.
+  if (path.startsWith("/api/")) return null;
+
+  if (isPublic(path)) return null;
+
+  if (!caller.signedIn) {
+    return `/sign-in?next=${encodeURIComponent(`${path}${search}`)}`;
+  }
+
+  // The wizard is the only screen there is until it is answered, because every
+  // other one would be showing figures nobody has set up.
+  if (!caller.setupDone) return path === "/setup" ? null : "/setup";
+
+  // And it is behind them once it is.
+  return path === "/setup" ? landingFor(caller.role) : null;
+}
+
 /**
  * A `next` parameter, if it is safe to redirect to.
  *
