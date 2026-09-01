@@ -128,6 +128,15 @@ export function taxLabel(t: TaxTreatment | null): string {
 export type Role = 'owner' | 'manager';
 
 export interface Member {
+  /**
+   * Stable identity: the user id for someone on the book, the invitation id
+   * for someone who has been asked and not signed up yet.
+   *
+   * Not the email. RLS does not expose auth.users, so every member except the
+   * caller has an empty one — and removing a manager by an empty string
+   * removes nobody, which is exactly what Remove used to do.
+   */
+  readonly id: string;
   readonly name: string;
   readonly email: string;
   readonly role: Role;

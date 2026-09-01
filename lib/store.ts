@@ -290,19 +290,20 @@ export function members(): readonly Member[] {
 export function inviteMember(name: string, email: string, role: Member['role']): void {
   const s = state();
   if (s.members.some((m) => m.email.toLowerCase() === email.toLowerCase())) return;
-  s.members.push({ name, email, role, lastIn: null, accepted: false });
+  s.members.push({ id: `invite-${email.toLowerCase()}`, name, email, role, lastIn: null, accepted: false });
 }
 
-export function removeMember(email: string): void {
+export function removeMember(id: string): void {
   const s = state();
+  const email = s.members.find((m) => m.id === id)?.email ?? id;
   // The owner cannot be removed: an account with nobody who can pay for it or
   // change its costing is an account nobody can fix.
   s.members = s.members.filter((m) => m.email !== email || m.role === 'owner');
 }
 
-export function setMemberRole(email: string, role: Member['role']): void {
+export function setMemberRole(id: string, role: Member['role']): void {
   const s = state();
-  const at = s.members.findIndex((m) => m.email === email);
+  const at = s.members.findIndex((m) => m.id === id);
   const found = s.members[at];
   if (found === undefined) return;
   s.members[at] = { ...found, role };

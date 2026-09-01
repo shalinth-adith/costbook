@@ -8,7 +8,8 @@ import type { PresetName } from '@/core/rounding';
 import { type Impact, impactOf } from '@/lib/impact';
 import type { Role, TaxTreatment } from '@/lib/org';
 import { book, orgModel, saveOrg } from '@/lib/book';
-import { inviteMember, removeMember, setMemberRole, setPlan } from '@/lib/store';
+import { inviteToOrg, removeFromOrg, setOrgRole } from '@/lib/book';
+import { setPlan } from '@/lib/store';
 
 /**
  * Save a costing change.
@@ -47,20 +48,32 @@ export async function saveCharges(charges: readonly Charge[]): Promise<{ readonl
   return { ok: true };
 }
 
-export async function invite(name: string, email: string, role: Role): Promise<{ readonly ok: true }> {
-  inviteMember(name, email, role);
+/**
+ * Record an invitation. It is not sent — nothing sends email yet.
+ *
+ * The row is what matters and it is what was missing: the signup trigger
+ * already joins a new account to the organisation that invited its address,
+ * so writing this makes the invitation real even with no mail behind it. The
+ * screen says so rather than claiming a send.
+ */
+export async function invite(_name: string, email: string, role: Role): Promise<{ readonly ok: true }> {
+  await inviteToOrg(email, role);
   revalidatePath('/settings');
   return { ok: true };
 }
 
-export async function drop(email: string): Promise<{ readonly ok: true }> {
-  removeMember(email);
+export async function drop(id: string, pending: boolean): Promise<{ readonly ok: true }> {
+  await removeFromOrg(id, pending);
   revalidatePath('/settings');
   return { ok: true };
 }
 
-export async function changeRole(email: string, role: Role): Promise<{ readonly ok: true }> {
-  setMemberRole(email, role);
+export async function changeRole(
+  id: string,
+  role: Role,
+  pending: boolean,
+): Promise<{ readonly ok: true }> {
+  await setOrgRole(id, role, pending);
   revalidatePath('/settings');
   return { ok: true };
 }

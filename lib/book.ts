@@ -21,7 +21,7 @@ import { type Pantry, type Recipe, pantryOf } from '@/core/recipe';
 import type { CostingModel } from './costing';
 import type { Flag } from './flags';
 import type { DishMeta } from './data';
-import { BLANK_ORG, type Member, type Org, type Plan, type RateChange, type RateSource } from './org';
+import { BLANK_ORG, type Member, type Org, type Plan, type RateChange, type RateSource, type Role } from './org';
 import {
   type ComponentRow,
   type IngredientRow,
@@ -122,12 +122,25 @@ export const book = cache(async (): Promise<Book> => {
 
   // RLS scopes every one of these to the caller's org, so none of them carries
   // a where-clause of its own. The policy is the filter.
-  const [recipesRes, componentsRes, ingredientsRes, membersRes, subRes, historyRes, flagsRes] =
+  const [recipesRes, componentsRes, ingredientsRes, membersRes, invitesRes, subRes, historyRes, flagsRes] =
     await Promise.all([
       supabase.from('recipes').select('*'),
       supabase.from('recipe_components').select('*'),
       supabase.from('ingredients').select('*'),
       supabase.from('memberships').select('role, user_id, display_name'),
+      /*
+       * Everyone asked and not yet arrived.
+       *
+       * Settings shows them beside the people on the book, which is the only
+       * way an owner can tell an invitation was recorded at all. Expired ones
+       * are left out rather than shown lapsed: A32 gives the lapse message to
+       * the person following the link, not to the person who sent it.
+       */
+      supabase
+        .from('invitations')
+        .select('id, email, role, expires_at')
+        .is('accepted_at', null)
+        .gt('expires_at', new Date().toISOString()),
       supabase.from('subscriptions').select('plan').limit(1),
       supabase
         .from('ingredient_rate_history')
@@ -190,10 +203,24 @@ export const book = cache(async (): Promise<Book> => {
         m.display_name ??
         (m.user_id === auth.user?.id ? 'You' : m.role === 'owner' ? 'Owner' : 'Manager'),
       email: m.user_id === auth.user?.id ? (auth.user?.email ?? '') : '',
+      id: m.user_id,
       role: m.role,
       lastIn: null,
       accepted: true,
-    })),
+    })).concat(
+      ((invitesRes.data ?? []) as { id: string; email: string; role: 'owner' | 'manager' }[]).map(
+        (i) => ({
+          // The invitation is the only record that knows the address, which is
+          // why a pending row can show one and an accepted row cannot.
+          name: i.email,
+          email: i.email,
+          id: i.id,
+          role: i.role,
+          lastIn: null,
+          accepted: false,
+        }),
+      ),
+    ),
     plan: ((subRes.data as { plan: Plan }[] | null)?.[0]?.plan ?? 'free') as Plan,
     history,
     flags: ((flagsRes.data ?? []) as FlagRow[]).map((f) => ({
@@ -513,4 +540,79 @@ export async function saveMeta(id: string, patch: Partial<DishMeta>): Promise<vo
       updated_at: new Date().toISOString(),
     })
     .eq('id', id);
+}
+
+/**
+ * Ask someone to join the book.
+ *
+ * This wrote to a module-level array and nothing else. No row, no mail, gone
+ * on restart — and because `book()` reads memberships from Postgres rather
+ * than that array, the person did not even appear in the list. An owner
+ * pressed the button, the form cleared, and nothing anywhere had changed.
+ *
+ * The `invitations` table and the signup trigger that redeems it were both
+ * already here and both already correct. Only the write was missing.
+ *
+ * Matched on email rather than a token: the trigger looks up an unaccepted,
+ * unexpired invitation by address when the account is created, so a token
+ * would be a second scheme to keep in step with the first.
+ */
+export async function inviteToOrg(email: string, role: Role): Promise<void> {
+  if (!supabaseConfigured()) {
+    memory.inviteMember('', email, role);
+    return;
+  }
+  const b = await book();
+  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
+
+  const supabase = await supabaseServer();
+  // Re-inviting an address that is already waiting refreshes the fourteen days
+  // rather than failing on the unique constraint, which is what the owner
+  // pressing the button a second time means by it.
+  check(
+    email,
+    await supabase
+      .from('invitations')
+      .upsert(
+        { org_id: b.orgId, email: email.trim().toLowerCase(), role },
+        { onConflict: 'org_id,email' },
+      ),
+  );
+}
+
+/**
+ * Take someone off the book, or withdraw an invitation.
+ *
+ * Keyed by id, not by email: RLS does not expose auth.users, so every member
+ * except the caller carries an empty address, and the old signature removed
+ * whoever matched the empty string — nobody. An owner who removed a manager
+ * was told it worked and the manager kept their access.
+ */
+export async function removeFromOrg(id: string, pending: boolean): Promise<void> {
+  if (!supabaseConfigured()) {
+    memory.removeMember(id);
+    return;
+  }
+  const b = await book();
+  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
+
+  const supabase = await supabaseServer();
+  const table = pending ? 'invitations' : 'memberships';
+  const column = pending ? 'id' : 'user_id';
+  check('the member', await supabase.from(table).delete().eq(column, id));
+}
+
+/** Change what someone may do, on the book or in a waiting invitation. */
+export async function setOrgRole(id: string, role: Role, pending: boolean): Promise<void> {
+  if (!supabaseConfigured()) {
+    memory.setMemberRole(id, role);
+    return;
+  }
+  const b = await book();
+  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
+
+  const supabase = await supabaseServer();
+  const table = pending ? 'invitations' : 'memberships';
+  const column = pending ? 'id' : 'user_id';
+  check('the role', await supabase.from(table).update({ role }).eq(column, id));
 }

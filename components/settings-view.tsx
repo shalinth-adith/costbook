@@ -538,7 +538,7 @@ function TeamTab({
         <thead><tr><th>Who</th><th>Role</th><th>Last in</th><th /></tr></thead>
         <tbody>
           {members.map((m) => (
-            <tr key={m.email}>
+            <tr key={m.id}>
               <td>
                 <b>{m.name}</b>
                 <span className="set-email">{m.accepted ? m.email : `${m.email} · invited, not signed in yet`}</span>
@@ -548,7 +548,7 @@ function TeamTab({
                   <span className="set-pill is-static">Owner</span>
                 ) : (
                   <button type="button" className="set-pill"
-                    onClick={() => start(async () => { await changeRole(m.email, m.role === 'manager' ? 'owner' : 'manager'); })}>
+                    onClick={() => start(async () => { await changeRole(m.id, m.role === 'manager' ? 'owner' : 'manager', !m.accepted); })}>
                     Manager
                   </button>
                 )}
@@ -559,7 +559,7 @@ function TeamTab({
                   <span className="set-note">that&rsquo;s you</span>
                 ) : (
                   <button type="button" className="set-pill"
-                    onClick={() => start(async () => { await drop(m.email); })}>
+                    onClick={() => start(async () => { await drop(m.id, !m.accepted); })}>
                     {m.accepted ? 'Remove' : 'Resend'}
                   </button>
                 )}
@@ -578,9 +578,21 @@ function TeamTab({
         </button>
         <button type="button" className="btn btn-primary" disabled={pending || email.trim() === ''}
           onClick={() => start(async () => { await invite(who, email, role); setEmail(''); setWho(''); })}>
-          Send the invitation
+          Create the invitation
         </button>
       </div>
+
+      {/*
+        Temporary, and honest while it lasts. A27 says "Send the invitation",
+        which is right once mail delivers and a lie until then. The row is
+        real: the signup trigger joins whoever creates an account at this
+        address, so the invitation works — it just has to be passed on by hand.
+      */}
+      <p className="set-note">
+        Costbook does not send email yet, so tell them yourself. Anyone who signs up with{' '}
+        <b>exactly this address</b> joins your café; a different one starts an empty account of
+        their own, so it is worth checking the spelling with them first.
+      </p>
 
       <p className="set-note">
         <b>Two roles, on purpose.</b> Owner can change costing, charges, billing and people.
