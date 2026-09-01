@@ -27,7 +27,16 @@ const PROOF: readonly { name: string; cost: string; foodCost: string; status: Ta
   { name: 'Mutton Seeraga Samba Biryani', cost: '172.20', foodCost: '59.6', status: 'over' },
 ];
 
-export default function SignInPage() {
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  // Where the gate stopped them. Passed down rather than read with
+  // useSearchParams, which would need a Suspense boundary around the form.
+  const raw = (await searchParams)?.['next'];
+  const next = typeof raw === 'string' ? raw : null;
+
   return (
     <main className="gate">
       <section className="entry-brand" aria-label="What Costbook does">
@@ -76,7 +85,7 @@ export default function SignInPage() {
       </section>
 
       <section className="entry-side">
-        <SignInForm />
+        <SignInForm next={next} />
         <nav className="entry-links" aria-label="Legal">
           <Link href="/privacy">Privacy policy</Link>
           <Link href="/terms">Terms</Link>

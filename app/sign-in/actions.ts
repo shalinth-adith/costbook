@@ -11,6 +11,7 @@ import {
   verify,
 } from '@/lib/accounts';
 import { type SignInState, emailFault, nextAttempts, signIn } from '@/lib/auth';
+import { afterSignIn } from '@/lib/after-auth';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { supabaseServer } from '@/lib/supabase/server';
 
@@ -25,7 +26,9 @@ export async function attemptSignIn(_previous: SignInState, form: FormData): Pro
   const password = String(form.get('password') ?? '');
   const now = Date.now();
 
-  if (supabaseConfigured()) return await signInWithSupabase(email, password);
+  const next = typeof form.get('next') === 'string' ? (form.get('next') as string) : null;
+
+  if (supabaseConfigured()) return await signInWithSupabase(email, password, next);
 
   const result = signIn(email, password, {
     account: lookup(email),
@@ -40,16 +43,9 @@ export async function attemptSignIn(_previous: SignInState, form: FormData): Pro
   }
 
   if (result.kind === 'ok') {
-    /*
-     * The fixture path, used only when no Supabase project is configured. It
-     * sent people to the landing page while the real path sent them to the
-     * dashboard, so the two disagreed about what signing in means.
-     *
-     * One landing for everyone: an owner and a manager hold the same
-     * permissions and differ only in what they came to do, which is not
-     * something a different first screen can tell them.
-     */
-    redirect('/dashboard');
+    // Where they go is not this file's decision. It authenticates, and then
+    // asks the one function that knows.
+    redirect(await afterSignIn(next));
   }
 
   return result;
@@ -79,7 +75,11 @@ export async function resendVerification(email: string): Promise<{ readonly sent
  * The near-miss suggestion in A10 · 05 therefore cannot be offered against a
  * real directory, and is not faked.
  */
-async function signInWithSupabase(email: string, password: string): Promise<SignInState> {
+async function signInWithSupabase(
+  email: string,
+  password: string,
+  next: string | null,
+): Promise<SignInState> {
   const faults = [
     ...(email.trim() === '' ? [{ field: 'email' as const, message: 'Your email address goes here.' }] : []),
     ...(password === '' ? [{ field: 'password' as const, message: 'And your password.' }] : []),
@@ -92,7 +92,7 @@ async function signInWithSupabase(email: string, password: string): Promise<Sign
   const supabase = await supabaseServer();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (error === null) redirect('/dashboard');
+  if (error === null) redirect(await afterSignIn(next));
 
   const message = error.message.toLowerCase();
 

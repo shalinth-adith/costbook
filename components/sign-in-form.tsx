@@ -88,7 +88,7 @@ function Spinner() {
   return <span className="spinner" aria-hidden="true" />;
 }
 
-export function SignInForm() {
+export function SignInForm({ next }: { next: string | null }) {
   const [state, formAction, pending] = useActionState(run, IDLE);
 
   const [email, setEmail] = useState('');
@@ -243,6 +243,9 @@ export function SignInForm() {
 
   return (
     <form className="entry-card" action={formAction} noValidate>
+      {/* Where they were going before the gate stopped them. Validated by
+          safeNext on the way back out — it arrived in a query string. */}
+      {next === null ? null : <input type="hidden" name="next" value={next} />}
       <div className="entry-head">
         <h1 className="entry-title">Sign in</h1>
         <span className="entry-sub">Back to your menu.</span>

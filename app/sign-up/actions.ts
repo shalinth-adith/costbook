@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 
 import { MIN_PASSWORD } from '@/components/entry-shell';
+import { afterSignIn } from '@/lib/after-auth';
 import { emailFault } from '@/lib/auth';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { supabaseServer } from '@/lib/supabase/server';
@@ -53,7 +54,9 @@ export async function createAccount(email: string, password: string): Promise<Si
 
   // Email confirmation is off, so a session arrives with the account and the
   // next stop is the four questions.
-  if (data.session !== null) redirect('/setup');
+  // A new account has four unanswered questions, so this lands on /setup —
+  // but it says so by asking, not by knowing.
+  if (data.session !== null) redirect(await afterSignIn(null));
 
   return { kind: 'sent', email };
 }
