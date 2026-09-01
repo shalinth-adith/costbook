@@ -69,8 +69,20 @@ export function gateFor(
   path: string,
   search = "",
 ): string | null {
-  // Route handlers answer for themselves: a redirect is the wrong reply to a
-  // fetch, and /api/auth/dev-login exists to be called with no session.
+  /*
+   * Route handlers answer for themselves. This looks like a hole and is not.
+   *
+   * A redirect is the wrong reply to a fetch, and wrong in a way that hides
+   * itself: fetch follows a 307 by default, lands on /sign-in, gets a 200, and
+   * hands the caller a page of sign-in markup as though it were the response.
+   * Nothing anywhere reports an auth failure. It surfaces days later as "the
+   * API returns garbage", and nobody reading that sentence goes looking at the
+   * gate.
+   *
+   * So handlers are exempt here and check their own sessions. Some must:
+   * /api/auth/dev-login is called with no session, because signing in is what
+   * it is for, and it already refuses outside development.
+   */
   if (path.startsWith("/api/")) return null;
 
   if (isPublic(path)) return null;
