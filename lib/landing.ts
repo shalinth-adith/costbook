@@ -36,6 +36,9 @@ export const PUBLIC_PATHS: readonly string[] = [
   "/reset",
   "/privacy",
   "/terms",
+  // Reached from the sign-in screen by someone who cannot get in. Gating the
+  // page that tells them how to ask for help would be a closed loop.
+  "/contact",
 ];
 
 /** Whether a path is reachable with no session. */
