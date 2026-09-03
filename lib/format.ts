@@ -128,3 +128,23 @@ export function when(iso: string | null, today: string): string {
   if (Number.isNaN(days)) return then;
   return ago(Math.max(0, days));
 }
+
+/**
+ * A quantity in the unit a cook would say it in.
+ *
+ * Lines are stored in base units and were shown in the unit the ingredient
+ * is bought in — so 30 ml of ghee on a plate read as "0.03 l", and 10 g of
+ * curry leaf as "0.01 kg". Nobody in a kitchen says either. Below a kilo it
+ * is grams; below a litre it is millilitres; at or above, the big unit. The
+ * stored figure never changes — only the way it is said.
+ *
+ * Pieces and unknown units are left alone: there is no smaller piece.
+ */
+export function shownQty(baseQty: number, unit: string): { readonly qty: string; readonly unit: string } {
+  const small: Readonly<Record<string, string>> = { kg: 'g', l: 'ml' };
+  const to = small[unit];
+  if (to !== undefined && baseQty < 1000) {
+    return { qty: qty(baseQty), unit: to };
+  }
+  return { qty: lineQty(baseQty, unit), unit };
+}

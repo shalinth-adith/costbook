@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import type { CostedLine } from '@/core/recipe';
 
-import { DASH, lineQty, lineRate, qty } from '@/lib/format';
+import { DASH, lineQty, lineRate, qty, shownQty } from '@/lib/format';
 import { looseNumber } from '@/core/loose';
 import { toBase } from '@/core/units';
 
@@ -105,11 +105,13 @@ export function ComponentTable({
 
               <span className="ctable-qty-cell">
                 {line.kind === 'flat' ? null : (
-                  <span className="figure ctable-qty">{lineQty(line.qty, line.unit)}</span>
+                  <span className="figure ctable-qty">{shownQty(line.qty, line.unit).qty}</span>
                 )}
               </span>
 
-              <span className="figure ctable-unit">{line.unit}</span>
+              {/* Grams below a kilo, millilitres below a litre. "0.03 l" of
+                  ghee is 30 ml to anyone who has poured it. */}
+              <span className="figure ctable-unit">{shownQty(line.qty, line.unit).unit}</span>
               <span className="figure end ctable-dim">{m.rate(lineRate(line.ratePerBaseUnit, line.unit))}</span>
 
               <span className="ctable-cost">
@@ -191,7 +193,7 @@ function LineDetail({
             />
             <Stepper
               label={`quantity of ${line.name}`}
-              value={`${lineQty(line.qty, line.unit)} ${line.unit}`}
+              value={`${shownQty(line.qty, line.unit).qty} ${shownQty(line.qty, line.unit).unit}`}
               min={line.qty <= 1}
               disabled={line.kind === 'flat'}
               onDown={() => handlers.onQty(index, stepDown(line.qty))}
@@ -247,15 +249,15 @@ function LineDetail({
         </div>
 
         <div>
-          <div className="label">Elsewhere</div>
-          <p className="line-detail-copy">
+          {/* Quieter than the switch beside it. Which other dishes an
+              ingredient is in is about the ingredient; whether this line is
+              per batch or per plate is about this dish, and that is the one
+              a cook is here to settle. */}
+          <p className="line-detail-aside">
             {uses > 1 ? (
-              <>
-                Used in <strong>{uses} recipes</strong>. Changing its rate reprices all of them at
-                once.
-              </>
+              <>Also in <strong>{uses - 1}</strong> other {uses - 1 === 1 ? 'dish' : 'dishes'} — a rate change reaches all of them.</>
             ) : (
-              <>Used only here so far.</>
+              <>Only in this dish so far.</>
             )}
           </p>
           <div className="line-detail-actions">
@@ -295,7 +297,9 @@ function QtyField({
   disabled: boolean;
   onCommit: (baseQty: number) => void;
 }) {
-  const shown = lineQty(line.qty, line.unit);
+  // In the unit a cook says it in, so "40" typed against "30 ml" means 40 ml.
+  const sh = shownQty(line.qty, line.unit);
+  const shown = sh.qty;
   const [draft, setDraft] = useState(shown);
   const [was, setWas] = useState(shown);
   // A change from outside — the stepper — replaces the draft.
@@ -312,7 +316,7 @@ function QtyField({
     }
     let base: number;
     try {
-      base = toBase(n, line.unit);
+      base = toBase(n, sh.unit);
     } catch {
       setDraft(shown);
       return;
@@ -327,7 +331,7 @@ function QtyField({
         inputMode="decimal"
         value={draft}
         disabled={disabled}
-        aria-label={`quantity of ${line.name} in ${line.unit}`}
+        aria-label={`quantity of ${line.name} in ${sh.unit}`}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => {
@@ -338,7 +342,7 @@ function QtyField({
           }
         }}
       />
-      <span className="qty-unit">{line.unit}</span>
+      <span className="qty-unit">{sh.unit}</span>
     </label>
   );
 }

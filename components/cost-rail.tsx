@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import type { RecipeCost } from '@/core/recipe';
 import type { PresetName } from '@/core/rounding';
 
@@ -11,6 +13,9 @@ import {
   type CostingModel,
   foodCostPercent,
   statusFor,
+} from '@/lib/costing';
+import { perHundred } from '@/lib/plain';
+import {
   suggestPrice,
 } from '@/lib/costing';
 import { ORG } from '@/lib/data';
@@ -89,6 +94,11 @@ export function CostRail({
       ? 'Cost per portion'
       : 'Floor per portion';
 
+  const whole = (n: number): string =>
+    m.position === 'prefix' ? `${m.symbol} ${String(n)}` : `${String(n)} ${m.symbol}`;
+  const spend = perHundred(fc);
+  const want = perHundred(model.foodCostTarget) ?? 0;
+
   return (
     <aside className="rail">
       <section className="card">
@@ -111,6 +121,14 @@ export function CostRail({
               <StatusChip status={status} label={percent(fc)} />
             )}
           </div>
+
+          {spend !== null && (
+            <p className="rail-plain">
+              <b>{whole(spend)}</b> of every {whole(100)} you charge for this goes on
+              ingredients. You aimed for <b>{whole(want)}</b>
+              {spend > want + 2 ? ' — this plate is over.' : spend >= want - 2 ? ' — about right.' : ' — under, so it earns well.'}
+            </p>
+          )}
 
           {fc === null ? (
             <p className="rail-status-note">
@@ -159,11 +177,25 @@ export function CostRail({
           {plated ? (
             <div className="buildup-defaults">
               <span className={`chip chip-default figure${isDefault ? '' : ' is-yours'}`}>
-                {isDefault ? 'DEFAULT' : 'YOURS'}
+                {isDefault ? 'FROM SETTINGS' : 'THIS DISH'}
               </span>
               <button type="button" className="btn wide" onClick={onOpenCharges}>
-                Change wastage and packaging
+                Change wastage and packaging for this dish
               </button>
+              <p className="buildup-note">
+                {isDefault ? 'Using the figures in your Settings' : 'Using figures set for this dish only'}:{' '}
+                <span className="figure">{model.wastagePercent}%</span> wastage,{' '}
+                <span className="figure">{m.withSymbol(model.packagingPerPortion)}</span> packaging a
+                portion.{' '}
+                {isDefault ? (
+                  <>
+                    Change them for every dish in{' '}
+                    <Link href="/settings" className="link">Settings</Link>, or just this one above.
+                  </>
+                ) : (
+                  <>Every other dish still uses your Settings figures.</>
+                )}
+              </p>
             </div>
           ) : null}
         </div>
@@ -203,19 +235,27 @@ export function CostRail({
       ) : (
         <section className="card price-card">
           <div className="label">
-            Price at{' '}
+            What to charge
+          </div>
+          <p className="price-said">
+            You want to keep <b>{whole(100 - want)}</b> of every {whole(100)} — that is your{' '}
             <button type="button" className="label-edit" onClick={onOpenTarget}>
               {percent(model.foodCostTarget, 1)}
-            </button>
-          </div>
+            </button>{' '}
+            target. This plate costs <b>{m.withSymbol(build.total)}</b> to make, so the price that
+            hits it exactly is <b>{m.withSymbol(suggestion.exact)}</b>.
+          </p>
 
           <div className="price-work">
             <div className="figure price-formula">
               {m.money(build.total)} ÷ {percent(model.foodCostTarget, 1)} = {m.money(suggestion.exact)}
             </div>
 
-            {/* Both candidates side by side, each carrying the food cost it
-                produces, so the choice is between prices rather than rules. */}
+            <p className="price-said-sub">
+              Nobody prices at {m.withSymbol(suggestion.exact)}, so it is rounded the way you
+              asked — <em>{suggestion.ruleLabel}</em>. Two ways to round it:
+            </p>
+
             <div className="price-options">
               <div className="price-option is-chosen" aria-current="true">
                 <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor"
@@ -223,11 +263,9 @@ export function CostRail({
                   <path d="M2.4 6.2 4.8 8.6 9.6 3.6" />
                 </svg>
                 <span className="price-option-text">
-                  <span className="figure price-value">
-                    {m.symbol} {m.money(suggestion.rounded)}
-                  </span>
+                  <span className="figure price-value">{m.withSymbol(suggestion.rounded)}</span>
                   <span className="price-fc">
-                    at <span className="figure strong">{percent(suggestion.roundedFoodCost)}</span>
+                    you keep <span className="figure strong">{whole(perHundred(100 - suggestion.roundedFoodCost) ?? 0)}</span> of every {whole(100)}
                   </span>
                 </span>
               </div>
@@ -239,30 +277,33 @@ export function CostRail({
               >
                 <span className="price-radio" />
                 <span className="price-option-text">
-                  <span className="figure price-value muted">
-                    {m.symbol} {m.money(suggestion.alternative)}
-                  </span>
+                  <span className="figure price-value muted">{m.withSymbol(suggestion.alternative)}</span>
                   <span className="price-fc">
-                    at <span className="figure strong">{percent(suggestion.alternativeFoodCost)}</span>
+                    you keep <span className="figure strong">{whole(perHundred(100 - suggestion.alternativeFoodCost) ?? 0)}</span> of every {whole(100)}
                   </span>
                 </span>
               </button>
             </div>
 
-            <p className="price-rule">Rule: {suggestion.ruleLabel}.</p>
+            {sellingPrice !== null && spend !== null && (
+              <p className="price-now">
+                It sells at <b>{m.withSymbol(sellingPrice)}</b> today, keeping{' '}
+                <b>{whole(100 - spend)}</b> of every {whole(100)}.
+              </p>
+            )}
           </div>
 
           <button type="button" className="btn wide" onClick={onOpenRounding}>
-            Change the rounding rule
+            Change how prices are rounded
           </button>
 
           <div className="price-actions">
             <button type="button" className="btn btn-primary" onClick={onUsePrice} disabled={busy}>
-              {busy ? 'Saving…' : `Use ${m.symbol} ${m.money(suggestion.rounded)}`}
+              {busy ? 'Saving…' : `Change the price to ${m.withSymbol(suggestion.rounded)}`}
             </button>
             {sellingPrice === null ? null : (
               <button type="button" className="btn" onClick={onKeepPrice} disabled={busy}>
-                Keep {m.symbol} {m.money(sellingPrice)}
+                Leave it at {m.withSymbol(sellingPrice)}
               </button>
             )}
           </div>
