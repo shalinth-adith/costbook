@@ -124,9 +124,28 @@ export function CostRail({
 
           {spend !== null && (
             <p className="rail-plain">
-              <b>{whole(spend)}</b> of every {whole(100)} you charge for this goes on
-              ingredients. You aimed for <b>{whole(want)}</b>
-              {spend > want + 2 ? ' — this plate is over.' : spend >= want - 2 ? ' — about right.' : ' — under, so it earns well.'}
+              {/* Said as what you keep, and as a gap, because "over" was read
+                  as "we are making a loss". It is not a loss; it is less than
+                  planned, and the sentence has to say which. */}
+              {sellingPrice !== null && build.complete && build.total !== null && build.total > sellingPrice ? (
+                <>
+                  <b className="ink-over">This plate loses money.</b> It costs{' '}
+                  {m.withSymbol(build.total)} to make and sells for {m.withSymbol(sellingPrice)} — you
+                  lose <b>{m.withSymbol(build.total - sellingPrice)}</b> on every one.
+                </>
+              ) : (
+                <>
+                  You keep <b>{whole(100 - spend)}</b> of every {whole(100)} this sells for. You
+                  wanted to keep <b>{whole(100 - want)}</b>
+                  {100 - spend < 100 - want - 2 ? (
+                    <> — that is <b className="ink-over">{whole(spend - want)} less</b> than you planned.</>
+                  ) : 100 - spend > 100 - want + 2 ? (
+                    <> — that is <b className="ink-on">{whole(want - spend)} more</b> than you planned.</>
+                  ) : (
+                    <> — <b className="ink-on">about what you planned</b>.</>
+                  )}
+                </>
+              )}
             </p>
           )}
 
@@ -176,26 +195,21 @@ export function CostRail({
               Wastage and packaging are set together or not at all. */}
           {plated ? (
             <div className="buildup-defaults">
-              <span className={`chip chip-default figure${isDefault ? '' : ' is-yours'}`}>
-                {isDefault ? 'FROM SETTINGS' : 'THIS DISH'}
-              </span>
-              <button type="button" className="btn wide" onClick={onOpenCharges}>
-                Change wastage and packaging for this dish
-              </button>
               <p className="buildup-note">
-                {isDefault ? 'Using the figures in your Settings' : 'Using figures set for this dish only'}:{' '}
-                <span className="figure">{model.wastagePercent}%</span> wastage,{' '}
-                <span className="figure">{m.withSymbol(model.packagingPerPortion)}</span> packaging a
-                portion.{' '}
+                <span className={`chip chip-default figure${isDefault ? '' : ' is-yours'}`}>
+                  {isDefault ? 'FROM SETTINGS' : 'THIS DISH'}
+                </span>{' '}
+                <span className="figure">{model.wastagePercent}%</span> wastage ·{' '}
+                <span className="figure">{m.withSymbol(model.packagingPerPortion)}</span> packaging a portion.
                 {isDefault ? (
-                  <>
-                    Change them for every dish in{' '}
-                    <Link href="/settings" className="link">Settings</Link>, or just this one above.
-                  </>
+                  <> Set once in <Link href="/settings" className="link">Settings</Link>.</>
                 ) : (
-                  <>Every other dish still uses your Settings figures.</>
+                  <> Set for this dish only.</>
                 )}
               </p>
+              <button type="button" className="btn wide" onClick={onOpenCharges}>
+                Change for this dish
+              </button>
             </div>
           ) : null}
         </div>
@@ -237,65 +251,41 @@ export function CostRail({
           <div className="label">
             What to charge
           </div>
+
+          {/*
+            * One price. It used to offer two — the rule's figure and an
+            * alternative rule's — and a reader who had asked "what should I
+            * charge" was handed a choice between 2.90 and 3.00 for a plate
+            * whose sum was 2.56. A rounding rule is chosen once, in Settings,
+            * at setup; this screen applies it and says so.
+            */}
           <p className="price-said">
-            You want to keep <b>{whole(100 - want)}</b> of every {whole(100)} — that is your{' '}
+            You want to keep <b>{whole(100 - want)}</b> of every {whole(100)} — your{' '}
             <button type="button" className="label-edit" onClick={onOpenTarget}>
               {percent(model.foodCostTarget, 1)}
             </button>{' '}
-            target. This plate costs <b>{m.withSymbol(build.total)}</b> to make, so the price that
-            hits it exactly is <b>{m.withSymbol(suggestion.exact)}</b>.
+            target. This plate costs <b>{m.withSymbol(build.total)}</b> to make, so it needs to
+            sell at <b>{m.withSymbol(suggestion.exact)}</b>.
           </p>
 
-          <div className="price-work">
-            <div className="figure price-formula">
-              {m.money(build.total)} ÷ {percent(model.foodCostTarget, 1)} = {m.money(suggestion.exact)}
-            </div>
-
-            <p className="price-said-sub">
-              Nobody prices at {m.withSymbol(suggestion.exact)}, so it is rounded the way you
-              asked — <em>{suggestion.ruleLabel}</em>. Two ways to round it:
-            </p>
-
-            <div className="price-options">
-              <div className="price-option is-chosen" aria-current="true">
-                <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor"
-                  strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-                  <path d="M2.4 6.2 4.8 8.6 9.6 3.6" />
-                </svg>
-                <span className="price-option-text">
-                  <span className="figure price-value">{m.withSymbol(suggestion.rounded)}</span>
-                  <span className="price-fc">
-                    you keep <span className="figure strong">{whole(perHundred(100 - suggestion.roundedFoodCost) ?? 0)}</span> of every {whole(100)}
-                  </span>
-                </span>
-              </div>
-
-              <button
-                type="button"
-                className="price-option"
-                onClick={() => onRounding(model.rounding === 'next_9' ? 'up_to_5' : 'next_9')}
-              >
-                <span className="price-radio" />
-                <span className="price-option-text">
-                  <span className="figure price-value muted">{m.withSymbol(suggestion.alternative)}</span>
-                  <span className="price-fc">
-                    you keep <span className="figure strong">{whole(perHundred(100 - suggestion.alternativeFoodCost) ?? 0)}</span> of every {whole(100)}
-                  </span>
-                </span>
-              </button>
-            </div>
-
-            {sellingPrice !== null && spend !== null && (
-              <p className="price-now">
-                It sells at <b>{m.withSymbol(sellingPrice)}</b> today, keeping{' '}
-                <b>{whole(100 - spend)}</b> of every {whole(100)}.
-              </p>
-            )}
+          <div className="price-one">
+            <span className="price-one-figure figure">{m.withSymbol(suggestion.rounded)}</span>
+            <span className="price-one-said">
+              {m.withSymbol(suggestion.exact)} — {suggestion.ruleLabel}. You would keep{' '}
+              <b className="figure">{whole(perHundred(100 - suggestion.roundedFoodCost) ?? 0)}</b> of every {whole(100)}.
+            </span>
           </div>
 
-          <button type="button" className="btn wide" onClick={onOpenRounding}>
-            Change how prices are rounded
-          </button>
+          {sellingPrice !== null && spend !== null && (
+            <p className="price-now">
+              Today it sells at <b>{m.withSymbol(sellingPrice)}</b>, keeping <b>{whole(100 - spend)}</b>.
+            </p>
+          )}
+
+          <p className="price-rule-note">
+            Rounding is a setting, applied to every dish —{' '}
+            <Link href="/settings" className="link">change it in Settings</Link>.
+          </p>
 
           <div className="price-actions">
             <button type="button" className="btn btn-primary" onClick={onUsePrice} disabled={busy}>

@@ -58,7 +58,7 @@ export const BLANK_ORG: Org = {
   taxTreatment: null,
   charges: [],
   foodCostTarget: 30,
-  rounding: 'next_9',
+  rounding: 'up_to_tenth',
   wastagePercent: 2,
   packagingPerPortion: 0.35,
   staleAfterDays: 90,

@@ -115,6 +115,16 @@ export const PRESETS = {
   up_to_5: step(5),
   up_to_10: step(10),
   up_to_half: step(0.5),
+  /**
+   * Up to the next 0.10 — 2.56 becomes 2.60, 2.73 becomes 2.80.
+   *
+   * The default. It was `next_9`, which turned a 2.56 plate into 2.90 and
+   * offered 3.00 as the alternative: two figures forty fils apart, neither
+   * of them near the sum, on a screen whose reader had asked what to charge.
+   * A rule is chosen once, in Settings, and applied everywhere; the sheet
+   * shows one price and says which rule made it.
+   */
+  up_to_tenth: step(0.1),
 } as const satisfies Readonly<Record<string, RoundingRule>>;
 
 export type PresetName = keyof typeof PRESETS;

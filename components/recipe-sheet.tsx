@@ -336,8 +336,15 @@ export function RecipeSheet({
           <nav className="crumbs" aria-label="Breadcrumb">
             <Link href="/recipes">Recipes</Link>
             <Chevron />
-            <span>{fields.category}</span>
-            <Chevron />
+            {/* "From your sheet" is the import's stand-in for a section the
+                sheet did not have. It is not a place a dish lives, so it is
+                not a crumb. */}
+            {fields.category !== 'From your sheet' && (
+              <>
+                <span>{fields.category}</span>
+                <Chevron />
+              </>
+            )}
             <span aria-current="page">{fields.name}</span>
           </nav>
 
@@ -367,7 +374,8 @@ export function RecipeSheet({
           {/* One line, not a card. Everything about the dish that is not a
               component line, said once. */}
           <p className="page-sub">
-            {fields.category} · batch of{' '}
+            {fields.category !== 'From your sheet' && <>{fields.category} · </>}
+            batch of{' '}
             <span className="figure ink">{recipe.portions ?? '—'}</span> plates
             {fields.station === null || fields.station === '' ? '' : ` · ${fields.station}`}
             {dish.portionSize === null ? '' : ` · ${dish.portionSize}`} ·{' '}
@@ -612,10 +620,8 @@ export function RecipeSheet({
       */}
       {Object.keys(dish.custom ?? {}).length > 0 && (
         <section className="from-sheet">
-          <h2 className="from-sheet-h">From your sheet</h2>
-          <p className="from-sheet-lede">
-            Columns Costbook kept but does not cost. Yours, under your own headings.
-          </p>
+          <span className="from-sheet-h">Also on your sheet</span>
+          <span className="from-sheet-lede">kept as you wrote them, not costed</span>
           <dl className="from-sheet-list">
             {Object.entries(dish.custom ?? {}).map(([k, v]) => (
               <div className="from-sheet-row" key={k}>

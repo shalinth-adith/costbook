@@ -3520,3 +3520,38 @@
 .price-now { margin: 10px 0 0; font-size: 12.5px; color: var(--text-secondary); }
 .price-now b { color: var(--text-primary); font-weight: 600; }
 .line-detail-aside { margin: 0 0 8px; font-size: 12px; color: var(--text-tertiary); line-height: 1.5; }
+
+/* ── the rail, second pass ─────────────────────────────────────────── */
+
+/* The wastage block wrapped its button into five lines beside a narrow
+   note. Chip and note on one line; the button full width under them. */
+.buildup-defaults { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.buildup-defaults .buildup-note { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.buildup-defaults .btn { flex: none; }
+
+/* One price. */
+.price-one {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  background: var(--surface-sunken); border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-field); padding: 12px 14px; margin-block: 6px 8px;
+}
+.price-one-figure { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.price-one-said { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; flex: 1 1 200px; }
+.price-one-said b { color: var(--text-primary); }
+.price-rule-note { margin: 4px 0 10px; font-size: 12px; color: var(--text-tertiary); }
+.rail-plain .ink-over { color: var(--over-ink-strong); }
+.rail-plain .ink-on { color: var(--on-ink-strong); }
+
+/* "Also on your sheet": one quiet line, not a section with a heading. */
+.from-sheet {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px;
+  margin: var(--sp-3) var(--sp-6) 0; padding: 10px 14px;
+  background: var(--surface-sunken); border: 1px dashed var(--border-hairline);
+  border-radius: var(--radius-field); font-size: 12.5px;
+}
+.from-sheet-h { font-weight: 600; color: var(--text-secondary); }
+.from-sheet-lede { color: var(--text-tertiary); }
+.from-sheet-list { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0; }
+.from-sheet-row { display: flex; gap: 8px; align-items: baseline; }
+.from-sheet-row dt { color: var(--text-secondary); }
+.from-sheet-row dd { margin: 0; color: var(--text-primary); }

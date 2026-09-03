@@ -43,7 +43,7 @@ export const DEFAULT_MODEL: CostingModel = {
   // offered 30, so an account that skipped the question priced two points
   // apart from one that accepted the suggestion — for no stated reason.
   foodCostTarget: 30,
-  rounding: 'next_9',
+  rounding: 'up_to_tenth',
 };
 
 /**
@@ -52,6 +52,7 @@ export const DEFAULT_MODEL: CostingModel = {
  * can never drift apart.
  */
 export const ROUNDING_CHOICES: readonly PresetName[] = [
+  'up_to_tenth',
   'next_9',
   'up_to_5',
   'charm_99',

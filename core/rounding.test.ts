@@ -124,6 +124,9 @@ describe('the presets named in the document', () => {
       'up_to_5',
       'up_to_10',
       'up_to_half',
+      // Up to the next 0.10 — the default. 2.56 → 2.60, 2.73 → 2.80. Added
+      // because "next figure ending in 9" turned a 2.56 plate into 2.90.
+      'up_to_tenth',
     ]);
   });
 
