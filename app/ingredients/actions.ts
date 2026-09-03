@@ -6,7 +6,8 @@ import { ingredientFromPack, withRate, withYield } from '@/core/ingredient';
 import type { UnitFamily } from '@/core/units';
 
 import { type Impact, headlineFor, impactOf } from '@/lib/impact';
-import { book, orgModel, recipesUsing, saveIngredient } from '@/lib/book';
+import { book, orgModel, recipesUsing, saveIngredient, saveMeta } from '@/lib/book';
+import { foodCostPercent, modelForDish, suggestPrice } from '@/lib/costing';
 
 /** What the impact panel needs, computed on the server where the costing is. */
 export interface RatePreview {
@@ -18,6 +19,20 @@ export interface RatePreview {
   readonly impact: Impact;
   readonly headline: string;
   readonly target: number;
+  /**
+   * The dishes this rate pushes under their target, each with the price its
+   * own rule would now ask for. The one tap that keeps the menu on target.
+   */
+  readonly raises: readonly Raise[];
+}
+
+export interface Raise {
+  readonly id: string;
+  readonly name: string;
+  readonly from: number | null;
+  readonly to: number;
+  /** What it would keep of every 100 at the new price, by its own figures. */
+  readonly keptAfter: number | null;
 }
 
 export interface Ack {
@@ -182,7 +197,23 @@ export async function previewRate(id: string, packPrice: number): Promise<RatePr
     ingredientId: id,
   });
 
+  const meta = (await book()).meta;
+  const raises: Raise[] = impact.crossing.flatMap((mv) => {
+    if (mv.newCost === null) return [];
+    const own = modelForDish(model, meta[mv.id]?.pricing);
+    const s = suggestPrice(mv.newCost, own);
+    const fc = foodCostPercent(mv.newCost, s.rounded, own);
+    return [{
+      id: mv.id,
+      name: mv.name,
+      from: meta[mv.id]?.sellingPrice ?? null,
+      to: s.rounded,
+      keptAfter: fc === null ? null : Math.round((100 - fc) * 100) / 100,
+    }];
+  });
+
   return {
+    raises,
     name: ingredient.name,
     unit: ingredient.purchaseUnit,
     from: ingredient.purchasePrice,
@@ -196,6 +227,33 @@ export async function previewRate(id: string, packPrice: number): Promise<RatePr
     impact,
     headline: headlineFor(impact, model.foodCostTarget),
     target: model.foodCostTarget,
+  };
+}
+
+/**
+ * Apply the rate and raise the dishes it pushed under target, in one tap.
+ *
+ * The prices come from the preview, worked under each dish's own rule with
+ * the new cost, so what the panel showed is exactly what is written.
+ */
+export async function setRateAndRaise(
+  id: string,
+  packPrice: number,
+  raises: readonly { readonly id: string; readonly to: number; readonly keptAfter: number | null }[],
+): Promise<Ack> {
+  const ingredient = (await book()).ingredients.find((i) => i.id === id);
+  if (ingredient === undefined) {
+    return { message: 'That ingredient is no longer in your list.', undoable: false };
+  }
+  await saveIngredient(withRate(ingredient, packPrice, undefined, today()));
+  for (const r of raises) {
+    await saveMeta(r.id, { sellingPrice: r.to, pricedAt: today(), keptAtPricing: r.keptAfter });
+  }
+  refresh();
+  const n = raises.length;
+  return {
+    message: `${ingredient.name} updated and ${String(n)} ${n === 1 ? 'dish' : 'dishes'} raised to stay on target.`,
+    undoable: false,
   };
 }
 

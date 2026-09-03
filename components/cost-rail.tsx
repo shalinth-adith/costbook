@@ -55,6 +55,7 @@ export function CostRail({
   isDefault,
   actions,
   below,
+  since = null,
 }: {
   cost: RecipeCost;
   build: CostBuildUp;
@@ -81,6 +82,8 @@ export function CostRail({
   /** The delivery-channel card. It lives inside the rail so the sticky rail
       can never ride over it — which it did, heading showing through. */
   below?: React.ReactNode;
+  /** When the price was set, what it kept then, and which rates moved since. */
+  since?: { readonly on: string; readonly kept: number | null; readonly moves: readonly { name: string; percent: number }[] } | null;
 }) {
   // A dish with no portions has no cost per portion, so the rail leads with
   // what a batch costs instead. Nothing is invented to fill the slot.
@@ -305,6 +308,23 @@ export function CostRail({
                 <Link href="/settings" className="link-inline">a setting for every dish</Link>
               </dd>
             </div>
+            {since !== null && sellingPrice !== null && spend !== null ? (
+              <div className="price-fact">
+                <dt>Since</dt>
+                <dd>
+                  Priced {sinceDate(since.on)}
+                  {since.kept !== null ? <>, keeping <b className="figure">{whole(since.kept)}</b></> : null}.
+                  {since.kept !== null && Math.abs(since.kept - (100 - spend)) >= 1 ? (
+                    <> Today <b className={100 - spend < since.kept ? 'ink-over' : 'ink-on'}>{whole(100 - spend)}</b>.</>
+                  ) : null}
+                  {since.moves.length > 0 ? (
+                    <span className="price-fact-how">
+                      {' '}Since then: {since.moves.slice(0, 3).map((mv) => `${mv.name} ${mv.percent > 0 ? '+' : ''}${Math.round(mv.percent)}%`).join(', ')}.
+                    </span>
+                  ) : null}
+                </dd>
+              </div>
+            ) : null}
             {sellingPrice !== null && spend !== null ? (
               <div className="price-fact">
                 <dt>Today</dt>
@@ -340,6 +360,12 @@ export function CostRail({
       </div>
     </aside>
   );
+}
+
+/** "1 Jun" for a stored `YYYY-MM-DD`. */
+function sinceDate(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 }
 
 function Row({

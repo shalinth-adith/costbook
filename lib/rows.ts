@@ -123,6 +123,8 @@ export interface RecipeRow {
   money_per_plate?: number | string | null;
   rounding?: string | null;
   labour_minutes?: number | string | null;
+  priced_at?: string | null;
+  kept_at_pricing?: number | string | null;
 }
 
 /**
@@ -207,6 +209,8 @@ export function toMeta(row: RecipeRow): DishMeta {
       rounding: (row.rounding as PresetName | null | undefined) ?? null,
       labourMinutes: nullableNum(row.labour_minutes ?? null),
     },
+    pricedAt: row.priced_at ?? null,
+    keptAtPricing: nullableNum(row.kept_at_pricing ?? null),
     custom:
       row.custom !== null && typeof row.custom === 'object'
         ? (row.custom as Record<string, string>)
@@ -235,6 +239,8 @@ export function fromRecipe(r: Recipe, meta: DishMeta | undefined, orgId: string)
     method: meta?.method ?? null,
     custom: meta?.custom ?? {},
     ...pricingColumns(meta?.pricing),
+    priced_at: meta?.pricedAt ?? null,
+    kept_at_pricing: meta?.keptAtPricing ?? null,
     // A sub-recipe is one that plates into nothing of its own.
     is_sub_recipe: r.portions === null,
     updated_at: new Date().toISOString(),
@@ -311,6 +317,7 @@ export interface OrgRow {
   labour_rate_per_hour: number | string;
   overhead_per_portion: number | string;
   prices_include_charges: boolean;
+  alert_move_percent?: number | string;
   stale_after_days: number;
   default_mass_unit: string;
   default_volume_unit: string;
@@ -334,6 +341,7 @@ export function toOrg(row: OrgRow): Org {
     labourRatePerHour: num(row.labour_rate_per_hour ?? 0),
     overheadPerPortion: num(row.overhead_per_portion ?? 0),
     pricesIncludeCharges: row.prices_include_charges ?? false,
+    alertMovePercent: num(row.alert_move_percent ?? 10),
     staleAfterDays: row.stale_after_days,
     defaultMassUnit: row.default_mass_unit as 'g' | 'kg',
     defaultVolumeUnit: row.default_volume_unit as 'ml' | 'l',
@@ -358,6 +366,7 @@ export function fromOrg(patch: Partial<Org>): Record<string, unknown> {
   if (patch.labourRatePerHour !== undefined) out['labour_rate_per_hour'] = patch.labourRatePerHour;
   if (patch.overheadPerPortion !== undefined) out['overhead_per_portion'] = patch.overheadPerPortion;
   if (patch.pricesIncludeCharges !== undefined) out['prices_include_charges'] = patch.pricesIncludeCharges;
+  if (patch.alertMovePercent !== undefined) out['alert_move_percent'] = patch.alertMovePercent;
   if (patch.staleAfterDays !== undefined) out['stale_after_days'] = patch.staleAfterDays;
   if (patch.defaultMassUnit !== undefined) out['default_mass_unit'] = patch.defaultMassUnit;
   if (patch.defaultVolumeUnit !== undefined) out['default_volume_unit'] = patch.defaultVolumeUnit;

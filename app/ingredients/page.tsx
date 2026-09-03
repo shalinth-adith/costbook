@@ -5,7 +5,7 @@ import { board } from '@/lib/ingredients';
 import { FREE_LIMITS } from '@/lib/org';
 import { book, pantry } from '@/lib/book';
 
-import { addIngredient, previewRate, setRate, setRates, setYield } from './actions';
+import { addIngredient, previewRate, setRate, setRateAndRaise, setRates, setYield } from './actions';
 import { requireSetup } from '@/lib/guard';
 
 export const dynamic = 'force-dynamic';
@@ -38,6 +38,7 @@ export default async function IngredientsPage() {
           onAdd={addIngredient}
           onSetRate={setRate}
           onPreviewRate={previewRate}
+          onSetRateAndRaise={setRateAndRaise}
           currencyCode={code}
           onSetRates={setRates}
           onSetYield={setYield}

@@ -152,6 +152,10 @@ export interface DishMeta {
    * the chip said THIS DISH.
    */
   readonly pricing?: DishPricing;
+  /** The day the price was set or deliberately kept, as `YYYY-MM-DD`. */
+  readonly pricedAt?: string | null;
+  /** Of every 100 of net price, what was left after the plate cost that day. */
+  readonly keptAtPricing?: number | null;
   readonly onMenu: boolean;
   /**
    * Columns from the operator's own sheet, under their own headings. Kept and

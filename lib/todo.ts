@@ -27,6 +27,7 @@ import { type CostingModel, suggestPrice } from './costing';
 import type { DashboardRow } from './dashboard';
 import type { RateChange } from './org';
 import { pilesOf } from './profit';
+import { movesSince, since } from './recent';
 import { medianOf } from './spread';
 import { usageOf } from './usage';
 
@@ -88,6 +89,14 @@ export type Action =
       readonly times: number;
       readonly usedIn: number;
     }
+  /** A rate that moved more than the operator's threshold this month. */
+  | {
+      readonly kind: 'rate_moved';
+      readonly ingredientId: string;
+      readonly name: string;
+      readonly percent: number;
+      readonly usedIn: number;
+    }
   /** A rate older than the operator's own threshold, most used first. */
   | {
       readonly kind: 'refresh_rate';
@@ -114,6 +123,8 @@ export interface TodoInput {
   readonly history: Readonly<Record<string, readonly RateChange[]>>;
   readonly model: CostingModel;
   readonly staleAfterDays: number;
+  /** A rate that moved more than this, in percent, over the last month is news. Ten unless the owner says. */
+  readonly alertMovePercent?: number;
   /** `YYYY-MM-DD`. Passed in so this stays pure. */
   readonly today: string;
 }
@@ -262,6 +273,19 @@ export function todo(input: TodoInput): Todo {
     })
     .filter((s) => s.usedIn > 0)
     .sort((a, b) => b.usedIn - a.usedIn || b.days - a.days);
+  /*
+   * Big moves this month, even where no dish crossed target: the owner asked
+   * to be told about anything over their threshold, and "onion is up 21%" is
+   * the sentence they will want to have heard before the supplier's call.
+   */
+  const big = movesSince(input.history, input.ingredients, since(input.today, 30))
+    .filter((mv) => mv.percent !== null && Math.abs(mv.percent) >= (input.alertMovePercent ?? 10))
+    .map((mv) => ({ mv, usedIn: usage.get(mv.ingredientId) ?? 0 }))
+    .filter((x) => x.usedIn > 0);
+  for (const { mv, usedIn } of big) {
+    out.push({ kind: 'rate_moved', ingredientId: mv.ingredientId, name: mv.name, percent: mv.percent ?? 0, usedIn });
+  }
+
   for (const s of stale) {
     out.push({ kind: 'refresh_rate', ingredient: s.ingredient, days: s.days, usedIn: s.usedIn });
   }

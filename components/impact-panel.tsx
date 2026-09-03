@@ -23,12 +23,15 @@ export function ImpactPanel({
   busy,
   onKeep,
   onApply,
+  onApplyAndRaise,
 }: {
   preview: RatePreview | null;
   currencyCode: string;
   busy: boolean;
   onKeep: () => void;
   onApply: () => void;
+  /** Apply the rate and reprice the dishes it pushed under target. */
+  onApplyAndRaise: (raises: RatePreview['raises']) => void;
 }) {
   if (preview === null) return null;
 
@@ -85,6 +88,26 @@ export function ImpactPanel({
                 you can undo it for seven days afterwards.
               </p>
               <ImpactTable impact={preview.impact} currencyCode={currencyCode} />
+              {preview.raises.length > 0 && (
+                <div className="imp-raises">
+                  <span className="label">
+                    {preview.raises.length === 1 ? 'One dish falls' : `${String(preview.raises.length)} dishes fall`} under your target. To stay on it:
+                  </span>
+                  <ul className="imp-raise-list">
+                    {preview.raises.map((r) => (
+                      <li key={r.id} className="imp-raise">
+                        <span className="imp-raise-name">{r.name}</span>
+                        <span className="figure imp-raise-prices">
+                          {r.from === null ? 'no price' : formatMoney(r.from, currencyCode)} → <b>{formatMoney(r.to, currencyCode)}</b>
+                        </span>
+                        {r.keptAfter !== null && (
+                          <span className="imp-raise-keeps">keeps {Math.round(r.keptAfter)} of every 100</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -98,9 +121,24 @@ export function ImpactPanel({
           <button type="button" className="btn" onClick={onKeep} disabled={busy}>
             Keep the old rate
           </button>
-          <button type="button" className="btn btn-primary" onClick={onApply} disabled={busy}>
-            {busy ? 'Applying…' : 'Apply the new rate'}
+          <button
+            type="button"
+            className={`btn${preview.raises.length > 0 ? '' : ' btn-primary'}`}
+            onClick={onApply}
+            disabled={busy}
+          >
+            {busy ? 'Applying…' : preview.raises.length > 0 ? 'Apply the rate only' : 'Apply the new rate'}
           </button>
+          {preview.raises.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => onApplyAndRaise(preview.raises)}
+              disabled={busy}
+            >
+              {busy ? 'Applying…' : `Apply and raise ${String(preview.raises.length)}`}
+            </button>
+          )}
         </footer>
       </aside>
     </>

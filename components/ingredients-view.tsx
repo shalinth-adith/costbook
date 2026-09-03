@@ -35,6 +35,7 @@ export function IngredientsView({
   onSetRates,
   onSetYield,
   onPreviewRate,
+  onSetRateAndRaise,
   currencyCode,
 }: {
   board: IngredientBoard;
@@ -42,6 +43,8 @@ export function IngredientsView({
   onSetRate: (id: string, packPrice: number) => Promise<Ack>;
   /** Costs the menu twice and reports what moved. Writes nothing (A24). */
   onPreviewRate: (id: string, packPrice: number) => Promise<RatePreview | null>;
+  /** Apply the rate and reprice the dishes it pushed under target. */
+  onSetRateAndRaise: (id: string, packPrice: number, raises: RatePreview['raises']) => Promise<Ack>;
   currencyCode: string;
   onSetRates: (changes: readonly { id: string; packPrice: number }[]) => Promise<Ack>;
   onSetYield: (id: string, yieldPercent: number) => Promise<Ack>;
@@ -93,6 +96,16 @@ export function IngredientsView({
     if (p === null) return;
     start(async () => {
       setToast(await onSetRate(p.id, p.packPrice));
+      setPreview(null);
+      setPendingRate(null);
+    });
+  };
+
+  const applyPendingAndRaise = (raises: RatePreview['raises']) => {
+    const p = pendingRate;
+    if (p === null) return;
+    start(async () => {
+      setToast(await onSetRateAndRaise(p.id, p.packPrice, raises));
       setPreview(null);
       setPendingRate(null);
     });
@@ -271,6 +284,7 @@ export function IngredientsView({
         busy={pending}
         onKeep={keepOldRate}
         onApply={applyPending}
+        onApplyAndRaise={applyPendingAndRaise}
       />
 
       <Toast toast={toast} onUndo={() => setToast(null)} onDismiss={() => setToast(null)} />

@@ -105,6 +105,7 @@ export interface CostingPatch {
   readonly labourRatePerHour?: number;
   readonly overheadPerPortion?: number;
   readonly pricesIncludeCharges?: boolean;
+  readonly alertMovePercent?: number;
 }
 
 function toOrgPatch(p: CostingPatch): Partial<Org> {

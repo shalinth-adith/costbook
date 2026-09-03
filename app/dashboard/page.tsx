@@ -153,6 +153,7 @@ export default async function DashboardPage() {
             history: b.history,
             model,
             staleAfterDays: staleAfter,
+            alertMovePercent: b.org.alertMovePercent,
             today,
           })}
           topUsed={topUsed}

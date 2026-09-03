@@ -13,6 +13,7 @@ import {
   saveChanges,
   saveDeliveryPrice,
   saveDishPricing,
+  keepPrice,
   saveDraft,
   setIngredientRate,
 } from '@/app/recipes/[id]/actions';
@@ -30,6 +31,8 @@ import { ChannelSection } from './channel-section';
 import { FlagSheet } from './flag-sheet';
 import { InspectorSheet } from './sheets/inspector-sheet';
 import { ChargesSheet } from './sheets/charges-sheet';
+import { driftSince } from '@/lib/drift';
+import type { RateChange } from '@/lib/org';
 import { DishSheet } from './sheets/dish-sheet';
 import { PasteSheet, type PastedRow } from './sheets/paste-sheet';
 import { RateSheet } from './sheets/rate-sheet';
@@ -74,6 +77,7 @@ export function RecipeSheet({
   usageCounts,
   orgModel,
   orgCharges,
+  history,
   owner,
   flags,
   orgName,
@@ -87,6 +91,8 @@ export function RecipeSheet({
   orgModel: CostingModel;
   /** The account's charge stack, so the delivery comparison is theirs. */
   orgCharges: readonly Charge[];
+  /** Every rate move, newest first, so the sheet can say what drifted since the price was set. */
+  history: Readonly<Record<string, readonly RateChange[]>>;
   /** Who a flag goes to, by name. A message to a role is a message to nobody. */
   owner: string;
   /** What has already been said about this dish (A40). */
@@ -188,6 +194,11 @@ export function RecipeSheet({
     [attempt, recipe],
   );
   const build = useMemo(() => buildUp(cost, model, { labourMinutes }), [cost, model, labourMinutes]);
+  /** What moved since the price was set, among the rates this dish reaches. */
+  const drift = useMemo(
+    () => (dish.pricedAt ? driftSince(recipe, otherRecipes, shelf, history, dish.pricedAt) : []),
+    [dish.pricedAt, recipe, otherRecipes, shelf, history],
+  );
   const fc =
     build.complete && build.total !== null
       ? foodCostPercent(build.total, dish.sellingPrice, model)
@@ -621,11 +632,11 @@ export function RecipeSheet({
               )}
             </div>
           }
-          onKeepPrice={() =>
-            setToast({
-              message: `Price left at ${m.withSymbol(dish.sellingPrice)}. Nothing changed.`,
-              undoable: false,
-            })
+          onKeepPrice={() => void commit(() => keepPrice(named, dishFields))}
+          since={
+            dish.pricedAt
+              ? { on: dish.pricedAt, kept: dish.keptAtPricing ?? null, moves: drift }
+              : null
           }
           busy={saving}
           isDefault={charges === null}

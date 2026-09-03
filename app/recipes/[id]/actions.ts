@@ -6,7 +6,9 @@ import { withRate } from '@/core/ingredient';
 import type { Recipe } from '@/core/recipe';
 
 import type { DishMeta, DishPricing } from '@/lib/data';
-import { book, getMeta, getRecipe, recipesUsing, saveIngredient, saveMeta, saveRecipe } from '@/lib/book';
+import { pantryOf, recipeCost } from '@/core/recipe';
+import { buildUp, foodCostPercent, modelForDish } from '@/lib/costing';
+import { book, getMeta, getRecipe, recipesUsing, saveIngredient, saveMeta, saveRecipe, orgModel } from '@/lib/book';
 
 /**
  * The writes the cost sheet makes.
@@ -40,6 +42,30 @@ export async function saveDraft(recipe: Recipe, dish: Partial<DishMeta>): Promis
   };
 }
 
+/**
+ * Of every 100 of net price, what this dish keeps at `price` today, by its own
+ * figures. Stamped beside the price so the sheet can say how far it has
+ * drifted since, instead of guessing what the cost used to be.
+ */
+async function keptNow(recipe: Recipe, price: number): Promise<number | null> {
+  const b = await book();
+  const others = b.recipes.filter((r) => r.id !== recipe.id);
+  const pantry = pantryOf([...others, recipe], b.ingredients);
+  const model = modelForDish(await orgModel(), b.meta[recipe.id]?.pricing);
+  try {
+    const build = buildUp(recipeCost(recipe, pantry), model, {
+      labourMinutes: b.meta[recipe.id]?.pricing?.labourMinutes,
+    });
+    if (!build.complete || build.total === null) return null;
+    const fc = foodCostPercent(build.total, price, model);
+    return fc === null ? null : Math.round((100 - fc) * 100) / 100;
+  } catch {
+    return null;
+  }
+}
+
+const today = (): string => new Date().toISOString().slice(0, 10);
+
 /** Save and put it on the menu at a price. */
 export async function saveAndPrice(
   recipe: Recipe,
@@ -47,7 +73,8 @@ export async function saveAndPrice(
   price: number,
 ): Promise<Ack> {
   await saveRecipe(recipe, undefined);
-  await saveMeta(recipe.id, { ...dish, onMenu: true, sellingPrice: price });
+  const kept = await keptNow(recipe, price);
+  await saveMeta(recipe.id, { ...dish, onMenu: true, sellingPrice: price, pricedAt: today(), keptAtPricing: kept });
   refresh(recipe.id);
 
   return {
@@ -66,6 +93,20 @@ export async function saveDishPricing(id: string, patch: Partial<DishPricing>): 
   await saveMeta(id, { pricing: patch as DishPricing });
   refresh(id);
   return { message: 'Saved for this dish.', undoable: false };
+}
+
+/**
+ * "Leave it at 2.29." A deliberate decision to keep a price is a pricing
+ * event: drift is measured from today, at what the dish keeps today.
+ */
+export async function keepPrice(recipe: Recipe, dish: Partial<DishMeta>): Promise<Ack> {
+  const price = (await book()).meta[recipe.id]?.sellingPrice ?? null;
+  if (price === null) return { message: 'There is no price to keep yet.', undoable: false };
+  await saveRecipe(recipe, undefined);
+  const kept = await keptNow(recipe, price);
+  await saveMeta(recipe.id, { ...dish, pricedAt: today(), keptAtPricing: kept });
+  refresh(recipe.id);
+  return { message: `Price kept. From today this sheet measures drift from here.`, undoable: false };
 }
 
 /** Save changes to a dish already on the menu, leaving its price alone. */

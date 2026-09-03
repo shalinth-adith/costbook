@@ -266,6 +266,23 @@ function Todo({
           <span className="td-go" aria-hidden="true">→</span>
         </Link>
       );
+    case "rate_moved":
+      return (
+        <Link href="/ingredients" className={`td-row ${action.percent > 0 ? "ink-near" : "ink-on"}`}>
+          <span className="td-mark" aria-hidden="true" />
+          <span className="td-said">
+            <b>{action.name} {action.percent > 0 ? "went up" : "came down"}{" "}
+              <span className="figure">{Math.abs(Math.round(action.percent))}%</span> this month</b>
+            {" — it is in "}
+            <span className="figure">{action.usedIn}</span>
+            {action.usedIn === 1 ? " dish." : " dishes."}
+            {action.percent > 0
+              ? " Worth a look at what those charge now."
+              : " Those dishes keep more than they did."}
+          </span>
+          <span className="td-go" aria-hidden="true">→</span>
+        </Link>
+      );
     case "refresh_rate":
       return (
         <Link href="/ingredients" className="td-row ink-quiet">

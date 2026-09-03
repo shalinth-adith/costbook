@@ -78,6 +78,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           usageCounts={usageCounts}
           orgModel={await orgModel()}
           orgCharges={b.org.charges}
+          history={b.history}
           owner={b.members.find((mm) => mm.role === 'owner')?.name ?? 'the owner'}
           flags={b.flags.filter((f) => f.recipeId === id)}
           orgName={b.org.name}

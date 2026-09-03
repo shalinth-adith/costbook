@@ -121,6 +121,7 @@ export function SettingsView({
   const [labourRate, setLabourRate] = useState(data.model.labourRatePerHour);
   const [overhead, setOverhead] = useState(data.model.overheadPerPortion);
   const [includeCharges, setIncludeCharges] = useState(data.model.pricesIncludeCharges);
+  const [alertMove, setAlertMove] = useState(data.org.alertMovePercent);
   const draft: CostingModel = {
     ...data.model,
     foodCostTarget: target,
@@ -167,8 +168,10 @@ export function SettingsView({
     accompaniments !== data.model.accompanimentsPerPortion ||
     labourRate !== data.model.labourRatePerHour ||
     overhead !== data.model.overheadPerPortion ||
-    includeCharges !== data.model.pricesIncludeCharges;
+    includeCharges !== data.model.pricesIncludeCharges ||
+    alertMove !== data.org.alertMovePercent;
   const costingPatch = {
+    alertMovePercent: alertMove,
     foodCostTarget: target,
     wastagePercent: wastage,
     packagingPerPortion: packaging,
@@ -193,6 +196,7 @@ export function SettingsView({
     setLabourRate(data.model.labourRatePerHour);
     setOverhead(data.model.overheadPerPortion);
     setIncludeCharges(data.model.pricesIncludeCharges);
+    setAlertMove(data.org.alertMovePercent);
   };
 
   const bill = useMemo(() => {
@@ -555,6 +559,20 @@ export function SettingsView({
                       </option>
                     ))}
                   </select>
+                </span>
+              </label>
+              <label className="set-line">
+                <span className="set-line-name">Tell me</span>
+                <span className="set-line-field">
+                  when a rate moves more than{" "}
+                  <input
+                    className="set-inline-field figure"
+                    inputMode="decimal"
+                    value={alertMove}
+                    aria-label="Rate move alert percent"
+                    onChange={(e) => setAlertMove(Number(e.target.value) || 0)}
+                  />
+                  % in a month. It goes on the dashboard&rsquo;s list for today, whether or not a dish crossed target.
                 </span>
               </label>
               <label className="set-line set-line-check">

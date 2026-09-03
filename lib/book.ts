@@ -685,6 +685,8 @@ export async function saveMeta(
       patch.pricing !== undefined
         ? { ...NO_DISH_PRICING, ...(current?.pricing ?? {}), ...patch.pricing }
         : (current?.pricing ?? NO_DISH_PRICING),
+    pricedAt: patch.pricedAt !== undefined ? patch.pricedAt : (current?.pricedAt ?? null),
+    keptAtPricing: patch.keptAtPricing !== undefined ? patch.keptAtPricing : (current?.keptAtPricing ?? null),
   };
 
   const supabase = await supabaseServer();
@@ -699,6 +701,8 @@ export async function saveMeta(
       notes: next.note,
       method: next.method,
       ...pricingColumns(next.pricing),
+      priced_at: next.pricedAt,
+      kept_at_pricing: next.keptAtPricing,
       on_menu: next.onMenu,
       archived: next.archived,
       updated_at: new Date().toISOString(),

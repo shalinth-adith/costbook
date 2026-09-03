@@ -47,6 +47,8 @@ export interface Org {
   readonly overheadPerPortion: number;
   /** Whether the menu price already includes the guest's charges. */
   readonly pricesIncludeCharges: boolean;
+  /** A rate that moves more than this in a month earns a line on the dashboard. */
+  readonly alertMovePercent: number;
   /** After this long a rate is marked stale, on the ingredient and the dish. */
   readonly staleAfterDays: number;
   readonly defaultMassUnit: 'g' | 'kg';
@@ -79,6 +81,7 @@ export const BLANK_ORG: Org = {
   labourRatePerHour: 0,
   overheadPerPortion: 0,
   pricesIncludeCharges: false,
+  alertMovePercent: 10,
   staleAfterDays: 90,
   defaultMassUnit: 'g',
   defaultVolumeUnit: 'ml',
