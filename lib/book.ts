@@ -667,6 +667,9 @@ export async function saveMeta(
     note: patch.note ?? current?.note ?? "",
     onMenu: patch.onMenu ?? current?.onMenu ?? false,
     archived: patch.archived ?? current?.archived ?? false,
+    // Written as typed, never renumbered. Undefined in a patch means "leave
+    // it"; null means the operator cleared it.
+    method: patch.method !== undefined ? patch.method : (current?.method ?? null),
   };
 
   const supabase = await supabaseServer();
@@ -679,6 +682,7 @@ export async function saveMeta(
       selling_price: next.sellingPrice,
       delivery_price: next.deliveryPrice,
       notes: next.note,
+      method: next.method,
       on_menu: next.onMenu,
       archived: next.archived,
       updated_at: new Date().toISOString(),

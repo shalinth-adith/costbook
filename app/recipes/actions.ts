@@ -148,6 +148,8 @@ export async function createDishFromPaste(input: {
   readonly category: string;
   readonly portions: number;
   readonly text: string;
+  /** How to prepare it, as typed. Prints on the prep card; costs nothing. */
+  readonly method: string;
 }): Promise<Ack & { readonly id: string | null }> {
   const name = input.name.trim();
   if (name === '') return { message: 'A dish needs a name.', undoable: false, id: null };
@@ -235,6 +237,7 @@ export async function createDishFromPaste(input: {
     portionSize: null,
     sellingPrice: null,
     note: '',
+    method: input.method.trim() === '' ? null : input.method,
     onMenu: false,
     updatedAt: new Date().toISOString().slice(0, 10),
   });

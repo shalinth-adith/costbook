@@ -123,6 +123,7 @@ export function RecipeSheet({
     name: initialRecipe.name,
     category: dish.category,
     station: dish.station,
+    method: dish.method ?? null,
   });
 
   /** Wastage and packaging, once the operator has set them for this dish. */
@@ -218,7 +219,7 @@ export function RecipeSheet({
     edit(result.recipe);
   };
 
-  const dishFields = { category: fields.category, station: fields.station };
+  const dishFields = { category: fields.category, station: fields.station, method: fields.method };
   const named: Recipe = { ...recipe, name: fields.name };
 
   const suggestion =
@@ -657,6 +658,8 @@ export function RecipeSheet({
         onCategory={(v) => { setFields((f) => ({ ...f, category: v })); setDirty(true); }}
         onStation={(v) => { setFields((f) => ({ ...f, station: v })); setDirty(true); }}
         onPortions={(v) => edit({ ...recipe, portions: v })}
+        method={fields.method}
+        onMethod={(v) => { setFields((f) => ({ ...f, method: v.trim() === '' ? null : v })); setDirty(true); }}
       />
 
       <PasteSheet

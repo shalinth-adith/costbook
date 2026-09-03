@@ -26,6 +26,8 @@ export function DishSheet({
   onCategory,
   onStation,
   onPortions,
+  method,
+  onMethod,
 }: {
   open: boolean;
   onClose: () => void;
@@ -38,6 +40,9 @@ export function DishSheet({
   onCategory: (v: string) => void;
   onStation: (v: string) => void;
   onPortions: (v: number) => void;
+  /** How to prepare it, as typed. Prints on the prep card. */
+  method: string | null;
+  onMethod: (v: string) => void;
 }) {
   const per = portions === null || portions <= 0 ? null : linesTotal / portions;
   const m = useMoney();
@@ -75,6 +80,18 @@ export function DishSheet({
           onUp={() => onPortions((portions ?? 0) + 1)}
         />
       </div>
+
+      <label className="field">
+        <span className="label">How to prepare</span>
+        <textarea
+          className="field-textarea"
+          value={method ?? ''}
+          rows={6}
+          spellCheck={false}
+          placeholder="One step a line, in your own words. It prints on the prep card."
+          onChange={(e) => onMethod(e.target.value)}
+        />
+      </label>
 
       <div className="live-note">
         <span className="label">What this changes, live</span>

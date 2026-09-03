@@ -116,6 +116,7 @@ export function NewDishView({
     category: string;
     portions: number;
     text: string;
+    method: string;
   }) => Promise<{ readonly message: string; readonly id: string | null }>;
 }) {
   const router = useRouter();
@@ -126,6 +127,7 @@ export function NewDishView({
   const [category, setCategory] = useState<string>('Mains');
   const [portions, setPortions] = useState(4);
   const [text, setText] = useState('');
+  const [method, setMethod] = useState('');
   const [fixes, setFixes] = useState<Readonly<Record<number, Fix>>>({});
   const [fault, setFault] = useState<string | null>(null);
   const [showExample, setShowExample] = useState(false);
@@ -153,7 +155,7 @@ export function NewDishView({
     if (!named || pending) return;
     setFault(null);
     start(async () => {
-      const out = await onCreate({ name: name.trim(), category, portions, text: finalText });
+      const out = await onCreate({ name: name.trim(), category, portions, text: finalText, method });
       if (out.id === null) {
         setFault(out.message);
         return;
@@ -344,6 +346,29 @@ export function NewDishView({
               ? 'Nothing read yet. Paste, or type a line and press Enter for the next.'
               : `${String(counted)} ${counted === 1 ? 'line' : 'lines'} read. ⌘ Enter creates the dish.`}
           </p>
+
+          {/*
+            How it is made, beside what goes in it. Optional: a dish is costed
+            without it. It prints on the prep card exactly as typed — the
+            cook's own numbering, the cook's own words — and is never costed.
+          */}
+          <label className="nd-field nd-method">
+            <span className="nd-label">
+              How to prepare <span className="nd-optional">optional</span>
+            </span>
+            <textarea
+              className="nd-paste nd-paste-method"
+              value={method}
+              rows={5}
+              spellCheck={false}
+              placeholder={'1. Soak the dal for 20 minutes.\n2. Grind coarse with the chillies.\n3. Fry in ghee until the raw smell goes.'}
+              onChange={(e) => setMethod(e.target.value)}
+            />
+            <span className="nd-help">
+              One step a line, in your own words. It prints on the prep card exactly as you
+              write it, and it does not change the cost.
+            </span>
+          </label>
         </section>
 
 

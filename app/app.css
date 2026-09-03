@@ -3709,3 +3709,15 @@
 @media (prefers-reduced-motion: reduce) { .nd-side .nd-card { animation: none; } }
 /* The page head shares the body's measure on this page only. */
 .page-head:has(+ .nd) { max-width: 1480px; margin-inline: auto; box-sizing: border-box; }
+
+/* ── How to prepare ───────────────────────────────────────────────── */
+.nd-method { margin-block-start: var(--sp-4); width: 100%; }
+.nd-optional { font-weight: 400; color: var(--text-tertiary); text-transform: none; letter-spacing: 0; margin-inline-start: 6px; }
+.nd-paste-method { min-height: 120px; font-family: inherit; font-size: 13px; line-height: 1.55; }
+.field-textarea {
+  width: 100%; min-height: 132px; resize: vertical; box-sizing: border-box;
+  padding: 10px 12px; font: inherit; font-size: 13px; line-height: 1.55;
+  border: 1px solid var(--border-control); border-radius: var(--radius-field);
+  background: var(--surface-card); color: var(--text-primary);
+}
+.field-textarea:focus { outline: 2px solid var(--border-focus, var(--text-primary)); outline-offset: 1px; }
