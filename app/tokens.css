@@ -46,10 +46,13 @@
   /* Status. Desaturated on purpose: ten dishes over target should read as ten
      things to look at, not an alarm. Never carried by colour alone — every
      status pairs with a word and a shape. */
-  --on-ink: #4E5B2A;
-  --on-ink-strong: #3D4720;
-  --on-tint: #E9EDDC;
-  --on-edge: #C9D2AE;
+  /* Was an olive #4E5B2A, which read as army rather than as money and went
+     muddy the moment it was used at any size. A cooler, deeper green sits
+     against the clay and the amber without competing with either. */
+  --on-ink: #1F6B54;
+  --on-ink-strong: #17513F;
+  --on-tint: #E3EFEA;
+  --on-edge: #94C0AE;
 
   /* A control border must clear 3:1 against the card, which the tint edges do
      not. These two are for enclosing a field that is questioned, not decorated. */
@@ -68,7 +71,7 @@
   --over-row: #FDFAF9;
 
   /* Status against the dark panel: the same triangle and bar, lifted off #171B24. */
-  --on-ink-inverse: #A9BC6E;
+  --on-ink-inverse: #6FC3A3;
   --over-ink-inverse: #E08A6C;
 
   --incomplete-ink: #3A414F;

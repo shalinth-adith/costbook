@@ -3022,3 +3022,97 @@
   .wr-row { grid-template-columns: 22px minmax(0, 1fr) 68px; }
   .wr-said, .wr-bar { display: none; }
 }
+
+/* ── the dashboard's numbers ───────────────────────────────────────── */
+
+.dh-top {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--sp-4); flex-wrap: wrap;
+}
+.dh-clock { display: flex; align-items: baseline; gap: 10px; min-height: 16px; }
+.dh-day { font-size: 12.5px; color: var(--text-secondary); }
+.dh-time { font-size: 12.5px; color: var(--text-tertiary); }
+
+/* Each count is a door, so it has to look like one: a surface that lifts, and
+   a line saying what is behind it. The reason a figure is what it is belongs
+   beside the figure — walking somebody to another screen to explain a number
+   loses them the number. */
+.dc-card {
+  text-align: start; font: inherit; cursor: default;
+  border-block-start: 3px solid var(--border-strong);
+  transition:
+    transform var(--dur-micro) var(--ease-enter),
+    box-shadow var(--dur-micro) var(--ease-enter),
+    border-color var(--dur-micro) var(--ease-enter);
+}
+.dc-card.is-flat { cursor: default; opacity: 1; }
+.dc-card.is-door { cursor: pointer; }
+.dc-card.is-door:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgb(23 27 36 / 0.07);
+  border-color: var(--border-control);
+}
+.dc-card.is-door:focus-visible {
+  outline: 2px solid var(--text-primary); outline-offset: 2px;
+}
+.dc-card.ink-on { border-block-start-color: var(--on-ink); }
+.dc-card.ink-near { border-block-start-color: var(--near-ink); }
+.dc-card.ink-over { border-block-start-color: var(--over-ink); }
+.dc-card.ink-quiet { border-block-start-color: var(--border-control); }
+
+.dc-go {
+  margin-block-start: var(--sp-2);
+  font-size: 11.5px; color: var(--text-tertiary);
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.dc-card.is-door:hover .dc-go { color: var(--text-primary); }
+.dc-go::after { content: "→"; transition: transform var(--dur-micro) var(--ease-enter); }
+.dc-card.is-door:hover .dc-go::after { transform: translateX(2px); }
+
+/* The cards arrive rather than appearing. Once, on load, staggered — it draws
+   the eye across the row in reading order, which is the order they matter in. */
+@keyframes dc-arrive {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+.dc-card.is-door {
+  animation: dc-arrive var(--dur-state) var(--ease-enter) both;
+}
+
+/* Somebody who asked for no motion asked for no motion. */
+@media (prefers-reduced-motion: reduce) {
+  .dc-card.is-door { animation: none; }
+  .dc-card.is-door:hover { transform: none; }
+  .dc-go::after { transition: none; }
+}
+
+/* ── the panel behind a count ──────────────────────────────────────── */
+
+.pl { display: flex; flex-direction: column; gap: var(--sp-3); }
+.pl-lede { margin: 0; font-size: 13px; color: var(--text-secondary); line-height: 1.55; }
+.pl-empty {
+  margin: 0; font-size: 13.5px; color: var(--text-secondary);
+  background: var(--surface-sunken); border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-field); padding: 14px 16px;
+}
+.pl-head,
+.pl-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) 82px;
+  gap: 12px; align-items: baseline;
+}
+.pl-head {
+  font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-secondary); font-weight: 600;
+  padding-block-end: 6px; border-block-end: 1px solid var(--border-control);
+}
+.pl-head-end { text-align: end; }
+.pl-rows { display: flex; flex-direction: column; }
+.pl-row {
+  padding-block: 10px; border-block-end: 1px solid var(--border-row);
+  color: inherit; text-decoration: none; font-size: 13px;
+}
+.pl-row:last-child { border-block-end: 0; }
+.pl-row:hover { background: var(--surface-sunken); }
+.pl-name { font-weight: 500; }
+.pl-said { color: var(--text-secondary); font-size: 12.5px; }
+.pl-keeps { text-align: end; font-weight: 600; font-size: 14px; }

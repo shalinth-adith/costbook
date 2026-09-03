@@ -1,113 +1,110 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import type { DashboardRow, DashboardStats } from "@/lib/dashboard";
 import type { FirstDish } from "@/lib/first-dish";
-import type { Attributed, Recent } from "@/lib/recent";
-import type { Spread } from "@/lib/spread";
-import { DASH, percent, points } from "@/lib/format";
-import { isTrustworthy, perHundred, standingOf } from "@/lib/plain";
+import type { Recent } from "@/lib/recent";
+import { DASH } from "@/lib/format";
+import { isTrustworthy, perHundred } from "@/lib/plain";
+import {
+  type Pile,
+  type Piles,
+  type Standing,
+  missingSaid,
+} from "@/lib/profit";
 
 import { DashboardEmpty } from "./dashboard-empty";
 import { DashboardFirst } from "./dashboard-first";
+import { Clock, CountUp } from "./dash-number";
 import { useMoney } from "./currency-provider";
+import { Sheet } from "./sheet";
 
 /**
- * Home — the kitchen, in sentences a cook can read.
+ * Home — the numbers, and the reason behind each one a press away.
  *
- * Twice rebuilt, and the second rebuild was still written by somebody who
- * already knew what the words meant. "Middle dish 16.6%" invented a term
- * nobody has heard. "56 cannot be placed yet" — placed on what? "Not weighted
- * by how much each dish sells" is a footnote to a statistician. The reader is
- * a cook, or the person who owns the shop, and neither of them opened this to
- * learn a vocabulary.
+ * No chart. A distribution answers "how are my dishes spread", which is a
+ * question an analyst asks; an owner asks "which ones are making me money and
+ * which are not", and the answer to that is four counts and four lists.
  *
- * A percentage is the engineer's unit. An owner thinks in money: what comes in
- * over the counter, and what of it goes straight back out to the supplier. So
- * every figure here is also a sentence, and the sentence is in money —
- * something anybody can check against their own till.
+ * Every count opens a panel rather than a page. The reason a figure is what it
+ * is belongs beside the figure — walking somebody to another screen to explain
+ * a number they were already looking at loses them the number.
+ *
+ * Cost is said as margin throughout. The engine works in food cost because
+ * that is what the arithmetic is, but an owner asks what they keep, and a dish
+ * spending 34 of every 100 keeps 66. Same subtraction, other end, and the
+ * second one is the sentence somebody nods at.
  */
 
-/** A rise takes the over ink; a fall stays quiet. */
-function Move({ percent: pc }: { percent: number | null }) {
-  if (pc === null) return <span className="mv-new">first price</span>;
-  const up = pc > 0;
-  return (
-    <span className={`figure mv-pc ${up ? "ink-over" : "ink-on"}`}>
-      {up ? "+" : ""}
-      {percent(pc)}
-    </span>
-  );
-}
+/** The four piles, with the words the screen uses for each. */
+const PILES: readonly {
+  readonly key: Pile;
+  readonly title: string;
+  readonly what: string;
+  readonly why: string;
+  readonly ink: string;
+}[] = [
+  {
+    key: "earning",
+    title: "Earning what you wanted",
+    what: "earning well",
+    why: "These keep more of the price than you planned to keep.",
+    ink: "on",
+  },
+  {
+    key: "thin",
+    title: "Earning less than you wanted",
+    what: "earning thin",
+    why: "Still making money, just less of it than you asked for.",
+    ink: "near",
+  },
+  {
+    key: "losing",
+    title: "Costing more than they sell for",
+    what: "losing money",
+    why: "Every plate of these goes out at a loss.",
+    ink: "over",
+  },
+  {
+    key: "unpriced",
+    title: "Cannot be worked out yet",
+    what: "need a price from you",
+    why: "A missing rate or selling price. Costbook will not guess one.",
+    ink: "quiet",
+  },
+];
 
-function Leader({ at }: { at: Attributed }) {
+function Row({ standing, sym }: { standing: Standing; sym: string }) {
   const m = useMoney();
-  const { move } = at;
+  const { row } = standing;
 
   return (
-    <div className="mv-row">
-      <div className="mv-what">
-        <span className="mv-name">{move.name}</span>
-        <span className="mv-rates figure">
-          {move.from === null ? DASH : m.money(move.from)}
-          <span className="mv-arrow" aria-hidden="true">
-            {" "}
-            →{" "}
+    <Link href={`/recipes/${row.id}`} className="pl-row">
+      <span className="pl-name">{row.name}</span>
+      {standing.keeps === null ? (
+        <span className="pl-said">{missingSaid(row)}</span>
+      ) : (
+        <span className="pl-said">
+          costs{" "}
+          <span className="figure">
+            {row.costPerPortion === null
+              ? DASH
+              : m.withSymbol(row.costPerPortion)}
           </span>
-          {m.money(move.to)}
+          , sells at{" "}
+          <span className="figure">
+            {row.sellingPrice === null ? DASH : m.withSymbol(row.sellingPrice)}
+          </span>
         </span>
-        <Move percent={move.percent} />
-        {move.source === "import" && (
-          <span className="mv-src">from a sheet</span>
-        )}
-      </div>
-
-      <div className="mv-effect">
-        {at.dishesMoved === 0 ? (
-          <span className="mv-none">
-            No dish uses it yet, so nothing changed.
-          </span>
-        ) : (
-          <>
-            {at.dishesMoved === 1
-              ? "One dish"
-              : `${String(at.dishesMoved)} dishes`}{" "}
-            cost more because of this
-            {at.crossed.length > 0 && (
-              <>
-                {", and "}
-                {at.crossed.length === 1
-                  ? "one of them"
-                  : `${String(at.crossed.length)} of them`}{" "}
-                <span className="ink-over">now costs more than you wanted</span>
-              </>
-            )}
-            .
-          </>
-        )}
-      </div>
-
-      {at.crossed.length > 0 && (
-        <ul className="mv-crossed">
-          {at.crossed.map((c) => (
-            <li key={c.id}>
-              <Link href={`/recipes/${c.id}`} className="mv-dish">
-                {c.name}
-              </Link>
-              <span className="figure mv-dish-fc ink-over">
-                {c.newFoodCost === null ? DASH : percent(c.newFoodCost)}
-              </span>
-              {c.foodCostDelta !== null && (
-                <span className="figure mv-dish-delta">
-                  {points(c.foodCostDelta)}
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
       )}
-    </div>
+      <span className="pl-keeps figure">
+        {standing.keeps === null
+          ? DASH
+          : `${sym}${String(Math.round(standing.keeps))}`}
+      </span>
+    </Link>
   );
 }
 
@@ -121,8 +118,8 @@ export function DashboardView({
   orgName,
   moved,
   stats,
-  spread,
-  worst,
+  piles,
+  median,
   stale,
   staleAfterDays,
   target,
@@ -132,8 +129,9 @@ export function DashboardView({
   orgName: string;
   moved: Recent;
   stats: DashboardStats;
-  spread: Spread;
-  worst: readonly DashboardRow[];
+  piles: Piles;
+  /** The middle dish's food cost, or null when nothing is costed. */
+  median: number | null;
   stale: readonly StaleRate[];
   staleAfterDays: number;
   target: number;
@@ -141,6 +139,7 @@ export function DashboardView({
   today: string;
 }) {
   const m = useMoney();
+  const [open, setOpen] = useState<Pile | null>(null);
 
   if (first !== null) {
     return first.kind === "none" ? (
@@ -150,218 +149,147 @@ export function DashboardView({
     );
   }
 
-  const blocked = stats.missingRate + stats.notPlated + stats.missingPrice;
-  const spend = perHundred(spread.median);
-  const want = perHundred(target) ?? 0;
-  const standing = standingOf(spread.median, target);
-  /*
-   * Whether the headline may be stated flatly.
-   *
-   * The live book runs at 16.6% against a 30% target, which reads as a kitchen
-   * doing wonderfully — and it is an artefact of 56 of its 79 dishes having no
-   * rate. Printed large and unqualified it would congratulate an operator on a
-   * margin that does not exist. Below two thirds costed it is still shown, and
-   * still says what it was drawn from.
-   */
-  const solid = isTrustworthy(spread.placed, stats.costed);
   const sym = m.symbol;
-  const ink =
-    standing === "over" ? "over" : standing === "about" ? "near" : "on";
+  const spend = perHundred(median);
+  const keep = spend === null ? null : 100 - spend;
+  const wantKeep = 100 - (perHundred(target) ?? 0);
+  const answered = piles.all.length - piles.unpriced.length;
+  const solid = isTrustworthy(answered, piles.all.length);
+  const shown = PILES.find((p) => p.key === open);
 
   return (
     <>
       {/* ── the headline ──────────────────────────────────────────── */}
 
       <section className="dh">
-        <p className="dh-who">{orgName}</p>
+        <div className="dh-top">
+          <p className="dh-who">{orgName}</p>
+          <Clock />
+        </div>
 
-        {spend === null ? (
+        {keep === null ? (
           <p className="dh-said">
             Nothing is costed yet, so there is no figure to show you.
           </p>
         ) : (
           <>
             <div className="dh-row">
-              <span className={`dh-figure figure ink-${ink}`}>
-                {sym}
-                {spend}
+              <span
+                className={`dh-figure figure ink-${keep >= wantKeep ? "on" : "near"}`}
+              >
+                <CountUp to={keep} prefix={sym} />
               </span>
               <p className="dh-said">
-                of every <span className="figure">{sym}100</span> a guest pays
-                you goes on ingredients.
+                is what you keep out of every{" "}
+                <span className="figure">{sym}100</span> a guest pays you.
               </p>
             </div>
 
             <p className="dh-against">
-              You said you wanted to spend{" "}
+              You planned to keep{" "}
               <span className="figure strong">
                 {sym}
-                {want}
+                {wantKeep}
               </span>
               , so you are{" "}
-              {standing === "under" && (
-                <span className="dh-verdict is-good">
-                  spending less than you planned
-                </span>
-              )}
-              {standing === "about" && (
-                <span className="dh-verdict is-fine">
-                  right about where you meant to be
-                </span>
-              )}
-              {standing === "over" && (
-                <span className="dh-verdict is-bad">
-                  spending more than you planned
-                </span>
-              )}
-              .
+              <span
+                className={`dh-verdict ${keep >= wantKeep ? "is-good" : "is-fine"}`}
+              >
+                {keep >= wantKeep
+                  ? "ahead of your own target"
+                  : "a little behind it"}
+              </span>
+              . The other{" "}
+              <span className="figure">
+                {sym}
+                {spend}
+              </span>{" "}
+              goes to your suppliers.
             </p>
 
             {!solid && (
-              /* Said before anybody acts on the figure above it, never as a
-                 footnote below the fold. */
               <p className="dh-caveat">
                 <strong>Read that carefully.</strong> It only counts the{" "}
-                <span className="figure">{spread.placed}</span> dishes that have
-                both a selling price and rates for everything in them.{" "}
-                <span className="figure">{spread.unplaced}</span> more are not
-                finished, so the real figure will move once they are.
+                <span className="figure">{answered}</span> dishes that have both
+                a selling price and rates for everything in them.{" "}
+                <span className="figure">{piles.unpriced.length}</span> more
+                cannot be worked out yet, so this will move once they are done.
               </p>
             )}
           </>
         )}
       </section>
 
-      {/* ── the counts, each explaining itself ────────────────────── */}
+      {/* ── the counts, each one a door ───────────────────────────── */}
 
       <div className="dc">
-        <div className="dc-card">
-          <span className="dc-n figure">{stats.costed}</span>
-          <span className="dc-what">dishes in your book</span>
+        <button type="button" className="dc-card is-flat" disabled>
+          <span className="dc-n figure">
+            <CountUp to={piles.all.length} />
+          </span>
+          <span className="dc-what">recipes in your book</span>
           <span className="dc-why">Everything you have written down.</span>
-        </div>
-        <div className="dc-card">
-          <span className="dc-n figure">{spread.placed}</span>
-          <span className="dc-what">are fully worked out</span>
-          <span className="dc-why">
-            These have a selling price and a rate for every ingredient in them.
-          </span>
-        </div>
-        <div className={`dc-card${stats.over > 0 ? " is-bad" : ""}`}>
-          <span className={`dc-n figure${stats.over > 0 ? " ink-over" : ""}`}>
-            {stats.over}
-          </span>
-          <span className="dc-what">cost more than you wanted</span>
-          <span className="dc-why">
-            {stats.over === 0
-              ? "Nothing is eating into your margin."
-              : `Each uses more than ${sym}${String(want)} of every ${sym}100 you charge.`}
-          </span>
-        </div>
-        <div className={`dc-card${blocked > 0 ? " is-open" : ""}`}>
-          <span className="dc-n figure">{blocked}</span>
-          <span className="dc-what">still need something from you</span>
-          <span className="dc-why">
-            A selling price, or what you pay for an ingredient.
-          </span>
-        </div>
+        </button>
+
+        {PILES.map((p, i) => {
+          const list = piles[p.key];
+          return (
+            <button
+              key={p.key}
+              type="button"
+              className={`dc-card is-door ink-${p.ink}`}
+              style={{ animationDelay: `${String(60 + i * 55)}ms` }}
+              onClick={() => {
+                setOpen(p.key);
+              }}
+              aria-haspopup="dialog"
+            >
+              <span className={`dc-n figure ink-${p.ink}`}>
+                <CountUp to={list.length} duration={520 + i * 60} />
+              </span>
+              <span className="dc-what">{p.what}</span>
+              <span className="dc-why">{p.why}</span>
+              <span className="dc-go">
+                {list.length === 0 ? "nothing here" : "see which ones"}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* ── the spread ────────────────────────────────────────────── */}
+      {/* ── the reason, beside the figure rather than a page away ─── */}
 
-      {spread.placed > 0 && (
-        <section className="dash-block">
-          <h2 className="dash-h">Where your dishes sit</h2>
-          <p className="dash-lede">
-            Each column counts the dishes that spend about the same. Further
-            right means more of what a guest pays goes back out to the supplier.
-            The black line is what you said you wanted.
-          </p>
-          <div className="card spr">
-            <div className="spr-plot">
-              {spread.bands.map((band, i) => (
-                <div
-                  key={band.from}
-                  className={`spr-col ink-${band.status}${
-                    i === spread.targetBand ? " is-target" : ""
-                  }`}
-                >
-                  <span className="spr-count figure">
-                    {band.count > 0 ? band.count : ""}
-                  </span>
-                  <span
-                    className="spr-bar"
-                    style={{
-                      height: `${String(Math.max(band.height, band.count > 0 ? 4 : 0))}%`,
-                    }}
-                    title={
-                      band.count === 0 ? "" : band.names.slice(0, 6).join(", ")
-                    }
-                  />
-                  <span className="spr-tick figure">
-                    {sym}
-                    {band.from}
-                    {band.to === null ? "+" : ""}
-                  </span>
+      <Sheet
+        title={shown?.title ?? ""}
+        open={shown !== undefined}
+        onClose={() => {
+          setOpen(null);
+        }}
+      >
+        {shown !== undefined && (
+          <div className="pl">
+            <p className="pl-lede">{shown.why}</p>
+            {piles[shown.key].length === 0 ? (
+              <p className="pl-empty">
+                Nothing is in here, which is the answer you want.
+              </p>
+            ) : (
+              <>
+                <div className="pl-head">
+                  <span>Dish</span>
+                  <span />
+                  <span className="pl-head-end">kept per {sym}100</span>
                 </div>
-              ))}
-            </div>
-            <p className="spr-axis">
-              spent on ingredients, out of every {sym}100 charged
-            </p>
+                <div className="pl-rows">
+                  {piles[shown.key].map((s) => (
+                    <Row key={s.row.id} standing={s} sym={sym} />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
-        </section>
-      )}
-
-      {/* ── the shortlist ─────────────────────────────────────────── */}
-
-      {worst.length > 0 && (
-        <section className="dash-block">
-          <h2 className="dash-h">The dishes taking the biggest bite</h2>
-          <p className="dash-lede">
-            Five worth a look. Open one to see where its cost is going.
-          </p>
-          <div className="card dash-worst">
-            {worst.map((row, i) => (
-              <Link key={row.id} href={`/recipes/${row.id}`} className="wr-row">
-                <span className="wr-rank figure">{i + 1}</span>
-                <span className="wr-name">{row.name}</span>
-                <span className="wr-said">
-                  costs{" "}
-                  <span className="figure">
-                    {row.costPerPortion === null
-                      ? DASH
-                      : m.withSymbol(row.costPerPortion)}
-                  </span>
-                  , sells at{" "}
-                  <span className="figure">
-                    {row.sellingPrice === null
-                      ? DASH
-                      : m.withSymbol(row.sellingPrice)}
-                  </span>
-                </span>
-                <span className={`figure wr-fc ink-${row.status}`}>
-                  {row.foodCostPercent === null
-                    ? DASH
-                    : `${sym}${String(perHundred(row.foodCostPercent) ?? 0)}`}
-                </span>
-                <span className="wr-bar" aria-hidden="true">
-                  <span
-                    className={`wr-bar-base ink-${row.status}`}
-                    style={{
-                      width: `${String(Math.min(((row.foodCostPercent ?? 0) / Math.max(target * 2, 1)) * 100, 100))}%`,
-                    }}
-                  />
-                </span>
-              </Link>
-            ))}
-          </div>
-          <p className="dash-foot">
-            The figure on the right is what each one spends out of every {sym}
-            100 you charge for it.
-          </p>
-        </section>
-      )}
+        )}
+      </Sheet>
 
       {/* ── what changed ──────────────────────────────────────────── */}
 
@@ -386,25 +314,14 @@ export function DashboardView({
             screen.
           </p>
         ) : (
-          <>
-            <p className="dash-lede">
-              <span className="figure">{moved.moves.length}</span> supplier{" "}
-              {moved.moves.length === 1 ? "price" : "prices"} changed in the
-              last {moved.days} days.{" "}
-              {moved.impact.moved.length > 0 && (
-                <>
-                  <span className="figure">{moved.impact.moved.length}</span>{" "}
-                  {moved.impact.moved.length === 1 ? "dish" : "dishes"} cost
-                  something different because of it.
-                </>
-              )}
-            </p>
-            <div className="card dash-moves">
-              {moved.leaders.map((at) => (
-                <Leader key={at.move.ingredientId} at={at} />
-              ))}
-            </div>
-          </>
+          <p className="dash-lede">
+            <span className="figure">{moved.moves.length}</span> supplier{" "}
+            {moved.moves.length === 1 ? "price" : "prices"} changed in the last{" "}
+            {moved.days} days, and{" "}
+            <span className="figure">{moved.impact.moved.length}</span>{" "}
+            {moved.impact.moved.length === 1 ? "dish" : "dishes"} cost something
+            different because of it.
+          </p>
         )}
       </section>
 
@@ -415,7 +332,7 @@ export function DashboardView({
           <h2 className="dash-h">Prices you have not checked in a while</h2>
           <p className="dash-lede">
             Older than the {staleAfterDays} days you asked to be reminded at.
-            Nothing is wrong with them — they are just the figures Costbook is
+            Nothing is wrong with them — they are the figures Costbook is
             trusting on your behalf.
           </p>
           <ul className="dash-stale">
@@ -428,49 +345,6 @@ export function DashboardView({
               </li>
             ))}
           </ul>
-        </section>
-      )}
-
-      {/* ── blocked ───────────────────────────────────────────────── */}
-
-      {blocked > 0 && (
-        <section className="dash-block">
-          <h2 className="dash-h">Waiting on you</h2>
-          <p className="dash-lede">
-            None of these can be costed until something is filled in. A dish
-            missing a rate shows the lowest it could possibly be, which is not
-            what it really costs.
-          </p>
-          <div className="dash-blocked">
-            {stats.missingRate > 0 && (
-              <Link href="/ingredients" className="dash-blocked-item">
-                <span className="figure dash-blocked-figure">
-                  {stats.missingRate}
-                </span>
-                <span className="dash-blocked-said">
-                  need what you pay for an ingredient
-                </span>
-              </Link>
-            )}
-            {stats.missingPrice > 0 && (
-              <Link href="/recipes" className="dash-blocked-item">
-                <span className="figure dash-blocked-figure">
-                  {stats.missingPrice}
-                </span>
-                <span className="dash-blocked-said">need a selling price</span>
-              </Link>
-            )}
-            {stats.notPlated > 0 && (
-              <Link href="/recipes" className="dash-blocked-item">
-                <span className="figure dash-blocked-figure">
-                  {stats.notPlated}
-                </span>
-                <span className="dash-blocked-said">
-                  are made by the batch, never served alone
-                </span>
-              </Link>
-            )}
-          </div>
         </section>
       )}
     </>
