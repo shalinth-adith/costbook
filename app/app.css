@@ -3677,3 +3677,16 @@
 .price-actions .btn { flex: 1; white-space: nowrap; }
 /* The channel card is the rail's last card; it arrives with the others. */
 .rail > .card:nth-child(4), .rail > section:nth-child(4) { animation: dc-arrive 420ms var(--ease-enter) both; animation-delay: 420ms; }
+
+/* ── spacing in the rail's lower half ─────────────────────────────── */
+/* The settings sentence was a flex container: every word-run, figure and
+   the link became an item with a 6px gap between them — "Settings ." */
+.buildup-defaults .buildup-note { display: block; margin: 0; }
+.buildup-note .link-inline { display: inline; }
+/* Rhythm under the total's rule: air, chip, sentence, button. */
+.buildup-defaults { margin-block-start: 20px; gap: 0; }
+.buildup-defaults-head { margin-block-end: 8px; }
+.buildup-defaults .btn { margin-block-start: 14px; }
+/* The price card carries no side padding of its own; each child does. */
+.price-card .price-one { margin: 10px var(--sp-4) 0; }
+.price-card .price-facts { margin: 14px var(--sp-4) 0; }
