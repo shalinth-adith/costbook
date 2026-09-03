@@ -22,8 +22,10 @@ import { currencyCode } from "@/lib/store";
 export const dynamic = "force-dynamic";
 
 export default async function SetupPage() {
-  const { org, members } = await book();
-  if (org.setupDone) redirect(landingFor(members[0]?.role ?? "manager"));
+  const { org, role } = await book();
+  // Their own role, not the first membership row in the organisation. The
+  // rule lives in `roleOf`; the reason it has to is in `lib/after-auth.ts`.
+  if (org.setupDone) redirect(landingFor(role ?? "manager"));
 
   const code = currencyCode();
   return (

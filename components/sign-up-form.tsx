@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 
-import { createAccount } from '@/app/sign-up/actions';
+import { createAccount, resendSignUp } from '@/app/sign-up/actions';
 
 import { MIN_PASSWORD, PASSWORD_RULE } from './entry-shell';
 
@@ -16,7 +15,6 @@ import { MIN_PASSWORD, PASSWORD_RULE } from './entry-shell';
  * people who would have finished five after it.
  */
 export function SignUpForm() {
-  const router = useRouter();
   const [pending, start] = useTransition();
 
   const [email, setEmail] = useState('');
@@ -49,6 +47,11 @@ export function SignUpForm() {
 
   const resend = () => {
     setCooldown(45);
+    // Actually send one. The countdown used to be the whole of this function.
+    start(async () => {
+      const out = await resendSignUp(sent ?? email);
+      if (!out.ok) setFault(out.message ?? 'That did not send. Try again in a moment.');
+    });
     const tick = window.setInterval(() => {
       setCooldown((n) => {
         if (n <= 1) { window.clearInterval(tick); return 0; }
@@ -98,10 +101,14 @@ export function SignUpForm() {
           </button>{' '}
           and we&rsquo;ll send again — the account moves with it, nothing is created twice.
         </p>
-        {/* Dev convenience: the wizard is what the link leads to. */}
-        <button type="button" className="btn btn-primary entry-action" onClick={() => router.push('/setup')}>
-          Continue to the four questions
-        </button>
+        {/*
+          * No "continue to the four questions" button.
+          *
+          * It pushed /setup, and this screen is only ever shown to somebody
+          * who has no session yet — so the proxy sent them to /sign-in, which
+          * reads as the account having failed to be made. The link in the mail
+          * is what carries a session, and it is the only thing that can.
+          */}
       </div>
     );
   }
@@ -174,14 +181,20 @@ export function SignUpForm() {
         Next you&rsquo;ll answer four short questions about your place — about a minute.
       </p>
 
-      <div className="entry-divider"><span className="entry-divider-label">or</span></div>
-
-      <button type="button" className="btn entry-action" onClick={() => { if (email !== '') setSent(email); }}>
-        Email me a sign-in link instead
-      </button>
-      <p className="entry-foot">
-        No password to invent or remember. Good if you&rsquo;ll be signing in on a kitchen tablet.
-      </p>
+      {/*
+        * A31 offers a sign-in link here as well, and it is not offered yet.
+        *
+        * What stood here called `setSent(email)` and nothing else — no server
+        * call at all — and dropped the visitor on "Your account exists. Now
+        * open the email." No account existed and no email had been sent. The
+        * next screen then offered "Send it again", which ran a countdown in
+        * the browser and sent nothing, and a button to the four questions,
+        * which the proxy bounced to /sign-in because there was no session.
+        * A person following that path could not tell any of it, and waited.
+        *
+        * It comes back with a domain and a mail provider, as a real
+        * `signInWithOtp`.
+        */}
 
       <p className="entry-foot">
         Already have an account? <Link href="/sign-in" className="link link-sm">Sign in</Link>

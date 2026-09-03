@@ -38,7 +38,13 @@ export async function raiseFlag(input: {
 
   const supabase = await supabaseServer();
   const { data: auth } = await supabase.auth.getUser();
-  const me = b.members.find((m) => m.email === auth.user?.email);
+  /*
+   * By id, which is what identity is. Matching on email worked only because
+   * `book()` fills that field in for the caller alone and leaves every other
+   * member's blank — so an operator whose own email had not been read back
+   * yet matched the first member with an empty address instead of themselves.
+   */
+  const me = b.members.find((m) => m.id === b.userId);
 
   const { error } = await supabase.from('flags').insert({
     org_id: b.orgId,

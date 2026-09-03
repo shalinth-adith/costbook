@@ -41,7 +41,15 @@ export async function createAccount(email: string, password: string): Promise<Si
     };
   }
 
-  if (!supabaseConfigured()) return { kind: 'sent', email };
+  /*
+   * No project wired up: the in-memory book has one operator and this is them.
+   *
+   * It used to return `sent`, which put "We've sent a link to <address>" in
+   * front of somebody when nothing had been sent and no account had been made.
+   * There is nowhere for a link to arrive from in this path — there is no mail
+   * provider and no row. The four questions are the honest next screen.
+   */
+  if (!supabaseConfigured()) redirect(await afterSignIn(null));
 
   const supabase = await supabaseServer();
   const { data, error } = await supabase.auth.signUp({ email, password });
@@ -58,7 +66,32 @@ export async function createAccount(email: string, password: string): Promise<Si
   // but it says so by asking, not by knowing.
   if (data.session !== null) redirect(await afterSignIn(null));
 
+  /*
+   * No session means the project has email confirmation switched on, which it
+   * is not today. Reaching this line therefore means somebody turned it on in
+   * the Supabase dashboard — and that they could only have done so with a mail
+   * provider configured, so the link the next screen describes is real.
+   */
   return { kind: 'sent', email };
+}
+
+/**
+ * Send the confirmation mail again.
+ *
+ * Only reachable from the screen above, which is only reachable when the
+ * project requires confirmation — so there is a provider behind this. It used
+ * to be a `setInterval` in the browser that counted down from 45 and sent
+ * nothing at all, which meant the one button on that screen for somebody whose
+ * mail had not arrived did nothing but look busy.
+ */
+export async function resendSignUp(
+  email: string,
+): Promise<{ readonly ok: boolean; readonly message?: string }> {
+  if (!supabaseConfigured()) return { ok: false, message: 'No mail is configured.' };
+  const supabase = await supabaseServer();
+  const { error } = await supabase.auth.resend({ type: 'signup', email });
+  if (error !== null) return { ok: false, message: error.message };
+  return { ok: true };
 }
 
 /** Sign out. The book stays; the session does not. */
