@@ -11,6 +11,8 @@ import { STALE_AFTER_DAYS } from "@/core/ingredient";
 import { recent } from "@/lib/recent";
 import { spread } from "@/lib/spread";
 import { pilesOf } from "@/lib/profit";
+import { todo } from "@/lib/todo";
+import { usageOf } from "@/lib/usage";
 
 /**
  * Home. What moved, and what it moved.
@@ -92,6 +94,25 @@ export default async function DashboardPage() {
     .sort((a, c) => c.days - a.days)
     .slice(0, STALE_SHOWN);
 
+  /*
+   * The ingredients that matter most, by how many dishes each reaches.
+   *
+   * The owner's negotiating list. Ghee in thirty-four dishes is a conversation
+   * with the supplier; hing in one chutney is not. The same count is what
+   * decides which missing rate to ask about first, so it is computed once
+   * and shown as its own thing too.
+   */
+  const usage = usageOf(b.recipes);
+  const topUsed = b.ingredients
+    .map((i) => ({ ingredient: i, usedIn: usage.get(i.id) ?? 0 }))
+    .filter((u) => u.usedIn > 0)
+    .sort(
+      (a, c) =>
+        c.usedIn - a.usedIn ||
+        a.ingredient.name.localeCompare(c.ingredient.name),
+    )
+    .slice(0, 6);
+
   /**
    * A42 — where "start with one dish" lands.
    *
@@ -125,6 +146,16 @@ export default async function DashboardPage() {
           stats={data.stats}
           piles={pilesOf(data.rows, model.foodCostTarget)}
           median={spread(data.rows, model.foodCostTarget).median}
+          actions={todo({
+            rows: data.rows,
+            recipes: b.recipes,
+            ingredients: b.ingredients,
+            history: b.history,
+            model,
+            staleAfterDays: staleAfter,
+            today,
+          })}
+          topUsed={topUsed}
           stale={stale}
           staleAfterDays={staleAfter}
           target={model.foodCostTarget}

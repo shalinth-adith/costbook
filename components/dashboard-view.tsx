@@ -14,6 +14,8 @@ import {
   type Standing,
   missingSaid,
 } from "@/lib/profit";
+import type { Action } from "@/lib/todo";
+import type { Ingredient } from "@/core/ingredient";
 
 import { DashboardEmpty } from "./dashboard-empty";
 import { DashboardFirst } from "./dashboard-first";
@@ -165,6 +167,81 @@ function Row({ standing, sym }: { standing: Standing; sym: string }) {
   );
 }
 
+/**
+ * One thing to do, as a sentence with its fix.
+ *
+ * Every kind names the dish or ingredient in bold, says the figure that makes
+ * it a problem, and says what would fix it — because the owner reading this
+ * is going to do one of them next, and "Koottu is thin" is not something you
+ * can do.
+ */
+function Todo({ action, sym }: { action: Action; sym: string }) {
+  const m = useMoney();
+  switch (action.kind) {
+    case "raise_price":
+      return (
+        <Link href={`/recipes/${action.row.id}`} className={`td-row ${action.losing ? "ink-over" : "ink-near"}`}>
+          <span className="td-mark" aria-hidden="true" />
+          <span className="td-said">
+            <b>{action.losing ? `${action.row.name} is sold at a loss` : `Raise ${action.row.name}`}</b>
+            {" — "}
+            {action.losing ? "it costs more to make than it sells for. " : ""}
+            {m.withSymbol(action.from)} → <b className="figure">{m.withSymbol(action.to)}</b>
+            {" takes it from keeping "}
+            <span className="figure">{sym}{Math.round(action.keepsNow)}</span>
+            {" to "}
+            <span className="figure">{sym}{Math.round(action.keepsAfter)}</span>
+            {" of every "}{sym}100.
+          </span>
+          <span className="td-go" aria-hidden="true">→</span>
+        </Link>
+      );
+    case "price_ingredient":
+      return (
+        <Link href="/ingredients" className="td-row ink-quiet">
+          <span className="td-mark" aria-hidden="true" />
+          <span className="td-said">
+            <b>Give {action.ingredient.name} a price</b>
+            {" — it is in "}
+            <span className="figure">{action.usedIn}</span>
+            {action.usedIn === 1 ? " dish" : " dishes"} and none of them can be worked out until it has one.
+          </span>
+          <span className="td-go" aria-hidden="true">→</span>
+        </Link>
+      );
+    case "check_portions":
+      return (
+        <Link href={`/recipes/${action.row.id}`} className="td-row ink-near">
+          <span className="td-mark" aria-hidden="true" />
+          <span className="td-said">
+            <b>Check the portion count on {action.row.name}</b>
+            {" — "}
+            <span className="figure">{m.withSymbol(action.costPerPortion)}</span>
+            {" a plate is "}
+            <span className="figure">{Math.round(action.times)}×</span>
+            {" your typical dish. That is usually a whole batch costed as one serving."}
+          </span>
+          <span className="td-go" aria-hidden="true">→</span>
+        </Link>
+      );
+    case "refresh_rate":
+      return (
+        <Link href="/ingredients" className="td-row ink-quiet">
+          <span className="td-mark" aria-hidden="true" />
+          <span className="td-said">
+            <b>Check what you pay for {action.ingredient.name}</b>
+            {" — last confirmed "}
+            <span className="figure">{action.days}</span>
+            {" days ago, and it is in "}
+            <span className="figure">{action.usedIn}</span>
+            {action.usedIn === 1 ? " dish." : " dishes."}
+          </span>
+          <span className="td-go" aria-hidden="true">→</span>
+        </Link>
+      );
+  }
+}
+
 export interface StaleRate {
   readonly id: string;
   readonly name: string;
@@ -177,6 +254,8 @@ export function DashboardView({
   stats,
   piles,
   median,
+  actions,
+  topUsed,
   stale,
   staleAfterDays,
   target,
@@ -188,6 +267,10 @@ export function DashboardView({
   stats: DashboardStats;
   piles: Piles;
   median: number | null;
+  /** What to do today, ranked. Empty is the answer you want. */
+  actions: readonly Action[];
+  /** The ingredients reaching the most dishes — the negotiating list. */
+  topUsed: readonly { readonly ingredient: Ingredient; readonly usedIn: number }[];
   stale: readonly StaleRate[];
   staleAfterDays: number;
   target: number;
@@ -370,6 +453,64 @@ export function DashboardView({
         ))}
       </ul>
 
+      {/* ── do this today ─────────────────────────────────────────── */}
+
+      <section className="td">
+        <div className="td-head">
+          <h2 className="dash-h">Do this today</h2>
+          {actions.length > 0 && (
+            <span className="td-count figure">{actions.length}</span>
+          )}
+        </div>
+        {actions.length === 0 ? (
+          <p className="td-empty">
+            Nothing needs you. Every costed dish is earning what you planned, nothing
+            is waiting on a price, and no rate has gone stale. Go and cook.
+          </p>
+        ) : (
+          <div className="td-list">
+            {actions.map((a, i) => (
+              <div key={`${a.kind}-${String(i)}`} className="td-item" style={{ animationDelay: `${String(300 + i * 70)}ms` }}>
+                <Todo action={a} sym={sym} />
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ── best and weakest, by name ─────────────────────────────── */}
+
+      {(piles.earning.length > 0 || piles.thin.length > 0 || piles.losing.length > 0) && (
+        <div className="bw">
+          <section className="bw-col">
+            <h3 className="bw-h ink-on">Your best earners</h3>
+            {piles.earning.slice(0, 3).map((s) => (
+              <Link key={s.row.id} href={`/recipes/${s.row.id}`} className="bw-row">
+                <span className="bw-name">{s.row.name}</span>
+                <span className="bw-keeps figure ink-on">
+                  keeps {sym}{Math.round(s.keeps ?? 0)}
+                </span>
+              </Link>
+            ))}
+            {piles.earning.length === 0 && <p className="bw-none">None yet.</p>}
+          </section>
+          <section className="bw-col">
+            <h3 className="bw-h ink-over">Earning you the least</h3>
+            {[...piles.losing, ...piles.thin].slice(0, 3).map((s) => (
+              <Link key={s.row.id} href={`/recipes/${s.row.id}`} className="bw-row">
+                <span className="bw-name">{s.row.name}</span>
+                <span className={`bw-keeps figure ${s.pile === "losing" ? "ink-over" : "ink-near"}`}>
+                  {s.pile === "losing" ? "at a loss" : `keeps ${sym}${String(Math.round(s.keeps ?? 0))}`}
+                </span>
+              </Link>
+            ))}
+            {piles.losing.length + piles.thin.length === 0 && (
+              <p className="bw-none">Every costed dish hits your target.</p>
+            )}
+          </section>
+        </div>
+      )}
+
       {/* ── the counts, each one a door ───────────────────────────── */}
 
       <div className="dc">
@@ -473,6 +614,31 @@ export function DashboardView({
           </div>
         )}
       </Sheet>
+
+      {/* ── the ingredients that matter most ──────────────────────── */}
+
+      {topUsed.length > 0 && (
+        <section className="dash-block">
+          <h2 className="dash-h">Ingredients that matter most</h2>
+          <p className="dash-lede">
+            By how many dishes each one reaches, counting through your batches. These are
+            the prices worth arguing over with a supplier, and the ones to keep current.
+          </p>
+          <ul className="iu">
+            {topUsed.map((u) => (
+              <li key={u.ingredient.id} className={`iu-item${u.ingredient.purchasePrice === null ? " is-unpriced" : ""}`}>
+                <span className="iu-name">{u.ingredient.name}</span>
+                <span className="iu-count figure">{u.usedIn} {u.usedIn === 1 ? "dish" : "dishes"}</span>
+                <span className="iu-rate figure">
+                  {u.ingredient.purchasePrice === null
+                    ? "no price yet"
+                    : `${m.withSymbol(u.ingredient.purchasePrice)} / ${u.ingredient.purchaseUnit}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* ── what changed ──────────────────────────────────────────── */}
 

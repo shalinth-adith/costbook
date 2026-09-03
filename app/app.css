@@ -3278,3 +3278,90 @@
   .dc-bar-fill { animation: none; }
   .dc-card.is-door:hover { transform: none; box-shadow: none; }
 }
+
+/* ── do this today ─────────────────────────────────────────────────── */
+
+/* The list the whole page exists for. Everything above it is state; this is
+   what to do about it, each line a sentence with its fix, ranked by what it
+   is costing right now. */
+
+.td { padding: 0 var(--sp-6) var(--sp-5); max-width: 1240px; }
+.td-head { display: flex; align-items: baseline; gap: 10px; margin-block-end: var(--sp-3); }
+.td-count {
+  font-size: 12px; font-weight: 600; min-width: 22px; text-align: center;
+  background: var(--surface-inverse); color: var(--text-on-inverse);
+  border-radius: 999px; padding: 2px 7px;
+}
+.td-empty {
+  margin: 0; font-size: 14px; color: var(--on-ink-strong);
+  background: var(--on-tint); border: 1px solid var(--on-edge);
+  border-radius: var(--radius-field); padding: 14px 16px; max-width: 70ch;
+}
+.td-list {
+  background: var(--surface-card); border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-field); overflow: hidden;
+}
+.td-item { animation: dc-arrive 460ms var(--ease-enter) both; }
+.td-row {
+  display: grid; grid-template-columns: 4px minmax(0, 1fr) 20px;
+  gap: 14px; align-items: center;
+  padding: 13px 16px 13px 14px;
+  border-block-end: 1px solid var(--border-row);
+  color: inherit; text-decoration: none; font-size: 14px; line-height: 1.5;
+  transition: background var(--dur-micro) var(--ease-enter);
+}
+.td-item:last-child .td-row { border-block-end: 0; }
+.td-row:hover { background: var(--surface-sunken); }
+.td-mark { align-self: stretch; border-radius: 2px; background: var(--border-control); }
+.td-row.ink-over .td-mark { background: var(--over-ink); }
+.td-row.ink-near .td-mark { background: var(--near-ink); }
+.td-said b { font-weight: 600; }
+.td-go { color: var(--text-quiet); transition: transform var(--dur-micro) var(--ease-enter); }
+.td-row:hover .td-go { color: var(--text-primary); transform: translateX(2px); }
+
+/* ── best and weakest ──────────────────────────────────────────────── */
+
+.bw {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--sp-3); margin: 0 var(--sp-6) var(--sp-5); max-width: 1240px;
+}
+.bw-col {
+  background: var(--surface-card); border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-field); padding: var(--sp-3) var(--sp-4);
+}
+.bw-h {
+  margin: 0 0 6px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  font-weight: 700;
+}
+.bw-h.ink-on { color: var(--on-ink-strong); }
+.bw-h.ink-over { color: var(--over-ink-strong); }
+.bw-row {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  padding: 8px 0; border-block-end: 1px solid var(--border-row);
+  color: inherit; text-decoration: none; font-size: 14px;
+}
+.bw-row:last-of-type { border-block-end: 0; }
+.bw-row:hover .bw-name { text-decoration: underline; text-underline-offset: 2px; }
+.bw-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bw-keeps { font-weight: 600; white-space: nowrap; }
+.bw-none { margin: 6px 0 0; font-size: 13px; color: var(--text-tertiary); }
+
+/* ── ingredients that matter most ──────────────────────────────────── */
+
+.iu { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.iu-item {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px;
+  background: var(--surface-card); border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-field); padding: 10px 14px; font-size: 13px;
+}
+.iu-item.is-unpriced { border-color: var(--near-edge); background: var(--near-tint); }
+.iu-name { font-weight: 600; grid-column: 1; }
+.iu-count { grid-column: 2; grid-row: 1; color: var(--text-secondary); white-space: nowrap; }
+.iu-rate { grid-column: 1 / -1; font-size: 12px; color: var(--text-tertiary); }
+.iu-item.is-unpriced .iu-rate { color: var(--near-ink-strong); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  .td-item { animation: none; }
+  .td-go { transition: none; }
+}
