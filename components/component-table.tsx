@@ -50,6 +50,7 @@ export function ComponentTable({
       <div className="ctable-head">
         <span />
         <span>Component</span>
+        <span>Share of batch</span>
         <span className="end">Qty</span>
         <span>Unit</span>
         <span className="end">Rate / unit</span>
@@ -65,11 +66,39 @@ export function ComponentTable({
             : line.scope === 'portion'
               ? line.cost * (handlers.portions ?? 1)
               : line.cost;
+        /*
+         * This line's share of the batch, as a bar.
+         *
+         * The name column used to swallow every pixel the numbers did not
+         * need — at 2000px that was a thousand of them, empty. A bar in that
+         * space is the one thing a cook reads faster than the figures: which
+         * three lines are the cost of this dish. Nineteen rows is a trivial
+         * sum, so it is computed here rather than threaded through as a prop.
+         */
+        const batchTotal = lines.reduce(
+          (sum, l) =>
+            sum + (l.cost === null ? 0 : l.scope === 'portion' ? l.cost * (handlers.portions ?? 1) : l.cost),
+          0,
+        );
+        const share = batchTotal > 0 && inBatch !== null ? Math.min(100, (inBatch / batchTotal) * 100) : 0;
+        /*
+         * The bar is drawn against the dearest line, not the batch: nineteen
+         * lines of two to four per cent each are slivers against a batch, and
+         * a chart of slivers says nothing. Against the largest line the shape
+         * is readable — and the honest figure, the share of the batch, is
+         * written beside it so the bar never has to be.
+         */
+        const maxLine = lines.reduce((mx, l) => {
+          const v = l.cost === null ? 0 : l.scope === 'portion' ? l.cost * (handlers.portions ?? 1) : l.cost;
+          return v > mx ? v : mx;
+        }, 0);
+        const bar = maxLine > 0 && inBatch !== null ? (inBatch / maxLine) * 100 : 0;
 
         return (
           <div key={`${line.name}-${i}`}>
             <div
               className={`ctable-row${line.cost === null ? ' is-missing' : ''}${isOpen ? ' is-open' : ''}`}
+              style={{ '--i': i } as React.CSSProperties}
               role="button"
               tabIndex={0}
               aria-expanded={isOpen}
@@ -101,6 +130,16 @@ export function ComponentTable({
                     ) : null}
                   </span>
                 )}
+              </span>
+
+              <span className="ctable-share" aria-hidden="true">
+                <span className="ctable-share-track">
+                  <span
+                    className={`ctable-share-fill${line.cost === null ? ' is-missing' : ''}`}
+                    style={{ width: `${String(bar)}%` }}
+                  />
+                </span>
+                <span className="figure ctable-share-pct">{share >= 0.5 ? `${String(Math.round(share))}%` : ''}</span>
               </span>
 
               <span className="ctable-qty-cell">

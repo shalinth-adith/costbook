@@ -300,8 +300,13 @@ export function CostRail({
         </section>
       )}
 
-      {actions}
-
+      {/* Fixed to the viewport, full width, under both columns. It used to
+          sit at the bottom of this sticky rail and land on top of whatever
+          followed — the delivery-channel card, for weeks. A fixed bar cannot
+          overlap flow content; the grid reserves its height instead. */}
+      <div className="sheet-footer">
+        <div className="sheet-footer-inner">{actions}</div>
+      </div>
     </aside>
   );
 }
