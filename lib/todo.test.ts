@@ -2,9 +2,9 @@
  * What to do today.
  *
  * An owner following this list acts on the order, so the order is the thing
- * under test. A loss before a thin margin; the ingredient in thirty dishes
- * before the one in one; a figure eight times the median flagged and one
- * three times it left alone.
+ * under test. A loss before a thin margin; the ingredients as one job, led by
+ * the one in the most dishes; a figure eight times the median flagged and one
+ * three times it left alone; a rate a thousand times its neighbours caught.
  */
 
 import { describe, expect, it } from "vitest";
@@ -45,12 +45,12 @@ const row = (
     barOver: 0,
   }) as DashboardRow;
 
-const ing = (id: string, price: number | null): Ingredient =>
+const ing = (id: string, price: number | null, qty = 1000): Ingredient =>
   ({
     id,
     name: id,
     family: "mass",
-    purchaseQty: 1000,
+    purchaseQty: qty,
     purchasePrice: price,
     purchaseUnit: "kg",
     yieldPercent: 100,
@@ -89,9 +89,8 @@ const base = {
 
 describe("raising a price", () => {
   it("names the price that hits the target", () => {
-    // Koottu costs 0.77 and sells at 2.29, keeping 66 against 70 planned.
-    // At a 30% target the price that fixes it is 0.77 / 0.30 = 2.5667.
-    const [a] = todo({ ...base, rows: [row("Koottu", 0.77, 2.29, 33.6)] });
+    const { actions } = todo({ ...base, rows: [row("Koottu", 0.77, 2.29, 33.6)] });
+    const [a] = actions;
     expect(a?.kind).toBe("raise_price");
     if (a?.kind !== "raise_price") return;
     expect(a.from).toBe(2.29);
@@ -103,64 +102,55 @@ describe("raising a price", () => {
   });
 
   it("puts a loss ahead of a thin margin", () => {
-    // Every plate of the loss is money out of the door. It goes first even
-    // though the thin dish sorted earlier alphabetically.
-    const list = todo({
+    const { actions } = todo({
       ...base,
       rows: [row("Aloo", 0.77, 2.29, 33.6), row("Mispriced", 5, 2, 250)],
     });
-    expect(list[0]?.kind).toBe("raise_price");
-    if (list[0]?.kind !== "raise_price") return;
-    expect(list[0].row.name).toBe("Mispriced");
-    expect(list[0].losing).toBe(true);
+    expect(actions[0]?.kind).toBe("raise_price");
+    if (actions[0]?.kind !== "raise_price") return;
+    expect(actions[0].row.name).toBe("Mispriced");
+    expect(actions[0].losing).toBe(true);
   });
 
   it("says nothing about a dish already earning what was planned", () => {
-    expect(todo({ ...base, rows: [row("Idly", 0.21, 0.96, 22)] })).toEqual([]);
+    expect(todo({ ...base, rows: [row("Idly", 0.21, 0.96, 22)] }).actions).toEqual([]);
   });
 
   it("never asks about a dish nobody has costed", () => {
-    // suggestPrice on a floor is advice to lose money. The unpriced pile
-    // stays out of this list entirely.
-    const list = todo({
-      ...base,
-      rows: [row("No rate", null, 4, null, "no_rate")],
-    });
-    expect(list.some((a) => a.kind === "raise_price")).toBe(false);
+    const { actions } = todo({ ...base, rows: [row("No rate", null, 4, null, "no_rate")] });
+    expect(actions.some((a) => a.kind === "raise_price")).toBe(false);
   });
 });
 
-describe("pricing an ingredient", () => {
-  it("asks for the one holding up the most dishes first", () => {
-    const list = todo({
+describe("pricing the ingredients", () => {
+  it("is one job, led by the ingredient holding up the most dishes", () => {
+    const { actions } = todo({
       ...base,
-      rows: [],
-      recipes: [
-        recipe("a", ["ghee", "salt"]),
-        recipe("b", ["ghee"]),
-        recipe("c", ["ghee"]),
-      ],
+      recipes: [recipe("a", ["ghee", "salt"]), recipe("b", ["ghee"]), recipe("c", ["ghee"])],
       ingredients: [ing("salt", null), ing("ghee", null)],
     });
-    expect(list[0]?.kind).toBe("price_ingredient");
-    if (list[0]?.kind !== "price_ingredient") return;
-    expect(list[0].ingredient.id).toBe("ghee");
-    expect(list[0].usedIn).toBe(3);
+    expect(actions.filter((a) => a.kind === "price_ingredients")).toHaveLength(1);
+    const a = actions[0];
+    if (a?.kind !== "price_ingredients") return;
+    expect(a.count).toBe(2);
+    expect(a.first.id).toBe("ghee");
+    expect(a.firstUsedIn).toBe(3);
+  });
+
+  it("says water is probably free rather than asking for its price", () => {
+    const { actions } = todo({
+      ...base,
+      recipes: [recipe("a", ["water", "ghee"])],
+      ingredients: [ing("water", null), ing("ghee", null)],
+    });
+    const a = actions[0];
+    if (a?.kind !== "price_ingredients") return;
+    expect(a.probablyFree).toEqual(["water"]);
+    expect(a.first.id).toBe("ghee");
   });
 
   it("leaves out an unpriced ingredient nothing uses", () => {
-    // It holds up nothing. Asking about it is asking about the wrong thing.
-    const list = todo({ ...base, ingredients: [ing("orphan", null)] });
-    expect(list).toEqual([]);
-  });
-
-  it("does not ask about an ingredient that already has a rate", () => {
-    const list = todo({
-      ...base,
-      recipes: [recipe("a", ["ghee"])],
-      ingredients: [ing("ghee", 500)],
-    });
-    expect(list.some((a) => a.kind === "price_ingredient")).toBe(false);
+    expect(todo({ ...base, ingredients: [ing("orphan", null)] }).actions).toEqual([]);
   });
 });
 
@@ -173,16 +163,8 @@ describe("a figure that cannot be right", () => {
   ];
 
   it("flags a cost per portion many times the menu's median", () => {
-    /*
-     * Butter cookies on the live book: 1,729 a portion on a menu whose middle
-     * dish costs half a dirham. A batch of cookies costed as one cookie. It
-     * passes every validation — a positive number in a numeric field.
-     */
-    const list = todo({
-      ...base,
-      rows: [...menu, row("Butter cookies", 1729, 5, 25)],
-    });
-    const flag = list.find((a) => a.kind === "check_portions");
+    const { actions } = todo({ ...base, rows: [...menu, row("Butter cookies", 1729, 5000, 25)] });
+    const flag = actions.find((a) => a.kind === "check_portions");
     expect(flag).toBeDefined();
     if (flag?.kind !== "check_portions") return;
     expect(flag.row.name).toBe("Butter cookies");
@@ -190,73 +172,63 @@ describe("a figure that cannot be right", () => {
   });
 
   it("leaves an expensive dish alone", () => {
-    // A biryani at three times the median is a biryani. Eight is the line.
-    const list = todo({
+    const { actions } = todo({ ...base, rows: [...menu, row("Biryani", 1.6, 6.4, 25)] });
+    expect(actions.some((a) => a.kind === "check_portions")).toBe(false);
+  });
+
+  it("flags a rate a thousand times its neighbours", () => {
+    const { actions } = todo({
       ...base,
-      rows: [...menu, row("Biryani", 1.6, 6.4, 25)],
+      recipes: [recipe("a", ["maida", "rice", "dal", "salt"])],
+      ingredients: [ing("rice", 3), ing("dal", 8), ing("salt", 1), ing("maida", 1800)],
     });
-    expect(list.some((a) => a.kind === "check_portions")).toBe(false);
+    const flag = actions.find((a) => a.kind === "check_rate");
+    expect(flag).toBeDefined();
+    if (flag?.kind !== "check_rate") return;
+    expect(flag.ingredient.id).toBe("maida");
+    expect(flag.times).toBeGreaterThan(100);
+  });
+
+  it("leaves saffron alone", () => {
+    const { actions } = todo({
+      ...base,
+      recipes: [recipe("a", ["saffron", "rice", "dal", "salt"])],
+      ingredients: [ing("rice", 3), ing("dal", 8), ing("salt", 1), ing("saffron", 100)],
+    });
+    expect(actions.some((a) => a.kind === "check_rate")).toBe(false);
   });
 });
 
 describe("a rate gone stale", () => {
   it("asks about the most-used one first", () => {
-    const list = todo({
+    const { actions } = todo({
       ...base,
       recipes: [recipe("a", ["ghee", "hing"]), recipe("b", ["ghee"])],
       ingredients: [ing("hing", 100), ing("ghee", 500)],
       history: {
-        hing: [
-          {
-            from: null,
-            to: 100,
-            qty: 1000,
-            on: "2026-01-01",
-            source: "manual",
-          },
-        ],
-        ghee: [
-          {
-            from: null,
-            to: 500,
-            qty: 1000,
-            on: "2026-02-01",
-            source: "manual",
-          },
-        ],
+        hing: [{ from: null, to: 100, qty: 1000, on: "2026-01-01", source: "manual" }],
+        ghee: [{ from: null, to: 500, qty: 1000, on: "2026-02-01", source: "manual" }],
       },
     });
-    expect(list[0]?.kind).toBe("refresh_rate");
-    if (list[0]?.kind !== "refresh_rate") return;
-    // Ghee is fresher but in more dishes. Usage wins.
-    expect(list[0].ingredient.id).toBe("ghee");
-    expect(list[0].usedIn).toBe(2);
+    expect(actions[0]?.kind).toBe("refresh_rate");
+    if (actions[0]?.kind !== "refresh_rate") return;
+    expect(actions[0].ingredient.id).toBe("ghee");
   });
 
   it("does not nag about a rate inside the threshold", () => {
-    const list = todo({
+    const { actions } = todo({
       ...base,
       recipes: [recipe("a", ["ghee"])],
       ingredients: [ing("ghee", 500)],
-      history: {
-        ghee: [
-          {
-            from: null,
-            to: 500,
-            qty: 1000,
-            on: "2026-08-20",
-            source: "manual",
-          },
-        ],
-      },
+      history: { ghee: [{ from: null, to: 500, qty: 1000, on: "2026-08-20", source: "manual" }] },
     });
-    expect(list).toEqual([]);
+    expect(actions).toEqual([]);
   });
 });
 
 describe("the list as a whole", () => {
-  it("keeps the order: losses, thin, unpriced, outliers, stale", () => {
-    const list = todo({
+  it("keeps the order: losses, thin, ingredients, outliers, stale", () => {
+    const { actions } = todo({
       ...base,
       rows: [
         row("Idly", 0.5, 2, 25),
@@ -267,35 +239,27 @@ describe("the list as a whole", () => {
       ],
       recipes: [recipe("a", ["ghee"]), recipe("b", ["hing"])],
       ingredients: [ing("ghee", null), ing("hing", 100)],
-      history: {
-        hing: [
-          {
-            from: null,
-            to: 100,
-            qty: 1000,
-            on: "2026-01-01",
-            source: "manual",
-          },
-        ],
-      },
+      history: { hing: [{ from: null, to: 100, qty: 1000, on: "2026-01-01", source: "manual" }] },
     });
-    expect(list.map((a) => a.kind)).toEqual([
+    expect(actions.map((a) => a.kind)).toEqual([
       "raise_price",
       "raise_price",
-      "price_ingredient",
+      "price_ingredients",
       "check_portions",
       "refresh_rate",
     ]);
   });
 
-  it("stops at six, because a list of sixty is a backlog", () => {
-    const rows = Array.from({ length: 20 }, (_, i) =>
-      row(`T${String(i)}`, 0.77, 2.29, 33.6),
-    );
-    expect(todo({ ...base, rows })).toHaveLength(6);
+  it("caps the list at six but reports the true total", () => {
+    const rows = Array.from({ length: 20 }, (_, i) => row(`T${String(i)}`, 0.77, 2.29, 33.6));
+    const t = todo({ ...base, rows });
+    expect(t.actions).toHaveLength(6);
+    expect(t.total).toBe(20);
   });
 
   it("is empty when there is nothing to do, which is the answer you want", () => {
-    expect(todo({ ...base, rows: [row("Idly", 0.21, 0.96, 22)] })).toEqual([]);
+    const t = todo({ ...base, rows: [row("Idly", 0.21, 0.96, 22)] });
+    expect(t.actions).toEqual([]);
+    expect(t.total).toBe(0);
   });
 });

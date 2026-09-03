@@ -19,10 +19,12 @@ export function CountUp({
   to,
   duration = 620,
   prefix = "",
+  suffix = "",
 }: {
   to: number;
   duration?: number;
   prefix?: string;
+  suffix?: string;
 }) {
   const [shown, setShown] = useState(to);
 
@@ -69,6 +71,7 @@ export function CountUp({
     <>
       {prefix}
       {shown}
+      {suffix}
     </>
   );
 }

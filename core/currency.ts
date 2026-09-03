@@ -36,12 +36,15 @@ export interface Currency {
  */
 export const CURRENCIES: readonly Currency[] = [
   { code: 'INR', symbol: '₹', name: 'Indian rupee', position: 'prefix', decimals: 2, locale: 'en-IN' },
-  { code: 'AED', symbol: 'AED', name: 'UAE dirham', position: 'suffix', decimals: 2, locale: 'en-AE' },
-  { code: 'SAR', symbol: 'SAR', name: 'Saudi riyal', position: 'suffix', decimals: 2, locale: 'en-SA' },
-  { code: 'QAR', symbol: 'QAR', name: 'Qatari riyal', position: 'suffix', decimals: 2, locale: 'en-QA' },
-  { code: 'OMR', symbol: 'OMR', name: 'Omani rial', position: 'suffix', decimals: 3, locale: 'en-OM' },
-  { code: 'BHD', symbol: 'BHD', name: 'Bahraini dinar', position: 'suffix', decimals: 3, locale: 'en-BH' },
-  { code: 'KWD', symbol: 'KWD', name: 'Kuwaiti dinar', position: 'suffix', decimals: 3, locale: 'en-KW' },
+  // The Gulf codes sit before the figure with a space — "AED 83" — which is
+  // how a price is written on a menu in Dubai or Riyadh. They were suffix,
+  // which printed "83 AED" and is how nobody there writes it.
+  { code: 'AED', symbol: 'AED', name: 'UAE dirham', position: 'prefix', decimals: 2, locale: 'en-AE' },
+  { code: 'SAR', symbol: 'SAR', name: 'Saudi riyal', position: 'prefix', decimals: 2, locale: 'en-SA' },
+  { code: 'QAR', symbol: 'QAR', name: 'Qatari riyal', position: 'prefix', decimals: 2, locale: 'en-QA' },
+  { code: 'OMR', symbol: 'OMR', name: 'Omani rial', position: 'prefix', decimals: 3, locale: 'en-OM' },
+  { code: 'BHD', symbol: 'BHD', name: 'Bahraini dinar', position: 'prefix', decimals: 3, locale: 'en-BH' },
+  { code: 'KWD', symbol: 'KWD', name: 'Kuwaiti dinar', position: 'prefix', decimals: 3, locale: 'en-KW' },
   { code: 'USD', symbol: '$', name: 'US dollar', position: 'prefix', decimals: 2, locale: 'en-US' },
   { code: 'EUR', symbol: '€', name: 'Euro', position: 'prefix', decimals: 2, locale: 'en-IE' },
   { code: 'GBP', symbol: '£', name: 'Pound sterling', position: 'prefix', decimals: 2, locale: 'en-GB' },

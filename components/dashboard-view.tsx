@@ -14,7 +14,7 @@ import {
   type Standing,
   missingSaid,
 } from "@/lib/profit";
-import type { Action } from "@/lib/todo";
+import type { Action, Todo as TodoList } from "@/lib/todo";
 import type { Ingredient } from "@/core/ingredient";
 
 import { DashboardEmpty } from "./dashboard-empty";
@@ -136,7 +136,13 @@ const PILES: readonly {
   },
 ];
 
-function Row({ standing, sym }: { standing: Standing; sym: string }) {
+function Row({
+  standing,
+  whole,
+}: {
+  standing: Standing;
+  whole: (n: number) => string;
+}) {
   const m = useMoney();
   const { row } = standing;
   return (
@@ -161,7 +167,7 @@ function Row({ standing, sym }: { standing: Standing; sym: string }) {
       <span className="pl-keeps figure">
         {standing.keeps === null
           ? DASH
-          : `${sym}${String(Math.round(standing.keeps))}`}
+          : whole(Math.round(standing.keeps))}
       </span>
     </Link>
   );
@@ -175,7 +181,13 @@ function Row({ standing, sym }: { standing: Standing; sym: string }) {
  * is going to do one of them next, and "Koottu is thin" is not something you
  * can do.
  */
-function Todo({ action, sym }: { action: Action; sym: string }) {
+function Todo({
+  action,
+  whole,
+}: {
+  action: Action;
+  whole: (n: number) => string;
+}) {
   const m = useMoney();
   switch (action.kind) {
     case "raise_price":
@@ -188,23 +200,53 @@ function Todo({ action, sym }: { action: Action; sym: string }) {
             {action.losing ? "it costs more to make than it sells for. " : ""}
             {m.withSymbol(action.from)} → <b className="figure">{m.withSymbol(action.to)}</b>
             {" takes it from keeping "}
-            <span className="figure">{sym}{Math.round(action.keepsNow)}</span>
+            <span className="figure">{whole(Math.round(action.keepsNow))}</span>
             {" to "}
-            <span className="figure">{sym}{Math.round(action.keepsAfter)}</span>
-            {" of every "}{sym}100.
+            <span className="figure">{whole(Math.round(action.keepsAfter))}</span>
+            {" of every "}{whole(100)}.
           </span>
           <span className="td-go" aria-hidden="true">→</span>
         </Link>
       );
-    case "price_ingredient":
+    case "price_ingredients":
       return (
         <Link href="/ingredients" className="td-row ink-quiet">
           <span className="td-mark" aria-hidden="true" />
           <span className="td-said">
-            <b>Give {action.ingredient.name} a price</b>
-            {" — it is in "}
+            <b>
+              Give{" "}
+              {action.count === 1 ? "one ingredient" : `${String(action.count)} ingredients`}{" "}
+              a price
+            </b>
+            {" — start with "}
+            <b>{action.first.name}</b>
+            {", it is in "}
+            <span className="figure">{action.firstUsedIn}</span>
+            {action.firstUsedIn === 1 ? " dish." : " dishes."}
+            {action.probablyFree.length > 0 && (
+              <>
+                {" "}
+                {action.probablyFree.join(" and ")}{" "}
+                {action.probablyFree.length === 1 ? "is" : "are"} probably free — set{" "}
+                {action.probablyFree.length === 1 ? "it" : "them"} to 0.
+              </>
+            )}
+          </span>
+          <span className="td-go" aria-hidden="true">→</span>
+        </Link>
+      );
+    case "check_rate":
+      return (
+        <Link href="/ingredients" className="td-row ink-near">
+          <span className="td-mark" aria-hidden="true" />
+          <span className="td-said">
+            <b>Check the pack size on {action.ingredient.name}</b>
+            {" — its rate is "}
+            <span className="figure">{Math.round(action.times)}×</span>
+            {" every other ingredient's, and it is in "}
             <span className="figure">{action.usedIn}</span>
-            {action.usedIn === 1 ? " dish" : " dishes"} and none of them can be worked out until it has one.
+            {action.usedIn === 1 ? " dish." : " dishes."}
+            {" That is usually a price typed against the wrong unit."}
           </span>
           <span className="td-go" aria-hidden="true">→</span>
         </Link>
@@ -254,7 +296,7 @@ export function DashboardView({
   stats,
   piles,
   median,
-  actions,
+  todo: list,
   topUsed,
   stale,
   staleAfterDays,
@@ -267,8 +309,8 @@ export function DashboardView({
   stats: DashboardStats;
   piles: Piles;
   median: number | null;
-  /** What to do today, ranked. Empty is the answer you want. */
-  actions: readonly Action[];
+  /** What to do today, ranked, with the true total. */
+  todo: TodoList;
   /** The ingredients reaching the most dishes — the negotiating list. */
   topUsed: readonly { readonly ingredient: Ingredient; readonly usedIn: number }[];
   stale: readonly StaleRate[];
@@ -289,6 +331,18 @@ export function DashboardView({
   }
 
   const sym = m.symbol;
+  /*
+   * A whole figure in the currency, on the currency's own side of the number.
+   *
+   * The hero used to build "AED83" by hand, symbol jammed against the figure,
+   * while the rows below went through `withSymbol` and read "2.29 AED". Two
+   * spellings of one currency on one screen. Everything here goes through
+   * this now, and it follows the table in core/currency.ts — which is where
+   * the Gulf codes were corrected to sit before the figure with a space, the
+   * way a price is written on a menu in Dubai.
+   */
+  const whole = (n: number): string =>
+    m.position === "prefix" ? `${sym} ${String(n)}` : `${String(n)} ${sym}`;
   const spend = perHundred(median);
   const keep = spend === null ? null : 100 - spend;
   const wantKeep = 100 - (perHundred(target) ?? 0);
@@ -382,32 +436,30 @@ export function DashboardView({
           <div className="dh-ring-wrap">
             <Ring share={keep} target={wantKeep} ink={heroInk} />
             <span className={`dh-ring-figure figure ink-${heroInk}`}>
-              <CountUp to={keep} prefix={sym} duration={900} />
+              <CountUp
+                to={keep}
+                prefix={m.position === "prefix" ? `${sym} ` : ""}
+                suffix={m.position === "suffix" ? ` ${sym}` : ""}
+                duration={900}
+              />
             </span>
           </div>
         )}
 
         <div className="dh-copy">
-          {keep === null ? (
+          {keep === null || spend === null ? (
             <p className="dh-said">
               Nothing is costed yet, so there is no figure to show you.
             </p>
           ) : (
             <>
               <p className="dh-said">
-                <span className="dh-said-strong">
-                  {sym}
-                  {keep}
-                </span>{" "}
-                is what you keep out of every{" "}
-                <span className="figure">{sym}100</span> a guest pays you.
+                That is what you keep out of every{" "}
+                <span className="figure">{whole(100)}</span> a guest pays you.
               </p>
               <p className="dh-against">
                 You planned to keep{" "}
-                <span className="figure strong">
-                  {sym}
-                  {wantKeep}
-                </span>{" "}
+                <span className="figure strong">{whole(wantKeep)}</span>{" "}
                 — the fainter ring. So you are{" "}
                 <span
                   className={`dh-verdict ${keep >= wantKeep ? "is-good" : "is-fine"}`}
@@ -417,10 +469,7 @@ export function DashboardView({
                     : "a little behind it"}
                 </span>
                 . The other{" "}
-                <span className="figure">
-                  {sym}
-                  {spend}
-                </span>{" "}
+                <span className="figure">{whole(spend)}</span>{" "}
                 goes to your suppliers.
               </p>
               {!solid && (
@@ -458,20 +507,25 @@ export function DashboardView({
       <section className="td">
         <div className="td-head">
           <h2 className="dash-h">Do this today</h2>
-          {actions.length > 0 && (
-            <span className="td-count figure">{actions.length}</span>
+          {list.total > 0 && (
+            <span className="td-count figure">{list.total}</span>
+          )}
+          {list.total > list.actions.length && (
+            <span className="td-more">
+              showing {list.actions.length} of {list.total}
+            </span>
           )}
         </div>
-        {actions.length === 0 ? (
+        {list.actions.length === 0 ? (
           <p className="td-empty">
             Nothing needs you. Every costed dish is earning what you planned, nothing
             is waiting on a price, and no rate has gone stale. Go and cook.
           </p>
         ) : (
           <div className="td-list">
-            {actions.map((a, i) => (
+            {list.actions.map((a, i) => (
               <div key={`${a.kind}-${String(i)}`} className="td-item" style={{ animationDelay: `${String(300 + i * 70)}ms` }}>
-                <Todo action={a} sym={sym} />
+                <Todo action={a} whole={whole} />
               </div>
             ))}
           </div>
@@ -488,7 +542,7 @@ export function DashboardView({
               <Link key={s.row.id} href={`/recipes/${s.row.id}`} className="bw-row">
                 <span className="bw-name">{s.row.name}</span>
                 <span className="bw-keeps figure ink-on">
-                  keeps {sym}{Math.round(s.keeps ?? 0)}
+                  keeps {whole(Math.round(s.keeps ?? 0))}
                 </span>
               </Link>
             ))}
@@ -500,7 +554,7 @@ export function DashboardView({
               <Link key={s.row.id} href={`/recipes/${s.row.id}`} className="bw-row">
                 <span className="bw-name">{s.row.name}</span>
                 <span className={`bw-keeps figure ${s.pile === "losing" ? "ink-over" : "ink-near"}`}>
-                  {s.pile === "losing" ? "at a loss" : `keeps ${sym}${String(Math.round(s.keeps ?? 0))}`}
+                  {s.pile === "losing" ? "at a loss" : `keeps ${whole(Math.round(s.keeps ?? 0))}`}
                 </span>
               </Link>
             ))}
@@ -602,11 +656,11 @@ export function DashboardView({
                 <div className="pl-head">
                   <span>Dish</span>
                   <span />
-                  <span className="pl-head-end">kept per {sym}100</span>
+                  <span className="pl-head-end">kept per {whole(100)}</span>
                 </div>
                 <div className="pl-rows">
                   {piles[shown.key].map((s) => (
-                    <Row key={s.row.id} standing={s} sym={sym} />
+                    <Row key={s.row.id} standing={s} whole={whole} />
                   ))}
                 </div>
               </>

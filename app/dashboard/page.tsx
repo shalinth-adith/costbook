@@ -146,7 +146,7 @@ export default async function DashboardPage() {
           stats={data.stats}
           piles={pilesOf(data.rows, model.foodCostTarget)}
           median={spread(data.rows, model.foodCostTarget).median}
-          actions={todo({
+          todo={todo({
             rows: data.rows,
             recipes: b.recipes,
             ingredients: b.ingredients,

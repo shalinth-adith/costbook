@@ -5,7 +5,9 @@ import { CURRENCIES, currency, formatMoney, formatRate, isKnownCurrency } from '
 describe('showing money the way the currency does', () => {
   it('puts the symbol where that currency puts it', () => {
     expect(formatMoney(46.3, 'INR')).toBe('₹ 46.30');
-    expect(formatMoney(46.3, 'AED')).toBe('46.30 AED');
+    // Code first with a space, the way a menu in Dubai writes it. It was a
+    // suffix, which printed "46.30 AED" and is how nobody there writes it.
+    expect(formatMoney(46.3, 'AED')).toBe('AED 46.30');
     expect(formatMoney(46.3, 'GBP')).toBe('£ 46.30');
   });
 
