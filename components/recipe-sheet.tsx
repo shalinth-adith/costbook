@@ -12,6 +12,7 @@ import {
   saveAndPrice,
   saveChanges,
   saveDeliveryPrice,
+  saveDishPricing,
   saveDraft,
   setIngredientRate,
 } from '@/app/recipes/[id]/actions';
@@ -96,7 +97,12 @@ export function RecipeSheet({
   const [recipe, setRecipe] = useState<Recipe>(initialRecipe);
   const [layout, setLayout] = useState<Layout>('table');
   const [expanded, setExpanded] = useState(-1);
-  const [rounding, setRounding] = useState<PresetName>(DEFAULT_MODEL.rounding);
+  /*
+   * This dish's own rounding rule, or null to follow the account's. It used to
+   * start from Costbook's default and override the account's rule on every
+   * sheet — invisible only because the two happened to match.
+   */
+  const [rounding, setRounding] = useState<PresetName | null>(dish.pricing?.rounding ?? null);
   /**
    * This dish's own target, or null to follow the account's.
    *
@@ -104,7 +110,14 @@ export function RecipeSheet({
    * does. Null rather than a copy of the org figure, so a dish that has never
    * been given one keeps tracking the account when the account changes.
    */
-  const [dishTarget, setDishTarget] = useState<number | null>(null);
+  const [dishTarget, setDishTarget] = useState<number | null>(dish.pricing?.targetFoodCost ?? null);
+  /** Kitchen minutes one batch takes. A fact about the dish, not a setting. */
+  const [labourMinutes, setLabourMinutes] = useState<number | null>(dish.pricing?.labourMinutes ?? null);
+  /** What goes on every plate, and rent per plate, when this dish differs from the account. */
+  const [extra, setExtra] = useState<{ accompaniments: number | null; overhead: number | null }>({
+    accompaniments: dish.pricing?.accompanimentsPerPortion ?? null,
+    overhead: dish.pricing?.overheadPerPortion ?? null,
+  });
   const [dirty, setDirty] = useState(false);
   const [blocked, setBlocked] = useState<string | null>(null);
 
@@ -129,7 +142,16 @@ export function RecipeSheet({
   /** Wastage and packaging, once the operator has set them for this dish. */
   const [charges, setCharges] = useState<
     { wastagePercent: number; packagingPerPortion: number } | null
-  >(null);
+  >(
+    dish.pricing?.wastagePercent === null || dish.pricing?.wastagePercent === undefined
+      ? dish.pricing?.packagingPerPortion === null || dish.pricing?.packagingPerPortion === undefined
+        ? null
+        : { wastagePercent: orgModel.wastagePercent, packagingPerPortion: dish.pricing.packagingPerPortion }
+      : {
+          wastagePercent: dish.pricing.wastagePercent,
+          packagingPerPortion: dish.pricing.packagingPerPortion ?? orgModel.packagingPerPortion,
+        },
+  );
 
   /** What to put back if the toast's Undo is pressed. */
   const [undoTo, setUndoTo] = useState<Recipe | null>(null);
@@ -140,8 +162,16 @@ export function RecipeSheet({
   );
 
   const model = useMemo(
-    () => ({ ...dishModel(orgModel, { rounding, foodCostTarget: dishTarget }), ...(charges ?? {}) }),
-    [rounding, dishTarget, charges, orgModel],
+    () => ({
+      ...dishModel(orgModel, {
+        rounding: rounding ?? undefined,
+        foodCostTarget: dishTarget,
+        accompanimentsPerPortion: extra.accompaniments,
+        overheadPerPortion: extra.overhead,
+      }),
+      ...(charges ?? {}),
+    }),
+    [rounding, dishTarget, charges, extra, orgModel],
   );
 
   /*
@@ -157,10 +187,10 @@ export function RecipeSheet({
     () => (attempt.ok ? attempt.cost : emptyCost(recipe)),
     [attempt, recipe],
   );
-  const build = useMemo(() => buildUp(cost, model), [cost, model]);
+  const build = useMemo(() => buildUp(cost, model, { labourMinutes }), [cost, model, labourMinutes]);
   const fc =
     build.complete && build.total !== null
-      ? foodCostPercent(build.total, dish.sellingPrice)
+      ? foodCostPercent(build.total, dish.sellingPrice, model)
       : null;
 
   const edit = useCallback((next: Recipe) => {
@@ -243,9 +273,9 @@ export function RecipeSheet({
       target: model.foodCostTarget,
       dineInPrice: dish.sellingPrice,
       deliveryPrice: dish.deliveryPrice ?? null,
-      rounding,
+      rounding: model.rounding,
     }),
-    [orgCharges, build, model, dish.sellingPrice, dish.deliveryPrice, rounding],
+    [orgCharges, build, model, dish.sellingPrice, dish.deliveryPrice],
   );
 
   /** Paste rows: parsed by the importer's own code, then appended as real lines. */
@@ -660,6 +690,12 @@ export function RecipeSheet({
         onPortions={(v) => edit({ ...recipe, portions: v })}
         method={fields.method}
         onMethod={(v) => { setFields((f) => ({ ...f, method: v.trim() === '' ? null : v })); setDirty(true); }}
+        labourMinutes={labourMinutes}
+        labourRatePerHour={orgModel.labourRatePerHour}
+        onLabourMinutes={(v) => {
+          setLabourMinutes(v);
+          void commit(() => saveDishPricing(recipe.id, { labourMinutes: v }));
+        }}
       />
 
       <PasteSheet
@@ -711,17 +747,38 @@ export function RecipeSheet({
         onClose={() => setSheet(null)}
         wastagePercent={model.wastagePercent}
         packaging={model.packagingPerPortion}
-        isDefault={charges === null}
+        accompaniments={model.accompanimentsPerPortion}
+        overhead={model.overheadPerPortion}
+        isDefault={charges === null && extra.accompaniments === null && extra.overhead === null}
         ingredientsPerPortion={build.ingredientsPerPortion ?? 0}
         onWastage={(v) => setCharges({ wastagePercent: v, packagingPerPortion: model.packagingPerPortion })}
         onPackaging={(v) => setCharges({ wastagePercent: model.wastagePercent, packagingPerPortion: v })}
-        onReset={() => { setCharges(null); setToast({ message: 'Back to the figures every dish starts from.', undoable: false }); }}
+        onAccompaniments={(v) => setExtra((e) => ({ ...e, accompaniments: v }))}
+        onOverhead={(v) => setExtra((e) => ({ ...e, overhead: v }))}
+        onReset={() => {
+          setCharges(null);
+          setExtra({ accompaniments: null, overhead: null });
+          void commit(() =>
+            saveDishPricing(recipe.id, {
+              wastagePercent: null,
+              packagingPerPortion: null,
+              accompanimentsPerPortion: null,
+              overheadPerPortion: null,
+            }),
+          );
+        }}
         onApply={() => {
           setSheet(null);
-          setToast({
-            message: 'Wastage and packaging updated — every figure above recalculated',
-            undoable: false,
-          });
+          // Saved for the dish, not held in the sheet's state: the chip used
+          // to say THIS DISH and the figures vanished on reload.
+          void commit(() =>
+            saveDishPricing(recipe.id, {
+              wastagePercent: charges?.wastagePercent ?? null,
+              packagingPerPortion: charges?.packagingPerPortion ?? null,
+              accompanimentsPerPortion: extra.accompaniments,
+              overheadPerPortion: extra.overhead,
+            }),
+          );
         }}
       />
 
@@ -731,17 +788,11 @@ export function RecipeSheet({
         cost={build.total ?? build.linesTotal}
         orgTarget={orgModel.foodCostTarget}
         current={model.foodCostTarget}
-        rounding={rounding}
+        rounding={model.rounding}
         onPick={(percent) => {
           setDishTarget(percent);
           setSheet(null);
-          setToast({
-            message:
-              percent === null
-                ? `This dish follows your account again, at ${orgModel.foodCostTarget.toFixed(1)}%.`
-                : `This dish aims for ${percent.toFixed(1)}%.`,
-            undoable: false,
-          });
+          void commit(() => saveDishPricing(recipe.id, { targetFoodCost: percent }));
         }}
       />
 
@@ -749,11 +800,11 @@ export function RecipeSheet({
         open={sheet === 'rounding'}
         onClose={() => setSheet(null)}
         exact={suggestion?.exact ?? 0}
-        current={rounding}
+        current={model.rounding}
         onPick={(rule) => {
           setRounding(rule);
           setSheet(null);
-          setToast({ message: `Rounding rule is now “${ROUNDING_LABEL[rule]}”.`, undoable: false });
+          void commit(() => saveDishPricing(recipe.id, { rounding: rule }));
         }}
       />
 

@@ -85,7 +85,7 @@ export function CostRail({
   // A dish with no portions has no cost per portion, so the rail leads with
   // what a batch costs instead. Nothing is invented to fill the slot.
   const plated = build.total !== null;
-  const fc = build.complete && plated ? foodCostPercent(build.total, sellingPrice) : null;
+  const fc = build.complete && plated ? foodCostPercent(build.total, sellingPrice, model) : null;
   const status = statusFor(fc, model.foodCostTarget);
   const suggestion = build.complete && build.total !== null ? suggestPrice(build.total, model) : null;
   const missing = cost.kind === 'floor' ? cost.unpriced : [];
@@ -180,6 +180,15 @@ export function CostRail({
               <Row op="=" label="Ingredient cost per portion" value={m.money(build.ingredientsPerPortion)} rule strong />
               <Row op="+" label={`Wastage, ${percent(model.wastagePercent, 1)}`} value={m.money(build.wastage.amount)} />
               <Row op="+" label="Packaging, flat per portion" value={m.money(build.packaging.amount)} />
+              {build.accompaniments !== null ? (
+                <Row op="+" label="On every plate: sides, bread, condiments" value={m.money(build.accompaniments.amount)} />
+              ) : null}
+              {build.labour !== null ? (
+                <Row op="+" label={build.labour.label} value={m.money(build.labour.amount)} />
+              ) : null}
+              {build.overhead !== null ? (
+                <Row op="+" label="Rent, gas and power" value={m.money(build.overhead.amount)} />
+              ) : null}
               <Row op="=" label="Total cost per portion" value={m.money(build.total)} total />
             </>
           ) : (
@@ -264,16 +273,30 @@ export function CostRail({
           <div className="price-one">
             <span className="price-one-figure figure">{m.withSymbol(suggestion.rounded)}</span>
             <span className="price-one-said">
-              Costs <b>{m.withSymbol(build.total)}</b> to make. You want to keep{' '}
-              <b>{whole(100 - want)}</b> of every {whole(100)}{' '}
-              <button type="button" className="label-edit" onClick={onOpenTarget}>change</button>.
+              Costs <b>{m.withSymbol(build.total)}</b> to make.{' '}
+              {model.method === 'money_per_plate' ? (
+                <>You want every plate to leave <b>{m.withSymbol(model.moneyPerPlate)}</b> after its cost.</>
+              ) : model.method === 'times_cost' ? (
+                <>You price at <b>{String(model.factor)} times</b> the cost.</>
+              ) : (
+                <>
+                  You want to keep <b>{whole(100 - want)}</b> of every {whole(100)}{' '}
+                  <button type="button" className="label-edit" onClick={onOpenTarget}>change</button>.
+                </>
+              )}
+              {model.pricesIncludeCharges && model.charges.length > 0 ? (
+                <> The price includes what the bill adds on top.</>
+              ) : null}
             </span>
           </div>
 
           <dl className="price-facts">
             <div className="price-fact">
               <dt>Exact</dt>
-              <dd className="figure">{m.withSymbol(suggestion.exact)}</dd>
+              <dd>
+                <span className="figure">{m.withSymbol(suggestion.exact)}</span>
+                <span className="price-fact-how"> — cost {suggestion.methodLabel}</span>
+              </dd>
             </div>
             <div className="price-fact">
               <dt>Rounded</dt>

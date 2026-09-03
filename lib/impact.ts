@@ -15,7 +15,7 @@
 import type { Ingredient } from '@/core/ingredient';
 import { type Pantry, type Recipe, pantryOf, recipeCost } from '@/core/recipe';
 
-import { type CostingModel, buildUp, foodCostPercent } from './costing';
+import { modelForDish, type CostingModel, buildUp, foodCostPercent } from './costing';
 import type { DishMeta } from './data';
 
 export interface Movement {
@@ -107,10 +107,11 @@ function snap(
   meta: DishMeta | undefined,
   model: CostingModel,
 ): Snapshot {
-  const build = buildUp(recipeCost(recipe, pantry), model);
+  const own = modelForDish(model, meta?.pricing);
+  const build = buildUp(recipeCost(recipe, pantry), own, { labourMinutes: meta?.pricing?.labourMinutes });
   const cost = build.complete ? build.total : null;
   const price = meta?.sellingPrice ?? null;
-  return { cost, foodCost: cost === null ? null : foodCostPercent(cost, price) };
+  return { cost, foodCost: cost === null ? null : foodCostPercent(cost, price, own) };
 }
 
 export interface ImpactInput {

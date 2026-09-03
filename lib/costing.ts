@@ -21,6 +21,7 @@ import {
   describeRule,
 } from '@/core/rounding';
 import { type Charge, applyCharges, netFromGuestTotal } from '@/core/charges';
+import type { DishPricing } from '@/lib/data';
 
 /**
  * The last step of the ladder: how a plate cost becomes a price.
@@ -84,7 +85,7 @@ export interface CostingModel {
 /** A dish's own figures that are not settings: labour is a fact about the dish. */
 export interface DishCostInputs {
   /** Minutes of kitchen time one batch takes. Null when nobody has said. */
-  readonly labourMinutes?: number | null;
+  readonly labourMinutes?: number | null | undefined;
 }
 
 /**
@@ -421,6 +422,20 @@ export function emptyCost(recipe: Recipe): RecipeCost {
     costPerBaseFloor: 0,
     unpriced: [],
   };
+}
+
+/** The model one dish prices by, from the figures saved on it. */
+export function modelForDish(orgModel: CostingModel, pricing: DishPricing | undefined): CostingModel {
+  if (pricing === undefined) return dishModel(orgModel);
+  return dishModel(orgModel, {
+    rounding: pricing.rounding ?? undefined,
+    foodCostTarget: pricing.targetFoodCost,
+    wastagePercent: pricing.wastagePercent,
+    packagingPerPortion: pricing.packagingPerPortion,
+    accompanimentsPerPortion: pricing.accompanimentsPerPortion,
+    overheadPerPortion: pricing.overheadPerPortion,
+    moneyPerPlate: pricing.moneyPerPlate,
+  });
 }
 
 /**

@@ -28,6 +28,9 @@ export function DishSheet({
   onPortions,
   method,
   onMethod,
+  labourMinutes,
+  labourRatePerHour,
+  onLabourMinutes,
 }: {
   open: boolean;
   onClose: () => void;
@@ -43,6 +46,11 @@ export function DishSheet({
   /** How to prepare it, as typed. Prints on the prep card. */
   method: string | null;
   onMethod: (v: string) => void;
+  /** Minutes of kitchen time one batch takes. Null when nobody has said. */
+  labourMinutes: number | null;
+  /** The account's one kitchen rate, so the sheet can say what the minutes cost. */
+  labourRatePerHour: number;
+  onLabourMinutes: (v: number | null) => void;
 }) {
   const per = portions === null || portions <= 0 ? null : linesTotal / portions;
   const m = useMoney();
@@ -80,6 +88,25 @@ export function DishSheet({
           onUp={() => onPortions((portions ?? 0) + 1)}
         />
       </div>
+
+      <label className="field">
+        <span className="label">Kitchen time, minutes a batch</span>
+        <input
+          className="field-input"
+          inputMode="numeric"
+          value={labourMinutes ?? ''}
+          placeholder="not counted"
+          onChange={(e) => {
+            const v = e.target.value.trim();
+            onLabourMinutes(v === '' ? null : Math.max(0, Number(v) || 0));
+          }}
+        />
+        <span className="field-help">
+          {labourRatePerHour > 0
+            ? `At ${m.withSymbol(labourRatePerHour)} an hour, set in Settings. Spread over the portions.`
+            : 'Counted once a kitchen rate is set in Settings.'}
+        </span>
+      </label>
 
       <label className="field">
         <span className="label">How to prepare</span>

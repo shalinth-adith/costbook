@@ -19,10 +19,14 @@ export function ChargesSheet({
   onClose,
   wastagePercent,
   packaging,
+  accompaniments,
+  overhead,
   isDefault,
   ingredientsPerPortion,
   onWastage,
   onPackaging,
+  onAccompaniments,
+  onOverhead,
   onReset,
   onApply,
 }: {
@@ -30,20 +34,26 @@ export function ChargesSheet({
   onClose: () => void;
   wastagePercent: number;
   packaging: number;
+  /** What goes on every plate beside the recipe: sides, bread, condiments. */
+  accompaniments: number;
+  /** Rent, gas and power, per plate. */
+  overhead: number;
   isDefault: boolean;
   ingredientsPerPortion: number;
   onWastage: (v: number) => void;
   onPackaging: (v: number) => void;
+  onAccompaniments: (v: number) => void;
+  onOverhead: (v: number) => void;
   onReset: () => void;
   onApply: () => void;
 }) {
   const wast = ingredientsPerPortion * (wastagePercent / 100);
-  const total = ingredientsPerPortion + wast + packaging;
+  const total = ingredientsPerPortion + wast + packaging + accompaniments + overhead;
   const m = useMoney();
 
   return (
     <Sheet
-      title="Wastage and packaging"
+      title="Wastage, packaging and the other lines"
       open={open}
       onClose={onClose}
       footer={
@@ -87,10 +97,36 @@ export function ChargesSheet({
         />
       </div>
 
+      <div className="field">
+        <span className="label">On every plate: sides, bread, condiments</span>
+        <Stepper
+          label="accompaniments"
+          value={m.withSymbol(accompaniments)}
+          min={accompaniments <= 0}
+          onDown={() => onAccompaniments(Math.max(0, Math.round((accompaniments - 0.05) * 100) / 100))}
+          onUp={() => onAccompaniments(Math.round((accompaniments + 0.05) * 100) / 100)}
+        />
+        <span className="field-help">What goes out with this dish without being on its recipe.</span>
+      </div>
+
+      <div className="field">
+        <span className="label">Rent, gas and power, per plate</span>
+        <Stepper
+          label="overhead"
+          value={m.withSymbol(overhead)}
+          min={overhead <= 0}
+          onDown={() => onOverhead(Math.max(0, Math.round((overhead - 0.05) * 100) / 100))}
+          onUp={() => onOverhead(Math.round((overhead + 0.05) * 100) / 100)}
+        />
+        <span className="field-help">Last month&rsquo;s rent, gas and power, divided by the plates you served.</span>
+      </div>
+
       <div className="live-note">
         <span className="label">Cost per portion, as you change it</span>
         <div className="figure live-sum">
           {m.money(ingredientsPerPortion)} + {m.money(wast)} + {m.money(packaging)}
+          {accompaniments > 0 ? ` + ${m.money(accompaniments)}` : ''}
+          {overhead > 0 ? ` + ${m.money(overhead)}` : ''}
         </div>
         <div className="figure live-total">{m.withSymbol(total)}</div>
       </div>

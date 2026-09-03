@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { withRate } from '@/core/ingredient';
 import type { Recipe } from '@/core/recipe';
 
-import type { DishMeta } from '@/lib/data';
+import type { DishMeta, DishPricing } from '@/lib/data';
 import { book, getMeta, getRecipe, recipesUsing, saveIngredient, saveMeta, saveRecipe } from '@/lib/book';
 
 /**
@@ -54,6 +54,18 @@ export async function saveAndPrice(
     message: `${recipe.name} is on the menu at ₹ ${price.toFixed(2)}.`,
     undoable: false,
   };
+}
+
+/**
+ * A dish's own pricing figures: target, rounding, wastage, packaging, what
+ * goes on every plate, overhead, kitchen minutes. Merged field by field, so
+ * setting one leaves the rest alone; null puts one back to the account's.
+ * These used to live only in the sheet's state and vanish on reload.
+ */
+export async function saveDishPricing(id: string, patch: Partial<DishPricing>): Promise<Ack> {
+  await saveMeta(id, { pricing: patch as DishPricing });
+  refresh(id);
+  return { message: 'Saved for this dish.', undoable: false };
 }
 
 /** Save changes to a dish already on the menu, leaving its price alone. */

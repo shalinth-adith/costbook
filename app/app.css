@@ -3721,3 +3721,6 @@
   background: var(--surface-card); color: var(--text-primary);
 }
 .field-textarea:focus { outline: 2px solid var(--border-focus, var(--text-primary)); outline-offset: 1px; }
+.field-help { font-size: 12px; color: var(--text-tertiary); line-height: 1.45; }
+.field-input { width: 100%; box-sizing: border-box; padding: 9px 12px; font: inherit; font-size: 14px; border: 1px solid var(--border-control); border-radius: var(--radius-field); background: var(--surface-card); color: var(--text-primary); }
+.price-fact-how { color: var(--text-tertiary); }

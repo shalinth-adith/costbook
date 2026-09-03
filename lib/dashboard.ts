@@ -15,7 +15,7 @@
 
 import type { Pantry } from '@/core/recipe';
 
-import { type CostingModel, type TargetStatus, buildUp, foodCostPercent, statusFor, tryRecipeCost } from './costing';
+import { modelForDish, type CostingModel, type TargetStatus, buildUp, foodCostPercent, statusFor, tryRecipeCost } from './costing';
 import { type DishMeta } from './data';
 
 /** Pixels per percentage point on the bar. 240px of track shows 60%. */
@@ -83,10 +83,11 @@ export function dashboard(input: DashboardInput): Dashboard {
     // that row rather than the page.
     const attempt = tryRecipeCost(recipe, pantry);
     if (!attempt.ok) continue;
-    const build = buildUp(attempt.cost, model);
+    const dishModelHere = modelForDish(model, dish?.pricing);
+    const build = buildUp(attempt.cost, dishModelHere, { labourMinutes: dish?.pricing?.labourMinutes });
 
     const costPerPortion = build.complete ? build.total : null;
-    const fc = costPerPortion === null ? null : foodCostPercent(costPerPortion, dish.sellingPrice);
+    const fc = costPerPortion === null ? null : foodCostPercent(costPerPortion, dish.sellingPrice, dishModelHere);
 
     const gap: RowGap = !build.complete
       ? 'no_rate'
