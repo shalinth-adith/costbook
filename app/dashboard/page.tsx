@@ -12,6 +12,8 @@ import { recent } from "@/lib/recent";
 import { spread } from "@/lib/spread";
 import { pilesOf } from "@/lib/profit";
 import { todo } from "@/lib/todo";
+import { engineer, lastMonth } from '@/lib/engineering';
+import { saveMonthSales } from './actions';
 import { usageOf } from "@/lib/usage";
 
 /**
@@ -128,6 +130,23 @@ export default async function DashboardPage() {
     ingredientCount: b.ingredients.length,
   });
 
+  /*
+   * Menu engineering, once there is a month of sales to engineer with. Every
+   * dish judged by what it sold and what it left; a dish with no figure for
+   * the month is left out rather than placed by a guess.
+   */
+  const salesPeriod = lastMonth(today);
+  const engineered = engineer(
+    salesPeriod,
+    data.rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      sold: b.sales[r.id]?.[salesPeriod] ?? null,
+      price: r.sellingPrice,
+      cost: r.costPerPortion,
+    })),
+  );
+
   return (
     <AppShell
       orgName={b.org.name}
@@ -162,6 +181,10 @@ export default async function DashboardPage() {
           target={model.foodCostTarget}
           first={first}
           today={today}
+          engineered={engineered}
+          salesPeriod={salesPeriod}
+          recipes={b.recipes}
+          onSaveSales={saveMonthSales}
         />
       </CurrencyProvider>
     </AppShell>

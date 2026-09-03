@@ -99,6 +99,8 @@ export interface Book {
   readonly history: Readonly<Record<string, readonly RateChange[]>>;
   /** What the kitchen has said about a dish (A40). Newest first. */
   readonly flags: readonly Flag[];
+  /** How many of each dish sold, by month: recipe id → period → sold. */
+  readonly sales: Readonly<Record<string, Readonly<Record<string, number>>>>;
 }
 
 /** What a signed-out visitor sees: nothing, and no pretence of anything. */
@@ -114,6 +116,7 @@ const EMPTY: Book = {
   plan: "free",
   history: {},
   flags: [],
+  sales: {},
 };
 
 function fromMemory(): Book {
@@ -133,6 +136,7 @@ function fromMemory(): Book {
     plan: memory.plan(),
     history: {},
     flags: [],
+    sales: {},
   };
 }
 
@@ -168,6 +172,7 @@ export const book = cache(async (): Promise<Book> => {
     subRes,
     historyRes,
     flagsRes,
+    salesRes,
   ] = await Promise.all([
     supabase.from("recipes").select("*"),
     supabase.from("recipe_components").select("*"),
@@ -192,6 +197,7 @@ export const book = cache(async (): Promise<Book> => {
       .select("ingredient_id, price_from, price_to, changed_at, source")
       .order("changed_at", { ascending: false }),
     supabase.from("flags").select("*").order("sent_at", { ascending: false }),
+    supabase.from("dish_sales").select("recipe_id, period, sold"),
   ]);
 
   const recipeRows = (recipesRes.data ?? []) as RecipeRow[];
@@ -234,6 +240,12 @@ export const book = cache(async (): Promise<Book> => {
         display_name: string | null;
       }[]
     | null;
+
+  const sales: Record<string, Record<string, number>> = {};
+  for (const row of (salesRes.data ?? []) as { recipe_id: string; period: string; sold: number }[]) {
+    const byPeriod = sales[row.recipe_id] ?? (sales[row.recipe_id] = {});
+    byPeriod[row.period] = row.sold;
+  }
 
   const dishName = new Map(recipeRows.map((r) => [r.id, r.name]));
 
@@ -299,6 +311,7 @@ export const book = cache(async (): Promise<Book> => {
     plan: ((subRes.data as { plan: Plan }[] | null)?.[0]?.plan ??
       "free") as Plan,
     history,
+    sales,
     flags: ((flagsRes.data ?? []) as FlagRow[]).map((f) => ({
       id: f.id,
       recipeId: f.recipe_id,
@@ -752,4 +765,24 @@ export async function savePlan(next: Plan): Promise<void> {
     "your plan",
     await supabase.from("subscriptions").update({ plan: next }).eq("org_id", b.orgId),
   );
+}
+
+/**
+ * A month's sales for a set of dishes. One row per dish and month, replaced
+ * when the same month is pasted again — a till export is re-run, not
+ * appended to.
+ */
+export async function saveSales(
+  period: string,
+  rows: readonly { readonly recipeId: string; readonly sold: number }[],
+): Promise<void> {
+  if (!supabaseConfigured()) return;
+  const b = await book();
+  if (b.orgId === null) throw new WriteFailed("sales", "No account is signed in.");
+  const supabase = await supabaseServer();
+  const { error } = await supabase.from("dish_sales").upsert(
+    rows.map((r) => ({ org_id: b.orgId, recipe_id: r.recipeId, period, sold: r.sold })),
+    { onConflict: "recipe_id,period" },
+  );
+  if (error) throw new WriteFailed("sales", error.message);
 }

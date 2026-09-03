@@ -1,5 +1,8 @@
 "use client";
 
+import type { Recipe } from '@/core/recipe';
+import { GROUP_SAID, periodSaid, type Engineered } from '@/lib/engineering';
+import { SalesSheet } from './sheets/sales-sheet';
 import Link from "next/link";
 import { useState } from "react";
 
@@ -308,6 +311,10 @@ export interface StaleRate {
 }
 
 export function DashboardView({
+  engineered,
+  salesPeriod,
+  recipes,
+  onSaveSales,
   orgName,
   moved,
   stats,
@@ -335,8 +342,16 @@ export function DashboardView({
   target: number;
   first: FirstDish | null;
   today: string;
+  /** Last month's menu, judged by what sold and what it left. Null until sales exist. */
+  engineered: Engineered | null;
+  salesPeriod: string;
+  recipes: readonly Recipe[];
+  onSaveSales: (period: string, text: string) => Promise<{ readonly message: string; readonly undoable: boolean }>;
 }) {
   const m = useMoney();
+  const [salesOpen, setSalesOpen] = useState(false);
+  const [salesBusy, setSalesBusy] = useState(false);
+  const [salesNote, setSalesNote] = useState<string | null>(null);
   const [open, setOpen] = useState<Pile | null>(null);
 
   if (first !== null) {
@@ -712,6 +727,77 @@ export function DashboardView({
       )}
 
       {/* ── what changed ──────────────────────────────────────────── */}
+
+      <section className="dash-block">
+        <h2 className="dash-h">Your menu, by what sells</h2>
+        {engineered === null ? (
+          <>
+            <p className="dash-lede">
+              Cost says what a plate leaves. Sales say how often. Together they say which dishes to
+              push, which to reprice, and which to take off. Paste last month&rsquo;s numbers from
+              the till or the app and this fills in.
+            </p>
+            <button type="button" className="btn" onClick={() => setSalesOpen(true)}>
+              Add {periodSaid(salesPeriod)}&rsquo;s sales
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="dash-lede">
+              In {periodSaid(engineered.period)} the menu left{" "}
+              <b className="figure">{m.withSymbol(Math.round(engineered.leftTotal))}</b> after plate
+              costs, across {engineered.dishes.length} dishes with a figure. The lines are the
+              menu&rsquo;s own averages: {Math.round(engineered.meanSold)} sold and{" "}
+              {m.withSymbol(engineered.meanLeaves)} left a plate.{" "}
+              <button type="button" className="link" onClick={() => setSalesOpen(true)}>
+                Paste another month
+              </button>
+            </p>
+            <div className="me-grid">
+              {(["push", "sells_leaves_little", "leaves_sells_poorly", "neither"] as const).map((g) => (
+                <div key={g} className={`me-group is-${g}`}>
+                  <h3 className="me-h">{GROUP_SAID[g].title}</h3>
+                  <p className="me-do">{GROUP_SAID[g].doThis}</p>
+                  {engineered.groups[g].length === 0 ? (
+                    <p className="me-none">None this month.</p>
+                  ) : (
+                    <ul className="me-list">
+                      {engineered.groups[g].slice(0, 6).map((d) => (
+                        <li key={d.id} className="me-row">
+                          <Link href={`/recipes/${d.id}`} className="me-name">{d.name}</Link>
+                          <span className="figure me-fig">
+                            {d.sold} × {m.money(d.leaves)} = <b>{m.withSymbol(Math.round(d.leftTotal))}</b>
+                          </span>
+                        </li>
+                      ))}
+                      {engineered.groups[g].length > 6 && (
+                        <li className="me-more">and {engineered.groups[g].length - 6} more</li>
+                      )}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+
+      <SalesSheet
+        open={salesOpen}
+        onClose={() => setSalesOpen(false)}
+        periodSaid={periodSaid(salesPeriod)}
+        recipes={recipes}
+        busy={salesBusy}
+        onSave={(text) => {
+          setSalesBusy(true);
+          void onSaveSales(salesPeriod, text).then((ack) => {
+            setSalesBusy(false);
+            setSalesOpen(false);
+            setSalesNote(ack.message);
+          });
+        }}
+      />
+      {salesNote !== null && <p className="dash-lede me-note">{salesNote}</p>}
 
       <section className="dash-block">
         <h2 className="dash-h">What changed lately</h2>
