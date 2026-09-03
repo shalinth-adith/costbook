@@ -34,6 +34,7 @@ import {
   taxLabel,
 } from "@/lib/org";
 import type { Impact } from "@/lib/impact";
+import { hintFor, suggestedPlatforms } from "@/lib/world";
 
 import { ImpactTable } from "./impact-table";
 
@@ -137,6 +138,7 @@ export function SettingsView({
     pricesIncludeCharges: includeCharges,
   };
   const guestAddsPercent = data.org.charges.length > 0 ? effectiveRate(data.org.charges, "dine_in") : 0;
+  const worldHint = hintFor(currencyCode);
   /**
    * The worked example, computed the way the sentence above reads it — in that
    * order, so a reader can follow the arithmetic line by line rather than
@@ -415,6 +417,9 @@ export function SettingsView({
               The step is chosen here, once; the ladder is drawn on every dish.
               Nothing is a formula the operator types.
             */}
+            <p className="set-note set-typical">
+              {worldHint.note} <b>Typical, not yours.</b>
+            </p>
             <div className="set-methods" role="radiogroup" aria-label="Pricing method">
               {PRICING_METHODS.map((pm) => (
                 <label key={pm.name} className={`set-method${method === pm.name ? " is-on" : ""}`}>
@@ -785,6 +790,28 @@ export function SettingsView({
                   Nothing on the bill on top of your menu price. That is the
                   common answer for a single outlet, and it is a complete one.
                 </p>
+              )}
+              {!charges.some((c) => c.borneBy === "operator") && worldHint.platforms.length > 0 && (
+                <div className="set-platforms">
+                  <span className="label">Selling on an app?</span>
+                  <p className="set-note">
+                    The usual platforms in {worldHint.region} take{" "}
+                    {worldHint.platforms.map((p) => `${p.name} ${p.commission[0]}–${p.commission[1]}%`).join(", ")}{" "}
+                    of the order. Add one as a row and put your own figure on it. <b>Typical, not yours.</b>
+                  </p>
+                  <div className="set-platform-btns">
+                    {suggestedPlatforms(worldHint, charges.length + 1).map((c) => (
+                      <button
+                        key={c.name}
+                        type="button"
+                        className="btn"
+                        onClick={() => setCharges((cs) => [...cs, { ...c, order: cs.length + 1 }])}
+                      >
+                        Add {c.name.replace(" commission", "")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
               {charges.map((c, i) => (
                 <div className="set-charge" key={i}>

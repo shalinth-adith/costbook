@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { type Charge, applyCharges } from '@/core/charges';
+import { type SellHow, hintFor, suggestedPlatforms, suggestedTarget } from '@/lib/world';
 import { CURRENCIES, currency, formatMoney } from '@/core/currency';
 
 import { finishSetup } from '@/app/setup/actions';
@@ -52,6 +53,20 @@ export function SetupWizard({ initialCurrency }: { initialCurrency: string }) {
   const [explainer, setExplainer] = useState(false);
   const [charges, setCharges] = useState<readonly Charge[]>([]);
   const [target, setTarget] = useState(30);
+  /** How the kitchen sells. Sets a starting target and the usual platforms; every one a field. */
+  const [sellHow, setSellHow] = useState<SellHow | null>(null);
+  const hint = hintFor(code);
+  const pickSellHow = (how: SellHow) => {
+    setSellHow(how);
+    setTarget(suggestedTarget(hint, how));
+    if (how !== 'dine_in') {
+      // The region's usual platforms, as rows the owner corrects — but never
+      // twice, and never over a platform they already typed in step 3.
+      setCharges((cs) =>
+        cs.some((c) => c.borneBy === 'operator') ? cs : [...cs, ...suggestedPlatforms(hint, cs.length + 1)],
+      );
+    }
+  };
 
   const cur = currency(code);
   const money = (n: number) => formatMoney(n, code);
@@ -88,6 +103,10 @@ export function SetupWizard({ initialCurrency }: { initialCurrency: string }) {
         taxTreatment: tax,
         charges: charges.filter((c) => c.name.trim() !== ''),
         foodCostTarget: target,
+        // Where menu prices customarily include the tax on the bill and the
+        // owner has put one on it, the target applies to what they keep.
+        pricesIncludeCharges:
+          hint.pricesIncludeTax === true && charges.some((c) => c.name.trim() !== '' && c.borneBy === 'guest'),
       });
       setStep(5);
     });
@@ -380,6 +399,39 @@ export function SetupWizard({ initialCurrency }: { initialCurrency: string }) {
               drifted.
             </p>
 
+            {/* One question first, because the answer sets the figure below.
+                A kitchen on the apps aims lower: the platform's cut comes out
+                of the same price. Suggestions, said as typical, never as yours. */}
+            <div className="wiz-sellhow" role="group" aria-label="How do you sell">
+              <span className="wiz-sellhow-q">How do you sell?</span>
+              <div className="wiz-sellhow-opts">
+                {([
+                  ['dine_in', 'At the counter or tables'],
+                  ['delivery', 'On delivery apps'],
+                  ['both', 'Both'],
+                ] as const).map(([how, said]) => (
+                  <button
+                    key={how}
+                    type="button"
+                    className={`wiz-chip${sellHow === how ? ' is-on' : ''}`}
+                    aria-pressed={sellHow === how}
+                    onClick={() => pickSellHow(how)}
+                  >
+                    {said}
+                  </button>
+                ))}
+              </div>
+              {sellHow !== null && (
+                <p className="wiz-sellhow-note">
+                  {hint.note}
+                  {sellHow !== 'dine_in' && hint.platforms.length > 0 ? (
+                    <> The usual platforms in {hint.region} are on your bill now, at typical rates; correct them in Settings.</>
+                  ) : null}
+                  {' '}<b>Typical, not yours.</b>
+                </p>
+              )}
+            </div>
+
             <div className="wiz-target">
               <output className="wiz-target-fig figure">{target}<span>%</span></output>
               <input
@@ -410,7 +462,7 @@ export function SetupWizard({ initialCurrency }: { initialCurrency: string }) {
             </p>
 
             <p className="wiz-note">
-              <strong>30% is the usual place to start</strong>
+              <strong>{sellHow === null ? '30% is the usual place to start' : `${target}% is where kitchens like yours usually start`}</strong>
               <br />
               Cafés and quick service often run nearer 20%, where the ticket is small and the volume
               is high. A full-service kitchen with waiters and a longer menu tends to sit above 30%.

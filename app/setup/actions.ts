@@ -20,6 +20,8 @@ export async function finishSetup(answers: {
   readonly taxTreatment: TaxTreatment;
   readonly charges: readonly Charge[];
   readonly foodCostTarget: number;
+  /** Whether the menu price already includes the guest's charges. Suggested by region, decided here. */
+  readonly pricesIncludeCharges?: boolean;
 }): Promise<{ readonly ok: true }> {
   // Currency only moves while nothing is costed in it. Once a rate has been
   // typed, changing the label would leave every figure under the wrong symbol.
@@ -31,6 +33,7 @@ export async function finishSetup(answers: {
     taxTreatment: answers.taxTreatment,
     charges: answers.charges,
     foodCostTarget: answers.foodCostTarget,
+    ...(answers.pricesIncludeCharges === undefined ? {} : { pricesIncludeCharges: answers.pricesIncludeCharges }),
     setupDone: true,
   });
 
