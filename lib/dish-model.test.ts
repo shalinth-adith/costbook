@@ -13,6 +13,7 @@ import { type CostingModel, DEFAULT_MODEL, dishModel } from './costing';
 
 /** An account that has been set up, deliberately unlike every default. */
 const ORG_MODEL: CostingModel = {
+  ...DEFAULT_MODEL,
   wastagePercent: 4,
   packagingPerPortion: 0.5,
   foodCostTarget: 20,

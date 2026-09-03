@@ -10,12 +10,12 @@ import { describe, expect, it } from 'vitest';
 
 import { RecipeError, ingredientComponent, pantryOf, recipeComponent } from '@/core/recipe';
 
-import { tryRecipeCost } from './costing';
+import { DEFAULT_MODEL, tryRecipeCost } from './costing';
 import { dashboard } from './dashboard';
 import { meta, recipes, shelf } from './data';
 
 const priced = shelf.find((i) => i.purchasePrice !== null);
-const model = { wastagePercent: 2, packagingPerPortion: 0.35, foodCostTarget: 32, rounding: 'next_9' as const };
+const model = { ...DEFAULT_MODEL, wastagePercent: 2, packagingPerPortion: 0.35, foodCostTarget: 32, rounding: 'next_9' as const };
 
 describe('building a line with no quantity', () => {
   it('is refused at construction, not at costing time', () => {

@@ -20,7 +20,7 @@ import { type Pantry, type Recipe, pantryOf } from "@/core/recipe";
 
 import type { CostingModel } from "./costing";
 import type { Flag } from "./flags";
-import type { DishMeta } from "./data";
+import { type DishMeta, NO_DISH_PRICING } from "./data";
 import {
   BLANK_ORG,
   type Member,
@@ -44,6 +44,7 @@ import {
   toMeta,
   toOrg,
   toRecipe,
+  pricingColumns,
 } from "./rows";
 import * as memory from "./store";
 import { supabaseConfigured } from "./supabase/env";
@@ -343,6 +344,14 @@ export async function orgModel(): Promise<CostingModel> {
     packagingPerPortion: org.packagingPerPortion,
     foodCostTarget: org.foodCostTarget,
     rounding: org.rounding,
+    method: org.pricingMethod,
+    moneyPerPlate: org.moneyPerPlate,
+    factor: org.factor,
+    accompanimentsPerPortion: org.accompanimentsPerPortion,
+    labourRatePerHour: org.labourRatePerHour,
+    overheadPerPortion: org.overheadPerPortion,
+    pricesIncludeCharges: org.pricesIncludeCharges,
+    charges: org.charges,
   };
 }
 
@@ -670,6 +679,12 @@ export async function saveMeta(
     // Written as typed, never renumbered. Undefined in a patch means "leave
     // it"; null means the operator cleared it.
     method: patch.method !== undefined ? patch.method : (current?.method ?? null),
+    // Merged field by field: a sheet that sets labour minutes must not wipe
+    // a target set last week. Null inside a patch clears one figure.
+    pricing:
+      patch.pricing !== undefined
+        ? { ...NO_DISH_PRICING, ...(current?.pricing ?? {}), ...patch.pricing }
+        : (current?.pricing ?? NO_DISH_PRICING),
   };
 
   const supabase = await supabaseServer();
@@ -683,6 +698,7 @@ export async function saveMeta(
       delivery_price: next.deliveryPrice,
       notes: next.note,
       method: next.method,
+      ...pricingColumns(next.pricing),
       on_menu: next.onMenu,
       archived: next.archived,
       updated_at: new Date().toISOString(),

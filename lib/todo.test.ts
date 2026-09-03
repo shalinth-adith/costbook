@@ -7,6 +7,7 @@
  * three times it left alone; a rate a thousand times its neighbours caught.
  */
 
+import { DEFAULT_MODEL } from '@/lib/costing';
 import { describe, expect, it } from "vitest";
 
 import type { Ingredient } from "@/core/ingredient";
@@ -17,6 +18,7 @@ import type { DashboardRow } from "./dashboard";
 import { todo } from "./todo";
 
 const MODEL: CostingModel = {
+  ...DEFAULT_MODEL,
   foodCostTarget: 30,
   wastagePercent: 0,
   packagingPerPortion: 0,

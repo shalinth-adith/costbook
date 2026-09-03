@@ -7,6 +7,7 @@
  */
 
 import { type Ingredient, ingredientFromPack } from '@/core/ingredient';
+import type { PresetName } from '@/core/rounding';
 import {
   type Pantry,
   type Recipe,
@@ -97,6 +98,30 @@ function ing(name: string): Ingredient {
   return found;
 }
 
+/** A dish's own pricing figures. Null means "follow the account", never zero. */
+export interface DishPricing {
+  readonly targetFoodCost: number | null;
+  readonly wastagePercent: number | null;
+  readonly packagingPerPortion: number | null;
+  readonly accompanimentsPerPortion: number | null;
+  readonly overheadPerPortion: number | null;
+  readonly moneyPerPlate: number | null;
+  readonly rounding: PresetName | null;
+  /** Minutes of kitchen time one batch takes. A fact about the dish. */
+  readonly labourMinutes: number | null;
+}
+
+export const NO_DISH_PRICING: DishPricing = {
+  targetFoodCost: null,
+  wastagePercent: null,
+  packagingPerPortion: null,
+  accompanimentsPerPortion: null,
+  overheadPerPortion: null,
+  moneyPerPlate: null,
+  rounding: null,
+  labourMinutes: null,
+};
+
 /** Fields the screens show that the costing engine has no opinion about. */
 export interface DishMeta {
   /** Off the menu and out of the list, kept for reference (FLOWS 4). */
@@ -121,6 +146,12 @@ export interface DishMeta {
    * from `note`, which is the operator's own remark about the dish.
    */
   readonly method?: string | null;
+  /**
+   * The dish's own pricing figures, each null where it follows the account.
+   * These used to live only in the sheet's state and vanish on reload while
+   * the chip said THIS DISH.
+   */
+  readonly pricing?: DishPricing;
   readonly onMenu: boolean;
   /**
    * Columns from the operator's own sheet, under their own headings. Kept and

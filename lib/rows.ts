@@ -15,7 +15,8 @@ import type { Ingredient } from '@/core/ingredient';
 import type { LineEntry, Recipe, RecipeComponent } from '@/core/recipe';
 import type { UnitFamily } from '@/core/units';
 
-import type { DishMeta } from './data';
+import type { DishMeta, DishPricing } from './data';
+import type { PricingMethod } from '@/lib/costing';
 import type { Charge } from '@/core/charges';
 import type { Org, TaxTreatment } from './org';
 import type { PresetName } from '@/core/rounding';
@@ -113,6 +114,15 @@ export interface RecipeRow {
   method: string | null;
   updated_at: string | null;
   custom: unknown;
+  /* The dish's own pricing figures. Null follows the account. */
+  target_food_cost?: number | string | null;
+  wastage_percent?: number | string | null;
+  packaging_per_portion?: number | string | null;
+  accompaniments_per_portion?: number | string | null;
+  overhead_per_portion?: number | string | null;
+  money_per_plate?: number | string | null;
+  rounding?: string | null;
+  labour_minutes?: number | string | null;
 }
 
 /**
@@ -187,6 +197,16 @@ export function toMeta(row: RecipeRow): DishMeta {
     method: row.method ?? null,
     onMenu: row.on_menu,
     archived: row.archived,
+    pricing: {
+      targetFoodCost: nullableNum(row.target_food_cost ?? null),
+      wastagePercent: nullableNum(row.wastage_percent ?? null),
+      packagingPerPortion: nullableNum(row.packaging_per_portion ?? null),
+      accompanimentsPerPortion: nullableNum(row.accompaniments_per_portion ?? null),
+      overheadPerPortion: nullableNum(row.overhead_per_portion ?? null),
+      moneyPerPlate: nullableNum(row.money_per_plate ?? null),
+      rounding: (row.rounding as PresetName | null | undefined) ?? null,
+      labourMinutes: nullableNum(row.labour_minutes ?? null),
+    },
     custom:
       row.custom !== null && typeof row.custom === 'object'
         ? (row.custom as Record<string, string>)
@@ -214,9 +234,24 @@ export function fromRecipe(r: Recipe, meta: DishMeta | undefined, orgId: string)
     notes: meta?.note ?? null,
     method: meta?.method ?? null,
     custom: meta?.custom ?? {},
+    ...pricingColumns(meta?.pricing),
     // A sub-recipe is one that plates into nothing of its own.
     is_sub_recipe: r.portions === null,
     updated_at: new Date().toISOString(),
+  };
+}
+
+/** The dish's own pricing figures as columns. Null means "follow the account". */
+export function pricingColumns(p: DishPricing | undefined): Record<string, unknown> {
+  return {
+    target_food_cost: p?.targetFoodCost ?? null,
+    wastage_percent: p?.wastagePercent ?? null,
+    packaging_per_portion: p?.packagingPerPortion ?? null,
+    accompaniments_per_portion: p?.accompanimentsPerPortion ?? null,
+    overhead_per_portion: p?.overheadPerPortion ?? null,
+    money_per_plate: p?.moneyPerPlate ?? null,
+    rounding: p?.rounding ?? null,
+    labour_minutes: p?.labourMinutes ?? null,
   };
 }
 
@@ -269,6 +304,13 @@ export interface OrgRow {
   rounding: string;
   wastage_percent: number | string;
   packaging_per_portion: number | string;
+  pricing_method: string;
+  money_per_plate: number | string;
+  price_factor: number | string;
+  accompaniments_per_portion: number | string;
+  labour_rate_per_hour: number | string;
+  overhead_per_portion: number | string;
+  prices_include_charges: boolean;
   stale_after_days: number;
   default_mass_unit: string;
   default_volume_unit: string;
@@ -285,6 +327,13 @@ export function toOrg(row: OrgRow): Org {
     rounding: row.rounding as PresetName,
     wastagePercent: num(row.wastage_percent),
     packagingPerPortion: num(row.packaging_per_portion),
+    pricingMethod: (row.pricing_method as PricingMethod | undefined) ?? 'food_share',
+    moneyPerPlate: num(row.money_per_plate ?? 0),
+    factor: num(row.price_factor ?? 3.3),
+    accompanimentsPerPortion: num(row.accompaniments_per_portion ?? 0),
+    labourRatePerHour: num(row.labour_rate_per_hour ?? 0),
+    overheadPerPortion: num(row.overhead_per_portion ?? 0),
+    pricesIncludeCharges: row.prices_include_charges ?? false,
     staleAfterDays: row.stale_after_days,
     defaultMassUnit: row.default_mass_unit as 'g' | 'kg',
     defaultVolumeUnit: row.default_volume_unit as 'ml' | 'l',
@@ -302,6 +351,13 @@ export function fromOrg(patch: Partial<Org>): Record<string, unknown> {
   if (patch.rounding !== undefined) out['rounding'] = patch.rounding;
   if (patch.wastagePercent !== undefined) out['wastage_percent'] = patch.wastagePercent;
   if (patch.packagingPerPortion !== undefined) out['packaging_per_portion'] = patch.packagingPerPortion;
+  if (patch.pricingMethod !== undefined) out['pricing_method'] = patch.pricingMethod;
+  if (patch.moneyPerPlate !== undefined) out['money_per_plate'] = patch.moneyPerPlate;
+  if (patch.factor !== undefined) out['price_factor'] = patch.factor;
+  if (patch.accompanimentsPerPortion !== undefined) out['accompaniments_per_portion'] = patch.accompanimentsPerPortion;
+  if (patch.labourRatePerHour !== undefined) out['labour_rate_per_hour'] = patch.labourRatePerHour;
+  if (patch.overheadPerPortion !== undefined) out['overhead_per_portion'] = patch.overheadPerPortion;
+  if (patch.pricesIncludeCharges !== undefined) out['prices_include_charges'] = patch.pricesIncludeCharges;
   if (patch.staleAfterDays !== undefined) out['stale_after_days'] = patch.staleAfterDays;
   if (patch.defaultMassUnit !== undefined) out['default_mass_unit'] = patch.defaultMassUnit;
   if (patch.defaultVolumeUnit !== undefined) out['default_volume_unit'] = patch.defaultVolumeUnit;

@@ -12,6 +12,7 @@
 
 import type { Charge } from '@/core/charges';
 import type { PresetName } from '@/core/rounding';
+import type { PricingMethod } from '@/lib/costing';
 
 /**
  * Whether tax a supplier bills is recoverable.
@@ -36,6 +37,16 @@ export interface Org {
   readonly rounding: PresetName;
   readonly wastagePercent: number;
   readonly packagingPerPortion: number;
+  /** The last step of the ladder and its figure. See lib/costing.ts. */
+  readonly pricingMethod: PricingMethod;
+  readonly moneyPerPlate: number;
+  readonly factor: number;
+  /** The three lines a small kitchen leaves out. Zero means "not counted". */
+  readonly accompanimentsPerPortion: number;
+  readonly labourRatePerHour: number;
+  readonly overheadPerPortion: number;
+  /** Whether the menu price already includes the guest's charges. */
+  readonly pricesIncludeCharges: boolean;
   /** After this long a rate is marked stale, on the ingredient and the dish. */
   readonly staleAfterDays: number;
   readonly defaultMassUnit: 'g' | 'kg';
@@ -61,6 +72,13 @@ export const BLANK_ORG: Org = {
   rounding: 'up_to_tenth',
   wastagePercent: 2,
   packagingPerPortion: 0.35,
+  pricingMethod: 'food_share',
+  moneyPerPlate: 0,
+  factor: 3.3,
+  accompanimentsPerPortion: 0,
+  labourRatePerHour: 0,
+  overheadPerPortion: 0,
+  pricesIncludeCharges: false,
   staleAfterDays: 90,
   defaultMassUnit: 'g',
   defaultVolumeUnit: 'ml',

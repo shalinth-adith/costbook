@@ -223,6 +223,14 @@ export function orgModel(): CostingModel {
     packagingPerPortion: o.packagingPerPortion,
     foodCostTarget: o.foodCostTarget,
     rounding: o.rounding,
+    method: o.pricingMethod,
+    moneyPerPlate: o.moneyPerPlate,
+    factor: o.factor,
+    accompanimentsPerPortion: o.accompanimentsPerPortion,
+    labourRatePerHour: o.labourRatePerHour,
+    overheadPerPortion: o.overheadPerPortion,
+    pricesIncludeCharges: o.pricesIncludeCharges,
+    charges: o.charges,
   };
 }
 

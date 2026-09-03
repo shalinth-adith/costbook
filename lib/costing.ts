@@ -20,6 +20,30 @@ import {
   applyRounding,
   describeRule,
 } from '@/core/rounding';
+import { type Charge, applyCharges, netFromGuestTotal } from '@/core/charges';
+
+/**
+ * The last step of the ladder: how a plate cost becomes a price.
+ *
+ * Forty years of menu-pricing research and every costing tool on the market
+ * come down to the same ladder of cost lines with one of three last steps.
+ * "Food should be 30% of the price" (Kasavana & Smith's food-cost share),
+ * "leave me 8 on every plate" (their contribution margin, said in money), or
+ * "three and a bit times the cost" (the factor most chefs price by in their
+ * head). Nothing here is a formula the operator types: a mistyped formula
+ * prices a whole menu wrong and nothing on screen says so.
+ */
+export type PricingMethod = 'food_share' | 'money_per_plate' | 'times_cost';
+
+export const PRICING_METHODS: readonly {
+  readonly name: PricingMethod;
+  readonly label: string;
+  readonly said: string;
+}[] = [
+  { name: 'food_share', label: 'Food share', said: 'Ingredients should be a set share of the price.' },
+  { name: 'money_per_plate', label: 'Money per plate', said: 'Every plate should leave a set amount after its cost.' },
+  { name: 'times_cost', label: 'Times the cost', said: 'The price is the plate cost times a number.' },
+];
 
 export interface CostingModel {
   /** Applied to the ingredient cost per portion. */
@@ -30,6 +54,37 @@ export interface CostingModel {
   readonly foodCostTarget: number;
   /** Named so the interface can offer a list; the rule itself lives in core. */
   readonly rounding: PresetName;
+  /** The last step of the ladder. */
+  readonly method: PricingMethod;
+  /** What every plate should leave after its cost, for 'money_per_plate'. */
+  readonly moneyPerPlate: number;
+  /** The multiplier, for 'times_cost'. */
+  readonly factor: number;
+  /**
+   * What goes on every plate without being on the recipe: the sambar, the
+   * chutney, the bread and butter. Culinary math calls it the Q factor.
+   */
+  readonly accompanimentsPerPortion: number;
+  /** One kitchen rate. Labour minutes are a fact of each dish, not of the account. */
+  readonly labourRatePerHour: number;
+  /** Rent, gas, power, per plate: one figure the operator works out from last month. */
+  readonly overheadPerPortion: number;
+  /**
+   * True where the price on the menu already includes what the guest is
+   * charged on top — VAT, GST, a service charge. Then a target applies to
+   * what the operator actually keeps of the sticker, not to the sticker.
+   * No jurisdiction is encoded: the stack says what is charged, this says
+   * whether the menu price includes it.
+   */
+  readonly pricesIncludeCharges: boolean;
+  /** The account's charge stack, so a price can be said net and gross. */
+  readonly charges: readonly Charge[];
+}
+
+/** A dish's own figures that are not settings: labour is a fact about the dish. */
+export interface DishCostInputs {
+  /** Minutes of kitchen time one batch takes. Null when nobody has said. */
+  readonly labourMinutes?: number | null;
 }
 
 /**
@@ -44,6 +99,14 @@ export const DEFAULT_MODEL: CostingModel = {
   // apart from one that accepted the suggestion — for no stated reason.
   foodCostTarget: 30,
   rounding: 'up_to_tenth',
+  method: 'food_share',
+  moneyPerPlate: 0,
+  factor: 3.3,
+  accompanimentsPerPortion: 0,
+  labourRatePerHour: 0,
+  overheadPerPortion: 0,
+  pricesIncludeCharges: false,
+  charges: [],
 };
 
 /**
@@ -99,13 +162,23 @@ export interface CostBuildUp {
   readonly ingredientsPerPortion: number | null;
   readonly wastage: DefaultedFigure | null;
   readonly packaging: DefaultedFigure | null;
-  /** ingredients + wastage + packaging. Null when there are no portions. */
+  /** What goes on every plate beside the recipe. Null when the account counts none. */
+  readonly accompaniments: DefaultedFigure | null;
+  /** Kitchen time, per portion: minutes a batch takes, at the account's rate, over the portions. */
+  readonly labour: DefaultedFigure | null;
+  /** Rent, gas and power per plate. Null when the account counts none. */
+  readonly overhead: DefaultedFigure | null;
+  /** Every line above, added up. Null when there are no portions. */
   readonly total: number | null;
   /** Always available: what one base unit of the output costs. */
   readonly perBaseUnit: number;
 }
 
-export function buildUp(cost: RecipeCost, model: CostingModel = DEFAULT_MODEL): CostBuildUp {
+export function buildUp(
+  cost: RecipeCost,
+  model: CostingModel = DEFAULT_MODEL,
+  dish: DishCostInputs = {},
+): CostBuildUp {
   const complete = isComplete(cost);
   const batchPool = complete ? cost.batch : cost.batchFloor;
   const portionPool = complete ? cost.portionAdd : cost.portionAddFloor;
@@ -124,6 +197,9 @@ export function buildUp(cost: RecipeCost, model: CostingModel = DEFAULT_MODEL): 
       ingredientsPerPortion: null,
       wastage: null,
       packaging: null,
+      accompaniments: null,
+      labour: null,
+      overhead: null,
       total: null,
       perBaseUnit,
     };
@@ -131,6 +207,31 @@ export function buildUp(cost: RecipeCost, model: CostingModel = DEFAULT_MODEL): 
 
   const wastage = ingredientsPerPortion * (model.wastagePercent / 100);
   const packaging = model.packagingPerPortion;
+
+  /*
+   * The three lines the research keeps asking for and small kitchens keep
+   * leaving out. Each is null when the account counts none of it, so a
+   * ladder shows only the lines that are real here — a row of zeros would
+   * read as three costs that happen to be nothing.
+   */
+  const accompaniments =
+    model.accompanimentsPerPortion > 0
+      ? { label: 'On every plate', amount: model.accompanimentsPerPortion, isDefault: true }
+      : null;
+  const minutes = dish.labourMinutes ?? null;
+  const portions = cost.portions ?? 0;
+  const labour =
+    minutes !== null && minutes > 0 && model.labourRatePerHour > 0 && portions > 0
+      ? {
+          label: `Labour, ${String(minutes)} min a batch`,
+          amount: ((minutes / 60) * model.labourRatePerHour) / portions,
+          isDefault: false,
+        }
+      : null;
+  const overhead =
+    model.overheadPerPortion > 0
+      ? { label: 'Rent, gas and power', amount: model.overheadPerPortion, isDefault: true }
+      : null;
 
   return {
     complete,
@@ -141,9 +242,36 @@ export function buildUp(cost: RecipeCost, model: CostingModel = DEFAULT_MODEL): 
     ingredientsPerPortion,
     wastage: { label: `Wastage allowance, ${model.wastagePercent.toFixed(1)}%`, amount: wastage, isDefault: true },
     packaging: { label: 'Direct packaging', amount: packaging, isDefault: true },
-    total: ingredientsPerPortion + wastage + packaging,
+    accompaniments,
+    labour,
+    overhead,
+    total:
+      ingredientsPerPortion +
+      wastage +
+      packaging +
+      (accompaniments?.amount ?? 0) +
+      (labour?.amount ?? 0) +
+      (overhead?.amount ?? 0),
     perBaseUnit,
   };
+}
+
+/**
+ * What the operator keeps of a menu price before food: the sticker where
+ * prices are quoted net, and the sticker with the guest's charges taken back
+ * off where the menu price includes them. A 30% target on a VAT-inclusive
+ * price is really 31.5% of what the kitchen keeps, and this is the figure the
+ * target has to be applied to.
+ */
+export function netPriceOf(sellingPrice: number, model: CostingModel): number {
+  if (!model.pricesIncludeCharges || model.charges.length === 0) return sellingPrice;
+  return netFromGuestTotal(sellingPrice, model.charges, 'dine_in');
+}
+
+/** The sticker for a net price: the same stack, applied forwards. */
+export function stickerOf(net: number, model: CostingModel): number {
+  if (!model.pricesIncludeCharges || model.charges.length === 0) return net;
+  return applyCharges(net, model.charges, 'dine_in').guestTotal;
 }
 
 export type TargetStatus = 'on' | 'near' | 'over' | 'incomplete';
@@ -166,14 +294,26 @@ export const STATUS_LABEL: Readonly<Record<TargetStatus, string>> = {
   incomplete: 'INCOMPLETE',
 };
 
-/** Food cost as a share of the menu price. Null when either figure is unknown. */
-export function foodCostPercent(total: number, sellingPrice: number | null): number | null {
+/**
+ * Food cost as a share of what the operator keeps of the menu price. Null
+ * when either figure is unknown. Without a model the price is taken as net,
+ * which is what every caller before tax-inclusive pricing assumed.
+ */
+export function foodCostPercent(
+  total: number,
+  sellingPrice: number | null,
+  model?: CostingModel,
+): number | null {
   if (sellingPrice === null || sellingPrice <= 0) return null;
-  return (total / sellingPrice) * 100;
+  const net = model === undefined ? sellingPrice : netPriceOf(sellingPrice, model);
+  if (net <= 0) return null;
+  return (total / net) * 100;
 }
 
 export interface PriceSuggestion {
-  /** cost / target, before any rounding. Shown so the arithmetic is visible. */
+  /** What the method asks for, net of any charges the sticker includes. */
+  readonly net: number;
+  /** The sticker before rounding: `net`, plus the guest's charges where the menu includes them. */
   readonly exact: number;
   /** The figure the rounding rule produces. */
   readonly rounded: number;
@@ -182,6 +322,20 @@ export interface PriceSuggestion {
   readonly alternative: number;
   readonly alternativeFoodCost: number;
   readonly ruleLabel: string;
+  /** The last step, in the operator's words: "divided by your 30%". */
+  readonly methodLabel: string;
+}
+
+/** The last step alone, so a preview can say it without pricing anything. */
+export function methodLabel(model: CostingModel): string {
+  switch (model.method) {
+    case 'money_per_plate':
+      return `plus ${String(model.moneyPerPlate)} a plate`;
+    case 'times_cost':
+      return `times ${String(model.factor)}`;
+    case 'food_share':
+      return `divided by your ${String(model.foodCostTarget)}%`;
+  }
 }
 
 /**
@@ -189,7 +343,13 @@ export interface PriceSuggestion {
  * price built on a floor would be a suggestion to lose money.
  */
 export function suggestPrice(total: number, model: CostingModel): PriceSuggestion {
-  const exact = total / (model.foodCostTarget / 100);
+  const net =
+    model.method === 'money_per_plate'
+      ? total + model.moneyPerPlate
+      : model.method === 'times_cost'
+        ? total * model.factor
+        : total / (model.foodCostTarget / 100);
+  const exact = stickerOf(net, model);
   const rounded = applyRounding(exact, ruleFor(model.rounding));
 
   // The other candidate, so the operator sees what the choice costs rather
@@ -198,12 +358,14 @@ export function suggestPrice(total: number, model: CostingModel): PriceSuggestio
   const alternative = applyRounding(exact, ruleFor(alternativeName));
 
   return {
+    net,
     exact,
     rounded,
-    roundedFoodCost: (total / rounded) * 100,
+    roundedFoodCost: (total / netPriceOf(rounded, model)) * 100,
     alternative,
-    alternativeFoodCost: (total / alternative) * 100,
+    alternativeFoodCost: (total / netPriceOf(alternative, model)) * 100,
     ruleLabel: ROUNDING_LABEL[model.rounding],
+    methodLabel: methodLabel(model),
   };
 }
 
@@ -282,6 +444,9 @@ export function dishModel(
     readonly foodCostTarget?: number | null | undefined;
     readonly wastagePercent?: number | null | undefined;
     readonly packagingPerPortion?: number | null | undefined;
+    readonly accompanimentsPerPortion?: number | null | undefined;
+    readonly overheadPerPortion?: number | null | undefined;
+    readonly moneyPerPlate?: number | null | undefined;
   } = {},
 ): CostingModel {
   return {
@@ -297,5 +462,14 @@ export function dishModel(
     ...(overrides.packagingPerPortion === null || overrides.packagingPerPortion === undefined
       ? {}
       : { packagingPerPortion: overrides.packagingPerPortion }),
+    ...(overrides.accompanimentsPerPortion === null || overrides.accompanimentsPerPortion === undefined
+      ? {}
+      : { accompanimentsPerPortion: overrides.accompanimentsPerPortion }),
+    ...(overrides.overheadPerPortion === null || overrides.overheadPerPortion === undefined
+      ? {}
+      : { overheadPerPortion: overrides.overheadPerPortion }),
+    ...(overrides.moneyPerPlate === null || overrides.moneyPerPlate === undefined
+      ? {}
+      : { moneyPerPlate: overrides.moneyPerPlate }),
   };
 }
