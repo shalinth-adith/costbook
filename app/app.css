@@ -3398,3 +3398,108 @@
   padding-inline: 10px; background: var(--surface-card);
 }
 .picker-ask-field input:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 1px; }
+
+/* ── new dish, guided ──────────────────────────────────────────────── */
+
+/* Four named steps in the order they happen, and a rail that says where you
+   are. Somebody who has never seen this screen should know what to do
+   without asking anyone. */
+
+.nd-steps {
+  list-style: none; margin: 0 0 var(--sp-5); padding: 0;
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px;
+}
+.nd-step {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 12px; border-radius: var(--radius-field);
+  border: 1px solid var(--border-hairline); background: var(--surface-card);
+  font-size: 12.5px; color: var(--text-tertiary);
+  transition: background var(--dur-state) var(--ease-enter), border-color var(--dur-state) var(--ease-enter);
+}
+.nd-step-n {
+  width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 11px; font-weight: 700;
+  border: 1.5px solid var(--border-control); color: var(--text-secondary);
+}
+.nd-step.is-current { border-color: var(--text-primary); color: var(--text-primary); font-weight: 600; }
+.nd-step.is-current .nd-step-n { background: var(--text-primary); border-color: var(--text-primary); color: var(--text-on-inverse); }
+.nd-step.is-done { color: var(--on-ink-strong); border-color: var(--on-edge); background: var(--on-tint); }
+.nd-step.is-done .nd-step-n { background: var(--on-ink); border-color: var(--on-ink); color: #fff; }
+
+.nd-card {
+  background: var(--surface-card); border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-field); padding: var(--sp-4) var(--sp-5);
+  margin-block-end: var(--sp-3);
+  transition: border-color var(--dur-state) var(--ease-enter), opacity var(--dur-state) var(--ease-enter);
+}
+.nd-card.is-current { border-color: var(--text-primary); box-shadow: 0 0 0 3px rgb(23 27 36 / 0.06); }
+.nd-card.is-todo { opacity: 0.72; }
+.nd-card-last { margin-block-end: var(--sp-10); }
+.nd-card-head { display: flex; align-items: flex-start; gap: 12px; margin-block-end: var(--sp-3); flex-wrap: wrap; }
+.nd-card-head > div { flex: 1 1 320px; min-width: 0; }
+.nd-card-n {
+  flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 12px; font-weight: 700; background: var(--surface-sunken); color: var(--text-secondary);
+}
+.nd-card.is-current .nd-card-n { background: var(--text-primary); color: var(--text-on-inverse); }
+.nd-card.is-done .nd-card-n { background: var(--on-ink); color: #fff; }
+.nd-card .nd-lede { margin-block-end: 0; }
+.nd-example-toggle { align-self: center; white-space: nowrap; }
+
+.nd-example {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.4fr);
+  gap: var(--sp-4); align-items: start;
+  background: var(--surface-sunken); border: 1px dashed var(--border-control);
+  border-radius: var(--radius-field); padding: var(--sp-3) var(--sp-4);
+  margin-block-end: var(--sp-3);
+}
+.nd-example-col { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.nd-example-pre {
+  margin: 0; font-family: var(--font-mono), ui-monospace, monospace; font-size: 13px;
+  line-height: 1.7; white-space: pre-wrap; color: var(--text-primary);
+}
+.nd-example-arrow { font-size: 22px; color: var(--text-quiet); align-self: center; }
+.nd-example-out { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; font-size: 13px; }
+.nd-example-note { margin: 4px 0 0; font-size: 12px; color: var(--text-tertiary); line-height: 1.5; }
+
+.nd-hint { margin: 6px 0 0; font-size: 12px; color: var(--text-tertiary); }
+
+.nd-sum { display: flex; flex-wrap: wrap; gap: 8px; margin-block-end: var(--sp-3); }
+.nd-chip {
+  font-size: 12.5px; padding: 5px 10px; border-radius: 999px;
+  border: 1px solid var(--border-hairline); background: var(--surface-card);
+  display: inline-flex; gap: 6px; align-items: baseline;
+}
+.nd-chip.is-known { border-color: var(--on-edge); background: var(--on-tint); color: var(--on-ink-strong); }
+.nd-chip.is-linked { border-color: var(--border-control); color: var(--text-primary); }
+.nd-chip.is-new { color: var(--text-secondary); }
+.nd-chip.is-open { border-color: var(--near-edge); background: var(--near-tint); color: var(--near-ink-strong); }
+
+/* The fix lives on the row that needs it. */
+.nd-row { grid-template-columns: 92px minmax(0, 1fr) minmax(0, 220px); }
+.nd-fix {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 6px 0 2px;
+}
+.nd-fix-ask { font-size: 12.5px; font-weight: 600; color: var(--near-ink-strong); }
+.nd-fix-qty {
+  width: 92px; height: 36px; font: inherit; font-size: 14px; text-align: end;
+  border: 1px solid var(--near-control); border-radius: var(--radius-field);
+  padding-inline: 10px; background: var(--surface-card);
+}
+.nd-fix-qty:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 1px; }
+.nd-fix-unit {
+  height: 36px; font: inherit; font-size: 13px;
+  border: 1px solid var(--border-control); border-radius: var(--radius-field);
+  padding-inline: 8px; background: var(--surface-card);
+}
+
+.btn-lg { height: 46px; padding-inline: 20px; font-size: 15px; }
+.nd-then { margin: var(--sp-3) 0 0; font-size: 13px; color: var(--text-secondary); max-width: 70ch; line-height: 1.55; }
+
+@media (max-width: 760px) {
+  .nd-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nd-example { grid-template-columns: 1fr; }
+  .nd-example-arrow { transform: rotate(90deg); justify-self: start; }
+}
