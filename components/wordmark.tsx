@@ -14,11 +14,17 @@ import { Mark } from './mark';
  *
  * Two rules decide where it goes. Never navigate to the page you are already
  * on — a reload that looks like nothing happened is worse than no control at
- * all. And never cross the signed-in boundary: the mark takes a signed-in user
- * to their dashboard, never back out to marketing.
+ * all. And never cross the signed-in boundary: the mark keeps a signed-in user
+ * inside the application, never back out to marketing.
+ *
+ * A third rule, learned late: never duplicate a control that is already on
+ * screen. The mark used to lead to /dashboard, which is also the first item in
+ * the nav row two centimetres to its right — two controls, one destination.
+ * It goes to /place now, the page about the kitchen itself, which is the thing
+ * a wordmark is a mark *of*.
  */
 export type WordmarkMode =
-  /** In the app. Home is the dashboard. */
+  /** In the app. Home is the place — the kitchen this book belongs to. */
   | 'app'
   /** On a public page. Home is the landing page. */
   | 'public'
@@ -30,7 +36,7 @@ export type WordmarkMode =
   | 'inert';
 
 export const HOME_OF: Record<Exclude<WordmarkMode, 'inert'>, string> = {
-  app: '/dashboard',
+  app: '/place',
   public: '/',
 };
 

@@ -2511,3 +2511,86 @@
   .fd-fig { text-align: start; }
   .fd-fig:last-child { text-align: end; }
 }
+
+/* ── the place ─────────────────────────────────────────────────────── */
+
+/* What this kitchen cooks, and how it costs. The page behind the wordmark.
+   Nothing here is edited, so every control convention is absent on purpose —
+   this reads. */
+
+/* `.stats` is a fixed four-column grid, because the dashboard has exactly
+   four. Three tiles in it leave a fifth of the row as an empty panel that
+   reads as a tile still loading. */
+.stats-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.place-block { padding: var(--sp-5) var(--sp-6) 0; }
+.place-h { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+.place-lede {
+  font-size: 12.5px; color: var(--text-secondary);
+  margin: 0 0 var(--sp-3); max-width: 78ch; line-height: 1.55; text-wrap: pretty;
+}
+.place-lede em { font-style: normal; color: var(--text-primary); }
+
+.place-head,
+.place-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) 88px 88px 88px minmax(200px, 1fr);
+  align-items: center; padding-inline: 14px; gap: 10px;
+}
+.place-head {
+  height: 38px; background: var(--surface-sunken);
+  border-block-end: 1px solid var(--border-control);
+  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-secondary); font-weight: 600;
+}
+.place-head .end, .place-row .end { text-align: end; }
+
+.place-row {
+  min-height: var(--row-default);
+  border-block-end: 1px solid var(--border-row);
+}
+.place-row:last-child { border-block-end: 0; }
+.place-name { font-weight: 500; }
+.place-dim { color: var(--text-tertiary); }
+/* A section whose costed count trails its dish count has a rate missing
+   underneath it. Marked with the same ink the rest of the product uses for a
+   figure that is questioned, never with a colour on its own. */
+.place-short { color: var(--near-ink); }
+
+.place-share { display: flex; align-items: center; gap: 10px; }
+.place-bar {
+  flex: 1; height: 6px; min-width: 60px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-row);
+  border-radius: 3px; overflow: hidden;
+}
+.place-bar-fill { display: block; height: 100%; background: var(--border-control); }
+.place-share-figure { font-size: 12px; color: var(--text-tertiary); min-width: 44px; text-align: end; }
+
+.place-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); list-style: none; margin: 0; padding: 0; }
+.place-chip {
+  display: flex; align-items: baseline; gap: 8px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-field);
+  padding: 8px 12px;
+}
+.place-chip-name { font-size: 13px; font-weight: 500; }
+.place-chip-count { font-size: 11.5px; color: var(--text-tertiary); }
+
+.place-stance { padding: var(--sp-1) 0; margin: 0; }
+.place-stance-row {
+  display: grid; grid-template-columns: 150px minmax(0, 1fr);
+  gap: 4px 18px; padding: 12px 16px;
+  border-block-end: 1px solid var(--border-row);
+  font-size: 13px;
+}
+.place-stance-row:last-child { border-block-end: 0; }
+.place-stance dt { color: var(--text-secondary); font-weight: 500; }
+.place-stance dd { margin: 0; color: var(--text-primary); }
+
+@media (max-width: 900px) {
+  .place-head, .place-row { grid-template-columns: minmax(0, 1.4fr) 64px 64px 64px; }
+  .place-share { display: none; }
+  .place-stance-row { grid-template-columns: 1fr; }
+}
