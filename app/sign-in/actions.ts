@@ -105,7 +105,16 @@ async function signInWithSupabase(
     return { kind: 'unverified', email, sentDaysAgo: null };
   }
 
-  // Everything else is "those two do not go together", which is the only thing
-  // it is safe to say.
-  return { kind: 'wrong-password', triesLeft: 0 };
+  /*
+   * Everything else is "those two do not go together", which is the only thing
+   * it is safe to say — and `null` because it is also the only thing we know.
+   *
+   * This used to return 0, and the form printed "0 tries left before we lock
+   * the account for 15 minutes" on the very first wrong password. Both halves
+   * were false: nothing was about to lock, and no count was being kept.
+   * Supabase rate-limits on its own terms and does not report a remaining
+   * number. FLOWS 8 asks that a lockout reassure rather than accuse, and a
+   * threat that is not even true is the wrong end of that.
+   */
+  return { kind: 'wrong-password', triesLeft: null };
 }

@@ -70,7 +70,7 @@ export function JoinForm({
         </p>
         <Link href="/sign-in" className="btn btn-primary entry-action">Sign in</Link>
         <p className="entry-foot">
-          Forgotten the password you chose? <Link href="/reset" className="link link-sm">Set a new one</Link>.
+          Forgotten the password you chose? <Link href="/contact" className="link link-sm">Write to us</Link>.
         </p>
       </div>
     );

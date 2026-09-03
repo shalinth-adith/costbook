@@ -19,7 +19,7 @@
 export const MAX_ATTEMPTS = 5;
 export const LOCKOUT_MS = 15 * 60 * 1000;
 
-export type FieldName = 'email' | 'password';
+export type FieldName = "email" | "password";
 
 /**
  * A fault names the field that caused it. The design is explicit that a
@@ -49,16 +49,32 @@ export const NO_ATTEMPTS: Attempts = { wrong: 0, lockedUntil: null };
 
 export type SignInResult =
   /** A10 · 01, 02 — empty or malformed, caught before anything is looked up. */
-  | { readonly kind: 'fields'; readonly faults: readonly FieldFault[] }
+  | { readonly kind: "fields"; readonly faults: readonly FieldFault[] }
   /** A10 · 04 */
-  | { readonly kind: 'locked'; readonly unlocksInMs: number }
+  | { readonly kind: "locked"; readonly unlocksInMs: number }
   /** A10 · 05 */
-  | { readonly kind: 'unknown-email'; readonly typed: string; readonly suggestion: string | null }
-  /** A10 · 03 */
-  | { readonly kind: 'wrong-password'; readonly triesLeft: number }
+  | {
+      readonly kind: "unknown-email";
+      readonly typed: string;
+      readonly suggestion: string | null;
+    }
+  /**
+   * A10 · 03.
+   *
+   * `triesLeft` is null when nobody is counting. Supabase Auth rate-limits on
+   * its own terms and does not tell us how many guesses remain, and printing a
+   * number we do not have is the same fault as printing a rate nobody entered
+   * — it just reads as a threat instead of a cost. The screen says only that
+   * the two do not match, which is all that is known.
+   */
+  | { readonly kind: "wrong-password"; readonly triesLeft: number | null }
   /** A10 · 06 */
-  | { readonly kind: 'unverified'; readonly email: string; readonly sentDaysAgo: number | null }
-  | { readonly kind: 'ok'; readonly email: string };
+  | {
+      readonly kind: "unverified";
+      readonly email: string;
+      readonly sentDaysAgo: number | null;
+    }
+  | { readonly kind: "ok"; readonly email: string };
 
 /** Everything the policy needs to know, gathered by whoever can gather it. */
 export interface SignInFacts {
@@ -87,26 +103,38 @@ const SHAPED_LIKE_EMAIL = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 
 export function emailFault(raw: string): FieldFault | null {
   const email = raw.trim();
-  if (email === '') {
-    return { field: 'email', message: 'We need your email to find your account.' };
+  if (email === "") {
+    return {
+      field: "email",
+      message: "We need your email to find your account.",
+    };
   }
   if (!SHAPED_LIKE_EMAIL.test(email)) {
     return {
-      field: 'email',
-      message: 'That address is missing its ending — .in, .com or similar.',
+      field: "email",
+      message: "That address is missing its ending — .in, .com or similar.",
     };
   }
   return null;
 }
 
-export function passwordFault(raw: string, submittedEmpty = true): FieldFault | null {
-  if (raw !== '') return null;
+export function passwordFault(
+  raw: string,
+  submittedEmpty = true,
+): FieldFault | null {
+  if (raw !== "") return null;
   // "And your password." only reads correctly beneath the email's own message.
-  return { field: 'password', message: submittedEmpty ? 'And your password.' : 'Your password.' };
+  return {
+    field: "password",
+    message: submittedEmpty ? "And your password." : "Your password.",
+  };
 }
 
 /** A10 · 01 and 02 both live here: shape checks, in field order. */
-export function fieldFaults(email: string, password: string): readonly FieldFault[] {
+export function fieldFaults(
+  email: string,
+  password: string,
+): readonly FieldFault[] {
   const faults: FieldFault[] = [];
   const e = emailFault(email);
   if (e) faults.push(e);
@@ -139,9 +167,12 @@ function distance(a: string, b: string): number {
  * a different person. The tolerance scales with length — three edits is a slip
  * in a long domain and a different account entirely in a short one.
  */
-export function suggestEmail(typed: string, directory: readonly string[]): string | null {
+export function suggestEmail(
+  typed: string,
+  directory: readonly string[],
+): string | null {
   const target = typed.trim().toLowerCase();
-  if (target === '') return null;
+  if (target === "") return null;
 
   let best: string | null = null;
   let bestDistance = Infinity;
@@ -170,37 +201,47 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * never learns whether the address is verified — and the "one step left" card
  * is only ever shown to someone who has proved the account is theirs.
  */
-export function signIn(email: string, password: string, facts: SignInFacts): SignInResult {
+export function signIn(
+  email: string,
+  password: string,
+  facts: SignInFacts,
+): SignInResult {
   const faults = fieldFaults(email, password);
-  if (faults.length > 0) return { kind: 'fields', faults };
+  if (faults.length > 0) return { kind: "fields", faults };
 
   const typed = email.trim();
 
   const { lockedUntil } = facts.attempts;
   if (lockedUntil !== null && lockedUntil > facts.now) {
-    return { kind: 'locked', unlocksInMs: lockedUntil - facts.now };
+    return { kind: "locked", unlocksInMs: lockedUntil - facts.now };
   }
 
   if (facts.account === null) {
-    return { kind: 'unknown-email', typed, suggestion: suggestEmail(typed, facts.directory) };
+    return {
+      kind: "unknown-email",
+      typed,
+      suggestion: suggestEmail(typed, facts.directory),
+    };
   }
 
   if (!facts.passwordMatches) {
     const wrong = facts.attempts.wrong + 1;
-    if (wrong >= MAX_ATTEMPTS) return { kind: 'locked', unlocksInMs: LOCKOUT_MS };
-    return { kind: 'wrong-password', triesLeft: MAX_ATTEMPTS - wrong };
+    if (wrong >= MAX_ATTEMPTS)
+      return { kind: "locked", unlocksInMs: LOCKOUT_MS };
+    return { kind: "wrong-password", triesLeft: MAX_ATTEMPTS - wrong };
   }
 
   if (facts.account.verifiedAt === null) {
     const sentAt = facts.account.verificationSentAt;
     return {
-      kind: 'unverified',
+      kind: "unverified",
       email: facts.account.email,
-      sentDaysAgo: sentAt === null ? null : Math.floor((facts.now - sentAt) / DAY_MS),
+      sentDaysAgo:
+        sentAt === null ? null : Math.floor((facts.now - sentAt) / DAY_MS),
     };
   }
 
-  return { kind: 'ok', email: facts.account.email };
+  return { kind: "ok", email: facts.account.email };
 }
 
 /**
@@ -208,19 +249,23 @@ export function signIn(email: string, password: string, facts: SignInFacts): Sig
  * four wrong guesses followed by the right one is a person remembering, not
  * an attack part-way through.
  */
-export function nextAttempts(before: Attempts, result: SignInResult, now: number): Attempts {
+export function nextAttempts(
+  before: Attempts,
+  result: SignInResult,
+  now: number,
+): Attempts {
   switch (result.kind) {
-    case 'wrong-password':
+    case "wrong-password":
       return { wrong: before.wrong + 1, lockedUntil: before.lockedUntil };
-    case 'locked':
+    case "locked":
       return { wrong: MAX_ATTEMPTS, lockedUntil: now + result.unlocksInMs };
-    case 'ok':
-    case 'unverified':
+    case "ok":
+    case "unverified":
       return NO_ATTEMPTS;
     // A shape error and an unknown address are not guesses at a password, and
     // counting them would let anyone lock an account they cannot spell.
-    case 'fields':
-    case 'unknown-email':
+    case "fields":
+    case "unknown-email":
       return before;
   }
 }
@@ -235,8 +280,6 @@ export function nextAttempts(before: Attempts, result: SignInResult, now: number
  * only honest way to tell a dropped connection from a refused password.
  */
 export type SignInState =
-  | { readonly kind: 'idle' }
-  | { readonly kind: 'unreachable' }
-  | SignInResult;
+  { readonly kind: "idle" } | { readonly kind: "unreachable" } | SignInResult;
 
-export const IDLE: SignInState = { kind: 'idle' };
+export const IDLE: SignInState = { kind: "idle" };
