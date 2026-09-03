@@ -4,6 +4,9 @@ import { revalidatePath } from 'next/cache';
 
 import { book, getMeta, getRecipe, saveIngredient, saveMeta, saveRecipe } from '@/lib/book';
 import { roomForRecipe } from '@/lib/guard';
+import { toBase, unitFamily } from '@/core/units';
+import type { RecipeComponent } from '@/core/recipe';
+import { draftFrom } from '@/lib/draft';
 
 export interface Ack {
   readonly message: string;
@@ -122,4 +125,125 @@ export async function createDish(input: {
   refresh();
 
   return { message: `${name} created. Add what goes on it.`, undoable: false, id };
+}
+
+/**
+ * Create a dish from a pasted recipe, in one go.
+ *
+ * The old flow asked for a name and a portion count in a modal, created an
+ * empty dish, and left the operator on a blank cost sheet to add lines one at
+ * a time through a picker. That is the shape of entry every costing product
+ * loses its users to — operators report ten hours a week on it and quit before
+ * the payoff. The fastest entry any of them offer is a box you paste a recipe
+ * into, because the chef already wrote it down somewhere.
+ *
+ * Anything the paste named that is not on the shelf is created here, with no
+ * rate. That is deliberate and it is not a gap: a rate nobody has entered is
+ * `null`, the dish reports a floor rather than a cost, and every screen says
+ * so. Inventing a rate to make the dish look costed is the one thing this
+ * product must never do.
+ */
+export async function createDishFromPaste(input: {
+  readonly name: string;
+  readonly category: string;
+  readonly portions: number;
+  readonly text: string;
+}): Promise<Ack & { readonly id: string | null }> {
+  const name = input.name.trim();
+  if (name === '') return { message: 'A dish needs a name.', undoable: false, id: null };
+
+  const room = await roomForRecipe();
+  if (!room.ok) return { message: room.message, undoable: false, id: null };
+
+  const b = await book();
+  const id = `dish-${Date.now().toString(36)}`;
+
+  const drafted = draftFrom({
+    text: input.text,
+    shelf: b.ingredients,
+    recipes: b.recipes,
+    excludeRecipeId: id,
+  });
+
+  const components: RecipeComponent[] = [];
+  let created = 0;
+
+  for (const row of drafted.lines) {
+    // A line with no quantity cannot become a component — the engine refuses
+    // a quantity of zero, and inventing one would be inventing a cost. It is
+    // dropped here and named back to the operator by the screen.
+    if (row.line.qty === null) continue;
+    const unit = row.line.unit ?? 'g';
+
+    if (row.match.kind === 'recipe') {
+      components.push({
+        kind: 'recipe',
+        scope: 'batch',
+        childId: row.match.recipe.id,
+        qty: toBase(row.line.qty, unit),
+        unit,
+        entry: { mode: 'ingredient_rate' },
+      });
+      continue;
+    }
+
+    let ingredientId: string;
+    if (row.match.kind === 'ingredient') {
+      ingredientId = row.match.ingredient.id;
+    } else {
+      // New, and priced at nothing until somebody says otherwise.
+      ingredientId = `ing-${Date.now().toString(36)}-${String(created)}`;
+      const family = unitFamily(unit) ?? 'mass';
+      await saveIngredient({
+        id: ingredientId,
+        name: row.line.name,
+        family,
+        purchaseQty: 1,
+        purchasePrice: null,
+        purchaseUnit: unit,
+        yieldPercent: 100,
+        yieldIsAssumed: true,
+      });
+      created += 1;
+    }
+
+    components.push({
+      kind: 'ingredient',
+      scope: 'batch',
+      ingredientId,
+      qty: toBase(row.line.qty, unit),
+      unit,
+      entry: { mode: 'ingredient_rate' },
+    });
+  }
+
+  await saveRecipe(
+    {
+      id,
+      name,
+      family: 'count',
+      outputQty: input.portions,
+      outputUnit: 'pc',
+      portions: input.portions,
+      components,
+    },
+    undefined,
+  );
+  await saveMeta(id, {
+    category: input.category,
+    station: null,
+    portionSize: null,
+    sellingPrice: null,
+    note: '',
+    onMenu: false,
+    updatedAt: new Date().toISOString().slice(0, 10),
+  });
+  refresh();
+
+  const dropped = drafted.lines.length - components.length;
+  const parts = [`${name} created with ${String(components.length)} lines`];
+  if (created > 0) parts.push(`${String(created)} new ingredients, no rate yet`);
+  if (dropped > 0) parts.push(`${String(dropped)} lines had no quantity and were left out`);
+
+  return { message: `${parts.join(' · ')}.`, undoable: false, id };
 }

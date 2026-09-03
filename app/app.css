@@ -2772,3 +2772,78 @@
   border-block-start: 1px solid var(--border-hairline);
   margin-inline: var(--sp-6); padding-inline: 0;
 }
+
+/* ── new dish ──────────────────────────────────────────────────────── */
+
+/* A screen, because creating a dish is the work. The modal it replaces asked
+   two questions and left an empty dish on a blank cost sheet. */
+
+.nd { padding-inline: var(--sp-6); max-width: 1060px; }
+.nd-block { margin-block-end: var(--sp-6); }
+.nd-h { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+.nd-lede {
+  font-size: 12.5px; color: var(--text-secondary);
+  margin: 0 0 var(--sp-3); max-width: 78ch; line-height: 1.55; text-wrap: pretty;
+}
+
+.nd-fields { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: flex-start; }
+.nd-field { display: flex; flex-direction: column; gap: 5px; min-width: 160px; }
+.nd-field-name { flex: 1 1 320px; }
+.nd-label {
+  font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--text-secondary); font-weight: 600;
+}
+.nd-help { font-size: 11.5px; color: var(--text-tertiary); }
+.nd-portions { display: flex; align-items: center; gap: 8px; }
+.nd-portions .set-input { width: 88px; }
+.nd-suffix { font-size: 13px; color: var(--text-secondary); }
+
+.nd-paste {
+  width: 100%; min-height: 200px; resize: vertical;
+  font: inherit; font-size: 13.5px; line-height: 1.7;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  background: var(--surface-card);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-field);
+  padding: var(--sp-3) 14px; color: var(--text-primary);
+}
+.nd-paste:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 1px; }
+.nd-paste::placeholder { color: var(--text-quiet); }
+
+.nd-rows { padding: 2px 0; }
+.nd-row {
+  display: grid; grid-template-columns: 92px minmax(0, 1fr) minmax(0, 260px);
+  gap: 12px; align-items: baseline;
+  padding: 9px 16px; font-size: 13px;
+  border-block-end: 1px solid var(--border-row);
+}
+.nd-row:last-child { border-block-end: 0; }
+/* A line still needing a person takes the questioned tint, not a failure one —
+   nothing has gone wrong, it just is not finished. */
+.nd-row.is-open { background: var(--near-tint); }
+.nd-qty { text-align: end; color: var(--text-secondary); white-space: nowrap; }
+.nd-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+.nd-verdict { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+
+.nd-tag {
+  font-size: 10.5px; letter-spacing: 0.04em;
+  border-radius: var(--radius-chip); padding: 2px 7px;
+  border: 1px solid var(--border-hairline); color: var(--text-secondary);
+  white-space: nowrap;
+}
+.nd-tag.is-known { border-color: var(--on-edge); color: var(--on-ink); background: var(--on-tint); }
+.nd-tag.is-linked { border-color: var(--border-control); color: var(--text-primary); }
+.nd-tag.is-open { border-color: var(--near-edge); color: var(--near-ink); background: var(--near-tint); }
+.nd-tag.is-new { border-color: var(--border-hairline); color: var(--text-tertiary); }
+
+.nd-fault { border-radius: var(--radius-field); margin-block-end: var(--sp-4); }
+.nd-actions {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding-block: var(--sp-3) var(--sp-10);
+}
+.nd-hint { font-size: 12px; color: var(--text-tertiary); }
+
+@media (max-width: 760px) {
+  .nd-row { grid-template-columns: 76px minmax(0, 1fr); }
+  .nd-verdict { grid-column: 1 / -1; justify-content: flex-start; }
+}

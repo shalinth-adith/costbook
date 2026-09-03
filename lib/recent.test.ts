@@ -28,7 +28,7 @@ function ing(over: Partial<Ingredient> & { id: string }): Ingredient {
     purchasePrice: 500,
     purchaseUnit: "kg",
     yieldPercent: 100,
-    yieldAssumed: false,
+    yieldIsAssumed: false,
     ...over,
   } as Ingredient;
 }
