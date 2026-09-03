@@ -13,7 +13,6 @@ import {
 
 import {
   changeRole,
-  choosePlan,
   drop,
   invite,
   previewCosting,
@@ -29,6 +28,7 @@ import {
 } from "@/lib/costing";
 import {
   FREE_LIMITS,
+  PAID_MONTHLY,
   type Member,
   type Org,
   type Plan,
@@ -76,6 +76,8 @@ export interface SettingsData {
   readonly model: CostingModel;
   readonly members: readonly Member[];
   readonly plan: Plan;
+  /** The caller's own role, from `book()`. The header used to print "owner". */
+  readonly role: Role | null;
   readonly recipeCount: number;
   readonly ingredientCount: number;
   readonly staleCount: number;
@@ -178,7 +180,9 @@ export function SettingsView({
             reviewing it all at once, or setting up before you have any data.
           </p>
         </div>
-        <span className="set-who">{data.org.name} · owner</span>
+        <span className="set-who">
+          {data.org.name} · {data.role ?? "not on this book"}
+        </span>
       </div>
 
       {/* Tabs at 1440; the same list stacks at 768. */}
@@ -953,6 +957,8 @@ function BillingTab({
   start: (fn: () => Promise<void>) => void;
 }) {
   const atLimit = plan === "free" && recipeCount >= FREE_LIMITS.recipes;
+  /** Whether the paid tier is being shown. Showing it changes no plan. */
+  const [comparing, setComparing] = useState(false);
 
   return (
     <>
@@ -960,20 +966,33 @@ function BillingTab({
         <div className="set-limit">
           <h3>You are at the free limit — {FREE_LIMITS.recipes} recipes.</h3>
           <p>
+            {/*
+             * "one more recipe" rather than an ordinal built from the
+             * constant: FREE_LIMITS.recipes + 1 reads "11th" today and "21th"
+             * the day somebody changes the number, and a sentence that breaks
+             * when a config value moves is a sentence nobody will remember to
+             * check.
+             */}
             Everything you have stays costed, printable and exportable. What
-            stops is adding the forty-first recipe, repeat imports, and rate
-            history beyond the last change. Nothing is deleted and nothing is
-            locked away.
+            stops is adding one more recipe, repeat imports, and rate history
+            beyond the last change. Nothing is deleted and nothing is locked
+            away.
           </p>
+          {/*
+            * This button read "See what keeping it current costs" and called
+            * choosePlan("paid") — it did not show a price, it changed the
+            * plan. So did "Compare with paid" below. Both moved an account to
+            * the paid tier, for nothing, on a press whose label promised only
+            * to explain something.
+            *
+            * There is no payment path to send anybody down yet (Razorpay is
+            * TRD build step 25), so what is offered is the price and a person
+            * to arrange it with, which is true today.
+            */}
           <button
             type="button"
             className="btn btn-primary"
-            disabled={pending}
-            onClick={() =>
-              start(async () => {
-                await choosePlan("paid");
-              })
-            }
+            onClick={() => setComparing(true)}
           >
             See what keeping it current costs
           </button>
@@ -992,16 +1011,40 @@ function BillingTab({
         <button
           type="button"
           className="set-pill"
-          disabled={pending}
-          onClick={() =>
-            start(async () => {
-              await choosePlan(plan === "free" ? "paid" : "free");
-            })
-          }
+          onClick={() => setComparing((v) => !v)}
         >
-          {plan === "free" ? "Compare with paid" : "Back to free"}
+          {comparing ? "Hide" : "Compare with paid"}
         </button>
       </SettingRow>
+
+      {comparing && (
+        <div className="set-limit">
+          <h3>
+            Paid is{" "}
+            <span className="figure">
+              {PAID_MONTHLY.symbol}
+              {PAID_MONTHLY.amount}
+            </span>{" "}
+            a month.
+          </h3>
+          <p>
+            It lifts the {FREE_LIMITS.recipes}-recipe cap, allows repeat
+            imports so a new price list can be dropped in whenever one
+            arrives, keeps every rate change rather than the last three, and
+            puts a second person on the book.
+          </p>
+          <p className="set-note">
+            {/*
+              * Said plainly rather than behind a button that does nothing.
+              * There is no payment path yet — Razorpay is TRD build step 25 —
+              * and a "Subscribe" button that silently flipped a flag is what
+              * used to be here.
+              */}
+            There is no card form yet. Write to us and we&rsquo;ll set it up
+            with you; billed in rupees whatever your menu is priced in.
+          </p>
+        </div>
+      )}
 
       <table className="set-table">
         <tbody>
@@ -1024,11 +1067,17 @@ function BillingTab({
           </tr>
           <tr>
             <td>Imports this month</td>
+            {/*
+              * The "1" here was typed, not counted — nothing in the product
+              * records an import, so this row reported a figure nobody
+              * measured, in a table whose other two rows are real. A dash is
+              * what we know.
+              */}
             <td className="figure">
-              1 of {plan === "free" ? FREE_LIMITS.importsPerMonth : "∞"}
+              — of {plan === "free" ? FREE_LIMITS.importsPerMonth : "∞"}
             </td>
             <td className="set-note">
-              repeat imports are what the paid tier is for
+              not counted yet; repeat imports are what the paid tier is for
             </td>
           </tr>
         </tbody>

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { book } from "./book";
-import { type Role, canDo } from "./org";
+import { FREE_LIMITS, type Role, atFreeLimit, canDo } from "./org";
 
 /**
  * Send an account that has not finished setup to the wizard.
@@ -62,4 +62,37 @@ export async function requireRole(
     );
   }
   return role;
+}
+
+/**
+ * Whether there is room for another recipe on this plan.
+ *
+ * FLOWS 9 is explicit that the free tier is "enforced server-side on create,
+ * never only in the UI", and TRD build step 25's acceptance check is that the
+ * recipe past the limit "is blocked server-side". Neither was true: the cap
+ * existed as a number, `atFreeLimit` was written to compare against it, and
+ * nothing in the application ever called it. Settings drew a progress bar
+ * against a limit that stopped nobody.
+ *
+ * Returns a refusal rather than throwing, because both callers answer with an
+ * `Ack` that the screen renders — a thrown error there is the error boundary,
+ * which is the wrong reply to "you have reached the free tier".
+ *
+ * What it deliberately does not do is touch anything that already exists.
+ * Nothing is deleted at the limit and nothing is locked: FLOWS 9 says a
+ * downgrade leaves recipes beyond the limit read-only, and every plan may
+ * still edit what it has. This gates creation alone.
+ */
+export async function roomForRecipe(): Promise<
+  { readonly ok: true } | { readonly ok: false; readonly message: string }
+> {
+  const { recipes, plan } = await book();
+  if (!atFreeLimit(recipes.length, plan)) return { ok: true };
+  return {
+    ok: false,
+    message:
+      `The free tier holds ${FREE_LIMITS.recipes} recipes and you have them all. ` +
+      `Everything you have stays costed and printable — what stops is adding ` +
+      `another. The paid tier lifts it.`,
+  };
 }

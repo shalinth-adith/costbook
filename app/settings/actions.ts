@@ -10,7 +10,6 @@ import type { Role, TaxTreatment } from "@/lib/org";
 import { book, orgModel, saveOrg } from "@/lib/book";
 import { requireRole } from "@/lib/guard";
 import { inviteToOrg, removeFromOrg, setOrgRole } from "@/lib/book";
-import { setPlan } from "@/lib/store";
 
 /**
  * Save a costing change.
@@ -94,15 +93,20 @@ export async function changeRole(
   return { ok: true };
 }
 
-/** Demo-only, until Razorpay lands at build step 25. */
-export async function choosePlan(
-  next: "free" | "paid",
-): Promise<{ readonly ok: true }> {
-  await requireRole('billing');
-  setPlan(next);
-  revalidatePath("/settings");
-  return { ok: true };
-}
+/*
+ * There is no `choosePlan` here any more.
+ *
+ * It moved an account to the paid tier and took no money, and the two buttons
+ * that called it were labelled "Compare with paid" and "See what keeping it
+ * current costs" — neither of which promises to change anything. Removing the
+ * buttons was not enough on its own: an exported server action is a public
+ * endpoint whether or not any component imports it, so leaving it here would
+ * have left a free upgrade one POST away for any signed-in owner.
+ *
+ * `savePlan` in `lib/book.ts` is the seam that stays. It writes the
+ * subscriptions row durably, which is what this never did, and it is what the
+ * Razorpay callback calls when there is one to call it (TRD build step 25).
+ */
 
 /**
  * What a costing change would do, without doing it.

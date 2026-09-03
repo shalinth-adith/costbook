@@ -153,10 +153,35 @@ export type Plan = 'free' | 'paid';
  * to (A27 Billing).
  */
 export const FREE_LIMITS = {
-  recipes: 40,
+  /*
+   * Ten, which is what PRD 9 and FLOWS 9 both say and what the code said 40
+   * of. The free tier is for finding out whether the thing works on your own
+   * menu, and ten dishes answers that — a café that has costed forty is not
+   * evaluating any more, it is running on it.
+   */
+  recipes: 10,
   ingredients: 250,
   importsPerMonth: 1,
   rateHistory: 3,
+} as const;
+
+/**
+ * What the paid tier costs, in one place.
+ *
+ * Written down here because it was written down twice: as a figure in the
+ * landing page's markup, and as nothing at all in Settings, whose "compare
+ * with paid" button changed the plan instead of naming a price. Two copies of
+ * a price is one copy and one lie waiting to happen.
+ *
+ * Billed in rupees regardless of the currency an account costs in — Costbook
+ * does not convert, and a subscription is not a menu price. PRD 9 also lists a
+ * dirham figure for the UAE; that arrives with the payment provider that can
+ * charge it, and this is the shape it will arrive into.
+ */
+export const PAID_MONTHLY = {
+  amount: 750,
+  currency: 'INR',
+  symbol: '\u20B9',
 } as const;
 
 export function atFreeLimit(recipeCount: number, p: Plan): boolean {

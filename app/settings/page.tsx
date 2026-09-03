@@ -74,6 +74,7 @@ export default async function SettingsPage({
             model,
             members: b.members,
             plan: b.plan,
+            role: b.role,
             recipeCount: recipes.length,
             ingredientCount: ingredients.length,
             staleCount: stale,

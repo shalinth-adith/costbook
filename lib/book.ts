@@ -770,3 +770,32 @@ export async function setOrgRole(
   const column = pending ? "id" : "user_id";
   check("the role", await supabase.from(table).update({ role }).eq(column, id));
 }
+
+/**
+ * Move the account between plans.
+ *
+ * This wrote to the in-memory store and nowhere else, so with a project wired
+ * up the `subscriptions` row never moved: an operator upgraded, the screen
+ * agreed, and the next server restart put them back on free. A plan that
+ * forgets itself is worse than one that cannot be changed — nothing prompts
+ * anybody to look, and the tier caps quietly come back.
+ *
+ * It still takes no money. Razorpay is TRD build step 25 and there is no
+ * payment path yet; what this does is record a decision durably, so that when
+ * there is one it has somewhere to write.
+ */
+export async function savePlan(next: Plan): Promise<void> {
+  if (!supabaseConfigured()) {
+    memory.setPlan(next);
+    return;
+  }
+  const b = await book();
+  // Loud, not silent. A write that quietly does nothing is worse than one that
+  // fails: nothing prompts the operator to look.
+  if (b.orgId === null) throw new WriteFailed("anything", "No account is signed in.");
+  const supabase = await supabaseServer();
+  check(
+    "your plan",
+    await supabase.from("subscriptions").update({ plan: next }).eq("org_id", b.orgId),
+  );
+}

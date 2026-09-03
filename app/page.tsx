@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import { LandingNav } from '@/components/landing-nav';
 import { LandingRate } from '@/components/landing-rate';
+import { PAID_MONTHLY } from '@/lib/org';
 
 import './landing.css';
 
@@ -73,8 +74,13 @@ export default function Landing() {
       {/* 4 — the price */}
       <section className="lp-price">
         <p className="lp-price-said">
-          Free to cost your menu. <span className="figure lp-price-figure">₹750</span> a month to
-          keep it current.
+          Free to cost your menu.{' '}
+          {/* The figure comes from lib/org so this and Settings cannot drift. */}
+          <span className="figure lp-price-figure">
+            {PAID_MONTHLY.symbol}
+            {PAID_MONTHLY.amount}
+          </span>{' '}
+          a month to keep it current.
         </p>
         <Link href="/setup" className="btn btn-primary lp-btn-lg">Start free</Link>
         {/* A person doing work by hand, so it cannot be the primary action —

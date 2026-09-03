@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { book, getMeta, getRecipe, saveIngredient, saveMeta, saveRecipe } from '@/lib/book';
+import { roomForRecipe } from '@/lib/guard';
 
 export interface Ack {
   readonly message: string;
@@ -30,6 +31,12 @@ export async function duplicateRecipe(id: string): Promise<Ack> {
   if (recipe === undefined || dish === undefined) {
     return { message: 'That recipe is no longer here.', undoable: false };
   }
+
+  // A copy is a recipe. Gating `createDish` alone would leave the limit one
+  // button away from meaningless — a kitchen with six biryanis builds five of
+  // them through this path, which is the whole reason it exists (A16).
+  const room = await roomForRecipe();
+  if (!room.ok) return { message: room.message, undoable: false };
 
   const copyId = `${id}-copy-${Date.now().toString(36)}`;
   const name = `${recipe.name} (copy)`;
@@ -87,6 +94,10 @@ export async function createDish(input: {
 }): Promise<Ack & { readonly id: string | null }> {
   const name = input.name.trim();
   if (name === '') return { message: 'A dish needs a name.', undoable: false, id: null };
+
+  // Server-side, because a cap the browser enforces is not a cap (FLOWS 9).
+  const room = await roomForRecipe();
+  if (!room.ok) return { message: room.message, undoable: false, id: null };
 
   const id = `dish-${Date.now().toString(36)}`;
 

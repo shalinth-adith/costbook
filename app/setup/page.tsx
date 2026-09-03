@@ -5,7 +5,6 @@ import { CurrencyProvider } from "@/components/currency-provider";
 
 import { book } from "@/lib/book";
 import { landingFor } from "@/lib/landing";
-import { currencyCode } from "@/lib/store";
 
 /**
  * The four questions, asked once after sign-up and before there is any data.
@@ -27,7 +26,15 @@ export default async function SetupPage() {
   // rule lives in `roleOf`; the reason it has to is in `lib/after-auth.ts`.
   if (org.setupDone) redirect(landingFor(role ?? "manager"));
 
-  const code = currencyCode();
+  /*
+   * The account's own currency, not the in-memory fixture's.
+   *
+   * `currencyCode()` reads `lib/store`, which with a project wired up is an
+   * empty book that nobody is using — so this screen offered INR to an
+   * organisation already holding AED. It looked right only because a brand new
+   * org and the fixture happen to start on the same default.
+   */
+  const code = org.currency;
   return (
     <CurrencyProvider code={code}>
       <SetupWizard initialCurrency={code} />
