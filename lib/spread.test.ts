@@ -141,3 +141,37 @@ describe("the worst offenders", () => {
     expect(out.map((r) => r.name)).toEqual(["Idly", "Vada"]);
   });
 });
+
+describe("the bands speak the product's own vocabulary", () => {
+  // `statusFor` calls anything within two points of the target "near", and
+  // every other screen inks on / near / over that way. A chart in one grey
+  // makes the reader work out where healthy stops; nothing else here does.
+  const at = (from: number) =>
+    spread([], 30).bands.find((b) => b.from === from)?.status;
+
+  it("calls a band entirely below the near window on target", () => {
+    // 20–25 ends at 25, which is below 30 − 2.
+    expect(at(20)).toBe("on");
+  });
+
+  it("calls a band entirely above it over", () => {
+    // 35 is past 30 + 2.
+    expect(at(35)).toBe("over");
+  });
+
+  it("calls a band that straddles the window near, not one or the other", () => {
+    /*
+     * 25–30 holds dishes at 26 (near) and 29 (near); 30–35 holds 31 (near) and
+     * 34 (over). Reading either as its worse half would fail dishes that are
+     * meeting the target, and a five-point column read from its midpoint lands
+     * on one side of a two-point window by accident.
+     */
+    expect(at(25)).toBe("near");
+    expect(at(30)).toBe("near");
+  });
+
+  it("moves with the target rather than being fixed", () => {
+    const low = spread([], 15).bands.find((b) => b.from === 20)?.status;
+    expect(low).toBe("over");
+  });
+});

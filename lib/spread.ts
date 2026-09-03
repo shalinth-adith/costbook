@@ -15,6 +15,7 @@
  */
 
 import type { DashboardRow } from "./dashboard";
+import type { TargetStatus } from "./costing";
 
 /** One column of the distribution. */
 export interface Band {
@@ -25,6 +26,20 @@ export interface Band {
   readonly count: number;
   /** Whether this band sits entirely past the target. */
   readonly over: boolean;
+  /**
+   * The band in the product's own three-band vocabulary.
+   *
+   * `statusFor` calls anything within two points of the target "near", and the
+   * whole application already inks on / near / over that way — the chip on a
+   * dish, the figure on a row, the glyph beside it. A chart drawn in one
+   * undifferentiated grey throws that away and makes the reader work out where
+   * healthy stops, which the rest of the product never asks of them.
+   *
+   * A band that straddles the near window is near: it holds dishes on both
+   * sides, so calling it either of the other two would be wrong for half of
+   * them.
+   */
+  readonly status: Exclude<TargetStatus, 'incomplete'>;
   /** Height as a share of the tallest band, 0–100. Zero when nothing costs. */
   readonly height: number;
   /** The dishes in it, so the band can say who without a second pass. */
@@ -48,6 +63,24 @@ const BAND = 5;
 
 /** Everything at or above this goes in one open-ended band at the end. */
 const CEILING = 60;
+
+/**
+ * Which of the three bands a column belongs to.
+ *
+ * Read from the column's whole range rather than its midpoint, because a
+ * midpoint lands a five-point column on one side of a two-point window by
+ * accident. Entirely below the near window is on target; entirely above it is
+ * over; anything touching it is near.
+ */
+function bandStatus(
+  from: number,
+  to: number | null,
+  target: number,
+): Exclude<TargetStatus, 'incomplete'> {
+  if (from > target + 2) return 'over';
+  if (to !== null && to <= target - 2) return 'on';
+  return 'near';
+}
 
 /**
  * The distribution of food cost across the menu.
@@ -92,6 +125,7 @@ export function spread(rows: readonly DashboardRow[], target: number): Spread {
       // A band is "over" only when all of it is past the target, so the band
       // the target sits inside is not painted as a failure.
       over: from >= target,
+      status: bandStatus(from, last ? null : from + BAND, target),
       height: tallest === 0 ? 0 : (count / tallest) * 100,
       names: names[i] ?? [],
     };

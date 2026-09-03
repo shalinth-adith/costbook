@@ -2707,11 +2707,18 @@
 .spr-count { font-size: 11px; color: var(--text-tertiary); line-height: 1; }
 .spr-bar {
   width: 100%; min-height: 0;
-  background: var(--border-control);
   border-radius: 2px 2px 0 0;
   align-self: end;
+  /* Inked by band, in the same three the rest of the product uses for a dish.
+     A chart in one grey makes the reader work out where healthy stops; no
+     other screen here asks that of them. */
+  background: var(--on-edge);
 }
-.spr-col.is-over .spr-bar { background: var(--over-edge); }
+.spr-col.ink-near .spr-bar { background: var(--near-edge); }
+.spr-col.ink-over .spr-bar { background: var(--over-edge); }
+.spr-col.ink-on .spr-count { color: var(--on-ink); }
+.spr-col.ink-near .spr-count { color: var(--near-ink); }
+.spr-col.ink-over .spr-count { color: var(--over-ink); }
 .spr-tick { font-size: 10.5px; color: var(--text-quiet); line-height: 1; padding-block-start: 4px; }
 
 /* The target lands between two bands, so the rule goes on the leading edge of
@@ -2846,4 +2853,51 @@
 @media (max-width: 760px) {
   .nd-row { grid-template-columns: 76px minmax(0, 1fr); }
   .nd-verdict { grid-column: 1 / -1; justify-content: flex-start; }
+}
+
+/* ── the dashboard, given a hierarchy ──────────────────────────────── */
+
+/* It opened with four tiles of equal weight, so nothing on it was the point.
+   An owner's question is one sentence long and so is its answer. */
+
+.dash-hero {
+  padding: var(--sp-6) var(--sp-6) var(--sp-5);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.dash-hero-said {
+  margin: 0; max-width: 30ch;
+  font-size: clamp(21px, 2.6vw, 29px); line-height: 1.28;
+  font-weight: 500; letter-spacing: -0.015em; text-wrap: balance;
+}
+.dash-hero-figure { font-weight: 600; }
+.dash-hero-good { color: var(--on-ink-strong); }
+.dash-hero-bad { color: var(--over-ink-strong); font-weight: 600; }
+.dash-hero-sub {
+  margin: 0; max-width: 74ch;
+  font-size: 12.5px; color: var(--text-secondary); line-height: 1.55;
+}
+
+/* The four figures, subordinate to the sentence above them rather than
+   competing with it. */
+.dash-top .stat-figure { font-size: 23px; }
+.dash-top .label { color: var(--text-tertiary); }
+
+/* Air between sections, so the page reads as parts rather than a stack.
+   The rule is hairline and only above the ones that follow content. */
+.dash-block + .dash-block { padding-block-start: var(--sp-6); }
+.dash-block > .dash-h { letter-spacing: -0.005em; }
+
+/* The shortlist is where an owner acts, so its rows carry more weight than
+   the chart above them: rank, name, and a bar inked like the dish it is. */
+.wr-row { grid-template-columns: 22px minmax(0, 1fr) 88px 88px 72px 132px; }
+.wr-rank {
+  font-size: 11px; color: var(--text-quiet);
+  font-variant-numeric: tabular-nums;
+}
+.wr-bar-base.ink-over { background: var(--over-edge); }
+.wr-bar-base.ink-near { background: var(--near-edge); }
+.wr-bar-base.ink-on { background: var(--on-edge); }
+
+@media (max-width: 900px) {
+  .wr-row { grid-template-columns: 22px minmax(0, 1fr) 76px 68px; }
 }

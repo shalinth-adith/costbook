@@ -157,20 +157,48 @@ export function DashboardView({
 
   return (
     <>
-      <div className="page-head">
-        <div className="page-title-block">
-          <h1 className="page-title">How your menu is doing</h1>
-          <p className="page-sub">
-            Costed from the rates you entered, against your target of{" "}
-            <span className="figure strong">{percent(target, 1)}</span>. Changes
-            cover the last <span className="figure strong">{moved.days}</span>{" "}
-            days. Every dish, grouped and searchable, is on{" "}
-            <Link href="/recipes" className="link">
-              Recipes
-            </Link>
-            .
-          </p>
-        </div>
+      {/*
+        * The answer first, in a sentence.
+        *
+        * The page opened with four equal tiles and no hierarchy — everything
+        * the same size, so nothing was the point. An owner's question is one
+        * sentence long and so is its answer.
+        */}
+      <div className="dash-hero">
+        <p className="dash-hero-said">
+          {stats.costed === 0 ? (
+            <>Nothing is costed yet.</>
+          ) : (
+            <>
+              The middle dish on your menu runs at{" "}
+              <span className="figure dash-hero-figure">
+                {spread.median === null ? DASH : percent(spread.median)}
+              </span>
+              {stats.over === 0 ? (
+                <>
+                  , and <span className="dash-hero-good">nothing is over</span>{" "}
+                  your {percent(target, 1)} target.
+                </>
+              ) : (
+                <>
+                  , and{" "}
+                  <span className="figure dash-hero-bad">{stats.over}</span>{" "}
+                  {stats.over === 1 ? "dish is" : "dishes are"} over your{" "}
+                  {percent(target, 1)} target.
+                </>
+              )}
+            </>
+          )}
+        </p>
+        <p className="dash-hero-sub">
+          Costed from the rates you entered. Changes cover the last{" "}
+          <span className="figure">{moved.days}</span> days. Every dish, grouped
+          and searchable, is on{" "}
+          <Link href="/recipes" className="link">
+            Recipes
+          </Link>
+          .
+        </p>
       </div>
 
       {/* ── where the menu stands ─────────────────────────────────── */}
@@ -234,8 +262,8 @@ export function DashboardView({
               {spread.bands.map((band, i) => (
                 <div
                   key={band.from}
-                  className={`spr-col${band.over ? ' is-over' : ''}${
-                    i === spread.targetBand ? ' is-target' : ''
+                  className={`spr-col ink-${band.status}${
+                    i === spread.targetBand ? " is-target" : ""
                   }`}
                 >
                   <span className="spr-count figure">{band.count > 0 ? band.count : ''}</span>
@@ -272,8 +300,9 @@ export function DashboardView({
             .
           </p>
           <div className="card dash-worst">
-            {worst.map((row) => (
+            {worst.map((row, i) => (
               <Link key={row.id} href={`/recipes/${row.id}`} className="wr-row">
+                <span className="wr-rank figure">{i + 1}</span>
                 <span className="wr-name">{row.name}</span>
                 <span className="figure wr-cost">
                   {row.costPerPortion === null ? DASH : row.costPerPortion.toFixed(2)}
@@ -286,7 +315,7 @@ export function DashboardView({
                 </span>
                 <span className="wr-bar" aria-hidden="true">
                   <span
-                    className="wr-bar-base"
+                    className={`wr-bar-base ink-${row.status}`}
                     style={{
                       width: `${String(Math.min(((row.foodCostPercent ?? 0) / Math.max(target * 2, 1)) * 100, 100))}%`,
                     }}
