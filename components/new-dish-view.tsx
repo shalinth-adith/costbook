@@ -188,6 +188,15 @@ export function NewDishView({
           <Step n={4} title="Create" state={stepState(4)} />
         </ol>
 
+        {/*
+          Two columns on a wide screen. The steps read down the left; the
+          right is what Costbook understood, updating as you type, and it
+          stays in view while you scroll the paste. One column used to stop
+          at 1060px and leave a third of the monitor empty.
+        */}
+        <div className="nd-cols">
+        <div className="nd-main">
+
         {/* ── 1 ─────────────────────────────────────────────────────── */}
 
         <section className={`nd-card is-${stepState(1)}`}>
@@ -337,9 +346,75 @@ export function NewDishView({
           </p>
         </section>
 
+
+        {/* ── 4 ─────────────────────────────────────────────────────── */}
+
+        <section className={`nd-card is-${stepState(4)} nd-card-last`}>
+          <div className="nd-card-head">
+            <span className="nd-card-n figure">4</span>
+            <div>
+              <h2 className="nd-h">Create it</h2>
+              <p className="nd-lede">
+                {!named ? (
+                  <>A name is all that is required. Everything else can be added on the cost sheet.</>
+                ) : counted === 0 ? (
+                  <>
+                    Create <b>{name.trim()}</b> empty and add lines on its cost sheet — or paste
+                    them above first, which is faster.
+                  </>
+                ) : (
+                  <>
+                    Create <b>{name.trim()}</b> with{' '}
+                    <span className="figure strong">{counted}</span>{' '}
+                    {counted === 1 ? 'line' : 'lines'} —{' '}
+                    <span className="figure">{ready}</span> costed straight away
+                    {draft.needing > 0 && (
+                      <>
+                        , <span className="figure">{draft.needing}</span> waiting on a figure
+                      </>
+                    )}
+                    .
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+
+          {fault !== null && (
+            <div className="card card-note nd-fault">
+              <span>{fault}</span>
+            </div>
+          )}
+
+          <div className="nd-actions">
+            <button
+              type="button"
+              className="btn btn-primary btn-lg"
+              disabled={!named || pending}
+              onClick={submit}
+            >
+              {pending
+                ? 'Creating…'
+                : counted > 0
+                  ? `Create ${name.trim() === '' ? 'the dish' : name.trim()} with ${String(counted)} ${counted === 1 ? 'line' : 'lines'}`
+                  : `Create ${name.trim() === '' ? 'the dish' : name.trim()}`}
+            </button>
+            <Link href="/recipes" className="btn">
+              Cancel
+            </Link>
+          </div>
+          <p className="nd-then">
+            <b>Then:</b> you land on {named ? <>{name.trim()}&rsquo;s</> : 'its'} cost sheet. Set a
+            selling price there and Costbook tells you what the plate costs, what it keeps, and
+            the price that hits your target.
+          </p>
+        </section>
+        </div>
+
+        <aside className="nd-side" aria-label="What Costbook understood">
         {/* ── 3 ─────────────────────────────────────────────────────── */}
 
-        {counted > 0 && (
+        {counted > 0 ? (
           <section className={`nd-card is-${stepState(3)}`}>
             <div className="nd-card-head">
               <span className="nd-card-n figure">3</span>
@@ -457,70 +532,27 @@ export function NewDishView({
               })}
             </div>
           </section>
+        ) : (
+          <section className="nd-card is-todo nd-side-rest">
+            <div className="nd-card-head">
+              <span className="nd-card-n figure">3</span>
+              <div>
+                <h2 className="nd-h">Check what Costbook understood</h2>
+                <p className="nd-lede">
+                  Nothing read yet. As you type in step 2, each line appears here with the
+                  amount, the unit and the name it read, and one of three tags.
+                </p>
+              </div>
+            </div>
+            <ul className="nd-legend">
+              <li><span className="nd-tag is-known">on your shelf</span> An ingredient you already buy. Its rate is known, so the line is costed.</li>
+              <li><span className="nd-tag is-linked">your batch</span> Something you make — a sambar, a masala. Its own sheet carries the cost.</li>
+              <li><span className="nd-tag is-new">new</span> Not seen before. It is added to the shelf without a rate, and you are asked for one later.</li>
+            </ul>
+          </section>
         )}
-
-        {/* ── 4 ─────────────────────────────────────────────────────── */}
-
-        <section className={`nd-card is-${stepState(4)} nd-card-last`}>
-          <div className="nd-card-head">
-            <span className="nd-card-n figure">4</span>
-            <div>
-              <h2 className="nd-h">Create it</h2>
-              <p className="nd-lede">
-                {!named ? (
-                  <>A name is all that is required. Everything else can be added on the cost sheet.</>
-                ) : counted === 0 ? (
-                  <>
-                    Create <b>{name.trim()}</b> empty and add lines on its cost sheet — or paste
-                    them above first, which is faster.
-                  </>
-                ) : (
-                  <>
-                    Create <b>{name.trim()}</b> with{' '}
-                    <span className="figure strong">{counted}</span>{' '}
-                    {counted === 1 ? 'line' : 'lines'} —{' '}
-                    <span className="figure">{ready}</span> costed straight away
-                    {draft.needing > 0 && (
-                      <>
-                        , <span className="figure">{draft.needing}</span> waiting on a figure
-                      </>
-                    )}
-                    .
-                  </>
-                )}
-              </p>
-            </div>
-          </div>
-
-          {fault !== null && (
-            <div className="card card-note nd-fault">
-              <span>{fault}</span>
-            </div>
-          )}
-
-          <div className="nd-actions">
-            <button
-              type="button"
-              className="btn btn-primary btn-lg"
-              disabled={!named || pending}
-              onClick={submit}
-            >
-              {pending
-                ? 'Creating…'
-                : counted > 0
-                  ? `Create ${name.trim() === '' ? 'the dish' : name.trim()} with ${String(counted)} ${counted === 1 ? 'line' : 'lines'}`
-                  : `Create ${name.trim() === '' ? 'the dish' : name.trim()}`}
-            </button>
-            <Link href="/recipes" className="btn">
-              Cancel
-            </Link>
-          </div>
-          <p className="nd-then">
-            <b>Then:</b> you land on {named ? <>{name.trim()}&rsquo;s</> : 'its'} cost sheet. Set a
-            selling price there and Costbook tells you what the plate costs, what it keeps, and
-            the price that hits your target.
-          </p>
-        </section>
+        </aside>
+        </div>
       </div>
     </>
   );

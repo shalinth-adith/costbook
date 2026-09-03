@@ -3690,3 +3690,22 @@
 /* The price card carries no side padding of its own; each child does. */
 .price-card .price-one { margin: 10px var(--sp-4) 0; }
 .price-card .price-facts { margin: 14px var(--sp-4) 0; }
+
+/* ── New dish: two columns on a wide screen ───────────────────────── */
+.nd { max-width: 1480px; margin-inline: auto; }
+.nd-cols { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: var(--sp-6); align-items: start; }
+.nd-main { min-width: 0; }
+.nd-side { position: sticky; top: var(--sp-4); min-width: 0; }
+.nd-side .nd-card { margin-block-end: 0; animation: dc-arrive 420ms var(--ease-enter) both; }
+/* Narrower rows: the verdict wraps under the name instead of a third column. */
+.nd-side .nd-row { grid-template-columns: 80px minmax(0, 1fr); }
+.nd-side .nd-verdict { grid-column: 1 / -1; justify-content: flex-start; }
+.nd-legend { list-style: none; margin: var(--sp-3) 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
+.nd-legend .nd-tag { margin-inline-end: 6px; vertical-align: 1px; }
+@media (max-width: 1100px) {
+  .nd-cols { grid-template-columns: minmax(0, 1fr); }
+  .nd-side { position: static; }
+}
+@media (prefers-reduced-motion: reduce) { .nd-side .nd-card { animation: none; } }
+/* The page head shares the body's measure on this page only. */
+.page-head:has(+ .nd) { max-width: 1480px; margin-inline: auto; box-sizing: border-box; }
