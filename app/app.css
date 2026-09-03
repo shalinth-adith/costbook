@@ -3116,3 +3116,165 @@
 .pl-name { font-weight: 500; }
 .pl-said { color: var(--text-secondary); font-size: 12.5px; }
 .pl-keeps { text-align: end; font-weight: 600; font-size: 14px; }
+
+/* ── live ──────────────────────────────────────────────────────────── */
+
+/* Four kinds of motion on this page and no others: arrival, drawing, growing,
+   breathing. Each is commented where it is declared. All four are turned off
+   under prefers-reduced-motion at the bottom of this block. */
+
+.live {
+  display: flex; align-items: center; gap: 10px;
+  padding: var(--sp-4) var(--sp-6) 0; max-width: 1240px;
+  font-size: 12.5px; color: var(--text-secondary);
+}
+.live-word { font-weight: 600; color: var(--on-ink-strong); letter-spacing: 0.02em; }
+.live-sep { color: var(--text-quiet); }
+.live-who { font-weight: 600; color: var(--text-primary); }
+.live-spacer { flex: 1; }
+
+/* Breathing. A dot that expands a soft halo and lets it go, twice a breath.
+   The halo is what reads as live; the dot alone reads as a bullet point. */
+.live-dot {
+  position: relative; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--on-ink);
+}
+.live-dot::after {
+  content: ""; position: absolute; inset: -3px; border-radius: 50%;
+  border: 2px solid var(--on-ink);
+  animation: live-breathe 2.2s var(--ease-enter) infinite;
+}
+@keyframes live-breathe {
+  0%   { transform: scale(0.6); opacity: 0.9; }
+  70%  { transform: scale(1.7); opacity: 0; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+
+/* ── the ring ──────────────────────────────────────────────────────── */
+
+.dh-ring {
+  display: grid; grid-template-columns: auto minmax(0, 1fr);
+  align-items: center; gap: var(--sp-8);
+  padding-block: var(--sp-6) var(--sp-5);
+}
+.dh-ring-wrap {
+  position: relative; display: grid; place-items: center;
+  animation: dc-arrive 480ms var(--ease-enter) both;
+}
+.dh-ring-figure {
+  position: absolute; font-size: 30px; font-weight: 600; letter-spacing: -0.02em;
+}
+.ring { transform: rotate(-90deg); display: block; }
+.ring circle { fill: none; stroke-linecap: round; }
+.ring-track { stroke: var(--surface-sunken); }
+.ring-target { stroke: var(--border-strong); opacity: 0.55; }
+/* Drawing. The arc goes from nothing to its share in 900ms. The eye follows
+   it round to where it stops, and where it stops is the figure. */
+.ring-arc {
+  transition: stroke-dashoffset 900ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: 160ms;
+}
+.ring-arc.ink-on { stroke: var(--on-ink); }
+.ring-arc.ink-near { stroke: var(--near-ink); }
+.ring-arc.ink-over { stroke: var(--over-ink); }
+
+.dh-copy { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.dh-said-strong { font-weight: 700; font-size: 1.15em; }
+
+@media (max-width: 720px) {
+  .dh-ring { grid-template-columns: 1fr; justify-items: start; }
+}
+
+/* ── signals ───────────────────────────────────────────────────────── */
+
+.sig {
+  list-style: none; margin: 0 0 var(--sp-5); padding: 0 var(--sp-6);
+  display: flex; flex-wrap: wrap; gap: 8px; max-width: 1240px;
+}
+.sig-item {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12.5px; font-weight: 500;
+  background: var(--surface-card);
+  border: 1px solid var(--border-hairline);
+  border-radius: 999px; padding: 6px 12px 6px 9px;
+  color: var(--text-primary);
+  animation: dc-arrive 420ms var(--ease-enter) both;
+}
+.sig-dot { width: 8px; height: 8px; border-radius: 50%; position: relative; flex: none; }
+.sig-item.ink-on .sig-dot { background: var(--on-ink); }
+.sig-item.ink-near .sig-dot { background: var(--near-ink); }
+.sig-item.ink-over .sig-dot { background: var(--over-ink); }
+.sig-item.ink-quiet .sig-dot { background: var(--border-control); }
+.sig-item.ink-over { border-color: var(--over-edge); background: var(--over-tint); }
+.sig-item.ink-near.is-alert { border-color: var(--near-edge); background: var(--near-tint); }
+
+/* Breathing, for a signal that needs somebody. Slower than the live dot, so
+   the two do not beat against each other, and a halo rather than a flash. */
+.sig-item.is-alert .sig-dot::after {
+  content: ""; position: absolute; inset: -3px; border-radius: 50%;
+  border: 2px solid currentColor; opacity: 0;
+  animation: live-breathe 2.8s var(--ease-enter) infinite;
+}
+.sig-item.ink-near.is-alert .sig-dot { color: var(--near-ink); }
+.sig-item.ink-over.is-alert .sig-dot { color: var(--over-ink); }
+
+/* ── cards, alive ──────────────────────────────────────────────────── */
+
+.dc-card { position: relative; padding-block-start: var(--sp-4); }
+.dc-card.is-flat { animation: dc-arrive 480ms var(--ease-enter) both; }
+/* Arrival, visibly. Was 8px over 240ms, which nobody saw. */
+@keyframes dc-arrive {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: none; }
+}
+.dc-card.is-door { animation: dc-arrive 520ms var(--ease-enter) both; }
+.dc-card.is-door:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgb(23 27 36 / 0.10);
+}
+
+.dc-icon {
+  position: absolute; inset-block-start: var(--sp-3); inset-inline-end: var(--sp-3);
+  width: 30px; height: 30px; border-radius: 8px;
+  display: grid; place-items: center;
+  background: var(--surface-sunken);
+}
+.dc-icon svg { width: 17px; height: 17px; }
+.dc-icon.ink-on { color: var(--on-ink); background: var(--on-tint); }
+.dc-icon.ink-near { color: var(--near-ink); background: var(--near-tint); }
+.dc-icon.ink-over { color: var(--over-ink); background: var(--over-tint); }
+.dc-icon.ink-quiet { color: var(--text-tertiary); }
+
+.dc-n { font-size: 40px; }
+.dc-n.ink-on { color: var(--on-ink); }
+.dc-n.ink-near { color: var(--near-ink); }
+.dc-n.ink-over { color: var(--over-ink); }
+
+/* Growing. Each card's bar goes from nothing to its width after the card has
+   landed — the width is the pile's share of the menu, so five bars read as
+   one picture of where the book stands. */
+.dc-bar {
+  display: block; height: 6px; margin-block-start: var(--sp-3);
+  background: var(--surface-sunken); border-radius: 3px; overflow: hidden;
+}
+.dc-bar-fill {
+  display: block; height: 100%; border-radius: 3px;
+  transform-origin: left center;
+  animation: dc-grow 640ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes dc-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.dc-bar-fill.ink-on { background: var(--on-ink); }
+.dc-bar-fill.ink-near { background: var(--near-ink); }
+.dc-bar-fill.ink-over { background: var(--over-ink); }
+.dc-bar-fill.ink-quiet { background: var(--border-control); }
+.dc-share { font-size: 11px; color: var(--text-tertiary); margin-block-start: 4px; }
+
+/* Somebody who asked for no motion asked for no motion. Every keyframe and
+   transition above, off — and the ring and bars at their final state. */
+@media (prefers-reduced-motion: reduce) {
+  .live-dot::after, .sig-item.is-alert .sig-dot::after { animation: none; display: none; }
+  .dh-ring-wrap, .sig-item, .dc-card.is-flat, .dc-card.is-door { animation: none; }
+  .ring-arc { transition: none; }
+  .dc-bar-fill { animation: none; }
+  .dc-card.is-door:hover { transform: none; box-shadow: none; }
+}
