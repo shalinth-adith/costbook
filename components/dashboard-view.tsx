@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 
-import type { DashboardStats } from "@/lib/dashboard";
+import type { DashboardRow, DashboardStats } from "@/lib/dashboard";
+import type { Spread } from "@/lib/spread";
 import type { FirstDish } from "@/lib/first-dish";
 import type { Attributed, Recent } from "@/lib/recent";
 import { DASH, percent, points } from "@/lib/format";
@@ -119,6 +120,8 @@ export interface StaleRate {
 export function DashboardView({
   moved,
   stats,
+  spread,
+  worst,
   stale,
   staleAfterDays,
   target,
@@ -127,6 +130,9 @@ export function DashboardView({
 }: {
   moved: Recent;
   stats: DashboardStats;
+  spread: Spread;
+  /** Five, not seventy-nine. The book is on Recipes. */
+  worst: readonly DashboardRow[];
   /** Rates past the account's own staleness threshold, oldest first. */
   stale: readonly StaleRate[];
   staleAfterDays: number;
@@ -153,12 +159,12 @@ export function DashboardView({
     <>
       <div className="page-head">
         <div className="page-title-block">
-          <h1 className="page-title">What moved</h1>
+          <h1 className="page-title">How your menu is doing</h1>
           <p className="page-sub">
-            The last <span className="figure strong">{moved.days}</span> days,
-            against your target of{" "}
-            <span className="figure strong">{percent(target, 1)}</span>.
-            Everything you have is on{" "}
+            Costed from the rates you entered, against your target of{" "}
+            <span className="figure strong">{percent(target, 1)}</span>. Changes
+            cover the last <span className="figure strong">{moved.days}</span>{" "}
+            days. Every dish, grouped and searchable, is on{" "}
             <Link href="/recipes" className="link">
               Recipes
             </Link>
@@ -166,6 +172,131 @@ export function DashboardView({
           </p>
         </div>
       </div>
+
+      {/* ── where the menu stands ─────────────────────────────────── */}
+
+      <div className="stats dash-top">
+        <div className="stat">
+          <span className="label">Dishes costed</span>
+          <span className="figure stat-figure">{stats.costed}</span>
+          <span className="stat-note">
+            {spread.unplaced > 0
+              ? `${spread.unplaced} cannot be placed yet`
+              : 'every one of them placed'}
+          </span>
+        </div>
+        <div className="stat">
+          <span className="label">Middle dish</span>
+          <span className="figure stat-figure">
+            {spread.median === null ? DASH : percent(spread.median)}
+          </span>
+          {/*
+            * The median, not the mean. A menu of eighty cheap tiffin items and
+            * four expensive biryanis has a mean nobody's dish is near.
+            */}
+          <span className="stat-note">
+            average {stats.averageFoodCost === null ? DASH : percent(stats.averageFoodCost)}
+          </span>
+        </div>
+        <div className="stat">
+          <span className="label">Over target</span>
+          <span className={`figure stat-figure${stats.over > 0 ? ' ink-over' : ''}`}>
+            {stats.over}
+          </span>
+          <span className="stat-note">against {percent(target, 1)}</span>
+        </div>
+        <div className="stat">
+          <span className="label">Waiting on you</span>
+          <span className="figure stat-figure">{blocked}</span>
+          <span className="stat-note">
+            {blocked === 0 ? 'nothing outstanding' : 'missing a rate or a price'}
+          </span>
+        </div>
+      </div>
+
+      {/* ── the spread ────────────────────────────────────────────── */}
+
+      {spread.placed > 0 && (
+        <section className="dash-block">
+          <h2 className="dash-h">How the menu sits</h2>
+          <p className="dash-lede">
+            Every costed dish by its food cost, five points a column. The line is
+            your target of {percent(target, 1)}.{' '}
+            {spread.unplaced > 0 && (
+              <>
+                <span className="figure">{spread.unplaced}</span> more cannot be
+                placed until they have a rate and a price.
+              </>
+            )}
+          </p>
+          <div className="card spr">
+            <div className="spr-plot">
+              {spread.bands.map((band, i) => (
+                <div
+                  key={band.from}
+                  className={`spr-col${band.over ? ' is-over' : ''}${
+                    i === spread.targetBand ? ' is-target' : ''
+                  }`}
+                >
+                  <span className="spr-count figure">{band.count > 0 ? band.count : ''}</span>
+                  <span
+                    className="spr-bar"
+                    style={{ height: `${String(Math.max(band.height, band.count > 0 ? 4 : 0))}%` }}
+                    title={
+                      band.count === 0
+                        ? 'nothing here'
+                        : band.names.slice(0, 6).join(', ')
+                    }
+                  />
+                  <span className="spr-tick figure">
+                    {band.to === null ? `${String(band.from)}+` : band.from}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── the shortlist ─────────────────────────────────────────── */}
+
+      {worst.length > 0 && (
+        <section className="dash-block">
+          <h2 className="dash-h">Costing you the most</h2>
+          <p className="dash-lede">
+            The {worst.length} highest food costs on the menu. The whole book,
+            grouped and searchable, is on{' '}
+            <Link href="/recipes" className="link">
+              Recipes
+            </Link>
+            .
+          </p>
+          <div className="card dash-worst">
+            {worst.map((row) => (
+              <Link key={row.id} href={`/recipes/${row.id}`} className="wr-row">
+                <span className="wr-name">{row.name}</span>
+                <span className="figure wr-cost">
+                  {row.costPerPortion === null ? DASH : row.costPerPortion.toFixed(2)}
+                </span>
+                <span className="figure wr-price">
+                  {row.sellingPrice === null ? DASH : row.sellingPrice.toFixed(2)}
+                </span>
+                <span className={`figure wr-fc ink-${row.status}`}>
+                  {row.foodCostPercent === null ? DASH : percent(row.foodCostPercent)}
+                </span>
+                <span className="wr-bar" aria-hidden="true">
+                  <span
+                    className="wr-bar-base"
+                    style={{
+                      width: `${String(Math.min(((row.foodCostPercent ?? 0) / Math.max(target * 2, 1)) * 100, 100))}%`,
+                    }}
+                  />
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── what moved ────────────────────────────────────────────── */}
 
@@ -312,45 +443,6 @@ export function DashboardView({
         </section>
       )}
 
-      {/* ── where the menu stands ─────────────────────────────────── */}
-
-      <section className="dash-block">
-        <h2 className="dash-h">Where the menu stands</h2>
-        <p className="dash-lede">
-          Context rather than the point of the visit. The dish-by-dish view is
-          on{" "}
-          <Link href="/recipes" className="link">
-            Recipes
-          </Link>
-          .
-        </p>
-        <div className="stats stats-3 dash-stats">
-          <div className="stat">
-            <span className="label">Dishes costed</span>
-            <span className="figure stat-figure">{stats.costed}</span>
-          </div>
-          <div className="stat">
-            <span className="label">Over target</span>
-            <span className="stat-row">
-              <span className="figure stat-figure ink-over">{stats.over}</span>
-              <span className="stat-note">of {stats.costed}</span>
-            </span>
-          </div>
-          <div className="stat">
-            <span className="label">Average food cost</span>
-            <span className="stat-row">
-              <span className="figure stat-figure">
-                {stats.averageFoodCost === null
-                  ? DASH
-                  : percent(stats.averageFoodCost)}
-              </span>
-              <span className="stat-note">
-                not weighted by how much each dish sells
-              </span>
-            </span>
-          </div>
-        </div>
-      </section>
     </>
   );
 }

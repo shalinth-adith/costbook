@@ -9,6 +9,7 @@ import { firstDish } from "@/lib/first-dish";
 import { requireSetup } from "@/lib/guard";
 import { STALE_AFTER_DAYS } from "@/core/ingredient";
 import { recent } from "@/lib/recent";
+import { spread, worstOffenders } from "@/lib/spread";
 
 /**
  * Home. What moved, and what it moved.
@@ -120,6 +121,8 @@ export default async function DashboardPage() {
         <DashboardView
           moved={moved}
           stats={data.stats}
+          spread={spread(data.rows, model.foodCostTarget)}
+          worst={worstOffenders(data.rows)}
           stale={stale}
           staleAfterDays={staleAfter}
           target={model.foodCostTarget}

@@ -2682,3 +2682,93 @@
 /* Rates arriving is a book filling up, not prices rising. Said in the note
    treatment so it cannot be mistaken for the movement below it. */
 .dash-arrived { border-radius: var(--radius-field); margin-block-end: var(--sp-3); }
+
+/* The four figures, given the weight a home screen's headline deserves. */
+.dash-top { margin-block-end: var(--sp-5); }
+.dash-top .stat { padding: 16px var(--sp-5); gap: 3px; }
+.dash-top .stat-figure { font-size: 27px; line-height: 1.1; }
+.dash-top .stat-note { display: block; font-size: 11.5px; color: var(--text-tertiary); }
+
+/* ── the spread ────────────────────────────────────────────────────── */
+
+/* Every costed dish by food cost, five points a column. A count of dishes and
+   not a weighted figure: Costbook does not know how much each dish sells, and
+   an average that quietly assumed equal sales would be a plausible wrong
+   number of exactly the kind the engine refuses to produce. */
+.spr { padding: var(--sp-4) var(--sp-5) var(--sp-3); }
+.spr-plot {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  align-items: end; gap: 4px; height: 132px;
+}
+.spr-col {
+  display: grid; grid-template-rows: 14px 1fr 16px;
+  align-items: end; justify-items: center; height: 100%;
+}
+.spr-count { font-size: 11px; color: var(--text-tertiary); line-height: 1; }
+.spr-bar {
+  width: 100%; min-height: 0;
+  background: var(--border-control);
+  border-radius: 2px 2px 0 0;
+  align-self: end;
+}
+.spr-col.is-over .spr-bar { background: var(--over-edge); }
+.spr-tick { font-size: 10.5px; color: var(--text-quiet); line-height: 1; padding-block-start: 4px; }
+
+/* The target lands between two bands, so the rule goes on the leading edge of
+   the first band past it rather than through the middle of a column. */
+.spr-col.is-target { border-inline-start: 1px dashed var(--border-strong); }
+.spr-col.is-target .spr-tick { color: var(--text-secondary); font-weight: 600; }
+
+/* ── the shortlist ─────────────────────────────────────────────────── */
+
+.dash-worst { padding: 2px 0; }
+.wr-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px 92px 76px 140px;
+  align-items: center; gap: 12px;
+  padding: 11px 16px; min-height: var(--row-default);
+  border-block-end: 1px solid var(--border-row);
+  color: inherit; text-decoration: none;
+  transition: background var(--dur-micro) var(--ease-enter);
+}
+.wr-row:last-child { border-block-end: 0; }
+.wr-row:hover { background: var(--surface-sunken); }
+.wr-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wr-cost, .wr-price { text-align: end; color: var(--text-secondary); }
+.wr-fc { text-align: end; font-weight: 600; }
+.wr-bar {
+  height: 6px; background: var(--surface-sunken);
+  border: 1px solid var(--border-row); border-radius: 3px; overflow: hidden;
+}
+.wr-bar-base { display: block; height: 100%; background: var(--over-edge); }
+
+@media (max-width: 900px) {
+  .wr-row { grid-template-columns: minmax(0, 1fr) 76px 68px; }
+  .wr-price, .wr-bar { display: none; }
+}
+
+/* The filters, closed by default. Recipes is the screen the chef opens every
+   shift to find a dish; every control that used to sit open on this toolbar
+   answered an owner's question instead. Nothing is removed — it is one press
+   away, and the button names what is on so a filtered list cannot be mistaken
+   for the whole book. */
+.lib-more { display: inline-flex; align-items: center; gap: 7px; }
+.lib-more svg { flex: none; }
+.lib-more-on {
+  font-size: 10.5px; letter-spacing: 0.04em;
+  background: var(--surface-inverse); color: var(--text-on-inverse);
+  border-radius: var(--radius-chip); padding: 1px 6px;
+}
+/* Open, not selected. `.filter-chip.is-on` is the dark active state and sets
+   white text with it; taking only its background back left white on #F5F6F9,
+   which is invisible. Every colour here is set explicitly for that reason. */
+.lib-more.is-on {
+  border-color: var(--border-control-hover);
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+}
+.lib-filters {
+  padding-block: var(--sp-2) 0;
+  border-block-start: 1px solid var(--border-hairline);
+  margin-inline: var(--sp-6); padding-inline: 0;
+}

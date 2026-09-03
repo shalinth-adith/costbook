@@ -112,6 +112,20 @@ export function LibraryView({
    * screen already had.
    */
   const [order, setOrder] = useState<'category' | 'worst'>('category');
+  /*
+   * Filters, closed.
+   *
+   * Every control that used to sit open on this toolbar answers an owner's
+   * question — on the menu, over target, incomplete, archived — and this is
+   * the screen the chef opens every shift to find the dish they are cooking.
+   * FLOWS 1 names the two loops and this one was furnished entirely for the
+   * wrong one: nine controls before a single dish.
+   *
+   * So the screen opens as search and the list. Nothing is removed; the
+   * owner's questions are one press away, and the button says how many are
+   * on so a filtered list is never mistaken for the whole book.
+   */
+  const [showFilters, setShowFilters] = useState(false);
   const groups = useMemo(
     () => (order === 'worst' ? worstFirst(outcome.rows) : groupByCategory(outcome.rows)),
     [outcome.rows, order],
@@ -187,24 +201,28 @@ export function LibraryView({
 
       {bare ? null : (
       <div className="toolbar library-toolbar">
-        <div className="segmented segmented-sm" role="group" aria-label="What to list">
-          <button
-            type="button"
-            className={`segmented-item${tab === 'dishes' ? ' is-active' : ''}`}
-            aria-pressed={tab === 'dishes'}
-            onClick={() => setTab('dishes')}
-          >
-            Dishes <span className="figure">{data.dishCount}</span>
-          </button>
-          <button
-            type="button"
-            className={`segmented-item${tab === 'batches' ? ' is-active' : ''}`}
-            aria-pressed={tab === 'batches'}
-            onClick={() => setTab('batches')}
-          >
-            Sub-recipes and batches <span className="figure">{data.batchCount}</span>
-          </button>
-        </div>
+        {/* A tab offering an empty list is a control that can only disappoint.
+            It comes back the moment the book has a batch in it. */}
+        {data.batchCount > 0 && (
+          <div className="segmented segmented-sm" role="group" aria-label="What to list">
+            <button
+              type="button"
+              className={`segmented-item${tab === 'dishes' ? ' is-active' : ''}`}
+              aria-pressed={tab === 'dishes'}
+              onClick={() => setTab('dishes')}
+            >
+              Dishes <span className="figure">{data.dishCount}</span>
+            </button>
+            <button
+              type="button"
+              className={`segmented-item${tab === 'batches' ? ' is-active' : ''}`}
+              aria-pressed={tab === 'batches'}
+              onClick={() => setTab('batches')}
+            >
+              Sub-recipes <span className="figure">{data.batchCount}</span>
+            </button>
+          </div>
+        )}
 
         <div className="search-field toolbar-search">
           <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor"
@@ -223,6 +241,35 @@ export function LibraryView({
           )}
         </div>
 
+        <button
+          type="button"
+          className={`filter-chip lib-more${showFilters ? ' is-on' : ''}`}
+          aria-expanded={showFilters}
+          onClick={() => setShowFilters((v) => !v)}
+        >
+          <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+            strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+            <path d="M1.5 3h9M3 6h6M4.5 9h3" />
+          </svg>
+          Filter and sort
+          {/* Named on the button, so a filtered list is never mistaken for the
+              whole book once the panel is closed again. */}
+          {filter !== 'all' && (
+            <span className="lib-more-on">
+              {FILTERS.find((f) => f.value === filter)?.label}
+            </span>
+          )}
+          {order === 'worst' && <span className="lib-more-on">Worst first</span>}
+        </button>
+
+        <span className="toolbar-note">
+          <span className="figure">{outcome.rows.length}</span> shown
+        </span>
+      </div>
+      )}
+
+      {!bare && showFilters && (
+      <div className="toolbar lib-filters">
         <div className="chips" role="group" aria-label="Filter">
           {FILTERS.map((f) => (
             <button
@@ -255,10 +302,6 @@ export function LibraryView({
             Worst food cost
           </button>
         </div>
-
-        <span className="toolbar-note">
-          <span className="figure">{outcome.rows.length}</span> shown
-        </span>
       </div>
       )}
 
