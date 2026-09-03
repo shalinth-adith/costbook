@@ -1,0 +1,35 @@
+-- Close the one policy that let anybody join anybody's book.
+--
+-- `membership_bootstrap` was written for signup, to let a brand new user
+-- insert the membership that makes them able to see anything:
+--
+--   create policy membership_bootstrap on memberships
+--     for insert with check (user_id = auth.uid());
+--
+-- It checks who the row is *for* and never which organisation it is *in*.
+-- Permissive policies are OR'd, so this stood beside `memberships_write`
+-- (which requires auth_owns(org_id)) and any INSERT satisfying either one was
+-- allowed. A signed-in user could therefore post
+--
+--   { org_id: <somebody else's>, user_id: <self>, role: 'owner' }
+--
+-- straight at PostgREST and own another café's book — every rate, every
+-- costing, the subscription. That is the exact thing TRD build step 12 names
+-- as its acceptance check: "Two accounts cannot see each other's data."
+--
+-- Nothing needed it. Signup runs through handle_new_user(), which is
+-- `security definer` and therefore writes the membership as the function's
+-- owner, bypassing RLS entirely — the policy was insurance against a path
+-- that does not exist, and the premium was the tenancy boundary.
+--
+-- Dropping it leaves `memberships_write` as the only way in: owners only.
+drop policy if exists membership_bootstrap on memberships;
+
+-- The org half of the same shape, for the same reason.
+--
+-- `org_create` lets any authenticated caller insert an organisation. That one
+-- is harmless where it stands — a new org has no rows and no members, so
+-- creating a spare reaches nobody else's data — but it is only harmless while
+-- membership cannot be self-granted. Left in place deliberately, and noted
+-- here so the pair is read together: if org_create ever gains a way to attach
+-- a membership, this is the comment that should stop it.

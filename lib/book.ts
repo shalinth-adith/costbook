@@ -13,15 +13,24 @@
  * so there is no useful smaller unit to fetch.
  */
 
-import { cache } from 'react';
+import { cache } from "react";
 
-import type { Ingredient } from '@/core/ingredient';
-import { type Pantry, type Recipe, pantryOf } from '@/core/recipe';
+import type { Ingredient } from "@/core/ingredient";
+import { type Pantry, type Recipe, pantryOf } from "@/core/recipe";
 
-import type { CostingModel } from './costing';
-import type { Flag } from './flags';
-import type { DishMeta } from './data';
-import { BLANK_ORG, type Member, type Org, type Plan, type RateChange, type RateSource, type Role } from './org';
+import type { CostingModel } from "./costing";
+import type { Flag } from "./flags";
+import type { DishMeta } from "./data";
+import {
+  BLANK_ORG,
+  type Member,
+  type Org,
+  type Plan,
+  type RateChange,
+  type RateSource,
+  type Role,
+  roleOf,
+} from "./org";
 import {
   type ComponentRow,
   type IngredientRow,
@@ -35,10 +44,10 @@ import {
   toMeta,
   toOrg,
   toRecipe,
-} from './rows';
-import * as memory from './store';
-import { supabaseConfigured } from './supabase/env';
-import { supabaseServer } from './supabase/server';
+} from "./rows";
+import * as memory from "./store";
+import { supabaseConfigured } from "./supabase/env";
+import { supabaseServer } from "./supabase/server";
 
 /**
  * A write that failed, in words.
@@ -52,18 +61,34 @@ export class WriteFailed extends Error {
   readonly detail: string;
   constructor(what: string, detail: string) {
     super(`Costbook could not save ${what}. ${detail}`);
-    this.name = 'WriteFailed';
+    this.name = "WriteFailed";
     this.detail = detail;
   }
 }
 
 /** Throw on a failed write rather than carrying on as though it worked. */
-function check(what: string, result: { error: { message: string } | null }): void {
+function check(
+  what: string,
+  result: { error: { message: string } | null },
+): void {
   if (result.error !== null) throw new WriteFailed(what, result.error.message);
 }
 
 export interface Book {
   readonly orgId: string | null;
+  /**
+   * Who is asking, and what they may do.
+   *
+   * The book used to answer "who is on this account" and never "which of them
+   * is you", so everything downstream that needed a role had to guess. The one
+   * guess in the codebase was `members[0]`, which is whichever row Postgres
+   * returned first — the owner, as often as not, when a manager signed in.
+   *
+   * `role` is null for a signed-out visitor, which is not the same as a
+   * manager: null may do nothing at all.
+   */
+  readonly userId: string | null;
+  readonly role: Role | null;
   readonly org: Org;
   readonly recipes: readonly Recipe[];
   readonly ingredients: readonly Ingredient[];
@@ -78,19 +103,27 @@ export interface Book {
 /** What a signed-out visitor sees: nothing, and no pretence of anything. */
 const EMPTY: Book = {
   orgId: null,
+  userId: null,
+  role: null,
   org: BLANK_ORG,
   recipes: [],
   ingredients: [],
   meta: {},
   members: [],
-  plan: 'free',
+  plan: "free",
   history: {},
   flags: [],
 };
 
 function fromMemory(): Book {
   return {
-    orgId: 'memory',
+    orgId: "memory",
+    // The in-memory book has one operator and they own it. Development runs
+    // as the owner because the alternative — a manager who cannot reach
+    // Settings — would hide half the application behind a session that does
+    // not exist yet.
+    userId: "memory",
+    role: "owner",
     org: memory.org(),
     recipes: [...memory.allRecipes()],
     ingredients: [...memory.allIngredients()],
@@ -116,38 +149,49 @@ export const book = cache(async (): Promise<Book> => {
   const { data: auth } = await supabase.auth.getUser();
   if (auth.user === null) return EMPTY;
 
-  const { data: orgs } = await supabase.from('organizations').select('*').limit(1);
+  const { data: orgs } = await supabase
+    .from("organizations")
+    .select("*")
+    .limit(1);
   const orgRow = (orgs as OrgRow[] | null)?.[0];
   if (orgRow === undefined) return EMPTY;
 
   // RLS scopes every one of these to the caller's org, so none of them carries
   // a where-clause of its own. The policy is the filter.
-  const [recipesRes, componentsRes, ingredientsRes, membersRes, invitesRes, subRes, historyRes, flagsRes] =
-    await Promise.all([
-      supabase.from('recipes').select('*'),
-      supabase.from('recipe_components').select('*'),
-      supabase.from('ingredients').select('*'),
-      supabase.from('memberships').select('role, user_id, display_name'),
-      /*
-       * Everyone asked and not yet arrived.
-       *
-       * Settings shows them beside the people on the book, which is the only
-       * way an owner can tell an invitation was recorded at all. Expired ones
-       * are left out rather than shown lapsed: A32 gives the lapse message to
-       * the person following the link, not to the person who sent it.
-       */
-      supabase
-        .from('invitations')
-        .select('id, email, role, expires_at')
-        .is('accepted_at', null)
-        .gt('expires_at', new Date().toISOString()),
-      supabase.from('subscriptions').select('plan').limit(1),
-      supabase
-        .from('ingredient_rate_history')
-        .select('ingredient_id, price_from, price_to, changed_at, source')
-        .order('changed_at', { ascending: false }),
-      supabase.from('flags').select('*').order('sent_at', { ascending: false }),
-    ]);
+  const [
+    recipesRes,
+    componentsRes,
+    ingredientsRes,
+    membersRes,
+    invitesRes,
+    subRes,
+    historyRes,
+    flagsRes,
+  ] = await Promise.all([
+    supabase.from("recipes").select("*"),
+    supabase.from("recipe_components").select("*"),
+    supabase.from("ingredients").select("*"),
+    supabase.from("memberships").select("role, user_id, display_name"),
+    /*
+     * Everyone asked and not yet arrived.
+     *
+     * Settings shows them beside the people on the book, which is the only
+     * way an owner can tell an invitation was recorded at all. Expired ones
+     * are left out rather than shown lapsed: A32 gives the lapse message to
+     * the person following the link, not to the person who sent it.
+     */
+    supabase
+      .from("invitations")
+      .select("id, email, role, expires_at")
+      .is("accepted_at", null)
+      .gt("expires_at", new Date().toISOString()),
+    supabase.from("subscriptions").select("plan").limit(1),
+    supabase
+      .from("ingredient_rate_history")
+      .select("ingredient_id, price_from, price_to, changed_at, source")
+      .order("changed_at", { ascending: false }),
+    supabase.from("flags").select("*").order("sent_at", { ascending: false }),
+  ]);
 
   const recipeRows = (recipesRes.data ?? []) as RecipeRow[];
   const componentRows = (componentsRes.data ?? []) as ComponentRow[];
@@ -165,8 +209,12 @@ export const book = cache(async (): Promise<Book> => {
 
   const history: Record<string, RateChange[]> = {};
   for (const h of (historyRes.data ?? []) as {
-    ingredient_id: string; price_from: number | string | null; price_to: number | string;
-    purchase_qty: number | string; changed_at: string; source: string | null;
+    ingredient_id: string;
+    price_from: number | string | null;
+    price_to: number | string;
+    purchase_qty: number | string;
+    changed_at: string;
+    source: string | null;
   }[]) {
     const list = history[h.ingredient_id] ?? (history[h.ingredient_id] = []);
     list.push({
@@ -174,42 +222,69 @@ export const book = cache(async (): Promise<Book> => {
       to: Number(h.price_to),
       qty: Number(h.purchase_qty),
       on: h.changed_at.slice(0, 10),
-      source: (h.source ?? 'manual') as RateSource,
+      source: (h.source ?? "manual") as RateSource,
     });
   }
 
   const rows = membersRes.data as
-    { role: 'owner' | 'manager'; user_id: string; display_name: string | null }[] | null;
+    | {
+        role: "owner" | "manager";
+        user_id: string;
+        display_name: string | null;
+      }[]
+    | null;
 
   const dishName = new Map(recipeRows.map((r) => [r.id, r.name]));
 
   return {
     orgId: orgRow.id,
+    userId: auth.user.id,
+    /*
+     * The caller's own row, found by id rather than by position.
+     *
+     * `memberships` is returned in no particular order and pending invitations
+     * are appended to the same list, so "the first one" was never a person in
+     * particular. Absent means a session whose membership has been removed
+     * mid-visit: null, which may do nothing, rather than a default that lets
+     * them keep working.
+     */
+    role: roleOf(rows ?? [], auth.user.id),
     org: toOrg(orgRow),
     recipes: recipeRows.map((r) => toRecipe(r, byRecipe.get(r.id) ?? [])),
     ingredients: ingredientRows.map(toIngredient),
     meta,
-    members: (rows ?? []).map((m) => ({
-      // The email lives in auth.users, which RLS does not expose to a client.
-      // A member the caller cannot name is shown by role until the invitation
-      // record supplies one, rather than by a fabricated address.
-      /*
-       * A40 needs a person, not a role. Emails live in auth.users and RLS does
-       * not expose them, so the name is carried on the membership — given at
-       * signup or by whoever sent the invitation. Falling back to the role is
-       * honest about not knowing rather than inventing one.
-       */
-      name:
-        m.display_name ??
-        (m.user_id === auth.user?.id ? 'You' : m.role === 'owner' ? 'Owner' : 'Manager'),
-      email: m.user_id === auth.user?.id ? (auth.user?.email ?? '') : '',
-      id: m.user_id,
-      role: m.role,
-      lastIn: null,
-      accepted: true,
-    })).concat(
-      ((invitesRes.data ?? []) as { id: string; email: string; role: 'owner' | 'manager' }[]).map(
-        (i) => ({
+    members: (rows ?? [])
+      .map((m) => ({
+        // The email lives in auth.users, which RLS does not expose to a client.
+        // A member the caller cannot name is shown by role until the invitation
+        // record supplies one, rather than by a fabricated address.
+        /*
+         * A40 needs a person, not a role. Emails live in auth.users and RLS does
+         * not expose them, so the name is carried on the membership — given at
+         * signup or by whoever sent the invitation. Falling back to the role is
+         * honest about not knowing rather than inventing one.
+         */
+        name:
+          m.display_name ??
+          (m.user_id === auth.user?.id
+            ? "You"
+            : m.role === "owner"
+              ? "Owner"
+              : "Manager"),
+        email: m.user_id === auth.user?.id ? (auth.user?.email ?? "") : "",
+        id: m.user_id,
+        role: m.role,
+        lastIn: null,
+        accepted: true,
+      }))
+      .concat(
+        (
+          (invitesRes.data ?? []) as {
+            id: string;
+            email: string;
+            role: "owner" | "manager";
+          }[]
+        ).map((i) => ({
           // The invitation is the only record that knows the address, which is
           // why a pending row can show one and an accepted row cannot.
           name: i.email,
@@ -218,15 +293,15 @@ export const book = cache(async (): Promise<Book> => {
           role: i.role,
           lastIn: null,
           accepted: false,
-        }),
+        })),
       ),
-    ),
-    plan: ((subRes.data as { plan: Plan }[] | null)?.[0]?.plan ?? 'free') as Plan,
+    plan: ((subRes.data as { plan: Plan }[] | null)?.[0]?.plan ??
+      "free") as Plan,
     history,
     flags: ((flagsRes.data ?? []) as FlagRow[]).map((f) => ({
       id: f.id,
       recipeId: f.recipe_id,
-      dish: dishName.get(f.recipe_id) ?? 'A dish',
+      dish: dishName.get(f.recipe_id) ?? "A dish",
       from: f.sent_by_name,
       note: f.note,
       cost: f.cost === null ? null : Number(f.cost),
@@ -241,10 +316,17 @@ export const book = cache(async (): Promise<Book> => {
 });
 
 interface FlagRow {
-  id: string; recipe_id: string; sent_by_name: string; note: string | null;
-  cost: string | number | null; price: string | number | null;
-  food_cost: string | number | null; target: string | number | null;
-  sent_at: string; opened_at: string | null; seen_at: string | null;
+  id: string;
+  recipe_id: string;
+  sent_by_name: string;
+  note: string | null;
+  cost: string | number | null;
+  price: string | number | null;
+  food_cost: string | number | null;
+  target: string | number | null;
+  sent_at: string;
+  opened_at: string | null;
+  seen_at: string | null;
 }
 
 /* ── reads the screens use ────────────────────────────────────────────────── */
@@ -279,14 +361,21 @@ export async function saveOrg(patch: Partial<Org>): Promise<void> {
   const b = await book();
   // Loud, not silent. A write that quietly does nothing is worse than one that
   // fails: nothing prompts the operator to look.
-  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
+  if (b.orgId === null)
+    throw new WriteFailed("anything", "No account is signed in.");
   const supabase = await supabaseServer();
-  check('your settings', await supabase.from('organizations').update(fromOrg(patch)).eq('id', b.orgId));
+  check(
+    "your settings",
+    await supabase
+      .from("organizations")
+      .update(fromOrg(patch))
+      .eq("id", b.orgId),
+  );
 }
 
 export async function saveIngredient(
   ingredient: Ingredient,
-  source: RateSource = 'manual',
+  source: RateSource = "manual",
 ): Promise<void> {
   if (!supabaseConfigured()) {
     memory.putIngredient(ingredient, source);
@@ -295,16 +384,20 @@ export async function saveIngredient(
   const b = await book();
   // Loud, not silent. A write that quietly does nothing is worse than one that
   // fails: nothing prompts the operator to look.
-  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
+  if (b.orgId === null)
+    throw new WriteFailed("anything", "No account is signed in.");
   const supabase = await supabaseServer();
 
   // Read the rate as it stands before overwriting it, so the record has both
   // sides. The trigger that used to do this could not know the source.
-  const before = b.ingredients.find((i) => i.id === ingredient.id)?.purchasePrice ?? null;
+  const before =
+    b.ingredients.find((i) => i.id === ingredient.id)?.purchasePrice ?? null;
 
   check(
     ingredient.name,
-    await supabase.from('ingredients').upsert(fromIngredient(ingredient, b.orgId), { onConflict: 'id' }),
+    await supabase
+      .from("ingredients")
+      .upsert(fromIngredient(ingredient, b.orgId), { onConflict: "id" }),
   );
 
   await recordRate(supabase, ingredient, before, source);
@@ -332,11 +425,11 @@ async function recordRate(
   if (now === null) return;
 
   const moved = before !== now;
-  if (!moved && source !== 'confirmed') return;
+  if (!moved && source !== "confirmed") return;
 
   check(
     `the rate history for ${ingredient.name}`,
-    await supabase.from('ingredient_rate_history').insert({
+    await supabase.from("ingredient_rate_history").insert({
       ingredient_id: ingredient.id,
       purchase_qty: ingredient.purchaseQty,
       price_from: moved ? before : now,
@@ -353,7 +446,10 @@ async function recordRate(
  * identity the operator would recognise — they reorder, retype and delete
  * them freely — so matching them up would be inventing a history nobody kept.
  */
-export async function saveRecipe(recipe: Recipe, meta: DishMeta | undefined): Promise<void> {
+export async function saveRecipe(
+  recipe: Recipe,
+  meta: DishMeta | undefined,
+): Promise<void> {
   if (!supabaseConfigured()) {
     memory.putRecipe(recipe);
     if (meta !== undefined) memory.putMeta(recipe.id, meta);
@@ -362,15 +458,30 @@ export async function saveRecipe(recipe: Recipe, meta: DishMeta | undefined): Pr
   const b = await book();
   // Loud, not silent. A write that quietly does nothing is worse than one that
   // fails: nothing prompts the operator to look.
-  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
+  if (b.orgId === null)
+    throw new WriteFailed("anything", "No account is signed in.");
   const supabase = await supabaseServer();
 
-  check(recipe.name, await supabase.from('recipes').upsert(fromRecipe(recipe, meta, b.orgId), { onConflict: 'id' }));
-  check(recipe.name, await supabase.from('recipe_components').delete().eq('recipe_id', recipe.id));
+  check(
+    recipe.name,
+    await supabase
+      .from("recipes")
+      .upsert(fromRecipe(recipe, meta, b.orgId), { onConflict: "id" }),
+  );
+  check(
+    recipe.name,
+    await supabase
+      .from("recipe_components")
+      .delete()
+      .eq("recipe_id", recipe.id),
+  );
 
   const lines = fromComponents(recipe);
   if (lines.length > 0) {
-    check(`the lines of ${recipe.name}`, await supabase.from('recipe_components').insert(lines));
+    check(
+      `the lines of ${recipe.name}`,
+      await supabase.from("recipe_components").insert(lines),
+    );
   }
 }
 
@@ -393,7 +504,8 @@ export async function saveBook(input: {
   const b = await book();
   // Loud, not silent. A write that quietly does nothing is worse than one that
   // fails: nothing prompts the operator to look.
-  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
+  if (b.orgId === null)
+    throw new WriteFailed("anything", "No account is signed in.");
   const supabase = await supabaseServer();
   const orgId = b.orgId;
 
@@ -402,10 +514,11 @@ export async function saveBook(input: {
     const was = new Map(b.ingredients.map((i) => [i.id, i.purchasePrice]));
 
     check(
-      'your ingredients',
-      await supabase
-        .from('ingredients')
-        .upsert(input.ingredients.map((i) => fromIngredient(i, orgId)), { onConflict: 'id' }),
+      "your ingredients",
+      await supabase.from("ingredients").upsert(
+        input.ingredients.map((i) => fromIngredient(i, orgId)),
+        { onConflict: "id" },
+      ),
     );
 
     /*
@@ -415,36 +528,54 @@ export async function saveBook(input: {
      * the signal the kitchen screen ranks on.
      */
     const moves = input.ingredients
-      .filter((i) => i.purchasePrice !== null && (was.get(i.id) ?? null) !== i.purchasePrice)
+      .filter(
+        (i) =>
+          i.purchasePrice !== null &&
+          (was.get(i.id) ?? null) !== i.purchasePrice,
+      )
       .map((i) => ({
         ingredient_id: i.id,
         purchase_qty: i.purchaseQty,
         price_from: was.get(i.id) ?? null,
         price_to: i.purchasePrice,
-        source: 'import' as const,
+        source: "import" as const,
       }));
 
     for (let i = 0; i < moves.length; i += 500) {
-      check('the rate history', await supabase.from('ingredient_rate_history').insert(moves.slice(i, i + 500)));
+      check(
+        "the rate history",
+        await supabase
+          .from("ingredient_rate_history")
+          .insert(moves.slice(i, i + 500)),
+      );
     }
   }
 
   if (input.recipes.length > 0) {
     check(
-      'your dishes',
-      await supabase
-        .from('recipes')
-        .upsert(input.recipes.map((r) => fromRecipe(r, input.meta[r.id], orgId)), { onConflict: 'id' }),
+      "your dishes",
+      await supabase.from("recipes").upsert(
+        input.recipes.map((r) => fromRecipe(r, input.meta[r.id], orgId)),
+        { onConflict: "id" },
+      ),
     );
 
     const ids = input.recipes.map((r) => r.id);
-    check('the old lines', await supabase.from('recipe_components').delete().in('recipe_id', ids));
+    check(
+      "the old lines",
+      await supabase.from("recipe_components").delete().in("recipe_id", ids),
+    );
 
     const lines = input.recipes.flatMap(fromComponents);
     // Chunked: a large sheet produces thousands of lines, and one statement
     // carrying all of them is a request nobody's proxy is expecting.
     for (let i = 0; i < lines.length; i += 500) {
-      check('your recipe lines', await supabase.from('recipe_components').insert(lines.slice(i, i + 500)));
+      check(
+        "your recipe lines",
+        await supabase
+          .from("recipe_components")
+          .insert(lines.slice(i, i + 500)),
+      );
     }
   }
 }
@@ -457,10 +588,11 @@ export async function clearBook(): Promise<void> {
   const b = await book();
   // Loud, not silent. A write that quietly does nothing is worse than one that
   // fails: nothing prompts the operator to look.
-  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
+  if (b.orgId === null)
+    throw new WriteFailed("anything", "No account is signed in.");
   const supabase = await supabaseServer();
-  await supabase.from('recipes').delete().eq('org_id', b.orgId);
-  await supabase.from('ingredients').delete().eq('org_id', b.orgId);
+  await supabase.from("recipes").delete().eq("org_id", b.orgId);
+  await supabase.from("ingredients").delete().eq("org_id", b.orgId);
 }
 
 /**
@@ -468,7 +600,9 @@ export async function clearBook(): Promise<void> {
  * a sub-recipe. The question an owner asks before changing a rate: what else
  * does this move?
  */
-export async function recipesUsing(ingredientId: string): Promise<readonly Recipe[]> {
+export async function recipesUsing(
+  ingredientId: string,
+): Promise<readonly Recipe[]> {
   const b = await book();
   const byId = new Map(b.recipes.map((r) => [r.id, r]));
 
@@ -476,8 +610,8 @@ export async function recipesUsing(ingredientId: string): Promise<readonly Recip
     if (seen.has(recipe.id)) return false;
     seen.add(recipe.id);
     return recipe.components.some((c) => {
-      if (c.kind === 'ingredient') return c.ingredientId === ingredientId;
-      if (c.kind === 'recipe') {
+      if (c.kind === "ingredient") return c.ingredientId === ingredientId;
+      if (c.kind === "recipe") {
         const child = byId.get(c.childId);
         return child !== undefined && reaches(child, seen);
       }
@@ -503,7 +637,10 @@ export async function getMeta(id: string): Promise<DishMeta | undefined> {
  * price, an archived flag — and not the whole record. Reads the current row
  * first so a patch never blanks a field it did not mention.
  */
-export async function saveMeta(id: string, patch: Partial<DishMeta>): Promise<void> {
+export async function saveMeta(
+  id: string,
+  patch: Partial<DishMeta>,
+): Promise<void> {
   if (!supabaseConfigured()) {
     memory.putMeta(id, patch);
     return;
@@ -511,23 +648,30 @@ export async function saveMeta(id: string, patch: Partial<DishMeta>): Promise<vo
   const b = await book();
   // Loud, not silent. A write that quietly does nothing is worse than one that
   // fails: nothing prompts the operator to look.
-  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
+  if (b.orgId === null)
+    throw new WriteFailed("anything", "No account is signed in.");
 
   const current = b.meta[id];
   const next: DishMeta = {
-    category: patch.category ?? current?.category ?? 'Mains',
+    category: patch.category ?? current?.category ?? "Mains",
     station: patch.station ?? current?.station ?? null,
     portionSize: patch.portionSize ?? current?.portionSize ?? null,
-    sellingPrice: patch.sellingPrice !== undefined ? patch.sellingPrice : (current?.sellingPrice ?? null),
-    deliveryPrice: patch.deliveryPrice !== undefined ? patch.deliveryPrice : (current?.deliveryPrice ?? null),
-    note: patch.note ?? current?.note ?? '',
+    sellingPrice:
+      patch.sellingPrice !== undefined
+        ? patch.sellingPrice
+        : (current?.sellingPrice ?? null),
+    deliveryPrice:
+      patch.deliveryPrice !== undefined
+        ? patch.deliveryPrice
+        : (current?.deliveryPrice ?? null),
+    note: patch.note ?? current?.note ?? "",
     onMenu: patch.onMenu ?? current?.onMenu ?? false,
     archived: patch.archived ?? current?.archived ?? false,
   };
 
   const supabase = await supabaseServer();
   await supabase
-    .from('recipes')
+    .from("recipes")
     .update({
       category: next.category,
       station: next.station,
@@ -539,7 +683,7 @@ export async function saveMeta(id: string, patch: Partial<DishMeta>): Promise<vo
       archived: next.archived,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', id);
+    .eq("id", id);
 }
 
 /**
@@ -559,11 +703,12 @@ export async function saveMeta(id: string, patch: Partial<DishMeta>): Promise<vo
  */
 export async function inviteToOrg(email: string, role: Role): Promise<void> {
   if (!supabaseConfigured()) {
-    memory.inviteMember('', email, role);
+    memory.inviteMember("", email, role);
     return;
   }
   const b = await book();
-  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
+  if (b.orgId === null)
+    throw new WriteFailed("anything", "No account is signed in.");
 
   const supabase = await supabaseServer();
   // Re-inviting an address that is already waiting refreshes the fourteen days
@@ -572,10 +717,10 @@ export async function inviteToOrg(email: string, role: Role): Promise<void> {
   check(
     email,
     await supabase
-      .from('invitations')
+      .from("invitations")
       .upsert(
         { org_id: b.orgId, email: email.trim().toLowerCase(), role },
-        { onConflict: 'org_id,email' },
+        { onConflict: "org_id,email" },
       ),
   );
 }
@@ -588,31 +733,40 @@ export async function inviteToOrg(email: string, role: Role): Promise<void> {
  * whoever matched the empty string — nobody. An owner who removed a manager
  * was told it worked and the manager kept their access.
  */
-export async function removeFromOrg(id: string, pending: boolean): Promise<void> {
+export async function removeFromOrg(
+  id: string,
+  pending: boolean,
+): Promise<void> {
   if (!supabaseConfigured()) {
     memory.removeMember(id);
     return;
   }
   const b = await book();
-  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
+  if (b.orgId === null)
+    throw new WriteFailed("anything", "No account is signed in.");
 
   const supabase = await supabaseServer();
-  const table = pending ? 'invitations' : 'memberships';
-  const column = pending ? 'id' : 'user_id';
-  check('the member', await supabase.from(table).delete().eq(column, id));
+  const table = pending ? "invitations" : "memberships";
+  const column = pending ? "id" : "user_id";
+  check("the member", await supabase.from(table).delete().eq(column, id));
 }
 
 /** Change what someone may do, on the book or in a waiting invitation. */
-export async function setOrgRole(id: string, role: Role, pending: boolean): Promise<void> {
+export async function setOrgRole(
+  id: string,
+  role: Role,
+  pending: boolean,
+): Promise<void> {
   if (!supabaseConfigured()) {
     memory.setMemberRole(id, role);
     return;
   }
   const b = await book();
-  if (b.orgId === null) throw new WriteFailed('anything', 'No account is signed in.');
+  if (b.orgId === null)
+    throw new WriteFailed("anything", "No account is signed in.");
 
   const supabase = await supabaseServer();
-  const table = pending ? 'invitations' : 'memberships';
-  const column = pending ? 'id' : 'user_id';
-  check('the role', await supabase.from(table).update({ role }).eq(column, id));
+  const table = pending ? "invitations" : "memberships";
+  const column = pending ? "id" : "user_id";
+  check("the role", await supabase.from(table).update({ role }).eq(column, id));
 }

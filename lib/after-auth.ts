@@ -18,15 +18,24 @@ import { landingFor, safeNext } from "./landing";
 export async function afterSignIn(
   next: FormDataEntryValue | string | null,
 ): Promise<string> {
-  const { org, members } = await book();
+  const { org, role } = await book();
 
   if (!org.setupDone) return "/setup";
 
   const wanted = safeNext(typeof next === "string" ? next : null);
   if (wanted !== null) return wanted;
 
-  // Their own membership decides the landing route. The book returns only the
-  // organisation they belong to, so the first row is theirs.
-  const role = members[0]?.role ?? "manager";
-  return landingFor(role);
+  /*
+   * Their own role decides the route, and the book now knows which one is
+   * theirs. It used to read `members[0]`, which is whichever membership row
+   * Postgres returned first — with pending invitations concatenated onto the
+   * same list. A manager signing in was routed as the owner about as often as
+   * not, and it went unnoticed only because both roles land on /dashboard
+   * today. A41 gives the chef their own screen, and on that day this would
+   * have started sending the wrong people to it.
+   *
+   * A signed-in caller with no membership has nowhere of their own to land, so
+   * they get the more restricted of the two rather than the more capable.
+   */
+  return landingFor(role ?? "manager");
 }

@@ -211,3 +211,29 @@ export interface RateChange {
 export function isMovement(change: RateChange): boolean {
   return change.from !== change.to;
 }
+
+/**
+ * Which of these people is the caller.
+ *
+ * Pulled out of `lib/book.ts` so the rule can be tested without a session or a
+ * database — the same reason `lib/auth.ts` holds the sign-in policy and not
+ * the sign-in screen.
+ *
+ * The rule is only "match on the id", and it is here because the code it
+ * replaced did not have one. `book()` handed back every membership row in the
+ * organisation, and `afterSignIn` read `members[0]` and called it theirs.
+ * `memberships` is returned in no guaranteed order and pending invitations are
+ * concatenated onto the same list, so that first row was the owner about as
+ * often as it was the person signing in.
+ *
+ * Null for a caller who is on no row: a session whose membership was removed
+ * while they were still looking at the app. Null is not 'manager' — a manager
+ * may still cost a dish.
+ */
+export function roleOf(
+  rows: readonly { readonly user_id: string; readonly role: Role }[],
+  userId: string | null,
+): Role | null {
+  if (userId === null) return null;
+  return rows.find((m) => m.user_id === userId)?.role ?? null;
+}

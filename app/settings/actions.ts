@@ -1,15 +1,16 @@
-'use server';
+"use server";
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath } from "next/cache";
 
-import type { Charge } from '@/core/charges';
-import type { PresetName } from '@/core/rounding';
+import type { Charge } from "@/core/charges";
+import type { PresetName } from "@/core/rounding";
 
-import { type Impact, impactOf } from '@/lib/impact';
-import type { Role, TaxTreatment } from '@/lib/org';
-import { book, orgModel, saveOrg } from '@/lib/book';
-import { inviteToOrg, removeFromOrg, setOrgRole } from '@/lib/book';
-import { setPlan } from '@/lib/store';
+import { type Impact, impactOf } from "@/lib/impact";
+import type { Role, TaxTreatment } from "@/lib/org";
+import { book, orgModel, saveOrg } from "@/lib/book";
+import { requireRole } from "@/lib/guard";
+import { inviteToOrg, removeFromOrg, setOrgRole } from "@/lib/book";
+import { setPlan } from "@/lib/store";
 
 /**
  * Save a costing change.
@@ -24,8 +25,9 @@ export async function saveCosting(patch: {
   readonly packagingPerPortion?: number;
   readonly rounding?: PresetName;
 }): Promise<{ readonly ok: true }> {
+  await requireRole("costing");
   await saveOrg(patch);
-  revalidatePath('/', 'layout');
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -33,18 +35,22 @@ export async function saveOrganisation(patch: {
   readonly name?: string;
   readonly taxTreatment?: TaxTreatment;
   readonly staleAfterDays?: number;
-  readonly defaultMassUnit?: 'g' | 'kg';
-  readonly defaultVolumeUnit?: 'ml' | 'l';
+  readonly defaultMassUnit?: "g" | "kg";
+  readonly defaultVolumeUnit?: "ml" | "l";
 }): Promise<{ readonly ok: true }> {
+  await requireRole("costing");
   await saveOrg(patch);
-  revalidatePath('/', 'layout');
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
 /** The whole stack at once — order is a property of the list, not of a row. */
-export async function saveCharges(charges: readonly Charge[]): Promise<{ readonly ok: true }> {
+export async function saveCharges(
+  charges: readonly Charge[],
+): Promise<{ readonly ok: true }> {
+  await requireRole("charges");
   await saveOrg({ charges: charges.map((c, i) => ({ ...c, order: i + 1 })) });
-  revalidatePath('/', 'layout');
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -56,15 +62,24 @@ export async function saveCharges(charges: readonly Charge[]): Promise<{ readonl
  * so writing this makes the invitation real even with no mail behind it. The
  * screen says so rather than claiming a send.
  */
-export async function invite(_name: string, email: string, role: Role): Promise<{ readonly ok: true }> {
+export async function invite(
+  _name: string,
+  email: string,
+  role: Role,
+): Promise<{ readonly ok: true }> {
+  await requireRole("team");
   await inviteToOrg(email, role);
-  revalidatePath('/settings');
+  revalidatePath("/settings");
   return { ok: true };
 }
 
-export async function drop(id: string, pending: boolean): Promise<{ readonly ok: true }> {
+export async function drop(
+  id: string,
+  pending: boolean,
+): Promise<{ readonly ok: true }> {
+  await requireRole("team");
   await removeFromOrg(id, pending);
-  revalidatePath('/settings');
+  revalidatePath("/settings");
   return { ok: true };
 }
 
@@ -73,15 +88,19 @@ export async function changeRole(
   role: Role,
   pending: boolean,
 ): Promise<{ readonly ok: true }> {
+  await requireRole("team");
   await setOrgRole(id, role, pending);
-  revalidatePath('/settings');
+  revalidatePath("/settings");
   return { ok: true };
 }
 
 /** Demo-only, until Razorpay lands at build step 25. */
-export async function choosePlan(next: 'free' | 'paid'): Promise<{ readonly ok: true }> {
+export async function choosePlan(
+  next: "free" | "paid",
+): Promise<{ readonly ok: true }> {
+  await requireRole('billing');
   setPlan(next);
-  revalidatePath('/settings');
+  revalidatePath("/settings");
   return { ok: true };
 }
 
