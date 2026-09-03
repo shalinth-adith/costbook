@@ -11,7 +11,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { FREE_LIMITS, PAID_MONTHLY, atFreeLimit } from "./org";
+import { FREE_LIMITS, PAID_MONTHLY, atFreeLimit, canImport } from "./org";
 
 describe("the free tier's size", () => {
   it("is ten, which is what the PRD and the flows both say", () => {
@@ -59,5 +59,23 @@ describe("the paid price", () => {
   it("is billed in one currency whatever the menu is priced in", () => {
     // Costbook does not convert. A subscription is not a menu price.
     expect(PAID_MONTHLY.symbol).toBe("₹");
+  });
+});
+
+describe("canImport", () => {
+  it("is the paid tier only", () => {
+    // Not "repeat imports are paid, the first is free" — which is what the
+    // Settings copy used to imply and what the code did not enforce either
+    // way. A workbook is how a menu of eighty arrives, and the free tier
+    // holds ten.
+    expect(canImport("paid")).toBe(true);
+    expect(canImport("free")).toBe(false);
+  });
+
+  it("is what keeps the recipe cap from being decorative", () => {
+    // The cap says ten. An ungated import puts seventy-nine in at once, and
+    // then the cap only ever stops the eightieth — which is not a cap.
+    expect(canImport("free")).toBe(false);
+    expect(atFreeLimit(FREE_LIMITS.recipes, "free")).toBe(true);
   });
 });

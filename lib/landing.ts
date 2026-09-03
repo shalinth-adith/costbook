@@ -24,22 +24,23 @@ export function landingFor(role: Role): string {
 /**
  * Paths reachable without a session.
  *
- * /join is on this list deliberately: it is opened from an email by someone
- * who is not signed in, and gating it removes the only path they have.
+ * /join and /reset were both on this list, and both are gone with the screens
+ * they named. Neither did the thing it was on the list for.
  *
- * /reset was on it too, for the same reason, and is gone with the screen it
- * named. That screen never reset anything — it stepped between three local
- * states and finished with `router.push('/dashboard')`, which the proxy
- * bounced straight back to /sign-in. A door painted on a wall is worse than no
- * door: the person who needs it is the one person who cannot afford to spend
- * their afternoon on it. It returns when there is a domain, and a mail
- * provider behind it, to send a real link.
+ * /reset never reset a password: it stepped between three local states and
+ * finished with `router.push('/dashboard')`, which the proxy bounced straight
+ * back to /sign-in. /join never read the token in its link and rendered the
+ * lapsed state every time, so an invitation could only ever tell the person
+ * following it that it had expired.
+ *
+ * A door painted on a wall is worse than no door — the person who needs it is
+ * the one who can least afford to spend their afternoon on it. Both come back
+ * when there is a domain, and a mail provider behind it, to send a real link.
  */
 export const PUBLIC_PATHS: readonly string[] = [
   "/",
   "/sign-in",
   "/sign-up",
-  "/join",
   "/privacy",
   "/terms",
   // Reached from the sign-in screen by someone who cannot get in. Gating the

@@ -188,6 +188,22 @@ export function atFreeLimit(recipeCount: number, p: Plan): boolean {
   return p === 'free' && recipeCount >= FREE_LIMITS.recipes;
 }
 
+/**
+ * Whether a plan may import a sheet.
+ *
+ * Paid only. The free tier is ten recipes entered by hand, and a workbook is
+ * how a menu of eighty arrives — so exempting import from the cap would leave
+ * a free account holding a costed eighty-dish menu and make the cap
+ * decorative, while truncating an import at ten would end the product's best
+ * moment in a menu cut off mid-alphabet.
+ *
+ * Note this is stricter than the Settings copy's "repeat imports are what the
+ * paid tier is for", which assumed the first one was free. It is not.
+ */
+export function canImport(p: Plan): boolean {
+  return p === 'paid';
+}
+
 export function canDo(role: Role, what: 'costing' | 'charges' | 'billing' | 'team' | 'recipes' | 'rates'): boolean {
   if (role === 'owner') return true;
   return what === 'recipes' || what === 'rates';

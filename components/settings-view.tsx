@@ -12,9 +12,6 @@ import {
 } from "@/core/rounding";
 
 import {
-  changeRole,
-  drop,
-  invite,
   previewCosting,
   saveCharges,
   saveCosting,
@@ -752,7 +749,7 @@ export function SettingsView({
         )}
 
         {tab === "Team" && (
-          <TeamTab members={data.members} pending={pending} start={start} />
+          <TeamTab members={data.members} />
         )}
 
         {tab === "Billing" && (
@@ -792,19 +789,24 @@ function SettingRow({
   );
 }
 
-function TeamTab({
-  members,
-  pending,
-  start,
-}: {
-  members: readonly Member[];
-  pending: boolean;
-  start: (fn: () => Promise<void>) => void;
-}) {
-  const [email, setEmail] = useState("");
-  const [who, setWho] = useState("");
-  const [role, setRole] = useState<Role>("manager");
-
+function TeamTab({ members }: { members: readonly Member[] }) {
+  /*
+   * One person on the book, and no way to ask for another yet.
+   *
+   * This tab used to carry an invitation form, a role toggle and a Remove
+   * button. None of the three could complete: /join never read the token in
+   * its link and always rendered the lapsed state, so anybody invited followed
+   * a link that told them their invitation had expired. Costbook also sends no
+   * mail, so the "invitation" was a row and a sentence asking the owner to
+   * pass the address on themselves.
+   *
+   * Rather than keep a form whose whole outcome was an unreachable screen, the
+   * account is one person for now — the owner, who may do everything. PRD 6
+   * lists manager logins as a v1 must-ship and FLOWS 9 describes the flow;
+   * both are deferred, not cancelled. The `member_role` enum and the
+   * owner-gated policies stay in Postgres, so a second person is a feature
+   * later and not a migration.
+   */
   return (
     <>
       <table className="set-table">
@@ -813,7 +815,6 @@ function TeamTab({
             <th>Who</th>
             <th>Role</th>
             <th>Last in</th>
-            <th />
           </tr>
         </thead>
         <tbody>
@@ -821,123 +822,30 @@ function TeamTab({
             <tr key={m.id}>
               <td>
                 <b>{m.name}</b>
-                <span className="set-email">
-                  {m.accepted
-                    ? m.email
-                    : `${m.email} · invited, not signed in yet`}
+                <span className="set-email">{m.email}</span>
+              </td>
+              <td>
+                <span className="set-pill is-static">
+                  {m.role === "owner" ? "Owner" : "Manager"}
                 </span>
               </td>
-              <td>
-                {m.role === "owner" ? (
-                  <span className="set-pill is-static">Owner</span>
-                ) : (
-                  <button
-                    type="button"
-                    className="set-pill"
-                    onClick={() =>
-                      start(async () => {
-                        await changeRole(
-                          m.id,
-                          m.role === "manager" ? "owner" : "manager",
-                          !m.accepted,
-                        );
-                      })
-                    }
-                  >
-                    Manager
-                  </button>
-                )}
-              </td>
               <td className="figure">{m.lastIn ?? "—"}</td>
-              <td>
-                {m.role === "owner" ? (
-                  <span className="set-note">that&rsquo;s you</span>
-                ) : (
-                  <button
-                    type="button"
-                    className="set-pill"
-                    onClick={() =>
-                      start(async () => {
-                        await drop(m.id, !m.accepted);
-                      })
-                    }
-                  >
-                    {m.accepted ? "Remove" : "Resend"}
-                  </button>
-                )}
-              </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <h3 className="set-h3">Invite someone</h3>
-      <div className="set-invite">
-        <input
-          className="set-input"
-          placeholder="Their name"
-          value={who}
-          onChange={(e) => setWho(e.target.value)}
-        />
-        <input
-          className="set-input"
-          placeholder="their@email.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <button
-          type="button"
-          className="set-pill"
-          onClick={() => setRole(role === "manager" ? "owner" : "manager")}
-        >
-          {role === "manager" ? "Manager" : "Owner"}
-        </button>
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={pending || email.trim() === ""}
-          onClick={() =>
-            start(async () => {
-              await invite(who, email, role);
-              setEmail("");
-              setWho("");
-            })
-          }
-        >
-          Create the invitation
-        </button>
-      </div>
-
-      {/*
-        Two sentences with different lifespans, deliberately kept apart.
-
-        The first is temporary. A27 says "Send the invitation", which is right
-        once mail delivers and a lie until then; the row is real either way,
-        because the signup trigger joins whoever creates an account at this
-        address. When mail sends, this sentence goes and the button's wording
-        goes back.
-
-        The second stays. Matching on email means a typo does not fail, it
-        succeeds quietly into the wrong place — the invitee ends up owning an
-        empty café and nobody is told. That is worth saying at the moment the
-        address is typed, which is the only moment anyone can catch it, and no
-        amount of working email makes it less true.
-      */}
+      <h3 className="set-h3">Just you, for now</h3>
       <p className="set-note">
-        Costbook does not send email yet, so tell them yourself.
+        Costbook is one person per account at the moment. What a second
+        person waits on is email, not payment — an invitation is a link sent to
+        an address, and Costbook cannot send one yet. Asking you for the
+        address before then would only put a name in a table.
       </p>
-
       <p className="set-note">
-        Anyone who signs up with <b>exactly this address</b> joins your café; a
-        different one starts an empty account of their own, so it is worth
-        checking the spelling with them first.
-      </p>
-
-      <p className="set-note">
-        <b>Two roles, on purpose.</b> Owner can change costing, charges, billing
-        and people. Manager can cost dishes, edit rates and print cards, but
-        cannot reprice the menu or see the bill. A kitchen does not need a
-        permissions matrix.
+        Nothing about your café is waiting on it. Everything on every other tab
+        is yours to change, and the prep card prints for whoever is cooking
+        without them needing an account at all.
       </p>
     </>
   );
@@ -1004,7 +912,7 @@ function BillingTab({
         help={
           plan === "free"
             ? "Cost your menu, keep it, print it. No card on file."
-            : "Repeat imports, full rate history, a second person on the book."
+            : "Import, full rate history, and the cap lifted."
         }
         scope={plan === "free" ? "FREE" : "PAID"}
       >
@@ -1028,10 +936,11 @@ function BillingTab({
             a month.
           </h3>
           <p>
-            It lifts the {FREE_LIMITS.recipes}-recipe cap, allows repeat
-            imports so a new price list can be dropped in whenever one
-            arrives, keeps every rate change rather than the last three, and
-            puts a second person on the book.
+            It lifts the {FREE_LIMITS.recipes}-recipe cap and opens the
+            import, so the sheet you already keep becomes a costed menu in a
+            minute rather than an evening of typing — and so a new price list
+            can be dropped in whenever one arrives. It also keeps every rate
+            change rather than the last three.
           </p>
           <p className="set-note">
             {/*
@@ -1074,10 +983,17 @@ function BillingTab({
               * what we know.
               */}
             <td className="figure">
-              — of {plan === "free" ? FREE_LIMITS.importsPerMonth : "∞"}
+              {plan === "free" ? "—" : "— of ∞"}
             </td>
             <td className="set-note">
-              not counted yet; repeat imports are what the paid tier is for
+              {/*
+                * "repeat imports are what the paid tier is for" used to sit
+                * here, which read as though the first one were free. It is
+                * not: importing at all is the paid tier.
+                */}
+              {plan === "free"
+                ? "importing a sheet is on the paid tier"
+                : "not counted yet"}
             </td>
           </tr>
         </tbody>

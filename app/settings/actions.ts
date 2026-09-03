@@ -6,10 +6,9 @@ import type { Charge } from "@/core/charges";
 import type { PresetName } from "@/core/rounding";
 
 import { type Impact, impactOf } from "@/lib/impact";
-import type { Role, TaxTreatment } from "@/lib/org";
+import type { TaxTreatment } from "@/lib/org";
 import { book, orgModel, saveOrg } from "@/lib/book";
 import { requireRole } from "@/lib/guard";
-import { inviteToOrg, removeFromOrg, setOrgRole } from "@/lib/book";
 
 /**
  * Save a costing change.
@@ -53,45 +52,26 @@ export async function saveCharges(
   return { ok: true };
 }
 
-/**
- * Record an invitation. It is not sent — nothing sends email yet.
+/*
+ * Invitations, role changes and Remove are gone from here.
  *
- * The row is what matters and it is what was missing: the signup trigger
- * already joins a new account to the organisation that invited its address,
- * so writing this makes the invitation real even with no mail behind it. The
- * screen says so rather than claiming a send.
+ * Costbook is one person per account for now — the owner, who may do
+ * everything. The flow those three actions served could not complete at any
+ * point: /join never read the token in its link and rendered the lapsed state
+ * every time, so somebody invited followed a link that told them the
+ * invitation had expired, and no mail was sent to carry the link in the first
+ * place.
+ *
+ * Removed rather than merely unwired from the screen, for the same reason
+ * `choosePlan` was: an exported server action is a public endpoint whether or
+ * not a component imports it, and these three wrote invitation and membership
+ * rows.
+ *
+ * The database is untouched — `member_role`, the `invitations` table and the
+ * owner-gated policies all stay, so a second person is a feature later rather
+ * than a migration. PRD 6 and FLOWS 9 both describe the flow; it is deferred,
+ * not cancelled.
  */
-export async function invite(
-  _name: string,
-  email: string,
-  role: Role,
-): Promise<{ readonly ok: true }> {
-  await requireRole("team");
-  await inviteToOrg(email, role);
-  revalidatePath("/settings");
-  return { ok: true };
-}
-
-export async function drop(
-  id: string,
-  pending: boolean,
-): Promise<{ readonly ok: true }> {
-  await requireRole("team");
-  await removeFromOrg(id, pending);
-  revalidatePath("/settings");
-  return { ok: true };
-}
-
-export async function changeRole(
-  id: string,
-  role: Role,
-  pending: boolean,
-): Promise<{ readonly ok: true }> {
-  await requireRole("team");
-  await setOrgRole(id, role, pending);
-  revalidatePath("/settings");
-  return { ok: true };
-}
 
 /*
  * There is no `choosePlan` here any more.

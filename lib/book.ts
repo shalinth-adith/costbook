@@ -686,90 +686,20 @@ export async function saveMeta(
     .eq("id", id);
 }
 
-/**
- * Ask someone to join the book.
+/*
+ * `inviteToOrg`, `removeFromOrg` and `setOrgRole` used to sit here.
  *
- * This wrote to a module-level array and nothing else. No row, no mail, gone
- * on restart — and because `book()` reads memberships from Postgres rather
- * than that array, the person did not even appear in the list. An owner
- * pressed the button, the form cleared, and nothing anywhere had changed.
+ * Costbook is one person per account for now, so nothing calls them. The whole
+ * flow they served was unreachable at its far end anyway: /join never read the
+ * token in its link and rendered the lapsed state every time, and no mail went
+ * out to carry a link in the first place.
  *
- * The `invitations` table and the signup trigger that redeems it were both
- * already here and both already correct. Only the write was missing.
- *
- * Matched on email rather than a token: the trigger looks up an unaccepted,
- * unexpired invitation by address when the account is created, so a token
- * would be a second scheme to keep in step with the first.
+ * The database keeps everything they wrote to — the `invitations` table, the
+ * `member_role` enum, the owner-gated policies and the signup trigger that
+ * redeems an invitation by address. So a second person on the book is a screen
+ * and these three functions again, not a migration. PRD 6 and FLOWS 9 both
+ * describe the flow; it is deferred, not cancelled.
  */
-export async function inviteToOrg(email: string, role: Role): Promise<void> {
-  if (!supabaseConfigured()) {
-    memory.inviteMember("", email, role);
-    return;
-  }
-  const b = await book();
-  if (b.orgId === null)
-    throw new WriteFailed("anything", "No account is signed in.");
-
-  const supabase = await supabaseServer();
-  // Re-inviting an address that is already waiting refreshes the fourteen days
-  // rather than failing on the unique constraint, which is what the owner
-  // pressing the button a second time means by it.
-  check(
-    email,
-    await supabase
-      .from("invitations")
-      .upsert(
-        { org_id: b.orgId, email: email.trim().toLowerCase(), role },
-        { onConflict: "org_id,email" },
-      ),
-  );
-}
-
-/**
- * Take someone off the book, or withdraw an invitation.
- *
- * Keyed by id, not by email: RLS does not expose auth.users, so every member
- * except the caller carries an empty address, and the old signature removed
- * whoever matched the empty string — nobody. An owner who removed a manager
- * was told it worked and the manager kept their access.
- */
-export async function removeFromOrg(
-  id: string,
-  pending: boolean,
-): Promise<void> {
-  if (!supabaseConfigured()) {
-    memory.removeMember(id);
-    return;
-  }
-  const b = await book();
-  if (b.orgId === null)
-    throw new WriteFailed("anything", "No account is signed in.");
-
-  const supabase = await supabaseServer();
-  const table = pending ? "invitations" : "memberships";
-  const column = pending ? "id" : "user_id";
-  check("the member", await supabase.from(table).delete().eq(column, id));
-}
-
-/** Change what someone may do, on the book or in a waiting invitation. */
-export async function setOrgRole(
-  id: string,
-  role: Role,
-  pending: boolean,
-): Promise<void> {
-  if (!supabaseConfigured()) {
-    memory.setMemberRole(id, role);
-    return;
-  }
-  const b = await book();
-  if (b.orgId === null)
-    throw new WriteFailed("anything", "No account is signed in.");
-
-  const supabase = await supabaseServer();
-  const table = pending ? "invitations" : "memberships";
-  const column = pending ? "id" : "user_id";
-  check("the role", await supabase.from(table).update({ role }).eq(column, id));
-}
 
 /**
  * Move the account between plans.

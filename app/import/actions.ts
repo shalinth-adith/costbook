@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import type { ImportPlan } from '@/lib/import';
 import { currencyIsSettable, saveBook, saveOrg } from '@/lib/book';
+import { importAllowed } from '@/lib/guard';
 import type { DishMeta } from '@/lib/data';
 import { TARGET_MAX, TARGET_MIN } from '@/lib/org';
 
@@ -18,6 +19,14 @@ export async function commitImport(plan: ImportPlan): Promise<{
   readonly message: string;
   readonly undoable: boolean;
 }> {
+  /*
+   * Server-side, because the screen refusing is a courtesy and this is the
+   * write. A free account that reached the last step of the wizard — by an old
+   * tab, a back button, or a downgrade part-way through — stops here.
+   */
+  const allowed = await importAllowed();
+  if (!allowed.ok) return { message: allowed.message, undoable: false };
+
   const today = new Date().toISOString().slice(0, 10);
 
   const meta: Record<string, DishMeta> = {};

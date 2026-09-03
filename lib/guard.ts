@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { book } from "./book";
-import { FREE_LIMITS, type Role, atFreeLimit, canDo } from "./org";
+import { FREE_LIMITS, type Role, atFreeLimit, canDo, canImport } from "./org";
 
 /**
  * Send an account that has not finished setup to the wizard.
@@ -94,5 +94,32 @@ export async function roomForRecipe(): Promise<
       `The free tier holds ${FREE_LIMITS.recipes} recipes and you have them all. ` +
       `Everything you have stays costed and printable — what stops is adding ` +
       `another. The paid tier lifts it.`,
+  };
+}
+
+/**
+ * Whether this account may import a sheet at all.
+ *
+ * Import is a paid feature outright: the free tier is ten recipes entered by
+ * hand, and a sheet is how a menu of eighty arrives. The alternatives were to
+ * exempt import from the cap — which leaves a free account holding a costed
+ * eighty-dish menu and makes the cap decorative — or to truncate an import at
+ * ten, which ends the product's best moment in a partial menu and a dish list
+ * cut off mid-alphabet. Neither is better than saying so before the upload.
+ *
+ * Checked on the server as well as on the screen, because the screen is a
+ * courtesy. `commitImport` is the write, so that is where refusing matters.
+ */
+export async function importAllowed(): Promise<
+  { readonly ok: true } | { readonly ok: false; readonly message: string }
+> {
+  const { plan } = await book();
+  if (canImport(plan)) return { ok: true };
+  return {
+    ok: false,
+    message:
+      "Importing a sheet is part of the paid tier. The free tier costs " +
+      `${FREE_LIMITS.recipes} recipes entered by hand, which is enough to see ` +
+      "whether the arithmetic matches yours.",
   };
 }
