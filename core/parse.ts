@@ -365,6 +365,36 @@ export interface SheetTarget {
  * figures. Returns null unless the sheet is consistent about it — a handful of
  * rows at scattered percentages is a menu priced by hand, not a target.
  */
+/**
+ * A dish's name, without the sheet's own index in front of it.
+ *
+ * Workbooks number their blocks — "1.1 Dosa Batter", "3.1 Idly Podi" — and the
+ * number belongs to the sheet's layout, not to the dish. It reads as part of
+ * the name everywhere the name goes afterwards: the library, the dashboard,
+ * the cost sheet, and the prep card taped to a wall in the kitchen.
+ *
+ * It is tempting to read the leading number as a menu section and recover a
+ * grouping from it. Do not. On the reference workbook only 21 of 79 dishes
+ * carry one at all, and the numbers repeat — "1.1" is both Dosa Batter and
+ * Puffs dough, because separate sheets each start their own count. The prefix
+ * is a position within a block, and a position within a block that no longer
+ * exists is not information.
+ *
+ * Deliberately narrow. It removes `N.N`, `N.N.N` and a bare `N.` followed by a
+ * separator, and nothing else — never a trailing number, never a number inside
+ * the name. "Chicken 65" and "Gravy 2" keep theirs, because those are the dish.
+ */
+export function tidyDishName(raw: string): string {
+  const name = raw.trim();
+  // A digit group, then at least one more dotted group, then whitespace. The
+  // second group is what distinguishes a sheet index from a dish that simply
+  // opens with a number.
+  const stripped = name.replace(/^\d+(?:\.\d+)+[.)]?\s+/, '');
+  // Never return an empty name. A row called "1.1" and nothing else is a row
+  // whose name we do not know, and an empty string is worse than the index.
+  return stripped === '' ? name : stripped;
+}
+
 export function targetFromSheet(
   rows: readonly (readonly string[])[],
   headerRow: number | null,
@@ -768,7 +798,7 @@ export function parseRows(
       const stated = text(row[recipeCol]);
       if (stated !== '') carriedRecipe = stated;
 
-      const recipeName = carriedRecipe;
+      const recipeName = tidyDishName(carriedRecipe);
       if (recipeName === '') continue;
 
       const line = parseLine(row, i, mapping, knownRecipes, rereadUnits, rowEdits[i]);
@@ -849,7 +879,7 @@ export function parseRows(
     // A name carrying no quantity and no money is a heading, not a line.
     const hasFigures = line.qty !== null || line.rate !== null || line.total !== null;
     if (!hasFigures) {
-      current = open(line.name, i);
+      current = open(tidyDishName(line.name), i);
       current.section = sectionHere;
       continue;
     }

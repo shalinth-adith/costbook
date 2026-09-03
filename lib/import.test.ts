@@ -360,11 +360,14 @@ describe('a sheet whose recipe name is a merged cell', () => {
   const p = parseRows(MERGED, {});
 
   it('finds both recipes, not ten loose ingredients', () => {
-    expect(p.blocks.map((b) => b.name)).toEqual(['5.1 Coconut Chutney', '5.2 Mint Chutney']);
+    // The sheet's own block index does not survive into the name. It belongs
+    // to the sheet's layout, not to the dish, and it repeats across sheets —
+    // see `tidyDishName`. The cell still reads "5.1 Coconut Chutney".
+    expect(p.blocks.map((b) => b.name)).toEqual(['Coconut Chutney', 'Mint Chutney']);
   });
 
   it('keeps every ingredient under the name it belongs to', () => {
-    const chutney = p.blocks.find((b) => b.name === '5.1 Coconut Chutney');
+    const chutney = p.blocks.find((b) => b.name === 'Coconut Chutney');
     expect(chutney?.lines.map((l) => l.name)).toEqual([
       'Coconut',
       'Roasted Gram Dal',
@@ -377,7 +380,7 @@ describe('a sheet whose recipe name is a merged cell', () => {
   });
 
   it('starts the next recipe where the sheet names one', () => {
-    const mint = p.blocks.find((b) => b.name === '5.2 Mint Chutney');
+    const mint = p.blocks.find((b) => b.name === 'Mint Chutney');
     expect(mint?.lines).toHaveLength(3);
     // Nothing leaks backwards from the chutney above it.
     expect(mint?.lines.map((l) => l.name)).not.toContain('Coconut');
@@ -392,7 +395,7 @@ describe('a sheet whose recipe name is a merged cell', () => {
     const planned = planImport(p, [], TODAY);
     expect(planned.summary.dishes).toBe(2);
 
-    const chutney = planned.recipes.find((r) => r.recipe.name === '5.1 Coconut Chutney');
+    const chutney = planned.recipes.find((r) => r.recipe.name === 'Coconut Chutney');
     expect(chutney?.recipe.components).toHaveLength(7);
   });
 
