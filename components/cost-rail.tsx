@@ -54,6 +54,7 @@ export function CostRail({
   busy,
   isDefault,
   actions,
+  below,
 }: {
   cost: RecipeCost;
   build: CostBuildUp;
@@ -77,6 +78,9 @@ export function CostRail({
   isDefault: boolean;
   /** Print, save and remove sit under the price, where the decision is made. */
   actions: React.ReactNode;
+  /** The delivery-channel card. It lives inside the rail so the sticky rail
+      can never ride over it — which it did, heading showing through. */
+  below?: React.ReactNode;
 }) {
   // A dish with no portions has no cost per portion, so the rail leads with
   // what a batch costs instead. Nothing is invented to fill the slot.
@@ -195,14 +199,16 @@ export function CostRail({
               Wastage and packaging are set together or not at all. */}
           {plated ? (
             <div className="buildup-defaults">
-              <p className="buildup-note">
+              <div className="buildup-defaults-head">
                 <span className={`chip chip-default figure${isDefault ? '' : ' is-yours'}`}>
                   {isDefault ? 'FROM SETTINGS' : 'THIS DISH'}
-                </span>{' '}
-                <span className="figure">{model.wastagePercent}%</span> wastage ·{' '}
-                <span className="figure">{m.withSymbol(model.packagingPerPortion)}</span> packaging a portion.
+                </span>
+              </div>
+              <p className="buildup-note">
+                <span className="figure">{model.wastagePercent}%</span> wastage and{' '}
+                <span className="figure">{m.withSymbol(model.packagingPerPortion)}</span> packaging, per portion.
                 {isDefault ? (
-                  <> Set once in <Link href="/settings" className="link">Settings</Link>.</>
+                  <> Set once in <Link href="/settings" className="link-inline">Settings</Link>.</>
                 ) : (
                   <> Set for this dish only.</>
                 )}
@@ -248,57 +254,59 @@ export function CostRail({
         </section>
       ) : (
         <section className="card price-card">
-          <div className="label">
-            What to charge
-          </div>
+          <div className="label">What to charge</div>
 
           {/*
-            * One price. It used to offer two — the rule's figure and an
-            * alternative rule's — and a reader who had asked "what should I
-            * charge" was handed a choice between 2.90 and 3.00 for a plate
-            * whose sum was 2.56. A rounding rule is chosen once, in Settings,
-            * at setup; this screen applies it and says so.
+            * One figure, one sentence, three facts, two short verbs. It used
+            * to say the exact price twice, the target twice and a percentage
+            * the owner never asked for, and the button label wrapped.
             */}
-          <p className="price-said">
-            You want to keep <b>{whole(100 - want)}</b> of every {whole(100)} — your{' '}
-            <button type="button" className="label-edit" onClick={onOpenTarget}>
-              {percent(model.foodCostTarget, 1)}
-            </button>{' '}
-            target. This plate costs <b>{m.withSymbol(build.total)}</b> to make, so it needs to
-            sell at <b>{m.withSymbol(suggestion.exact)}</b>.
-          </p>
-
           <div className="price-one">
             <span className="price-one-figure figure">{m.withSymbol(suggestion.rounded)}</span>
             <span className="price-one-said">
-              {m.withSymbol(suggestion.exact)} — {suggestion.ruleLabel}. You would keep{' '}
-              <b className="figure">{whole(perHundred(100 - suggestion.roundedFoodCost) ?? 0)}</b> of every {whole(100)}.
+              Costs <b>{m.withSymbol(build.total)}</b> to make. You want to keep{' '}
+              <b>{whole(100 - want)}</b> of every {whole(100)}{' '}
+              <button type="button" className="label-edit" onClick={onOpenTarget}>change</button>.
             </span>
           </div>
 
-          {sellingPrice !== null && spend !== null && (
-            <p className="price-now">
-              Today it sells at <b>{m.withSymbol(sellingPrice)}</b>, keeping <b>{whole(100 - spend)}</b>.
-            </p>
-          )}
-
-          <p className="price-rule-note">
-            Rounding is a setting, applied to every dish —{' '}
-            <Link href="/settings" className="link">change it in Settings</Link>.
-          </p>
+          <dl className="price-facts">
+            <div className="price-fact">
+              <dt>Exact</dt>
+              <dd className="figure">{m.withSymbol(suggestion.exact)}</dd>
+            </div>
+            <div className="price-fact">
+              <dt>Rounded</dt>
+              <dd>
+                {suggestion.ruleLabel} —{' '}
+                <Link href="/settings" className="link-inline">a setting for every dish</Link>
+              </dd>
+            </div>
+            {sellingPrice !== null && spend !== null ? (
+              <div className="price-fact">
+                <dt>Today</dt>
+                <dd>
+                  <b className="figure">{m.withSymbol(sellingPrice)}</b>, keeping{' '}
+                  <b className={100 - spend < 100 - want - 2 ? 'ink-over' : 'ink-on'}>{whole(100 - spend)}</b>
+                </dd>
+              </div>
+            ) : null}
+          </dl>
 
           <div className="price-actions">
             <button type="button" className="btn btn-primary" onClick={onUsePrice} disabled={busy}>
-              {busy ? 'Saving…' : `Change the price to ${m.withSymbol(suggestion.rounded)}`}
+              {busy ? 'Saving…' : `Charge ${m.withSymbol(suggestion.rounded)}`}
             </button>
             {sellingPrice === null ? null : (
               <button type="button" className="btn" onClick={onKeepPrice} disabled={busy}>
-                Leave it at {m.withSymbol(sellingPrice)}
+                Keep {m.withSymbol(sellingPrice)}
               </button>
             )}
           </div>
         </section>
       )}
+
+      {below}
 
       {/* Fixed to the viewport, full width, under both columns. It used to
           sit at the bottom of this sticky rail and land on top of whatever

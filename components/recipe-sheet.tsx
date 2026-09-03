@@ -521,6 +521,16 @@ export function RecipeSheet({
             if (suggestion === null) return;
             void commit(() => saveAndPrice(named, dishFields, suggestion.rounded));
           }}
+          below={
+            <ChannelSection
+              comparison={channels}
+              target={model.foodCostTarget}
+              onAddChannel={() => { window.location.href = '/settings'; }}
+              onUseSuggested={(price) => {
+                void commit(() => saveDeliveryPrice(recipe.id, price));
+              }}
+            />
+          }
           actions={
             <div className="rail-actions rail-actions-row">
               <button
@@ -633,14 +643,6 @@ export function RecipeSheet({
         </section>
       )}
 
-      <ChannelSection
-        comparison={channels}
-        target={model.foodCostTarget}
-        onAddChannel={() => { window.location.href = '/settings'; }}
-        onUseSuggested={(price) => {
-          void commit(() => saveDeliveryPrice(recipe.id, price));
-        }}
-      />
       </div>
 
       <DishSheet
