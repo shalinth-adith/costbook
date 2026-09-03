@@ -3724,3 +3724,26 @@
 .field-help { font-size: 12px; color: var(--text-tertiary); line-height: 1.45; }
 .field-input { width: 100%; box-sizing: border-box; padding: 9px 12px; font: inherit; font-size: 14px; border: 1px solid var(--border-control); border-radius: var(--radius-field); background: var(--surface-card); color: var(--text-primary); }
 .price-fact-how { color: var(--text-tertiary); }
+
+/* ── Settings: how you price ───────────────────────────────────────── */
+.set-methods { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: var(--sp-4) 0 var(--sp-6); }
+.set-method {
+  display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; cursor: pointer;
+  background: var(--surface-card); border: 1px solid var(--border-hairline); border-radius: var(--radius-field);
+  transition: border-color var(--dur-micro) var(--ease-enter), box-shadow var(--dur-micro) var(--ease-enter);
+}
+.set-method:hover { border-color: var(--border-control); }
+.set-method.is-on { border-color: var(--text-primary); box-shadow: inset 0 0 0 1px var(--text-primary); }
+.set-method input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+.set-method:has(input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.set-method-name { font-weight: 600; font-size: 15px; }
+.set-method-said { font-size: 12.5px; color: var(--text-secondary); line-height: 1.45; }
+.set-method-field { font-size: 13.5px; margin-top: 6px; color: var(--text-primary); }
+.set-method:not(.is-on) .set-method-field { color: var(--text-tertiary); }
+.set-lines { display: flex; flex-direction: column; margin: var(--sp-3) 0 var(--sp-5); border-top: 1px solid var(--border-row); }
+.set-line { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 16px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-row); font-size: 14px; }
+.set-line-name { font-weight: 500; }
+.set-line-field { color: var(--text-secondary); line-height: 1.6; }
+.set-line-note { color: var(--text-tertiary); }
+.set-line-check input[type="checkbox"] { vertical-align: -1px; margin-inline-end: 4px; }
+@media (max-width: 640px) { .set-line { grid-template-columns: 1fr; gap: 4px; } }

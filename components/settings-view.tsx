@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 
-import { type Charge, applyCharges } from "@/core/charges";
+import { type Charge, applyCharges, effectiveRate } from "@/core/charges";
 import { currency, formatMoney } from "@/core/currency";
 import {
   PRESETS,
@@ -19,9 +19,10 @@ import {
 } from "@/app/settings/actions";
 import {
   ROUNDING_CHOICES,
-  type CostingModel,
-  dishModel,
   suggestPrice,
+  PRICING_METHODS,
+  type CostingModel,
+  type PricingMethod,
 } from "@/lib/costing";
 import {
   FREE_LIMITS,
@@ -112,6 +113,29 @@ export function SettingsView({
   const [wastage, setWastage] = useState(data.model.wastagePercent);
   const [packaging, setPackaging] = useState(data.model.packagingPerPortion);
   const [rounding, setRounding] = useState<PresetName>(data.model.rounding);
+  // The last step of the ladder and the lines a small kitchen leaves out.
+  const [method, setMethod] = useState<PricingMethod>(data.model.method);
+  const [moneyPerPlate, setMoneyPerPlate] = useState(data.model.moneyPerPlate);
+  const [factor, setFactor] = useState(data.model.factor);
+  const [accompaniments, setAccompaniments] = useState(data.model.accompanimentsPerPortion);
+  const [labourRate, setLabourRate] = useState(data.model.labourRatePerHour);
+  const [overhead, setOverhead] = useState(data.model.overheadPerPortion);
+  const [includeCharges, setIncludeCharges] = useState(data.model.pricesIncludeCharges);
+  const draft: CostingModel = {
+    ...data.model,
+    foodCostTarget: target,
+    wastagePercent: wastage,
+    packagingPerPortion: packaging,
+    rounding,
+    method,
+    moneyPerPlate,
+    factor,
+    accompanimentsPerPortion: accompaniments,
+    labourRatePerHour: labourRate,
+    overheadPerPortion: overhead,
+    pricesIncludeCharges: includeCharges,
+  };
+  const guestAddsPercent = data.org.charges.length > 0 ? effectiveRate(data.org.charges, "dine_in") : 0;
   /**
    * The worked example, computed the way the sentence above reads it — in that
    * order, so a reader can follow the arithmetic line by line rather than
@@ -119,13 +143,10 @@ export function SettingsView({
    */
   const sampleIngredients = data.sample?.ingredientCost ?? 0;
   const sampleWaste = sampleIngredients * (wastage / 100);
-  const samplePlate = sampleIngredients + sampleWaste + packaging;
+  const samplePlate = sampleIngredients + sampleWaste + packaging + accompaniments + overhead;
   // Through the same function the cost sheet uses, so the example on this
   // screen and the price on the dish can never disagree about the arithmetic.
-  const sampleSuggestion = suggestPrice(
-    samplePlate,
-    dishModel(data.model, { foodCostTarget: target, rounding }),
-  );
+  const sampleSuggestion = suggestPrice(samplePlate, draft);
 
   const [showRadius, setShowRadius] = useState(false);
   /** Null until "show me what moves" is pressed; the server does the costing. */
@@ -139,7 +160,40 @@ export function SettingsView({
     target !== data.model.foodCostTarget ||
     wastage !== data.model.wastagePercent ||
     packaging !== data.model.packagingPerPortion ||
-    rounding !== data.model.rounding;
+    rounding !== data.model.rounding ||
+    method !== data.model.method ||
+    moneyPerPlate !== data.model.moneyPerPlate ||
+    factor !== data.model.factor ||
+    accompaniments !== data.model.accompanimentsPerPortion ||
+    labourRate !== data.model.labourRatePerHour ||
+    overhead !== data.model.overheadPerPortion ||
+    includeCharges !== data.model.pricesIncludeCharges;
+  const costingPatch = {
+    foodCostTarget: target,
+    wastagePercent: wastage,
+    packagingPerPortion: packaging,
+    rounding,
+    method,
+    moneyPerPlate,
+    factor,
+    accompanimentsPerPortion: accompaniments,
+    labourRatePerHour: labourRate,
+    overheadPerPortion: overhead,
+    pricesIncludeCharges: includeCharges,
+  };
+  const resetCosting = () => {
+    setTarget(data.model.foodCostTarget);
+    setWastage(data.model.wastagePercent);
+    setPackaging(data.model.packagingPerPortion);
+    setRounding(data.model.rounding);
+    setMethod(data.model.method);
+    setMoneyPerPlate(data.model.moneyPerPlate);
+    setFactor(data.model.factor);
+    setAccompaniments(data.model.accompanimentsPerPortion);
+    setLabourRate(data.model.labourRatePerHour);
+    setOverhead(data.model.overheadPerPortion);
+    setIncludeCharges(data.model.pricesIncludeCharges);
+  };
 
   const bill = useMemo(() => {
     try {
@@ -155,12 +209,7 @@ export function SettingsView({
 
   const applyCosting = () => {
     start(async () => {
-      await saveCosting({
-        foodCostTarget: target,
-        wastagePercent: wastage,
-        packagingPerPortion: packaging,
-        rounding,
-      });
+      await saveCosting(costingPatch);
       setShowRadius(false);
       setBlastRadius(null);
     });
@@ -352,53 +401,185 @@ export function SettingsView({
         {tab === "Costing" && (
           <>
             <h2 className="set-h2">
-              How Costbook works out a price
-              <span className="set-h2-note">every figure below is a field</span>
+              How you price
+              <span className="set-h2-note">every figure below is a field, and every dish can differ</span>
             </h2>
 
-            {/* The formula is the control. Nobody can predict what a rounding
-                rule does to their menu from its name, so it is shown rather
-                than described. */}
-            <p className="set-formula">
-              Ingredients, plus{" "}
-              <input
-                className="set-inline-field figure"
-                inputMode="decimal"
-                value={wastage}
-                aria-label="Wastage percent"
-                onChange={(e) => setWastage(Number(e.target.value) || 0)}
-              />
-              % wastage, plus {cur.symbol}
-              <input
-                className="set-inline-field figure"
-                inputMode="decimal"
-                value={packaging}
-                aria-label="Packaging per portion"
-                onChange={(e) => setPackaging(Number(e.target.value) || 0)}
-              />{" "}
-              packaging — that is your plate cost. Divide by your target of{" "}
-              <input
-                className="set-inline-field figure"
-                inputMode="decimal"
-                value={target}
-                aria-label="Food cost target"
-                onChange={(e) => setTarget(Number(e.target.value) || 0)}
-              />
-              % to get the price. Then{" "}
-              <select
-                className="set-inline-select"
-                value={rounding}
-                aria-label="Rounding rule"
-                onChange={(e) => setRounding(e.target.value as PresetName)}
-              >
-                {ROUNDING_CHOICES.map((r) => (
-                  <option key={r} value={r}>
-                    {describeRule(PRESETS[r])}
-                  </option>
-                ))}
-              </select>
-              .
+            {/*
+              Forty years of menu-pricing research and every costing tool come
+              down to one ladder of cost lines with one of three last steps.
+              The step is chosen here, once; the ladder is drawn on every dish.
+              Nothing is a formula the operator types.
+            */}
+            <div className="set-methods" role="radiogroup" aria-label="Pricing method">
+              {PRICING_METHODS.map((pm) => (
+                <label key={pm.name} className={`set-method${method === pm.name ? " is-on" : ""}`}>
+                  <input
+                    type="radio"
+                    name="pricing-method"
+                    value={pm.name}
+                    checked={method === pm.name}
+                    onChange={() => setMethod(pm.name)}
+                  />
+                  <span className="set-method-name">{pm.label}</span>
+                  <span className="set-method-said">{pm.said}</span>
+                  <span className="set-method-field">
+                    {pm.name === "food_share" ? (
+                      <>
+                        Ingredients are{" "}
+                        <input
+                          className="set-inline-field figure"
+                          inputMode="decimal"
+                          value={target}
+                          aria-label="Food cost target"
+                          onChange={(e) => setTarget(Number(e.target.value) || 0)}
+                        />
+                        % of the price
+                      </>
+                    ) : pm.name === "money_per_plate" ? (
+                      <>
+                        Every plate leaves {cur.symbol}{" "}
+                        <input
+                          className="set-inline-field figure"
+                          inputMode="decimal"
+                          value={moneyPerPlate}
+                          aria-label="Money left per plate"
+                          onChange={(e) => setMoneyPerPlate(Number(e.target.value) || 0)}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        Price is the cost times{" "}
+                        <input
+                          className="set-inline-field figure"
+                          inputMode="decimal"
+                          value={factor}
+                          aria-label="Times the cost"
+                          onChange={(e) => setFactor(Number(e.target.value) || 0)}
+                        />
+                      </>
+                    )}
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            <h3 className="set-h3">What counts as the cost of a plate</h3>
+            <p className="set-note">
+              Ingredients always. Each line below is added on every dish once it
+              has a figure; leave it at zero and it is not counted. A dish can
+              carry its own figure for any of them.
             </p>
+            <div className="set-lines">
+              <label className="set-line">
+                <span className="set-line-name">Wastage</span>
+                <span className="set-line-field">
+                  <input
+                    className="set-inline-field figure"
+                    inputMode="decimal"
+                    value={wastage}
+                    aria-label="Wastage percent"
+                    onChange={(e) => setWastage(Number(e.target.value) || 0)}
+                  />
+                  % of the ingredient cost
+                </span>
+              </label>
+              <label className="set-line">
+                <span className="set-line-name">Packaging</span>
+                <span className="set-line-field">
+                  {cur.symbol}{" "}
+                  <input
+                    className="set-inline-field figure"
+                    inputMode="decimal"
+                    value={packaging}
+                    aria-label="Packaging per portion"
+                    onChange={(e) => setPackaging(Number(e.target.value) || 0)}
+                  />{" "}
+                  a plate
+                </span>
+              </label>
+              <label className="set-line">
+                <span className="set-line-name">On every plate</span>
+                <span className="set-line-field">
+                  {cur.symbol}{" "}
+                  <input
+                    className="set-inline-field figure"
+                    inputMode="decimal"
+                    value={accompaniments}
+                    aria-label="Accompaniments per plate"
+                    onChange={(e) => setAccompaniments(Number(e.target.value) || 0)}
+                  />{" "}
+                  a plate of sides, bread, condiments that are not on the recipe
+                </span>
+              </label>
+              <label className="set-line">
+                <span className="set-line-name">Kitchen time</span>
+                <span className="set-line-field">
+                  {cur.symbol}{" "}
+                  <input
+                    className="set-inline-field figure"
+                    inputMode="decimal"
+                    value={labourRate}
+                    aria-label="Kitchen rate per hour"
+                    onChange={(e) => setLabourRate(Number(e.target.value) || 0)}
+                  />{" "}
+                  an hour. Minutes a batch takes are set on each dish.
+                </span>
+              </label>
+              <label className="set-line">
+                <span className="set-line-name">Rent, gas and power</span>
+                <span className="set-line-field">
+                  {cur.symbol}{" "}
+                  <input
+                    className="set-inline-field figure"
+                    inputMode="decimal"
+                    value={overhead}
+                    aria-label="Overhead per plate"
+                    onChange={(e) => setOverhead(Number(e.target.value) || 0)}
+                  />{" "}
+                  a plate: last month&rsquo;s rent, gas and power, divided by the plates you served
+                </span>
+              </label>
+              <label className="set-line">
+                <span className="set-line-name">Rounding</span>
+                <span className="set-line-field">
+                  <select
+                    className="set-inline-select"
+                    value={rounding}
+                    aria-label="Rounding rule"
+                    onChange={(e) => setRounding(e.target.value as PresetName)}
+                  >
+                    {ROUNDING_CHOICES.map((r) => (
+                      <option key={r} value={r}>
+                        {describeRule(PRESETS[r])}
+                      </option>
+                    ))}
+                  </select>
+                </span>
+              </label>
+              <label className="set-line set-line-check">
+                <span className="set-line-name">The menu price</span>
+                <span className="set-line-field">
+                  <input
+                    type="checkbox"
+                    checked={includeCharges}
+                    onChange={(e) => setIncludeCharges(e.target.checked)}
+                    disabled={data.org.charges.length === 0}
+                  />{" "}
+                  already includes what the bill adds on top
+                  {data.org.charges.length === 0 ? (
+                    <span className="set-line-note"> — nothing is on the bill yet; see the Charges tab</span>
+                  ) : includeCharges ? (
+                    <span className="set-line-note">
+                      {" "}— the bill adds {guestAddsPercent.toFixed(1)}%, so a {target}% target is{" "}
+                      {(target * (1 + guestAddsPercent / 100)).toFixed(1)}% of what you keep
+                    </span>
+                  ) : (
+                    <span className="set-line-note"> — prices are quoted before the bill&rsquo;s charges</span>
+                  )}
+                </span>
+              </label>
+            </div>
 
             {/*
               The formula is a description of how their place works. This is
@@ -425,15 +606,24 @@ export function SettingsView({
                     said="Packaging"
                     figure={`+ ${money(packaging)}`}
                   />
+                  {accompaniments > 0 ? (
+                    <WorkedRow said="On every plate" figure={`+ ${money(accompaniments)}`} />
+                  ) : null}
+                  {overhead > 0 ? (
+                    <WorkedRow said="Rent, gas and power" figure={`+ ${money(overhead)}`} />
+                  ) : null}
                   <WorkedRow
                     said="Plate cost"
                     figure={money(samplePlate)}
                     strong
                   />
                   <WorkedRow
-                    said={`Divided by ${target}%`}
-                    figure={money(sampleSuggestion.exact)}
+                    said={`Cost ${sampleSuggestion.methodLabel}`}
+                    figure={money(sampleSuggestion.net)}
                   />
+                  {includeCharges && data.org.charges.length > 0 ? (
+                    <WorkedRow said="Plus what the bill adds" figure={money(sampleSuggestion.exact)} />
+                  ) : null}
                   <WorkedRow
                     said="Suggested price"
                     figure={money(sampleSuggestion.rounded)}
@@ -442,8 +632,7 @@ export function SettingsView({
                 </dl>
                 <p className="set-note">
                   This is your dish and your rates, not an illustration. Change
-                  a figure in the sentence above and this follows on the same
-                  keystroke.
+                  a figure above and this follows on the same keystroke.
                 </p>
               </section>
             )}
@@ -475,7 +664,7 @@ export function SettingsView({
             <div className="set-overrides">
               <div>
                 <span className="set-scope">A DISH CAN OVERRIDE</span>
-                <p>target · rounding · packaging</p>
+                <p>target · rounding · wastage · packaging · what goes on every plate · overhead · kitchen minutes</p>
               </div>
               <div>
                 <span className="set-scope">NO OVERRIDES, EVER</span>
@@ -504,12 +693,7 @@ export function SettingsView({
                     disabled={pending}
                     onClick={() => {
                       start(async () => {
-                        const out = await previewCosting({
-                          foodCostTarget: target,
-                          wastagePercent: wastage,
-                          packagingPerPortion: packaging,
-                          rounding,
-                        });
+                        const out = await previewCosting(costingPatch);
                         setBlastRadius(out);
                         setShowRadius(true);
                       });
@@ -522,13 +706,11 @@ export function SettingsView({
                 <div className="set-radius">
                   <h3>Not saved yet</h3>
                   <p>
-                    Changing your target from{" "}
-                    <b className="figure">{data.model.foodCostTarget}%</b> to{" "}
-                    <b className="figure">{target}%</b> reprices{" "}
+                    Changing how you price reprices{" "}
                     <b className="figure">{blastRadius?.moved.length ?? 0}</b>{" "}
                     dishes.{" "}
                     <b className="figure">{blastRadius?.crossCount ?? 0}</b>{" "}
-                    would cross target.
+                    would cross your target.
                   </p>
                   <p className="set-note">
                     The same panel you get when an ingredient&rsquo;s rate
@@ -547,14 +729,11 @@ export function SettingsView({
                       type="button"
                       className="btn"
                       onClick={() => {
-                        setTarget(data.model.foodCostTarget);
-                        setWastage(data.model.wastagePercent);
-                        setPackaging(data.model.packagingPerPortion);
-                        setRounding(data.model.rounding);
+                        resetCosting();
                         setShowRadius(false);
                       }}
                     >
-                      Leave it at {data.model.foodCostTarget}%
+                      Leave it as it was
                     </button>
                     <button
                       type="button"

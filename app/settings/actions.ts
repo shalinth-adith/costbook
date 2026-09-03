@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import type { Charge } from "@/core/charges";
 import type { PresetName } from "@/core/rounding";
+import type { PricingMethod } from "@/lib/costing";
+import type { Org } from "@/lib/org";
 
 import { type Impact, impactOf } from "@/lib/impact";
 import type { TaxTreatment } from "@/lib/org";
@@ -17,14 +19,9 @@ import { requireRole } from "@/lib/guard";
  * why this is one call rather than a field-by-field write: the panel the
  * operator agreed to described this whole patch.
  */
-export async function saveCosting(patch: {
-  readonly foodCostTarget?: number;
-  readonly wastagePercent?: number;
-  readonly packagingPerPortion?: number;
-  readonly rounding?: PresetName;
-}): Promise<{ readonly ok: true }> {
+export async function saveCosting(patch: CostingPatch): Promise<{ readonly ok: true }> {
   await requireRole("costing");
-  await saveOrg(patch);
+  await saveOrg(toOrgPatch(patch));
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -95,12 +92,27 @@ export async function saveCharges(
  * figure already on screen — running a second copy in the browser is how a
  * preview and the thing it previews drift apart. Writes nothing.
  */
-export async function previewCosting(next: {
-  readonly foodCostTarget: number;
-  readonly wastagePercent: number;
-  readonly packagingPerPortion: number;
-  readonly rounding: PresetName;
-}): Promise<Impact> {
+/** The costing figures as the screen names them; `method` is `pricingMethod` on the org. */
+export interface CostingPatch {
+  readonly foodCostTarget?: number;
+  readonly wastagePercent?: number;
+  readonly packagingPerPortion?: number;
+  readonly rounding?: PresetName;
+  readonly method?: PricingMethod;
+  readonly moneyPerPlate?: number;
+  readonly factor?: number;
+  readonly accompanimentsPerPortion?: number;
+  readonly labourRatePerHour?: number;
+  readonly overheadPerPortion?: number;
+  readonly pricesIncludeCharges?: boolean;
+}
+
+function toOrgPatch(p: CostingPatch): Partial<Org> {
+  const { method, ...rest } = p;
+  return { ...rest, ...(method === undefined ? {} : { pricingMethod: method }) };
+}
+
+export async function previewCosting(next: CostingPatch): Promise<Impact> {
   const model = await orgModel();
   return impactOf({
     recipes: (await book()).recipes,
