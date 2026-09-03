@@ -119,6 +119,7 @@ export default async function DashboardPage() {
             on this page that came from another person. */}
         <KitchenCard flags={b.flags} today={today} />
         <DashboardView
+          orgName={b.org.name}
           moved={moved}
           stats={data.stats}
           spread={spread(data.rows, model.foodCostTarget)}

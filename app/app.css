@@ -2932,3 +2932,93 @@
 
 /* The one figure on the page that is a problem gets the weight of one. */
 .dash-top .stat-figure.ink-over { color: var(--over-ink-strong); }
+
+/* ── the headline ──────────────────────────────────────────────────── */
+
+/* One figure, at the size of the only thing on the page that matters, and a
+   sentence beside it in money rather than in percent. A percentage is the
+   engineer's unit; the person reading this thinks in what comes over the
+   counter and what goes back out to the supplier. */
+
+.dh {
+  padding: var(--sp-8) var(--sp-6) var(--sp-6);
+  max-width: 1240px;
+  display: flex; flex-direction: column; gap: var(--sp-3);
+}
+.dh-who {
+  margin: 0;
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-tertiary); font-weight: 600;
+}
+.dh-row { display: flex; align-items: baseline; gap: var(--sp-4); flex-wrap: wrap; }
+.dh-figure {
+  font-size: clamp(52px, 8vw, 84px); line-height: 0.92; font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.dh-said {
+  margin: 0; max-width: 22ch;
+  font-size: clamp(17px, 2vw, 21px); line-height: 1.35;
+  color: var(--text-primary); text-wrap: balance;
+}
+.dh-against { margin: 0; font-size: 15px; color: var(--text-secondary); }
+.dh-verdict { font-weight: 600; }
+.dh-verdict.is-good { color: var(--on-ink-strong); }
+.dh-verdict.is-fine { color: var(--near-ink-strong); }
+.dh-verdict.is-bad  { color: var(--over-ink-strong); }
+
+/* The caveat sits with the figure it qualifies, not in a footnote below the
+   fold. A headline drawn from a third of the menu that does not say so is the
+   most confident wrong number this product could print. */
+.dh-caveat {
+  margin: var(--sp-2) 0 0; max-width: 74ch;
+  font-size: 13px; line-height: 1.55; color: var(--near-ink-strong);
+  background: var(--near-tint);
+  border: 1px solid var(--near-edge);
+  border-radius: var(--radius-field);
+  padding: 11px 14px;
+}
+
+/* ── the counts ────────────────────────────────────────────────────── */
+
+/* Each says what it counts and why it matters, because the reader did not
+   open this to learn what "food cost" or "unplaced" mean. */
+
+.dc {
+  display: grid; gap: var(--sp-3);
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  margin-inline: var(--sp-6); margin-block-end: var(--sp-6);
+  max-width: 1240px;
+}
+.dc-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-field);
+  padding: var(--sp-4) var(--sp-4) var(--sp-4);
+  display: flex; flex-direction: column; gap: 2px;
+  border-block-start: 3px solid var(--border-strong);
+}
+.dc-card.is-bad { border-block-start-color: var(--over-edge); }
+.dc-card.is-open { border-block-start-color: var(--near-edge); }
+.dc-n { font-size: 34px; line-height: 1.05; font-weight: 600; letter-spacing: -0.02em; }
+.dc-what { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.dc-why { font-size: 12.5px; color: var(--text-secondary); line-height: 1.45; margin-block-start: 4px; }
+
+/* ── the rest, said plainly ────────────────────────────────────────── */
+
+.spr-axis {
+  margin: var(--sp-3) 0 0; text-align: center;
+  font-size: 11.5px; color: var(--text-tertiary);
+  letter-spacing: 0.02em;
+}
+.dash-foot {
+  margin: var(--sp-2) 0 0;
+  font-size: 12px; color: var(--text-tertiary);
+}
+.wr-said { font-size: 12.5px; color: var(--text-secondary); }
+
+/* Room for the sentence on each shortlist row. */
+.wr-row { grid-template-columns: 22px minmax(0, 1.1fr) minmax(0, 1.3fr) 74px 132px; }
+@media (max-width: 900px) {
+  .wr-row { grid-template-columns: 22px minmax(0, 1fr) 68px; }
+  .wr-said, .wr-bar { display: none; }
+}
