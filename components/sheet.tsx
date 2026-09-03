@@ -34,17 +34,32 @@ export function Sheet({
 }) {
   const panel = useRef<HTMLDivElement>(null);
 
+  /*
+   * The latest `onClose`, held in a ref so it is not an effect dependency.
+   *
+   * It used to be one. Every caller passes an inline arrow, so every render
+   * of the parent handed this component a new function, the effect re-ran,
+   * and `panel.current?.focus()` pulled the cursor out of whatever field the
+   * operator was in and onto the dialog itself. On the Add-line drawer that
+   * meant adding a line — which re-renders the recipe — stole focus from the
+   * search box the moment it had been returned there. Focus belongs to the
+   * moment the sheet opens, and to nothing after.
+   */
+  const close = useRef(onClose);
+  close.current = onClose;
+
   useEffect(() => {
     if (!open) return undefined;
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') close.current();
     };
     document.addEventListener('keydown', onKey);
-    // Focus moves into the sheet so a keyboard is not left behind the scrim.
+    // Focus moves into the sheet so a keyboard is not left behind the scrim —
+    // once, on opening.
     panel.current?.focus();
     return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

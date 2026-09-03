@@ -63,11 +63,23 @@ export function removeLine(recipe: Recipe, index: number): Recipe {
  * It is caught before the line is kept, and reported with the path drawn in
  * the operator's language — never as a database error (FLOWS 5.2).
  */
+/** How much of it, as the operator typed it: a figure in a unit. */
+export interface Amount {
+  readonly qty: number;
+  readonly unit: string;
+}
+
 export function addComponent(
   recipe: Recipe,
   others: readonly Recipe[],
   ingredients: readonly Ingredient[],
   choice: AddChoice,
+  /**
+   * Given when the operator typed a quantity at the moment of picking.
+   * Absent, the line starts at one purchase unit — 1 kg, 1 l, 1 pc — which
+   * is the old behaviour and still what a tablet finger gets.
+   */
+  amount?: Amount,
 ): AddResult {
   const pantry = pantryWith(recipe, others, ingredients);
 
@@ -79,10 +91,21 @@ export function addComponent(
   }
 
   try {
+    // A unit in the wrong family — "250 ml" of a thing bought by weight — is
+    // refused by ingredientComponent below and lands in the catch as a
+    // sentence, never as a line quietly costed at the wrong figure.
     const component =
       choice.kind === 'ingredient'
-        ? ingredientComponent(choice.ingredient, 1, choice.ingredient.purchaseUnit)
-        : recipeComponent(choice.recipe, 1, BASE_UNIT[choice.recipe.family]);
+        ? ingredientComponent(
+            choice.ingredient,
+            amount?.qty ?? 1,
+            amount?.unit ?? choice.ingredient.purchaseUnit,
+          )
+        : recipeComponent(
+            choice.recipe,
+            amount?.qty ?? 1,
+            amount?.unit ?? BASE_UNIT[choice.recipe.family],
+          );
 
     const next: Recipe = { ...recipe, components: [...recipe.components, component] };
 

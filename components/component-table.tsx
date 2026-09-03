@@ -1,8 +1,12 @@
 'use client';
 
+import { useState } from 'react';
+
 import type { CostedLine } from '@/core/recipe';
 
 import { DASH, lineQty, lineRate, qty } from '@/lib/format';
+import { looseNumber } from '@/core/loose';
+import { toBase } from '@/core/units';
 
 import { useMoney } from './currency-provider';
 
@@ -169,14 +173,31 @@ function LineDetail({
           {/* A stepper rather than a field: a wet finger cannot select and
               retype a number, and a field that clears on focus loses the
               figure it was showing (A13). */}
-          <Stepper
-            label={`quantity of ${line.name}`}
-            value={`${lineQty(line.qty, line.unit)} ${line.unit}`}
-            min={line.qty <= 1}
-            disabled={line.kind === 'flat'}
-            onDown={() => handlers.onQty(index, stepDown(line.qty))}
-            onUp={() => handlers.onQty(index, stepUp(line.qty))}
-          />
+          <div className="qty-edit">
+            {/*
+              * Typed, beside the stepper — not instead of it.
+              *
+              * The stepper is right for a wet finger on a tablet. It is wrong
+              * for somebody at a laptop entering a recipe: a picked line
+              * starts at 1 kg, the steps are 50/10/5/1 g, and reaching 250 g
+              * is about thirty presses. Nobody enters a recipe that way; they
+              * type "250 g". So here is where they type it. Enter or leaving
+              * the field commits; the unit stays the line's own.
+              */}
+            <QtyField
+              line={line}
+              disabled={line.kind === 'flat'}
+              onCommit={(base) => handlers.onQty(index, base)}
+            />
+            <Stepper
+              label={`quantity of ${line.name}`}
+              value={`${lineQty(line.qty, line.unit)} ${line.unit}`}
+              min={line.qty <= 1}
+              disabled={line.kind === 'flat'}
+              onDown={() => handlers.onQty(index, stepDown(line.qty))}
+              onUp={() => handlers.onQty(index, stepUp(line.qty))}
+            />
+          </div>
           <p className="line-detail-copy">
             {line.cost === null ? (
               <>
@@ -256,6 +277,71 @@ function LineDetail({
   );
 }
 
+
+/**
+ * The quantity, typed.
+ *
+ * Holds its own draft so a half-typed "25" is not committed as 25 g on the
+ * way to "250". Commits on Enter and on blur; a cleared or unreadable field
+ * commits nothing, because `setQty` treats zero as a removal and a typo
+ * should not delete a line.
+ */
+function QtyField({
+  line,
+  disabled,
+  onCommit,
+}: {
+  line: { readonly qty: number; readonly unit: string; readonly name: string };
+  disabled: boolean;
+  onCommit: (baseQty: number) => void;
+}) {
+  const shown = lineQty(line.qty, line.unit);
+  const [draft, setDraft] = useState(shown);
+  const [was, setWas] = useState(shown);
+  // A change from outside — the stepper — replaces the draft.
+  if (shown !== was) {
+    setWas(shown);
+    setDraft(shown);
+  }
+
+  const commit = () => {
+    const n = looseNumber(draft);
+    if (n === null || n <= 0) {
+      setDraft(shown);
+      return;
+    }
+    let base: number;
+    try {
+      base = toBase(n, line.unit);
+    } catch {
+      setDraft(shown);
+      return;
+    }
+    if (base !== line.qty) onCommit(base);
+  };
+
+  return (
+    <label className="qty-field">
+      <input
+        className="figure"
+        inputMode="decimal"
+        value={draft}
+        disabled={disabled}
+        aria-label={`quantity of ${line.name} in ${line.unit}`}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit();
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+      />
+      <span className="qty-unit">{line.unit}</span>
+    </label>
+  );
+}
 
 /** A step that suits the figure: grams move in tens, pieces in ones. */
 function stepSize(value: number): number {

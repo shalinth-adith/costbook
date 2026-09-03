@@ -114,7 +114,38 @@ export function IngredientEntry({
             inputMode="decimal"
             value={qty}
             placeholder="1"
-            onChange={(e) => setQty(e.target.value)}
+            onChange={(e) => {
+              /*
+               * "500 g" typed here sets both the quantity and the unit, so
+               * the hand never has to leave the keyboard for the unit
+               * buttons. The buttons stay for anyone who prefers them.
+               */
+              const typed = e.target.value;
+              const m = /^\s*([\d.,/]+)\s*([A-Za-z]+)\s*$/.exec(typed);
+              const token = m?.[2]?.toLowerCase() ?? '';
+              // The pack is bought by the kilo, litre or piece — those are
+              // the buttons — but a chef writes grams and millilitres. "500 g"
+              // is half a kilo pack, and is stored as one.
+              const small: Record<string, ['kg' | 'l', number]> = {
+                g: ['kg', 1000], gm: ['kg', 1000], gms: ['kg', 1000],
+                ml: ['l', 1000],
+              };
+              if (m !== null && token in small) {
+                const [big, per] = small[token] as ['kg' | 'l', number];
+                const n = Number(m[1]?.replace(',', '.') ?? '');
+                if (Number.isFinite(n)) {
+                  setQty(String(n / per));
+                  setUnit(big);
+                  return;
+                }
+              }
+              if (m !== null && (UNITS as readonly string[]).includes(token)) {
+                setQty(m[1] ?? '');
+                setUnit(token);
+                return;
+              }
+              setQty(typed);
+            }}
           />
         </label>
 

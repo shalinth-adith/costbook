@@ -208,8 +208,8 @@ export function RecipeSheet({
    * refuses it, and the refusal is shown in the operator's language with the
    * path drawn, never as an error code (FLOWS 5.2).
    */
-  const onPick = (choice: PickerChoice) => {
-    const result = addComponent(recipe, otherRecipes, shelf, choice);
+  const onPick = (choice: PickerChoice, amount?: { qty: number; unit: string }) => {
+    const result = addComponent(recipe, otherRecipes, shelf, choice, amount);
     if (!result.ok) {
       setBlocked(result.message);
       return;

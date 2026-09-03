@@ -2,7 +2,10 @@
 
 import { useMoney } from './currency-provider';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+
+import { looseNumber } from '@/core/loose';
+import { normaliseUnit } from '@/core/units';
 
 import type { Ingredient } from '@/core/ingredient';
 import type { Pantry, Recipe } from '@/core/recipe';
@@ -30,7 +33,16 @@ export function ComponentPicker({
   pantry: Pantry;
   excludeRecipeId: string;
   usedInCount: (name: string) => number;
-  onPick: (choice: PickerChoice) => void;
+  /**
+   * The pick, and how much of it if the operator typed one.
+   *
+   * Nothing is picked until a quantity is answered or skipped, and the
+   * drawer stays open afterwards with the search cleared and focused — the
+   * next line is one keystroke away. The old flow closed on pick and left
+   * every line at 1 kg to be stepped down by hand, which is how a recipe
+   * takes an afternoon.
+   */
+  onPick: (choice: PickerChoice, amount?: { qty: number; unit: string }) => void;
   /** Inside a drawer the list is the whole point, so it does not wait for focus. */
   alwaysOpen?: boolean;
   /**
@@ -44,9 +56,60 @@ export function ComponentPicker({
   onCreateIngredient?: (i: NewIngredient) => void;
   creating?: boolean;
 }) {
+  const m = useMoney();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(alwaysOpen);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  /** The row pressed and waiting for its quantity. */
+  const [pending, setPending] = useState<PickerChoice | null>(null);
+  const [amount, setAmount] = useState('');
+  const amountRef = useRef<HTMLInputElement>(null);
+
+  /**
+   * Focus follows the flow, after React has rendered — not on a frame timer,
+   * which raced the render and left the cursor nowhere. Into the quantity
+   * field when a row is picked; back to the search once it is settled, so
+   * the next line is one keystroke away.
+   */
+  const settled = useRef(false);
+  useEffect(() => {
+    if (pending !== null) {
+      amountRef.current?.focus();
+    } else if (settled.current) {
+      settled.current = false;
+      inputRef.current?.focus();
+    }
+  }, [pending]);
+
+  const defaultUnit = (c: PickerChoice): string =>
+    c.kind === 'ingredient' ? c.ingredient.purchaseUnit : c.recipe.outputUnit;
+
+  /**
+   * Add the pending row. An empty field adds it at one purchase unit, so
+   * pressing Enter twice is the old one-click behaviour; a figure with no
+   * unit takes the ingredient's own; a figure with a unit takes that.
+   */
+  const settle = () => {
+    if (pending === null) return;
+    const typed = amount.trim();
+    const m = /^([\d.,/¼½¾⅓⅔⅛]+(?:\s+\d+\s*\/\s*\d+)?)\s*([A-Za-z]*)$/.exec(typed);
+    if (typed === '') {
+      onPick(pending);
+    } else if (m !== null) {
+      const qty = looseNumber(m[1] ?? '');
+      if (qty === null || qty <= 0) return;
+      const unit = (m[2] ?? '') === '' ? defaultUnit(pending) : (normaliseUnit(m[2] ?? '') ?? (m[2] ?? ''));
+      onPick(pending, { qty, unit });
+    } else {
+      return;
+    }
+    settled.current = true;
+    setPending(null);
+    setAmount('');
+    setQuery('');
+    setOpen(true);
+  };
 
   const groups = useMemo(
     () => pickerGroups({ shelf, recipes, pantry, excludeRecipeId, usedInCount, query }),
@@ -82,6 +145,33 @@ export function ComponentPicker({
         ) : null}
       </div>
 
+      {pending !== null && (
+        <div className="picker-ask" role="group" aria-label="How much">
+          <span className="picker-ask-name">
+            {pending.kind === 'ingredient' ? pending.ingredient.name : pending.recipe.name}
+          </span>
+          <label className="picker-ask-field">
+            <span className="label">How much?</span>
+            <input
+              ref={amountRef}
+              className="figure"
+              inputMode="decimal"
+              value={amount}
+              placeholder={`250 g, or Enter for 1 ${defaultUnit(pending)}`}
+              onChange={(e) => setAmount(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { e.preventDefault(); settle(); }
+                if (e.key === 'Escape') { e.preventDefault(); setPending(null); setAmount(''); inputRef.current?.focus(); }
+              }}
+            />
+          </label>
+          <button type="button" className="btn btn-primary" onClick={settle}>Add</button>
+          <button type="button" className="link link-sm" onClick={() => { setPending(null); setAmount(''); inputRef.current?.focus(); }}>
+            Cancel
+          </button>
+        </div>
+      )}
+
       {open ? (
         <div className="picker-panel" id="picker-results">
           <div className="picker-count">
@@ -105,7 +195,10 @@ export function ComponentPicker({
                         type="button"
                         className={`picker-row${r.blocked !== null ? ' is-blocked' : ''}`}
                         disabled={r.blocked !== null}
-                        onClick={() => { onPick(r.choice); setQuery(''); setOpen(false); }}
+                        onClick={() => {
+                          setPending(r.choice);
+                          setAmount('');
+                        }}
                       >
                         <span className="picker-kind">
                           {r.kind === 'dish' ? (
@@ -120,7 +213,9 @@ export function ComponentPicker({
                             {r.blocked ?? r.meta}
                           </span>
                         </span>
-                        <span className={`figure picker-rate${r.noRate ? ' is-missing' : ''}`}>{r.rateText}</span>
+                        <span className={`figure picker-rate${r.noRate ? ' is-missing' : ''}`}>
+                          {r.perUnit === null ? r.rateText : `${m.withSymbol(r.perUnit)} / ${r.unit}`}
+                        </span>
                         <span className="picker-uses">in {r.uses}</span>
                       </button>
                     </li>

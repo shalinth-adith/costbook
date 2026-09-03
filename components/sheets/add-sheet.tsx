@@ -32,7 +32,7 @@ export function AddSheet({
   pantry: Pantry;
   excludeRecipeId: string;
   usedInCount: (name: string) => number;
-  onPick: (choice: PickerChoice) => void;
+  onPick: (choice: PickerChoice, amount?: { qty: number; unit: string }) => void;
   /** Creating one here keeps the recipe open behind the drawer (A20). */
   onCreateIngredient: (i: { name: string; packQty: number; packUnit: string; packPrice: number | null }) => void;
   creating: boolean;
@@ -45,7 +45,9 @@ export function AddSheet({
         pantry={pantry}
         excludeRecipeId={excludeRecipeId}
         usedInCount={usedInCount}
-        onPick={(choice) => { onPick(choice); onClose(); }}
+        // Stays open after a pick. A recipe is a list, and the next line is
+        // one keystroke away while the drawer is up; it closes on Close.
+        onPick={(choice, amount) => { onPick(choice, amount); }}
         alwaysOpen
         onCreateIngredient={onCreateIngredient}
         creating={creating}

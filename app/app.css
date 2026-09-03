@@ -3366,3 +3366,35 @@
   .td-go { transition: none; }
 }
 .td-more { font-size: 12px; color: var(--text-tertiary); }
+
+/* ── quantity, typed ───────────────────────────────────────────────── */
+
+/* Beside the stepper, never instead of it: the stepper is right for a wet
+   finger on a tablet, and wrong for a hand on a keyboard entering a recipe. */
+.qty-edit { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.qty-field {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  border: 1px solid var(--border-control); border-radius: var(--radius-field);
+  background: var(--surface-card); padding: 0 10px; height: 40px;
+}
+.qty-field input { width: 76px; border: 0; background: none; font: inherit; font-size: 15px; text-align: end; }
+.qty-field input:focus { outline: none; }
+.qty-field:focus-within { border-color: var(--text-primary); }
+.qty-unit { font-size: 12.5px; color: var(--text-secondary); }
+
+/* The drawer asking how much. Sits above the results, takes focus, and goes
+   away on Enter — the search is refocused so the next line is one keystroke. */
+.picker-ask {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px;
+  align-items: end; margin-block: var(--sp-3);
+  background: var(--near-tint); border: 1px solid var(--near-edge);
+  border-radius: var(--radius-field); padding: 12px 14px;
+}
+.picker-ask-name { grid-column: 1 / -1; font-weight: 600; font-size: 14px; }
+.picker-ask-field { display: flex; flex-direction: column; gap: 4px; }
+.picker-ask-field input {
+  height: 40px; font: inherit; font-size: 15px;
+  border: 1px solid var(--border-control); border-radius: var(--radius-field);
+  padding-inline: 10px; background: var(--surface-card);
+}
+.picker-ask-field input:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 1px; }

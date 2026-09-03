@@ -13,8 +13,8 @@ import { ingredientCost, ratePerUnit } from '@/core/ingredient';
 import type { Pantry, Recipe } from '@/core/recipe';
 import { isComplete, recipeCost, wouldCycle } from '@/core/recipe';
 
-import { type ComponentKind, ORG } from './data';
-import { outputText, rate } from './format';
+import type { ComponentKind } from './data';
+import { outputText } from './format';
 
 export type PickerChoice =
   | { readonly kind: 'ingredient'; readonly ingredient: Ingredient }
@@ -25,6 +25,17 @@ export interface PickerRow {
   readonly kind: ComponentKind;
   readonly name: string;
   readonly meta: string;
+  /**
+   * The rate per purchase unit, as a figure, for the screen to format in the
+   * currency in force. This used to be a preformatted string built with the
+   * demo fixture's symbol — `ORG.currencySymbol` from lib/data.ts — so the
+   * drawer printed ₹ on a dirham account. The same bug the progress log
+   * records fixing on the cost sheet, still live here. A model does not know
+   * the currency; the screen does.
+   */
+  readonly perUnit: number | null;
+  readonly unit: string;
+  /** Words for when there is no figure: "no rate on file", "missing inside it". */
   readonly rateText: string;
   readonly uses: string;
   readonly noRate: boolean;
@@ -62,8 +73,9 @@ function ingredientRow(i: Ingredient, usedInCount: (n: string) => number): Picke
       `bought in · ${i.purchaseUnit} pack` +
       (i.yieldIsAssumed ? ' · no yield on file' : ` · yield ${i.yieldPercent}%`),
     // A rate we do not have reads as absent, never as free.
-    rateText:
-      perUnit === null ? 'no rate on file' : `${ORG.currencySymbol} ${rate(perUnit)} / ${i.purchaseUnit}`,
+    perUnit,
+    unit: i.purchaseUnit,
+    rateText: perUnit === null ? 'no rate on file' : '',
     uses: `${usedInCount(i.name)} recipes`,
     noRate: perUnit === null,
     blocked: null,
@@ -87,10 +99,10 @@ function recipeRow(
     meta:
       `you make this · one batch yields ${outputText(r.outputQty, r.outputUnit)}` +
       (r.portions === null ? '' : ` · ${String(r.portions)} portions`),
-    rateText:
-      per === null
-        ? 'a rate is missing inside it'
-        : `${ORG.currencySymbol} ${rate(per)} / ${r.outputUnit === 'pcs' ? 'pc' : 'base unit'}`,
+    // The figure, for the screen to format; the words only when there is none.
+    perUnit: per,
+    unit: r.outputUnit === 'pcs' ? 'pc' : 'base unit',
+    rateText: per === null ? 'a rate is missing inside it' : '',
     uses: `${usedInCount(r.name)} recipes`,
     noRate: per === null,
     blocked:
