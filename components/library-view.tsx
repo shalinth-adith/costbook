@@ -13,6 +13,7 @@ import {
   applyLibraryFilter,
   describeMatch,
   groupByCategory,
+  worstFirst,
   search,
 } from '@/lib/library';
 import { DASH, percent, when } from '@/lib/format';
@@ -101,7 +102,20 @@ export function LibraryView({
     () => search(applyLibraryFilter(source, filter), query, pantry),
     [source, filter, query, pantry],
   );
-  const groups = useMemo(() => groupByCategory(outcome.rows), [outcome.rows]);
+  /*
+   * How the list is ordered. Category is the default because the question this
+   * screen answers most often is "where is that dish", and a menu is organised
+   * the way the kitchen thinks of it.
+   *
+   * Worst-first is the other half of what the dashboard's table used to do,
+   * and the only part of it worth keeping — the rest was five columns this
+   * screen already had.
+   */
+  const [order, setOrder] = useState<'category' | 'worst'>('category');
+  const groups = useMemo(
+    () => (order === 'worst' ? worstFirst(outcome.rows) : groupByCategory(outcome.rows)),
+    [outcome.rows, order],
+  );
 
   const act = (run: () => Promise<{ message: string; undoable: boolean }>) => {
     start(async () => setToast(await run()));
@@ -221,6 +235,25 @@ export function LibraryView({
               {f.label}
             </button>
           ))}
+        </div>
+
+        <div className="segmented segmented-sm" role="group" aria-label="Order">
+          <button
+            type="button"
+            className={`segmented-item${order === 'category' ? ' is-active' : ''}`}
+            aria-pressed={order === 'category'}
+            onClick={() => setOrder('category')}
+          >
+            By section
+          </button>
+          <button
+            type="button"
+            className={`segmented-item${order === 'worst' ? ' is-active' : ''}`}
+            aria-pressed={order === 'worst'}
+            onClick={() => setOrder('worst')}
+          >
+            Worst food cost
+          </button>
         </div>
 
         <span className="toolbar-note">

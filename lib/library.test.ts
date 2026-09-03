@@ -8,8 +8,7 @@ import {
   describeMatch,
   groupByCategory,
   library,
-  search,
-} from './library';
+  search, worstFirst } from './library';
 
 const model = { ...DEFAULT_MODEL, foodCostTarget: ORG.foodCostTarget };
 const data = library({ ids: recipes.map((r) => r.id), pantry, meta, model });
@@ -123,5 +122,54 @@ describe('grouping', () => {
   it('counts only live rows in the tab totals', () => {
     expect(data.dishCount).toBe(data.dishes.filter((r) => !r.archived).length);
     expect(data.batchCount).toBe(data.batches.filter((r) => !r.archived).length);
+  });
+});
+
+describe("worstFirst", () => {
+  const row = (name: string, fc: number | null): LibraryRow =>
+    ({
+      id: name,
+      kind: "dish",
+      name,
+      category: "Tiffin",
+      note: "",
+      componentCount: 1,
+      costPerPortion: 10,
+      costPerUnit: null,
+      outputUnit: "pc",
+      sellingPrice: 40,
+      foodCostPercent: fc,
+      status: "on",
+      complete: true,
+      archived: false,
+      usedIn: 0,
+      updatedAt: null,
+      matchedOn: null,
+    }) as LibraryRow;
+
+  it("puts the worst food cost at the top", () => {
+    const [group] = worstFirst([row("Idly", 18), row("Biryani", 59), row("Dosa", 33)]);
+    expect(group?.rows.map((r) => r.name)).toEqual(["Biryani", "Dosa", "Idly"]);
+  });
+
+  it("puts a dish nobody can rank at the bottom, not the top", () => {
+    /*
+     * A null food cost is not a food cost of zero. Sorting it first would put
+     * the dishes nobody has priced at the head of a list headed "worst food
+     * cost", which is a plausible wrong answer — the exact failure this
+     * codebase exists to avoid.
+     */
+    const [group] = worstFirst([row("Unpriced", null), row("Biryani", 59)]);
+    expect(group?.rows.map((r) => r.name)).toEqual(["Biryani", "Unpriced"]);
+  });
+
+  it("breaks a tie by name, so the order does not wander", () => {
+    const [group] = worstFirst([row("Vada", 30), row("Idly", 30)]);
+    expect(group?.rows.map((r) => r.name)).toEqual(["Idly", "Vada"]);
+  });
+
+  it("returns nothing at all for an empty list", () => {
+    // Not one empty group, which would draw a heading over nothing.
+    expect(worstFirst([])).toEqual([]);
   });
 });

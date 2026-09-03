@@ -240,6 +240,36 @@ export function groupByCategory(rows: readonly LibraryRow[]): readonly LibraryGr
     .sort((a, b) => a.category.localeCompare(b.category));
 }
 
+/**
+ * Every row in one group, worst food cost first.
+ *
+ * The other half of what the dashboard's table used to do. Grouping by
+ * category answers "where is that dish"; this answers "which of these is
+ * costing me", and until now only the dashboard could — with a table that was
+ * otherwise a duplicate of this screen.
+ *
+ * A dish with no food cost sorts last rather than first or nowhere. It is not
+ * the best-performing dish in the book; it is a dish nobody can rank yet, and
+ * putting it at the top would be exactly the plausible wrong answer this
+ * codebase is built to avoid.
+ */
+export function worstFirst(rows: readonly LibraryRow[]): readonly LibraryGroup[] {
+  if (rows.length === 0) return [];
+  return [
+    {
+      category: 'Worst food cost first',
+      rows: [...rows].sort((a, b) => {
+        const x = a.foodCostPercent;
+        const y = b.foodCostPercent;
+        if (x === null && y === null) return a.name.localeCompare(b.name);
+        if (x === null) return 1;
+        if (y === null) return -1;
+        return y - x || a.name.localeCompare(b.name);
+      }),
+    },
+  ];
+}
+
 /** The sentence above the results, saying why each row is there. */
 export function describeMatch(outcome: SearchOutcome, kindLabel: string): string {
   const total = outcome.rows.length;
