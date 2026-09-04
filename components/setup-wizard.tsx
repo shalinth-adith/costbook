@@ -21,7 +21,15 @@ import { Wordmark } from './wordmark';
  * dish has no basis for answering. Answers are held here and written once
  * at the end, so backing up costs nothing.
  */
-export function SetupWizard({ initialCurrency }: { initialCurrency: string }) {
+export function SetupWizard({ initialCurrency, preview = false }: {
+  initialCurrency: string;
+  /**
+   * Show the four screens without saving them. The real wizard is behind an
+   * account once it is answered, so this is how it is looked at afterwards:
+   * the last button starts over instead of writing anything.
+   */
+  preview?: boolean;
+}) {
   const [pending, start] = useTransition();
 
   const [step, setStep] = useState(1);
@@ -49,6 +57,11 @@ export function SetupWizard({ initialCurrency }: { initialCurrency: string }) {
     : teamSize !== null;
 
   const commit = () => {
+    if (preview) {
+      setStep(1); setName(''); setCountry(null); setSearch(''); setCode(initialCurrency);
+      setCodeChosen(false); setTeamSize(null);
+      return;
+    }
     start(async () => {
       // Saving is leaving: the action sends the account to its landing page.
       await finishSetup({ name, country, currency: code, teamSize });
@@ -60,6 +73,7 @@ export function SetupWizard({ initialCurrency }: { initialCurrency: string }) {
       <header className="wiz-top">
         <Wordmark />
         <span className="wiz-kicker">YOUR RESTAURANT</span>
+        {preview && <span className="wiz-preview">Preview · nothing here is saved</span>}
         <span className="wiz-count figure">{step} / 4</span>
       </header>
 
@@ -186,26 +200,24 @@ export function SetupWizard({ initialCurrency }: { initialCurrency: string }) {
         )}
       </main>
 
-      {(
-        <footer className="wiz-foot">
-          {step > 1 ? (
-            <button type="button" className="btn wiz-back" onClick={() => setStep((s) => s - 1)}>
-              Back
-            </button>
-          ) : <span />}
-          <span className="wiz-foot-note">
-            {step === 4 ? 'Nothing is locked. All four are in Settings.' : 'Under a minute.'}
-          </span>
-          <button
-            type="button"
-            className="btn btn-primary btn-lg wiz-next"
-            disabled={!answered || pending}
-            onClick={() => (step === 4 ? commit() : setStep((s) => s + 1))}
-          >
-            {pending ? 'Saving…' : step === 4 ? 'Open Costbook' : 'Next'}
+      <footer className="wiz-foot">
+        {step > 1 ? (
+          <button type="button" className="btn wiz-back" onClick={() => setStep((s) => s - 1)}>
+            Back
           </button>
-        </footer>
-      )}
+        ) : <span />}
+        <span className="wiz-foot-note">
+          {step === 4 ? 'Nothing is locked. All four are in Settings.' : 'Under a minute.'}
+        </span>
+        <button
+          type="button"
+          className="btn btn-primary btn-lg wiz-next"
+          disabled={!answered || pending}
+          onClick={() => (step === 4 ? commit() : setStep((s) => s + 1))}
+        >
+          {pending ? 'Saving…' : step === 4 ? (preview ? 'Start over' : 'Open Costbook') : 'Next'}
+        </button>
+      </footer>
     </div>
   );
 }
