@@ -10,7 +10,7 @@
   /* Surfaces */
   /* A warm off-white ground, not a cool grey: the one value that stops the
      product reading as a spreadsheet. */
-  --surface-page: #F6F4EF;
+  --surface-page: #FFFFFF;
   /* The one accent. Primary actions, the live pill, the ring — and nothing
      else, so it always means "act here". */
   --accent: #FF6A3D;
@@ -20,8 +20,8 @@
   --info-tint: #E9F1FF;
   --info-edge: #C9DBF7;
   --surface-card: #FFFFFF;
-  --surface-sunken: #F5F6F9;
-  --surface-header: #F0F2F6;
+  --surface-sunken: #F4F3EF;
+  --surface-header: #FFFFFF;
   --surface-inverse: #171B24;
 
   /* Ink */

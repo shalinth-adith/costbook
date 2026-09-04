@@ -1511,7 +1511,7 @@
   display: grid; grid-template-columns: repeat(4, 1fr);
   gap: var(--sp-3); list-style: none; margin: 0;
   padding: var(--sp-4) var(--sp-6) 0;
-  max-inline-size: 1100px; margin-inline: auto; inline-size: 100%;
+  max-inline-size: none; margin-inline: auto; inline-size: 100%;
 }
 .wiz-tick { display: grid; gap: 6px; }
 .wiz-tick-rule { block-size: 4px; border-radius: 2px; background: var(--border-hairline); }
@@ -1521,7 +1521,7 @@
 .wiz-tick[data-state='current'] .wiz-tick-label { color: var(--text-primary); font-weight: 600; }
 
 .wiz-body { overflow-y: auto; padding: var(--sp-8) var(--sp-6); }
-.wiz-step { max-inline-size: 1100px; margin-inline: auto; }
+.wiz-step { max-inline-size: none; margin-inline: auto; }
 .wiz-eyebrow {
   font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em;
   color: var(--text-tertiary); margin: 0 0 var(--sp-3);
@@ -1709,7 +1709,7 @@
 }
 
 /* ── A27 · Settings ──────────────────────────────────────────────────────── */
-.set { max-inline-size: 1100px; margin-inline: auto; padding: var(--sp-6); }
+.set { max-inline-size: none; margin-inline: auto; padding: var(--sp-6); }
 .set-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-6); }
 .set-h { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 var(--sp-2); }
 .set-lede { font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); margin: 0; max-inline-size: 68ch; }
@@ -2298,7 +2298,7 @@
 
 /* The confirm and result steps get the page's measure rather than a card's. */
 .ic, .ac { margin-inline: auto; }
-.wizard-body > .ic, .wizard-body > .ac { max-inline-size: 1100px; }
+.wizard-body > .ic, .wizard-body > .ac { max-inline-size: none; }
 /* The Updated column narrows out with its own content (A19's rule). */
 .lib-table[data-updated='false'] .lib-head,
 .lib-table[data-updated='false'] .lib-row {
@@ -2919,7 +2919,7 @@
 /* The page is a composition, not a table stretched to the window.
    At 2000px the content ran edge to edge and read as thin; a measure keeps
    the figures near each other where they can be compared. */
-.dash-hero, .dash-block, .stats.dash-top { max-width: 1240px; }
+.dash-hero, .dash-block, .stats.dash-top { max-width: none; }
 .stats.dash-top { margin-inline: var(--sp-6); }
 
 /* Weight where it belongs: the sentence, then the four figures, then the rest.
@@ -2942,7 +2942,7 @@
 
 .dh {
   padding: var(--sp-8) var(--sp-6) var(--sp-6);
-  max-width: 1240px;
+  max-width: none;
   display: flex; flex-direction: column; gap: var(--sp-3);
 }
 .dh-who {
@@ -2987,7 +2987,7 @@
   display: grid; gap: var(--sp-3);
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   margin-inline: var(--sp-6); margin-block-end: var(--sp-6);
-  max-width: 1240px;
+  max-width: none;
 }
 .dc-card {
   background: var(--surface-card);
@@ -3125,7 +3125,7 @@
 
 .live {
   display: flex; align-items: center; gap: 10px;
-  padding: var(--sp-4) var(--sp-6) 0; max-width: 1240px;
+  padding: var(--sp-4) var(--sp-6) 0; max-width: none;
   font-size: 12.5px; color: var(--text-secondary);
 }
 .live-word { font-weight: 600; color: var(--on-ink-strong); letter-spacing: 0.02em; }
@@ -3189,7 +3189,7 @@
 
 .sig {
   list-style: none; margin: 0 0 var(--sp-5); padding: 0 var(--sp-6);
-  display: flex; flex-wrap: wrap; gap: 8px; max-width: 1240px;
+  display: flex; flex-wrap: wrap; gap: 8px; max-width: none;
 }
 .sig-item {
   display: inline-flex; align-items: center; gap: 8px;
@@ -3285,7 +3285,7 @@
    what to do about it, each line a sentence with its fix, ranked by what it
    is costing right now. */
 
-.td { padding: 0 var(--sp-6) var(--sp-5); max-width: 1240px; }
+.td { padding: 0 var(--sp-6) var(--sp-5); max-width: none; }
 .td-head { display: flex; align-items: baseline; gap: 10px; margin-block-end: var(--sp-3); }
 .td-count {
   font-size: 12px; font-weight: 600; min-width: 22px; text-align: center;
@@ -3323,7 +3323,7 @@
 
 .bw {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: var(--sp-3); margin: 0 var(--sp-6) var(--sp-5); max-width: 1240px;
+  gap: var(--sp-3); margin: 0 var(--sp-6) var(--sp-5); max-width: none;
 }
 .bw-col {
   background: var(--surface-card); border: 1px solid var(--border-hairline);
@@ -3563,7 +3563,7 @@
    a thin strip. A measure, and columns that carry information. */
 
 .costing {
-  max-width: 1480px; margin-inline: auto;
+  max-width: none; margin-inline: auto;
   grid-template-columns: minmax(0, 1fr) 420px;
   gap: var(--sp-6);
   /* Room for the fixed footer, so the last card is never under it. */
@@ -3619,7 +3619,7 @@
   box-shadow: 0 -8px 24px rgb(23 27 36 / 0.06);
 }
 .sheet-footer-inner {
-  max-width: 1480px; margin-inline: auto; padding: 12px var(--sp-6);
+  max-width: none; margin-inline: auto; padding: 12px var(--sp-6);
 }
 .sheet-footer .rail-actions-row { flex-direction: row; align-items: center; gap: var(--sp-3); }
 .sheet-footer .rail-actions-row .btn { flex: 0 0 auto; min-width: 160px; }
@@ -3631,7 +3631,7 @@
 
 /* What the operator's own sheet carried: a quiet strip, not a dashed island. */
 .from-sheet {
-  max-width: 1480px; margin: var(--sp-3) auto 0; padding: 8px 14px;
+  max-width: none; margin: var(--sp-3) auto 0; padding: 8px 14px;
   border: 1px solid var(--border-hairline); border-style: solid;
   background: var(--surface-card); font-size: 12.5px;
 }
@@ -3692,7 +3692,7 @@
 .price-card .price-facts { margin: 14px var(--sp-4) 0; }
 
 /* ── New dish: two columns on a wide screen ───────────────────────── */
-.nd { max-width: 1480px; margin-inline: auto; }
+.nd { max-width: none; margin-inline: auto; }
 .nd-cols { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: var(--sp-6); align-items: start; }
 .nd-main { min-width: 0; }
 .nd-side { position: sticky; top: var(--sp-4); min-width: 0; }
@@ -3708,7 +3708,7 @@
 }
 @media (prefers-reduced-motion: reduce) { .nd-side .nd-card { animation: none; } }
 /* The page head shares the body's measure on this page only. */
-.page-head:has(+ .nd) { max-width: 1480px; margin-inline: auto; box-sizing: border-box; }
+.page-head:has(+ .nd) { max-width: none; margin-inline: auto; box-sizing: border-box; }
 
 /* ── How to prepare ───────────────────────────────────────────────── */
 .nd-method { margin-block-start: var(--sp-4); width: 100%; }
@@ -3792,7 +3792,7 @@
 /* It was an 1100px column with rows capped at 720px: a tablet on a monitor.
    Now the same 1480px measure as the sheet, in three columns — the sections
    with what they say, the fields, and what the fields do, live. */
-.set { max-inline-size: 1480px; }
+.set { max-inline-size: none; }
 .set-head { position: relative; }
 .set-cols { display: grid; grid-template-columns: 224px minmax(0, 1fr) 400px; gap: var(--sp-8); align-items: start; margin-block-start: var(--sp-6); }
 .set-row, .set-charges { max-inline-size: none; }
@@ -3960,3 +3960,51 @@
 .dh-ring-wrap { display: flex; align-items: center; gap: 28px; }
 .dh-ring-figure { position: static; white-space: nowrap; order: -1; }
 .ctable-rate-unit { color: var(--text-quiet); font-size: 10.5px; margin-inline-start: 2px; }
+
+/* ══ Full width, on white ═══════════════════════════════════════════════ */
+/* Every page fills the screen it is on; the ground is white; panels sit a
+   warm shade below it. The owner's monitor is wide and a strip down the
+   middle read as empty. */
+.costing, .nd, .set, .dh, .dash-hero, .dash-block, .stats.dash-top, .td { padding-inline: 40px; }
+.page-head { padding-inline: 40px; }
+.set { padding-inline: 40px; }
+.costing { grid-template-columns: minmax(0, 1fr) 460px; }
+.set-cols { grid-template-columns: 240px minmax(0, 1fr) 440px; }
+.nd-cols { grid-template-columns: minmax(0, 1fr) 480px; }
+
+/* Panels on a white ground: a warm surface, a hairline, and room. */
+.card, .dc-card, .lib-group, .set-card, .nd-card, .set-more, .price-card, .imp-panel { background: var(--surface-sunken); border: 1px solid var(--border-hairline); }
+.ctable-head { background: #FFFFFF; }
+.lib-head { background: #FFFFFF; }
+.set-method, .set-charge, .set-line { background: transparent; }
+.lib-row, .ing-row { background: #FFFFFF; }
+
+/* Settings rows the proper way: the label in its own column, the control beside it. */
+.set-row { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 24px; align-items: start; padding-block: var(--sp-5); border-block-end: 1px solid var(--border-row); }
+.set-row-head { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.set-row-label { font-size: 15px; font-weight: 600; }
+.set-input { block-size: 44px; font-size: 15px; max-inline-size: 420px; }
+.set-seg-item { block-size: 40px; font-size: 14px; padding-inline: 16px; }
+.set-charge { padding: 10px 12px; border-radius: 12px; background: #FFFFFF; border: 1px solid var(--border-hairline); }
+.set-charges { gap: 10px; }
+.set-table { width: 100%; background: #FFFFFF; border: 1px solid var(--border-hairline); border-radius: 12px; overflow: hidden; }
+.sheet .field-input, .sheet .set-input, .sheet input[type="text"], .sheet input[inputmode] { block-size: 44px; font-size: 15px; }
+.sheet .label { margin-block-end: 6px; display: block; }
+
+/* Ingredients and recipes read as one white document. */
+.lib-row { padding-block: 14px; }
+.lib-name-text .lib-link { font-size: 15px; font-weight: 600; }
+.ing-row { padding-block: 14px; }
+
+/* The dish bar: five tiles across the width, the figures before the lines. */
+.dish-bar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; padding: 6px 40px 18px; animation: dc-arrive 420ms var(--ease-enter) both; }
+.dish-tile { display: flex; flex-direction: column; gap: 6px; padding: 18px 20px; background: var(--surface-sunken); border: 1px solid var(--border-hairline); border-radius: 16px; min-width: 0; }
+.dish-tile-fig { font-size: 34px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dish-tile-unit { font-family: var(--font-sans); font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--text-secondary); }
+.dish-tile-sub { font-size: 12.5px; color: var(--text-tertiary); }
+.dish-tile.is-on { background: var(--on-tint); border-color: var(--on-edge); }
+.dish-tile.is-near { background: var(--near-tint); border-color: var(--near-edge); }
+.dish-tile.is-over { background: var(--over-tint); border-color: var(--over-edge); }
+.page-sub { margin-block-start: 2px; }
+@media (max-width: 1100px) { .dish-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .dish-bar { animation: none; } }

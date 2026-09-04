@@ -413,15 +413,10 @@ export function RecipeSheet({
             )}
           </div>
 
-          {/* One line, not a card. Everything about the dish that is not a
-              component line, said once. */}
           <p className="page-sub">
-            {fields.category !== 'From your sheet' && <>{fields.category} · </>}
-            batch of{' '}
-            <span className="figure ink">{recipe.portions ?? '—'}</span> plates
+            {fields.category !== 'From your sheet' && <>{fields.category}</>}
             {fields.station === null || fields.station === '' ? '' : ` · ${fields.station}`}
-            {dish.portionSize === null ? '' : ` · ${dish.portionSize}`} ·{' '}
-            <span className="figure ink">{cost.lines.length}</span> component lines
+            {dish.portionSize === null ? '' : ` · ${dish.portionSize}`}
           </p>
         </div>
 
@@ -452,6 +447,39 @@ export function RecipeSheet({
               Prep card
             </button>
           </div>
+        </div>
+      </div>
+
+      {/*
+        The figures the sheet is about, across the whole width, before the
+        lines. The band above the table used to hold a title and buttons and
+        nothing else; on a wide screen it read as an empty page.
+      */}
+      <div className="dish-bar">
+        <div className="dish-tile">
+          <span className="label">A plate costs</span>
+          <span className="dish-tile-fig display">{build.complete && build.total !== null ? m.withSymbol(build.total) : '—'}</span>
+          <span className="dish-tile-sub">{build.complete ? 'every rate on file' : 'a floor: a rate is missing'}</span>
+        </div>
+        <div className="dish-tile">
+          <span className="label">Sells at</span>
+          <span className="dish-tile-fig display">{dish.sellingPrice === null ? '—' : m.withSymbol(dish.sellingPrice)}</span>
+          <span className="dish-tile-sub">{dish.sellingPrice === null ? 'no price yet' : dish.onMenu ? 'on the menu' : 'not on the menu'}</span>
+        </div>
+        <div className={`dish-tile${fc === null ? '' : fc > model.foodCostTarget + 2 ? ' is-over' : fc >= model.foodCostTarget - 2 ? ' is-near' : ' is-on'}`}>
+          <span className="label">Keeps, of every {m.symbol} 100</span>
+          <span className="dish-tile-fig display">{fc === null ? '—' : `${m.symbol} ${String(Math.round(100 - fc))}`}</span>
+          <span className="dish-tile-sub">you planned {m.symbol} {String(Math.round(100 - model.foodCostTarget))}</span>
+        </div>
+        <div className="dish-tile">
+          <span className="label">One batch</span>
+          <span className="dish-tile-fig display">{recipe.portions ?? '—'}<span className="dish-tile-unit"> plates</span></span>
+          <span className="dish-tile-sub">{cost.lines.length} lines</span>
+        </div>
+        <div className="dish-tile">
+          <span className="label">Whole batch</span>
+          <span className="dish-tile-fig display">{m.withSymbol(build.linesTotal)}</span>
+          <span className="dish-tile-sub">ingredients</span>
         </div>
       </div>
 
