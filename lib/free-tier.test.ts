@@ -18,16 +18,16 @@ describe("the free tier's size", () => {
     // The code said 40. PRD 9 and FLOWS 9 have said 10 throughout. The free
     // tier is for finding out whether this works on your own menu, and a café
     // that has costed forty dishes is not evaluating any more.
-    expect(FREE_LIMITS.recipes).toBe(10);
+    expect(FREE_LIMITS.recipes).toBe(6);
   });
 });
 
 describe("atFreeLimit", () => {
-  it("lets the tenth recipe through and stops the eleventh", () => {
+  it("lets the sixth dish through and stops the seventh", () => {
     // Counted as "recipes already on the book", so the boundary case is the
-    // one that decides whether a café gets 10 or 9.
-    expect(atFreeLimit(9, "free")).toBe(false);
-    expect(atFreeLimit(10, "free")).toBe(true);
+    // one that decides whether a café gets 6 or 5.
+    expect(atFreeLimit(5, "free")).toBe(false);
+    expect(atFreeLimit(6, "free")).toBe(true);
   });
 
   it("stops an account that is somehow over the limit", () => {
@@ -37,7 +37,7 @@ describe("atFreeLimit", () => {
   });
 
   it("never stops a paid account", () => {
-    for (const count of [0, 10, 11, 5000]) {
+    for (const count of [0, 6, 7, 5000]) {
       expect(atFreeLimit(count, "paid"), String(count)).toBe(false);
     }
   });

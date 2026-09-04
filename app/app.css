@@ -3945,3 +3945,32 @@
 .wiz-save-note { font-size: 14px; color: var(--text-secondary); margin: 20px 0 0; }
 .wiz-back { font: inherit; }
 @media (max-width: 900px) { .wiz-ticks { display: none; } }
+
+/* ── The plans page ─────────────────────────────────────────────────────────
+   Setup's shape: the choice on the left, what it means on the right. */
+.plans-body { display: grid; grid-template-columns: minmax(0, 1fr) 460px; gap: 56px; align-items: start; }
+.plans-form { min-inline-size: 0; }
+.plans-done { margin-block-end: 24px; }
+.plans-bar { block-size: 8px; border-radius: 4px; background: var(--surface-sunken); overflow: hidden; max-inline-size: 520px; }
+.plans-bar > span { display: block; block-size: 100%; background: var(--accent); border-radius: 4px; transition: inline-size var(--dur-enter) var(--ease-enter); }
+.plans-terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.plans-term {
+  display: grid; gap: 4px; padding: 16px; text-align: start; cursor: pointer; font: inherit;
+  color: var(--text-primary); background: var(--surface-page); border: 1px solid var(--border-hairline); border-radius: 14px;
+  transition: border-color var(--dur-micro) var(--ease-enter), background var(--dur-micro) var(--ease-enter);
+}
+.plans-term:hover { border-color: var(--border-control); background: var(--surface-sunken); }
+.plans-term.is-on { border-color: var(--accent); background: var(--accent-tint); }
+.plans-term:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.plans-term-label { font-size: 13.5px; font-weight: 600; }
+.plans-term-amount { font-size: 30px; line-height: 1.05; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.plans-term-said { font-size: 12.5px; color: var(--text-secondary); }
+.plans-term-tag { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); margin-block-start: 4px; }
+.plans-opens { margin: 0; padding-inline-start: 20px; display: grid; gap: 8px; font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
+.plans-opens b { color: var(--text-primary); font-weight: 600; }
+.plans-live { position: sticky; top: 24px; }
+.plans-buy { inline-size: 100%; }
+.plans-sandbox { font-size: 12.5px; line-height: 1.5; color: var(--accent); background: var(--accent-tint); padding: 10px 12px; border-radius: 10px; margin: 0; }
+.plans-owner { font-size: 13px; color: var(--text-secondary); margin: 0; }
+.plans-fault { font-size: 13px; color: var(--accent); margin: 0; }
+@media (max-width: 1100px) { .plans-body { grid-template-columns: 1fr; gap: 32px; } .plans-live { position: static; } }

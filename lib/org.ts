@@ -173,12 +173,13 @@ export type Plan = 'free' | 'paid';
  */
 export const FREE_LIMITS = {
   /*
-   * Ten, which is what PRD 9 and FLOWS 9 both say and what the code said 40
-   * of. The free tier is for finding out whether the thing works on your own
-   * menu, and ten dishes answers that — a café that has costed forty is not
-   * evaluating any more, it is running on it.
+   * Six. It was ten (PRD 9, FLOWS 9), and the code once said forty. The free
+   * trial is for finding out whether the arithmetic matches your own sheet,
+   * and six dishes costed properly answer that; a café that has costed ten is
+   * not evaluating any more, it is running on it. After six the book is
+   * bought for a stretch of months (lib/plan.ts).
    */
-  recipes: 10,
+  recipes: 6,
   ingredients: 250,
   importsPerMonth: 1,
   rateHistory: 3,

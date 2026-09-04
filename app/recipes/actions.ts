@@ -12,6 +12,8 @@ import { draftFrom } from '@/lib/draft';
 export interface Ack {
   readonly message: string;
   readonly undoable: boolean;
+  /** True when what refused it was the free trial's cap, so the screen can offer the plans. */
+  readonly limit?: boolean;
 }
 
 function refresh(): void {
@@ -40,7 +42,7 @@ export async function duplicateRecipe(id: string): Promise<Ack> {
   // button away from meaningless — a kitchen with six biryanis builds five of
   // them through this path, which is the whole reason it exists (A16).
   const room = await roomForRecipe();
-  if (!room.ok) return { message: room.message, undoable: false };
+  if (!room.ok) return { message: room.message, undoable: false, limit: true };
 
   const copyId = `${id}-copy-${Date.now().toString(36)}`;
   const name = `${recipe.name} (copy)`;
@@ -101,7 +103,7 @@ export async function createDish(input: {
 
   // Server-side, because a cap the browser enforces is not a cap (FLOWS 9).
   const room = await roomForRecipe();
-  if (!room.ok) return { message: room.message, undoable: false, id: null };
+  if (!room.ok) return { message: room.message, undoable: false, id: null, limit: true };
 
   const id = `dish-${Date.now().toString(36)}`;
 
@@ -161,7 +163,7 @@ export async function createDishFromPaste(input: {
   if (name === '') return { message: 'A dish needs a name.', undoable: false, id: null };
 
   const room = await roomForRecipe();
-  if (!room.ok) return { message: room.message, undoable: false, id: null };
+  if (!room.ok) return { message: room.message, undoable: false, id: null, limit: true };
 
   const b = await book();
   const id = `dish-${Date.now().toString(36)}`;

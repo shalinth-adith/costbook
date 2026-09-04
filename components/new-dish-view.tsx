@@ -118,7 +118,7 @@ export function NewDishView({
     text: string;
     method: string;
     batchKg: number | null;
-  }) => Promise<{ readonly message: string; readonly id: string | null }>;
+  }) => Promise<{ readonly message: string; readonly id: string | null; readonly limit?: boolean }>;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -133,6 +133,7 @@ export function NewDishView({
   const [method, setMethod] = useState('');
   const [fixes, setFixes] = useState<Readonly<Record<number, Fix>>>({});
   const [fault, setFault] = useState<string | null>(null);
+  const [limited, setLimited] = useState(false);
   const [showExample, setShowExample] = useState(false);
 
   // Read the raw paste once to know which rows are flagged...
@@ -161,6 +162,7 @@ export function NewDishView({
       const out = await onCreate({ name: name.trim(), category, portions, text: finalText, method, batchKg });
       if (out.id === null) {
         setFault(out.message);
+        setLimited(out.limit === true);
         return;
       }
       router.push(`/recipes/${out.id}`);
@@ -431,6 +433,7 @@ export function NewDishView({
           {fault !== null && (
             <div className="card card-note nd-fault">
               <span>{fault}</span>
+              {limited && <Link href="/plans" className="btn btn-primary">See the plans</Link>}
             </div>
           )}
 

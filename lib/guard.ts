@@ -91,9 +91,9 @@ export async function roomForRecipe(): Promise<
   return {
     ok: false,
     message:
-      `The free tier holds ${FREE_LIMITS.recipes} recipes and you have them all. ` +
+      `The free trial is ${FREE_LIMITS.recipes} dishes and you have costed them all. ` +
       `Everything you have stays costed and printable — what stops is adding ` +
-      `another. The paid tier lifts it.`,
+      `another. A plan lifts it.`,
   };
 }
 

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { type Charge, applyCharges, effectiveRate } from "@/core/charges";
@@ -34,6 +36,7 @@ import {
   type Role,
   taxLabel,
 } from "@/lib/org";
+import { type Subscription, termOf } from "@/lib/plan";
 import type { Impact } from "@/lib/impact";
 import { hintFor, suggestedPlatforms } from "@/lib/world";
 
@@ -94,6 +97,7 @@ export interface SettingsData {
   readonly model: CostingModel;
   readonly members: readonly Member[];
   readonly plan: Plan;
+  readonly subscription: Subscription;
   /** The caller's own role, from `book()`. The header used to print "owner". */
   readonly role: Role | null;
   readonly recipeCount: number;
@@ -1050,6 +1054,7 @@ export function SettingsView({
         {tab === "Billing" && (
           <BillingTab
             plan={data.plan}
+            subscription={data.subscription}
             recipeCount={data.recipeCount}
             ingredientCount={data.ingredientCount}
             pending={pending}
@@ -1207,12 +1212,14 @@ function TeamTab({ members }: { members: readonly Member[] }) {
 
 function BillingTab({
   plan,
+  subscription,
   recipeCount,
   ingredientCount,
   pending,
   start,
 }: {
   plan: Plan;
+  subscription: Subscription;
   recipeCount: number;
   ingredientCount: number;
   pending: boolean;
@@ -1226,7 +1233,7 @@ function BillingTab({
     <>
       {atLimit && (
         <div className="set-limit">
-          <h3>You are at the free limit — {FREE_LIMITS.recipes} recipes.</h3>
+          <h3>Your {FREE_LIMITS.recipes} free dishes are costed.</h3>
           <p>
             {/*
              * "one more recipe" rather than an ordinal built from the
@@ -1251,13 +1258,7 @@ function BillingTab({
             * TRD build step 25), so what is offered is the price and a person
             * to arrange it with, which is true today.
             */}
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => setComparing(true)}
-          >
-            See what keeping it current costs
-          </button>
+          <Link href="/plans" className="btn btn-primary">See the plans</Link>
         </div>
       )}
 
@@ -1266,7 +1267,7 @@ function BillingTab({
         help={
           plan === "free"
             ? "Cost your menu, keep it, print it. No card on file."
-            : "Import, full rate history, and the cap lifted."
+            : `${termOf(subscription.term)?.label ?? "Paid"}, until ${subscription.periodEnd === null ? "further notice" : new Date(subscription.periodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}. Nothing renews by itself.`
         }
         scope={plan === "free" ? "FREE" : "PAID"}
       >
@@ -1297,14 +1298,8 @@ function BillingTab({
             change rather than the last three.
           </p>
           <p className="set-note">
-            {/*
-              * Said plainly rather than behind a button that does nothing.
-              * There is no payment path yet — Razorpay is TRD build step 25 —
-              * and a "Subscribe" button that silently flipped a flag is what
-              * used to be here.
-              */}
-            There is no card form yet. Write to us and we&rsquo;ll set it up
-            with you; billed in rupees whatever your menu is priced in.
+            Bought for a month, three, six or a year, once, up front; billed in
+            rupees whatever your menu is priced in. <Link className="link" href="/plans">See the plans.</Link>
           </p>
         </div>
       )}

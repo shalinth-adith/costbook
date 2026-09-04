@@ -13,6 +13,7 @@
  * so there is no useful smaller unit to fetch.
  */
 
+import { FREE_SUBSCRIPTION, type Subscription, type Term, endOf, termOf, tierOf } from "./plan";
 import { cache } from "react";
 
 import type { Ingredient } from "@/core/ingredient";
@@ -95,12 +96,24 @@ export interface Book {
   readonly ingredients: readonly Ingredient[];
   readonly meta: Readonly<Record<string, DishMeta>>;
   readonly members: readonly Member[];
+  /** The tier in force now, derived from `subscription` (lib/plan.ts). */
   readonly plan: Plan;
+  /** The subscriptions row as it stands: term, dates, what the provider called it. */
+  readonly subscription: Subscription;
   readonly history: Readonly<Record<string, readonly RateChange[]>>;
   /** What the kitchen has said about a dish (A40). Newest first. */
   readonly flags: readonly Flag[];
   /** How many of each dish sold, by month: recipe id → period → sold. */
   readonly sales: Readonly<Record<string, Readonly<Record<string, number>>>>;
+}
+
+interface SubscriptionRow {
+  readonly plan: Plan;
+  readonly status?: string | null;
+  readonly term?: string | null;
+  readonly started_at?: string | null;
+  readonly current_period_end?: string | null;
+  readonly provider_reference?: string | null;
 }
 
 /** What a signed-out visitor sees: nothing, and no pretence of anything. */
@@ -114,6 +127,7 @@ const EMPTY: Book = {
   meta: {},
   members: [],
   plan: "free",
+  subscription: FREE_SUBSCRIPTION,
   history: {},
   flags: [],
   sales: {},
@@ -134,6 +148,7 @@ function fromMemory(): Book {
     meta: { ...memory.allMeta() },
     members: [...memory.members()],
     plan: memory.plan(),
+    subscription: { ...FREE_SUBSCRIPTION, plan: memory.plan() },
     history: {},
     flags: [],
     sales: {},
@@ -191,7 +206,7 @@ export const book = cache(async (): Promise<Book> => {
       .select("id, email, role, expires_at")
       .is("accepted_at", null)
       .gt("expires_at", new Date().toISOString()),
-    supabase.from("subscriptions").select("plan").limit(1),
+    supabase.from("subscriptions").select("plan, status, term, started_at, current_period_end, provider_reference").limit(1),
     supabase
       .from("ingredient_rate_history")
       .select("ingredient_id, price_from, price_to, changed_at, source")
@@ -248,6 +263,16 @@ export const book = cache(async (): Promise<Book> => {
   }
 
   const dishName = new Map(recipeRows.map((r) => [r.id, r.name]));
+
+  const subRow = (subRes.data as SubscriptionRow[] | null)?.[0];
+  const subscription: Subscription = subRow === undefined ? FREE_SUBSCRIPTION : {
+    plan: subRow.plan,
+    status: subRow.status ?? "active",
+    term: termOf(subRow.term)?.id ?? null,
+    startedAt: subRow.started_at ?? null,
+    periodEnd: subRow.current_period_end ?? null,
+    reference: subRow.provider_reference ?? null,
+  };
 
   return {
     orgId: orgRow.id,
@@ -308,8 +333,8 @@ export const book = cache(async (): Promise<Book> => {
           accepted: false,
         })),
       ),
-    plan: ((subRes.data as { plan: Plan }[] | null)?.[0]?.plan ??
-      "free") as Plan,
+    plan: tierOf(subscription),
+    subscription,
     history,
     sales,
     flags: ((flagsRes.data ?? []) as FlagRow[]).map((f) => ({
@@ -764,6 +789,41 @@ export async function savePlan(next: Plan): Promise<void> {
   check(
     "your plan",
     await supabase.from("subscriptions").update({ plan: next }).eq("org_id", b.orgId),
+  );
+}
+
+/**
+ * Switch a paid stretch on.
+ *
+ * Called only after the payment has been verified (app/plans/actions.ts), or
+ * by the sandbox, which records itself as such. A stretch bought while one is
+ * running starts when that one ends, so nothing already paid for is lost.
+ */
+export async function activateSubscription(term: Term, reference: string, now: Date = new Date()): Promise<void> {
+  const t = termOf(term);
+  if (t === undefined) throw new Error("That is not a term Costbook sells.");
+  if (!supabaseConfigured()) {
+    memory.setPlan("paid");
+    return;
+  }
+  const b = await book();
+  if (b.orgId === null) throw new WriteFailed("anything", "No account is signed in.");
+  const running = b.plan === "paid" && b.subscription.periodEnd !== null ? new Date(b.subscription.periodEnd) : null;
+  const from = running !== null && running > now ? running : now;
+  const supabase = await supabaseServer();
+  check(
+    "your plan",
+    await supabase
+      .from("subscriptions")
+      .update({
+        plan: "paid",
+        status: "active",
+        term: t.id,
+        started_at: from.toISOString(),
+        current_period_end: endOf(from, t.months).toISOString(),
+        provider_reference: reference,
+      })
+      .eq("org_id", b.orgId),
   );
 }
 
