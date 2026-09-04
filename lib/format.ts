@@ -148,3 +148,15 @@ export function shownQty(baseQty: number, unit: string): { readonly qty: string;
   }
   return { qty: lineQty(baseQty, unit), unit };
 }
+
+/**
+ * The unit a rate is said per: a kilo for anything weighed, a litre for
+ * anything poured, the piece for anything counted. A line measured in
+ * grams still carries a rate per kilo — 0.0044 a gram is a figure nobody
+ * buys by, and a real sheet writes 4.40 a kilo beside a 70 g line.
+ */
+export function rateUnitOf(unit: string): string {
+  if (unit === 'g' || unit === 'kg') return 'kg';
+  if (unit === 'ml' || unit === 'l') return 'l';
+  return unit;
+}

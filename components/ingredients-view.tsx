@@ -503,7 +503,7 @@ function Row({
                   has only their memory to answer it with. */}
               {row.history.length > 0 && (
                 <div className="rate-history">
-                  <span className="label">Rate history</span>
+                  <span className="label">Rate history <Spark points={row.history.slice(0, 6).map((h) => h.to).reverse()} /></span>
                   {row.history.map((h) => (
                     <span className="rate-history-row" key={`${h.on}-${h.to}`}>
                       <span>{h.on}</span>
@@ -531,5 +531,28 @@ function Row({
         </div>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * The last few rates as a line, so "it moved" is a shape before it is a
+ * number. Six points at most; a flat line is a rate that has held.
+ */
+function Spark({ points }: { points: readonly number[] }) {
+  if (points.length < 2) return null;
+  const w = 64;
+  const h = 18;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const span = max - min || 1;
+  const d = points
+    .map((p, i) => `${i === 0 ? 'M' : 'L'}${((i / (points.length - 1)) * (w - 2) + 1).toFixed(1)} ${(h - 2 - ((p - min) / span) * (h - 4)).toFixed(1)}`)
+    .join(' ');
+  const up = (points[points.length - 1] ?? 0) > (points[0] ?? 0);
+  return (
+    <svg className="spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
+      <path d={d} fill="none" stroke={up ? 'var(--over-edge)' : 'var(--on-edge)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={w - 1} cy={h - 2 - (((points[points.length - 1] ?? 0) - min) / span) * (h - 4)} r="2.2" fill={up ? 'var(--over-ink)' : 'var(--on-ink)'} />
+    </svg>
   );
 }

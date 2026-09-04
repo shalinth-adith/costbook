@@ -2,7 +2,7 @@
 
 import type { CostedLine } from '@/core/recipe';
 
-import { DASH, lineQty, lineRate, qty } from '@/lib/format';
+import { rateUnitOf, DASH, lineQty, lineRate, qty } from '@/lib/format';
 
 import { useMoney } from './currency-provider';
 
@@ -92,7 +92,7 @@ export function ComponentCards({
 
               <span className="ccard-field">
                 <span className="label">Rate / unit</span>
-                <span className="figure ccard-value">{m.rate(lineRate(line.ratePerBaseUnit, line.unit))}</span>
+                <span className="figure ccard-value">{m.rate(lineRate(line.ratePerBaseUnit, rateUnitOf(line.unit)))}<span className="ctable-rate-unit">/{rateUnitOf(line.unit)}</span></span>
               </span>
 
               <span className="ccard-field end">

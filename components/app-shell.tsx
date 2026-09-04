@@ -17,6 +17,15 @@ import { Wordmark } from './wordmark';
  * a supplier's price list arrives (FLOWS 3.3), not a one-time onboarding step,
  * so it is somewhere an operator returns to.
  */
+/** One stroke icon a word, 24-grid, so the nav reads at a glance. */
+const NAV_ICON: Readonly<Record<string, string>> = {
+  Dashboard: 'M4 5h6v6H4zM14 5h6v4h-6zM14 13h6v6h-6zM4 15h6v4H4z',
+  Recipes: 'M5 4h14v16H5zM8.5 9h7M8.5 13h5',
+  Ingredients: 'M4 10h16l-1.5 9h-13zM8 10V7a4 4 0 018 0v3',
+  Import: 'M12 4v11M7 10l5 5 5-5M5 20h14',
+  Settings: 'M4 7h10M18 7h2M4 17h4M12 17h8M14 4.5v5M8 14.5v5',
+};
+
 const NAV = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Recipes', href: '/recipes' },
@@ -79,6 +88,10 @@ export function AppShell({
               className="nav-item"
               aria-current={item.label === current ? 'page' : undefined}
             >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d={NAV_ICON[item.label] ?? NAV_ICON.Dashboard} />
+              </svg>
               {item.label}
             </Link>
           ))}

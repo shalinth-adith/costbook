@@ -8,7 +8,17 @@
 
 :root {
   /* Surfaces */
-  --surface-page: #EEF0F4;
+  /* A warm off-white ground, not a cool grey: the one value that stops the
+     product reading as a spreadsheet. */
+  --surface-page: #F6F4EF;
+  /* The one accent. Primary actions, the live pill, the ring — and nothing
+     else, so it always means "act here". */
+  --accent: #FF6A3D;
+  --accent-ink: #FFFFFF;
+  --accent-tint: #FFE9E0;
+  /* A sky tint for panels that answer the field beside them. */
+  --info-tint: #E9F1FF;
+  --info-edge: #C9DBF7;
   --surface-card: #FFFFFF;
   --surface-sunken: #F5F6F9;
   --surface-header: #F0F2F6;
@@ -118,7 +128,8 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  font-size: 13.5px;
+  font-size: 15px;
+  line-height: 1.55;
   line-height: 1.45;
 }
 

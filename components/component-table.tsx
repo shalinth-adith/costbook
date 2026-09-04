@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import type { CostedLine } from '@/core/recipe';
 
-import { DASH, lineQty, lineRate, qty, shownQty } from '@/lib/format';
+import { rateUnitOf, DASH, lineQty, lineRate, qty, shownQty } from '@/lib/format';
 import { looseNumber } from '@/core/loose';
 import { toBase } from '@/core/units';
 
@@ -151,7 +151,7 @@ export function ComponentTable({
               {/* Grams below a kilo, millilitres below a litre. "0.03 l" of
                   ghee is 30 ml to anyone who has poured it. */}
               <span className="figure ctable-unit">{shownQty(line.qty, line.unit).unit}</span>
-              <span className="figure end ctable-dim">{m.rate(lineRate(line.ratePerBaseUnit, line.unit))}</span>
+              <span className="figure end ctable-dim">{m.rate(lineRate(line.ratePerBaseUnit, rateUnitOf(line.unit)))}<span className="ctable-rate-unit">/{rateUnitOf(line.unit)}</span></span>
 
               <span className="ctable-cost">
                 {line.scope === 'portion' ? (

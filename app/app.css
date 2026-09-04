@@ -3883,3 +3883,80 @@
 .nd-rate { color: var(--text-tertiary); font-size: 12px; margin-inline-start: 4px; }
 .nd-suffix-and { margin-inline-start: 10px; }
 .nd-kg { inline-size: 72px; }
+
+/* ══ The design pass: three faces, a warm ground, one accent ═══════════ */
+
+/* The one figure a screen is about. */
+.display, .dh-ring-figure, .rail-amount, .price-one-figure, .batch-total-value, .set-card-big, .dc-card .dc-figure {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-weight: 800; letter-spacing: -0.03em; line-height: 0.95;
+}
+.dh-ring-figure { font-size: 96px; }
+.rail-amount { font-size: 52px; font-weight: 800; }
+.price-one-figure { font-size: 60px; }
+.batch-total-value { font-size: 24px; }
+.set-card-big { font-size: 40px; }
+
+/* Labels above a figure are instruments: mono, small, spaced. */
+.label, .set-line-name, .ctable-head, .lib-head, .price-fact dt {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500;
+}
+.set-line-name { font-size: 12px; letter-spacing: 0.06em; }
+
+/* Reading sizes, one step up; section titles that read as titles. */
+.dash-h, .set-h2, .nd-h, .page-title { font-size: 22px; font-weight: 700; letter-spacing: -0.015em; }
+.page-title { font-size: 28px; }
+.dash-lede, .set-lede, .nd-lede, .rail-plain, .sheet-copy { font-size: 15px; line-height: 1.55; }
+.set-rule { font-family: var(--font-display), var(--font-sans), sans-serif; font-weight: 700; font-size: 26px; letter-spacing: -0.02em; line-height: 1.9; }
+
+/* One accent: primary actions, the live pill, the ring. */
+.btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn-primary:hover { background: #F25A2D; border-color: #F25A2D; }
+.btn-primary:disabled { background: var(--border-strong); border-color: var(--border-strong); color: #fff; }
+.live-pill, .live-strip-dot { background: var(--accent); }
+.dh-ring circle.is-arc, .dh-ring .ring-arc { stroke: var(--accent); }
+.sheet-footer .btn-primary:not(:disabled) { animation-name: attention-accent; }
+@keyframes attention-accent { 0%, 100% { box-shadow: 0 0 0 0 rgb(255 106 61 / 0.35); } 50% { box-shadow: 0 0 0 8px rgb(255 106 61 / 0); } }
+
+/* Tinted surfaces where a panel answers the field beside it. */
+.price-one, .set-live .set-worked, .set-live .set-card, .set-live .set-rounding-eg, .nd-side .nd-card, .nd-side-rest { background: var(--info-tint); border-color: var(--info-edge); }
+.price-card { background: var(--surface-card); }
+.dc-card.is-on { background: var(--on-tint); border-color: var(--on-edge); }
+.dc-card.is-near { background: var(--near-tint); border-color: var(--near-edge); }
+.dc-card.is-over { background: var(--over-tint); border-color: var(--over-edge); }
+.dc-card.is-unpriced { background: var(--incomplete-tint); border-color: var(--border-strong); }
+
+/* Corners, hairlines, one soft shadow on hover only. */
+.card, .dc-card, .lib-row, .ing-row, .set-card, .set-method, .nd-card { border-radius: 16px; }
+.lib-row, .ing-row, .dc-card, .td-row { transition: transform var(--dur-micro) var(--ease-enter), box-shadow var(--dur-micro) var(--ease-enter); }
+.lib-row:hover, .ing-row:hover, .dc-card:hover, .td-row:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgb(23 27 36 / 0.08); }
+
+/* Door cards in their status tint, the count in the display face. */
+.dc-card.is-door.ink-on { background: var(--on-tint); border-color: var(--on-edge); }
+.dc-card.is-door.ink-near { background: var(--near-tint); border-color: var(--near-edge); }
+.dc-card.is-door.ink-over { background: var(--over-tint); border-color: var(--over-edge); }
+.dc-card.is-door.ink-quiet { background: var(--incomplete-tint); border-color: var(--border-strong); }
+.dc-n { font-family: var(--font-display), var(--font-sans), sans-serif; font-weight: 800; font-size: 56px; letter-spacing: -0.03em; line-height: 0.95; }
+
+/* What a dish keeps, as a pill in its status colour. */
+.lib-keeps { display: inline-flex; align-items: baseline; gap: 4px; padding: 5px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.lib-keeps.is-on { background: var(--on-tint); color: var(--on-ink-strong); }
+.lib-keeps.is-near { background: var(--near-tint); color: var(--near-ink-strong); }
+.lib-keeps.is-over { background: var(--over-tint); color: var(--over-ink-strong); }
+.lib-keeps.is-incomplete { background: var(--incomplete-tint); color: var(--incomplete-ink); }
+.lib-head { position: sticky; top: 0; background: var(--surface-page); z-index: 2; }
+
+/* Nav with icons. */
+.nav-item { display: inline-flex; align-items: center; gap: 8px; }
+.nav-item[aria-current="page"] svg { color: var(--accent); }
+
+/* The sparkline beside a rate history. */
+.spark { vertical-align: middle; margin-inline-start: 8px; }
+
+/* New dish: the live count in the accent tint; the create button is the one accent on the page. */
+.nd-side .nd-chip.is-known { background: var(--accent-tint); color: #8A2E12; }
+/* The hero figure beside the ring, not inside it: at 96px it needs a line of its own. */
+.dh-ring-wrap { display: flex; align-items: center; gap: 28px; }
+.dh-ring-figure { position: static; white-space: nowrap; order: -1; }
+.ctable-rate-unit { color: var(--text-quiet); font-size: 10.5px; margin-inline-start: 2px; }

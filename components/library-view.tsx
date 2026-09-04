@@ -441,7 +441,15 @@ function Row({
       {isDish ? <span className="figure end lib-dim">{money.money(row.sellingPrice)}</span> : null}
 
       {isDish ? (
-        <span className={`figure end ink-${row.status}`}>{percent(row.foodCostPercent)}</span>
+        <span className="end">
+          {row.foodCostPercent === null ? (
+            <span className="lib-keeps is-incomplete">no price</span>
+          ) : (
+            <span className={`lib-keeps is-${row.status}`}>
+              keeps <span className="figure">{money.symbol} {Math.round(100 - row.foodCostPercent)}</span>
+            </span>
+          )}
+        </span>
       ) : (
         <span className="figure end lib-dim">
           {row.usedIn === 0 ? DASH : `${row.usedIn} ${row.usedIn === 1 ? 'dish' : 'dishes'}`}
