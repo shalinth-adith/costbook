@@ -1645,14 +1645,6 @@
 }
 .wiz-sentence-sub { font-size: 14px; color: var(--text-secondary); }
 
-.wiz-summary { margin: 0 0 var(--sp-6); max-inline-size: 520px; }
-.wiz-summary-row {
-  display: flex; justify-content: space-between; gap: var(--sp-4);
-  padding-block: var(--sp-3); border-block-end: 1px solid var(--border-row);
-  font-size: 13.5px;
-}
-.wiz-summary-row dt { color: var(--text-secondary); }
-.wiz-summary-row dd { margin: 0; font-weight: 600; }
 
 .wiz-doors { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); max-inline-size: 860px; }
 .wiz-door {

@@ -1,9 +1,8 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 
-import { CURRENCIES, currency, formatMoney } from '@/core/currency';
+import { CURRENCIES, formatMoney } from '@/core/currency';
 import { COUNTRIES, TEAM_SIZES, type TeamSize, countryOf, searchCountries } from '@/lib/countries';
 import { SETUP_STEPS } from '@/lib/org';
 
@@ -23,7 +22,6 @@ import { Wordmark } from './wordmark';
  * at the end, so backing up costs nothing.
  */
 export function SetupWizard({ initialCurrency }: { initialCurrency: string }) {
-  const router = useRouter();
   const [pending, start] = useTransition();
 
   const [step, setStep] = useState(1);
@@ -34,7 +32,6 @@ export function SetupWizard({ initialCurrency }: { initialCurrency: string }) {
   const [codeChosen, setCodeChosen] = useState(false);
   const [teamSize, setTeamSize] = useState<TeamSize | null>(null);
 
-  const cur = currency(code);
   const picked = countryOf(country);
   const shown = useMemo(() => searchCountries(search), [search]);
 
@@ -53,8 +50,8 @@ export function SetupWizard({ initialCurrency }: { initialCurrency: string }) {
 
   const commit = () => {
     start(async () => {
+      // Saving is leaving: the action sends the account to its landing page.
       await finishSetup({ name, country, currency: code, teamSize });
-      setStep(5);
     });
   };
 
@@ -63,7 +60,7 @@ export function SetupWizard({ initialCurrency }: { initialCurrency: string }) {
       <header className="wiz-top">
         <Wordmark />
         <span className="wiz-kicker">YOUR RESTAURANT</span>
-        <span className="wiz-count figure">{Math.min(step, 4)} / 4</span>
+        <span className="wiz-count figure">{step} / 4</span>
       </header>
 
       <ol className="wiz-ticks" aria-label="Setup progress">
@@ -187,36 +184,9 @@ export function SetupWizard({ initialCurrency }: { initialCurrency: string }) {
             </div>
           </section>
         )}
-
-        {step === 5 && (
-          <section className="wiz-step">
-            <p className="wiz-eyebrow">Done</p>
-            <h1 className="wiz-h">{name.trim()} is set up.</h1>
-            <dl className="wiz-summary">
-              {[
-                { label: 'Restaurant', value: name.trim() },
-                { label: 'Country', value: picked?.name ?? '—' },
-                { label: 'Currency', value: `${cur.symbol} · ${cur.name}` },
-                { label: 'Kitchen', value: TEAM_SIZES.find((t) => t.id === teamSize)?.label ?? '—' },
-              ].map((row) => (
-                <div key={row.label} className="wiz-summary-row">
-                  <dt>{row.label}</dt>
-                  <dd>{row.value}</dd>
-                </div>
-              ))}
-            </dl>
-            <p className="wiz-lede">
-              Everything else already has a sensible default — how you price, rounding, what goes on
-              the bill. They are all in Settings, and each one shows what it changes before it does.
-            </p>
-            <button type="button" className="btn btn-primary btn-lg" onClick={() => router.push('/dashboard')}>
-              Open your book
-            </button>
-          </section>
-        )}
       </main>
 
-      {step <= 4 && (
+      {(
         <footer className="wiz-foot">
           {step > 1 ? (
             <button type="button" className="btn wiz-back" onClick={() => setStep((s) => s - 1)}>
