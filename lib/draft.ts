@@ -111,12 +111,14 @@ export function draftFrom(input: DraftInput): Draft {
         line,
         match: { kind: "ingredient", ingredient },
         // On the shelf but with no rate on file is still not costable. The
-        // dish takes the line and reports a floor until a rate arrives.
-        ready: line.qty !== null && ingredient.purchasePrice !== null,
+        // dish takes the line and reports a floor until a rate arrives —
+        // unless the line carries its own rate, as a sheet's row does.
+        ready: line.qty !== null && (ingredient.purchasePrice !== null || line.rate !== null),
       };
     }
 
-    return { line, match: { kind: "new" }, ready: false };
+    // New, and priced by the line itself where the line says a rate.
+    return { line, match: { kind: "new" }, ready: line.qty !== null && line.rate !== null };
   });
 
   return {

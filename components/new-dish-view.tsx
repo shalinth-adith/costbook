@@ -43,10 +43,10 @@ const CATEGORIES = [
   'Desserts',
 ] as const;
 
-const PLACEHOLDER = `200 g Onion
+const PLACEHOLDER = `200 g Onion @ 5.08/kg
 Sesame oil - 10 ml
 1/2 kg Rice
-Sambar 150 g`;
+Sambar 150 g per plate`;
 
 /** What a flagged line was given, right there on its row. */
 interface Fix {
@@ -117,6 +117,7 @@ export function NewDishView({
     portions: number;
     text: string;
     method: string;
+    batchKg: number | null;
   }) => Promise<{ readonly message: string; readonly id: string | null }>;
 }) {
   const router = useRouter();
@@ -126,6 +127,8 @@ export function NewDishView({
   const [name, setName] = useState('');
   const [category, setCategory] = useState<string>('Mains');
   const [portions, setPortions] = useState(4);
+  /** What a batch weighs, for a batter or gravy other dishes use by weight. */
+  const [batchKg, setBatchKg] = useState<number | null>(null);
   const [text, setText] = useState('');
   const [method, setMethod] = useState('');
   const [fixes, setFixes] = useState<Readonly<Record<number, Fix>>>({});
@@ -155,7 +158,7 @@ export function NewDishView({
     if (!named || pending) return;
     setFault(null);
     start(async () => {
-      const out = await onCreate({ name: name.trim(), category, portions, text: finalText, method });
+      const out = await onCreate({ name: name.trim(), category, portions, text: finalText, method, batchKg });
       if (out.id === null) {
         setFault(out.message);
         return;
@@ -242,7 +245,23 @@ export function NewDishView({
                   onChange={(e) => setPortions(Math.max(1, Number(e.target.value) || 1))}
                 />
                 <span className="nd-suffix">portions</span>
+                <span className="nd-suffix nd-suffix-and">and weighs</span>
+                <input
+                  className="set-input figure nd-kg"
+                  inputMode="decimal"
+                  placeholder="—"
+                  aria-label="Batch weight in kilos"
+                  value={batchKg ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value.trim();
+                    setBatchKg(v === '' ? null : Math.max(0, Number(v) || 0));
+                  }}
+                />
+                <span className="nd-suffix">kg</span>
               </div>
+              <span className="nd-help">
+                The weight is optional: give it for a batter or a gravy that other dishes use by the kilo.
+              </span>
             </label>
             <label className="nd-field">
               <span className="nd-label">Section</span>
@@ -296,8 +315,8 @@ export function NewDishView({
                 <span className="nd-label">Costbook reads</span>
                 <ul className="nd-example-out">
                   <li>
-                    <span className="figure">200 g</span> Onion —{' '}
-                    <span className="nd-tag is-known">on your shelf</span>
+                    <span className="figure">200 g</span> Onion at <span className="figure">5.08/kg</span> —{' '}
+                    <span className="nd-tag is-known">on your shelf</span>, this line at the rate you wrote
                   </li>
                   <li>
                     <span className="figure">10 ml</span> Sesame oil —{' '}
@@ -309,10 +328,14 @@ export function NewDishView({
                   </li>
                   <li>
                     <span className="figure">150 g</span> Sambar —{' '}
-                    <span className="nd-tag is-linked">your batch</span>
+                    <span className="nd-tag is-linked">your batch</span>, <span className="nd-tag is-known">on every plate</span>
                   </li>
                 </ul>
                 <p className="nd-example-note">
+                  A rate on the line — <span className="figure">@ 5.08/kg</span>, or the sheet&rsquo;s own
+                  columns, <span className="figure">Onion, 0.26, kg, 5.08</span> — prices that line as
+                  your sheet does, and a new ingredient takes it as its rate. &ldquo;per plate&rdquo;
+                  puts a line on every plate instead of into the batch.
                   Order does not matter, nor does spacing. A batch you already
                   make is linked, not copied, so its price changes reach this
                   dish on their own.
@@ -492,19 +515,30 @@ export function NewDishView({
                   <div key={`${line.raw}-${String(i)}`} className={`nd-row${row.ready ? '' : ' is-open'}`}>
                     <span className="nd-qty figure">
                       {line.qty === null ? '—' : `${String(line.qty)}${line.unit ?? ''}`}
+                      {line.rate !== null ? (
+                        <span className="nd-rate"> @ {String(line.rate)}/{line.rateUnit ?? line.unit ?? ''}</span>
+                      ) : null}
                     </span>
                     <span className="nd-name">{line.name === '' ? line.raw : line.name}</span>
                     <span className="nd-verdict">
+                      {line.perPlate && <span className="nd-tag is-known">on every plate</span>}
                       {match.kind === 'recipe' && (
                         <span className="nd-tag is-linked">your {match.recipe.name}</span>
                       )}
-                      {match.kind === 'ingredient' && match.ingredient.purchasePrice !== null && (
-                        <span className="nd-tag is-known">on your shelf</span>
+                      {match.kind === 'ingredient' && (match.ingredient.purchasePrice !== null || line.rate !== null) && (
+                        <span className="nd-tag is-known">{line.rate !== null ? 'on your shelf, this line at your rate' : 'on your shelf'}</span>
                       )}
-                      {match.kind === 'ingredient' && match.ingredient.purchasePrice === null && (
+                      {match.kind === 'ingredient' && match.ingredient.purchasePrice === null && line.rate === null && (
                         <span className="nd-tag is-open">on your shelf, no price yet</span>
                       )}
-                      {match.kind === 'new' && <span className="nd-tag is-new">new ingredient</span>}
+                      {match.kind === 'new' && line.unit === null && line.rate !== null && (
+                        <span className="nd-tag is-known">a cost, {String(line.qty ?? 0)} × {String(line.rate)}</span>
+                      )}
+                      {match.kind === 'new' && !(line.unit === null && line.rate !== null) && (
+                        <span className={`nd-tag ${line.rate !== null ? 'is-known' : 'is-new'}`}>
+                          {line.rate !== null ? 'new, at the rate you wrote' : 'new ingredient'}
+                        </span>
+                      )}
                     </span>
 
                     {/* The fix, on the row that needs it. "Needs a quantity"

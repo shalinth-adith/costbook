@@ -4,8 +4,9 @@ import { revalidatePath } from 'next/cache';
 
 import { book, getMeta, getRecipe, saveIngredient, saveMeta, saveRecipe } from '@/lib/book';
 import { roomForRecipe } from '@/lib/guard';
+import { flatComponent } from '@/core/recipe';
 import { toBase, unitFamily } from '@/core/units';
-import type { RecipeComponent } from '@/core/recipe';
+import type { LineEntry, RecipeComponent } from '@/core/recipe';
 import { draftFrom } from '@/lib/draft';
 
 export interface Ack {
@@ -150,6 +151,11 @@ export async function createDishFromPaste(input: {
   readonly text: string;
   /** How to prepare it, as typed. Prints on the prep card; costs nothing. */
   readonly method: string;
+  /**
+   * What one batch weighs, in kilos, when the dish is a batter or a gravy
+   * that other dishes use by weight. Null for a plated dish.
+   */
+  readonly batchKg?: number | null;
 }): Promise<Ack & { readonly id: string | null }> {
   const name = input.name.trim();
   if (name === '') return { message: 'A dish needs a name.', undoable: false, id: null };
@@ -175,12 +181,35 @@ export async function createDishFromPaste(input: {
     // a quantity of zero, and inventing one would be inventing a cost. It is
     // dropped here and named back to the operator by the screen.
     if (row.line.qty === null) continue;
-    const unit = row.line.unit ?? 'g';
+    const scope = row.line.perPlate ? 'portion' : 'batch';
+
+    /*
+     * A rate on the line, as a kitchen's own sheet carries one beside every
+     * ingredient. It prices this line, whatever the shelf says: the same
+     * salt is 1.16 a kilo in one recipe and 0.60 in the next on a real
+     * sheet, and matching the sheet means honouring the line.
+     */
+    const lineRate = row.line.rate;
+    const rateUnit = row.line.rateUnit ?? row.line.unit;
+
+    // No unit Costbook can measure, but a rate: a cost with a label, as the
+    // engine already allows. "13 portion Poriya (side) @ 0.5" is 6.50.
+    if (row.line.unit === null) {
+      if (lineRate !== null) {
+        components.push(flatComponent(row.line.name, row.line.qty * lineRate, scope));
+      }
+      continue;
+    }
+    const unit = row.line.unit;
+    const entry: LineEntry =
+      lineRate !== null && rateUnit !== null
+        ? { mode: 'rate', ratePerBaseUnit: lineRate / toBase(1, rateUnit) }
+        : { mode: 'ingredient_rate' };
 
     if (row.match.kind === 'recipe') {
       components.push({
         kind: 'recipe',
-        scope: 'batch',
+        scope,
         childId: row.match.recipe.id,
         qty: toBase(row.line.qty, unit),
         unit,
@@ -193,39 +222,46 @@ export async function createDishFromPaste(input: {
     if (row.match.kind === 'ingredient') {
       ingredientId = row.match.ingredient.id;
     } else {
-      // New, and priced at nothing until somebody says otherwise.
+      // New. Priced by the line's own rate where it carries one — that becomes
+      // its shelf rate, per the unit the rate was written in — and at
+      // nothing otherwise, until somebody says.
       ingredientId = `ing-${Date.now().toString(36)}-${String(created)}`;
-      const family = unitFamily(unit) ?? 'mass';
+      const packUnit = lineRate !== null && rateUnit !== null ? rateUnit : unit;
+      const family = unitFamily(packUnit) ?? 'mass';
       await saveIngredient({
         id: ingredientId,
         name: row.line.name,
         family,
-        purchaseQty: 1,
-        purchasePrice: null,
-        purchaseUnit: unit,
+        purchaseQty: toBase(1, packUnit),
+        purchasePrice: lineRate,
+        purchaseUnit: packUnit,
         yieldPercent: 100,
         yieldIsAssumed: true,
+        ...(lineRate !== null ? { pricedAt: new Date().toISOString().slice(0, 10) } : {}),
       });
       created += 1;
     }
 
     components.push({
       kind: 'ingredient',
-      scope: 'batch',
+      scope,
       ingredientId,
       qty: toBase(row.line.qty, unit),
       unit,
-      entry: { mode: 'ingredient_rate' },
+      entry,
     });
   }
 
+  // A batch with a stated weight is made by the kilo: other dishes can use
+  // it by weight, as a dosa uses its batter. It still plates into portions.
+  const kg = input.batchKg ?? null;
   await saveRecipe(
     {
       id,
       name,
-      family: 'count',
-      outputQty: input.portions,
-      outputUnit: 'pc',
+      family: kg !== null && kg > 0 ? 'mass' : 'count',
+      outputQty: kg !== null && kg > 0 ? toBase(kg, 'kg') : input.portions,
+      outputUnit: kg !== null && kg > 0 ? 'kg' : 'pc',
       portions: input.portions,
       components,
     },

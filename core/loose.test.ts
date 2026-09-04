@@ -208,3 +208,43 @@ describe("a pasted block", () => {
     expect(parseLooseBlock("   \n  \n")).toEqual([]);
   });
 });
+
+describe("a rate on the line, as a sheet carries one", () => {
+  it("reads a rate after an at-sign, per the unit after the slash", () => {
+    const l = parseLooseLine("260 g Onion @ 5.08/kg");
+    expect([l.qty, l.unit, l.name, l.rate, l.rateUnit]).toEqual([260, "g", "Onion", 5.08, "kg"]);
+  });
+  it("reads 'per' and 'a' as the slash", () => {
+    expect(parseLooseLine("Ghee 50 ml at 34 per l").rate).toBe(34);
+    expect(parseLooseLine("50 ml Ghee 34 a l").rateUnit).toBe("l");
+  });
+  it("reads the sheet's own column order: name, quantity, unit, rate", () => {
+    const l = parseLooseLine("Idly Rice, 8, kg, 3.16");
+    expect([l.name, l.qty, l.unit, l.rate, l.rateUnit, l.needs]).toEqual(["Idly Rice", 8, "kg", 3.16, "kg", null]);
+    expect(parseLooseLine("Salt\t0.14\tkg\t1.16").rate).toBe(1.16);
+  });
+  it("leaves a line without a rate exactly as before", () => {
+    const l = parseLooseLine("Onion 100 g");
+    expect([l.qty, l.unit, l.rate, l.perPlate]).toEqual([100, "g", null, false]);
+  });
+  it("turns a cost with a label into something that needs nobody", () => {
+    // The sheet's "Poriya (side), 13 portion, 0.5": no unit Costbook measures.
+    const l = parseLooseLine("13 portion Poriya (side) @ 0.5/portion");
+    expect(l.unit).toBeNull();
+    expect(l.rate).toBeNull(); // 'portion' is not a unit, so the rate form does not apply
+    const m = parseLooseLine("Poriya (side), 13, portion, 0.5");
+    expect(m.unit).toBeNull(); // not a known unit either way
+  });
+});
+
+describe("on every plate", () => {
+  it("reads 'per plate' and its cousins", () => {
+    expect(parseLooseLine("50 ml Ghee per plate").perPlate).toBe(true);
+    expect(parseLooseLine("1 pc Papad each").perPlate).toBe(true);
+    expect(parseLooseLine("50 ml Ghee").perPlate).toBe(false);
+  });
+  it("keeps the rate and the plate together", () => {
+    const l = parseLooseLine("50 ml Ghee @ 34/l per plate");
+    expect([l.qty, l.unit, l.rate, l.rateUnit, l.perPlate]).toEqual([50, "ml", 34, "l", true]);
+  });
+});

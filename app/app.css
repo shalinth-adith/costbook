@@ -3880,3 +3880,6 @@
 .set-more > summary::before { float: none; margin: 0; flex: none; }
 .set-more > summary .set-more-texts { display: flex; flex-direction: column; gap: 2px; }
 .set-more-sub { padding-inline-start: 0; }
+.nd-rate { color: var(--text-tertiary); font-size: 12px; margin-inline-start: 4px; }
+.nd-suffix-and { margin-inline-start: 10px; }
+.nd-kg { inline-size: 72px; }

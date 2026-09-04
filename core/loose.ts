@@ -34,6 +34,16 @@ export interface LooseLine {
    * rather than resolved by guessing.
    */
   readonly needs: "quantity" | "unit" | "name" | null;
+  /**
+   * A rate written on the line, the way a kitchen's own sheet carries one
+   * beside every ingredient: "260 g Onion @ 5.08/kg". Per `rateUnit`, which
+   * is the unit after the slash, or the line's own unit when none is given.
+   * Null when the line carries none, in which case the shelf's rate applies.
+   */
+  readonly rate: number | null;
+  readonly rateUnit: string | null;
+  /** "50 ml Ghee per plate": this line goes on every item, not into the batch. */
+  readonly perPlate: boolean;
 }
 
 /** `1/2`, `3/4`, and the fraction characters a phone keyboard produces. */
@@ -112,12 +122,58 @@ const SEPARATOR = /^[\s\-–—:,•*]+|[\s\-–—:,•*]+$/g;
  * would leave the line named "oil" and quantified in tins of nothing.
  */
 export function parseLooseLine(raw: string): LooseLine {
-  const line = raw.trim();
+  let line = raw.trim();
   if (line === "") {
-    return { raw, name: "", qty: null, unit: null, needs: "name" };
+    return { raw, name: "", qty: null, unit: null, needs: "name", rate: null, rateUnit: null, perPlate: false };
   }
 
   const clean = (s: string): string => s.replace(SEPARATOR, "").trim();
+
+  /*
+   * The sheet's own column order first: "Onion, 0.26, kg, 5.08" or the same
+   * with tabs, which is what a row copied out of a costing sheet looks like.
+   * Name, quantity, unit, and the rate per that unit. Three fields with a
+   * number in the second is the shape; anything else reads as a sentence.
+   */
+  const cols = line.split(/\t|\s*,\s*/).map((c) => c.trim());
+  if (cols.length >= 3 && cols[0] !== "" && looseNumber(cols[1] ?? "") !== null && isKnownUnit(cols[2] ?? "")) {
+    const qty = looseNumber(cols[1] ?? "");
+    const unit = normaliseUnit(cols[2] ?? "");
+    const rate = cols.length >= 4 ? looseNumber(cols[3] ?? "") : null;
+    return { raw, name: clean(cols[0] ?? ""), qty, unit, needs: null, rate, rateUnit: rate === null ? null : unit, perPlate: false };
+  }
+
+  // "… per plate" / "… each": on every item, not in the batch.
+  let perPlate = false;
+  const plate = /\s*\b(?:per\s+(?:plate|item|portion|serving|piece|head)|each|a\s+plate)\s*$/i.exec(line);
+  if (plate !== null) {
+    perPlate = true;
+    line = line.slice(0, plate.index).trim();
+  }
+
+  // "… @ 5.08/kg", "… at 5.08 per kg", "… = 5.08 a kg": a rate for this line.
+  let rate: number | null = null;
+  let rateUnit: string | null = null;
+  const at = /(?:@|\bat\b|=)?\s*([\d.,]+)\s*(?:\/|\bper\b|\ban?\b)\s*([A-Za-z]+)\s*$/i.exec(line);
+  if (at !== null) {
+    const r = looseNumber(at[1] ?? "");
+    const u = at[2] ?? "";
+    if (r !== null && isKnownUnit(u)) {
+      rate = r;
+      rateUnit = normaliseUnit(u);
+      line = clean(line.slice(0, at.index));
+    }
+  }
+
+  const read = (l: LooseLine): LooseLine => ({
+    ...l,
+    rate,
+    // "13 portion Poriya (side) @ 0.5" — a cost with a label, not a measurement.
+    // With a rate on it the line needs nothing more from a person.
+    needs: l.needs === "unit" && rate !== null ? null : l.needs,
+    rateUnit: rate === null ? null : (rateUnit ?? l.unit),
+    perPlate,
+  });
 
   // 1 — leading quantity, optional unit stuck to it or spaced from it.
   const lead =
@@ -136,10 +192,10 @@ export function parseLooseLine(raw: string): LooseLine {
         unit === null && maybeUnit !== "" ? `${maybeUnit} ${rest}` : rest,
       );
       if (name !== "") {
-        return { raw, name, qty, unit, needs: unit === null ? "unit" : null };
+        return read({ raw, name, qty, unit, needs: unit === null ? "unit" : null, rate: null, rateUnit: null, perPlate: false });
       }
       // "500 g" and nothing else — a quantity with nothing to weigh.
-      return { raw, name: "", qty, unit, needs: "name" };
+      return read({ raw, name: "", qty, unit, needs: "name", rate: null, rateUnit: null, perPlate: false });
     }
   }
 
@@ -166,14 +222,14 @@ export function parseLooseLine(raw: string): LooseLine {
      * priced off a number nobody entered.
      */
     if (qty !== null && name !== "" && unit !== null) {
-      return { raw, name, qty, unit, needs: null };
+      return read({ raw, name, qty, unit, needs: null, rate: null, rateUnit: null, perPlate: false });
     }
   }
 
   // 3 — no number anywhere. A named line waiting for a quantity, which is a
   // perfectly ordinary thing to paste: a chef lists what goes in before how
   // much of it.
-  return { raw, name: clean(line), qty: null, unit: null, needs: "quantity" };
+  return read({ raw, name: clean(line), qty: null, unit: null, needs: "quantity", rate: null, rateUnit: null, perPlate: false });
 }
 
 /**
