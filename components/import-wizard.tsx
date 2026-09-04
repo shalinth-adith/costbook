@@ -1,5 +1,6 @@
 'use client';
 
+import { perItemRowsFrom } from '@/core/formula-hints';
 import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -129,6 +130,8 @@ export function ImportWizard({
   const [customNames, setCustomNames] = useState<Readonly<Record<number, string>>>({});
   /** Which suspect labels the operator has agreed to read differently. */
   const [rereadUnits, setRereadUnits] = useState<Readonly<Record<string, string>>>({});
+  /** Rows the workbook's own formulas add per item (core/formula-hints.ts). */
+  const [perPortionRows, setPerPortionRows] = useState<readonly number[]>([]);
   /** Corrections typed on the review screen, by row number. */
   const [rowEdits, setRowEdits] = useState<Readonly<Record<number, RowEdit>>>({});
   const [problem, setProblem] = useState<string | null>(null);
@@ -142,8 +145,8 @@ export function ImportWizard({
     () =>
       rows.length === 0
         ? null
-        : parseRows(rows, { mapping, knownRecipes, keepAs: customNames, rereadUnits, rowEdits }),
-    [rows, mapping, knownRecipes, customNames, rereadUnits, rowEdits],
+        : parseRows(rows, { mapping, knownRecipes, keepAs: customNames, rereadUnits, rowEdits, perPortionRows }),
+    [rows, mapping, knownRecipes, customNames, rereadUnits, rowEdits, perPortionRows],
   );
 
   const plan = useMemo(
@@ -253,13 +256,17 @@ export function ImportWizard({
        */
       let formulaCells = 0;
       let emptyFormulaCells = 0;
+      const formulas: [string, string][] = [];
       for (const [ref, cell] of Object.entries(sheet)) {
         if (ref.startsWith('!')) continue;
         const c = cell as { f?: string; v?: unknown };
         if (c.f === undefined) continue;
         formulaCells += 1;
+        formulas.push([ref, c.f]);
         if (c.v === undefined || c.v === null || c.v === '') emptyFormulaCells += 1;
       }
+      // What the formulas say that the values cannot: which lines go on every item.
+      setPerPortionRows(perItemRowsFrom(formulas));
       setUncomputed(
         formulaCells > 0 && emptyFormulaCells / formulaCells > 0.5 ? emptyFormulaCells : 0,
       );

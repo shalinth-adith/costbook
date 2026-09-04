@@ -14,7 +14,7 @@ import type { Ingredient } from '@/core/ingredient';
 import { ingredientFromPack } from '@/core/ingredient';
 import type { ParseResult, ParsedBlock, ParsedLine } from '@/core/parse';
 import type { Recipe, RecipeComponent } from '@/core/recipe';
-import { flatComponent, ingredientComponent } from '@/core/recipe';
+import { flatComponent, ingredientComponent, recipeComponent } from '@/core/recipe';
 import { type UnitFamily, unitFamily, toBase } from '@/core/units';
 
 export interface PlannedIngredient {
@@ -47,6 +47,13 @@ export interface PlannedRecipe {
   readonly custom: Readonly<Record<string, string>>;
   /** Lines the sheet carried that could not be turned into components. */
   readonly skipped: number;
+  /**
+   * Lines that named another recipe and were linked to it, so its real cost
+   * flows through instead of a rate somebody copied by hand. A real sheet
+   * puts ginger-garlic paste into eight biryanis at a typed 5.32 a kilo;
+   * when the paste's ingredients move, those eight rows do not.
+   */
+  readonly linked: number;
 }
 
 export interface ImportPlan {
@@ -114,17 +121,61 @@ export function planImport(
   parsed: ParseResult,
   existing: readonly Ingredient[],
   today: string,
+  existingRecipes: readonly Recipe[] = [],
 ): ImportPlan {
   const byName = new Map(existing.map((i) => [i.name.toLowerCase(), i]));
   const planned = new Map<string, PlannedIngredient>();
   const recipes: PlannedRecipe[] = [];
   let skippedTotal = 0;
 
-  for (const block of parsed.blocks) {
+  /*
+   * A line that names another recipe on the sheet is that recipe, not an
+   * ingredient. Blocks are planned children first so the child exists to be
+   * linked to; a cycle (a dough whose dough is itself) falls back to the
+   * ingredient path rather than recursing forever.
+   */
+  const blockById = new Map<string, ParsedBlock>();
+  for (const b of parsed.blocks) {
+    const id = idFor(b.name === '' ? `sheet-${b.row}` : b.name);
+    if (!blockById.has(id)) blockById.set(id, b);
+  }
+  const knownById = new Map(existingRecipes.map((r) => [idFor(r.name), r]));
+  const done = new Set<ParsedBlock>();
+  const inProgress = new Set<ParsedBlock>();
+
+  const childFor = (line: ParsedLine, self: ParsedBlock): Recipe | null => {
+    const id = idFor(line.name);
+    const block = blockById.get(id);
+    if (block !== undefined && block !== self) {
+      if (!done.has(block) && !inProgress.has(block)) planBlock(block);
+      const found = recipes.find((r) => r.recipe.id === id);
+      if (found !== undefined) return found.recipe;
+    }
+    return knownById.get(id) ?? null;
+  };
+
+  function planBlock(block: ParsedBlock): void {
+    if (done.has(block) || inProgress.has(block)) return;
+    inProgress.add(block);
     const components: RecipeComponent[] = [];
     let skipped = 0;
+    let linked = 0;
 
     for (const line of block.lines) {
+      if (line.kind === 'ingredient' && line.qty !== null && line.unit !== null) {
+        const child = childFor(line, block);
+        if (child !== null) {
+          try {
+            components.push(recipeComponent(child, line.qty, line.unit, { scope: line.scope }));
+            linked += 1;
+            continue;
+          } catch {
+            // The child is made by count and this line is in kilos, or the
+            // other way round: not linkable, so it stays what the sheet said.
+          }
+        }
+      }
+
       // A word that is not a unit is a cost with a label, not a measurement.
       if (line.kind === 'flat') {
         const amount = line.total ?? line.rate ?? 0;
@@ -174,7 +225,7 @@ export function planImport(
       }
 
       try {
-        components.push(ingredientComponent(ingredient, line.qty, line.unit));
+        components.push(ingredientComponent(ingredient, line.qty, line.unit, { scope: line.scope }));
       } catch {
         /*
          * A line Costbook cannot MEASURE, it can still COST.
@@ -216,7 +267,9 @@ export function planImport(
 
     if (components.length === 0) {
       skippedTotal += skipped;
-      continue;
+      inProgress.delete(block);
+      done.add(block);
+      return;
     }
 
     /*
@@ -246,10 +299,13 @@ export function planImport(
           ...prev,
           recipe: { ...prev.recipe, components: [...prev.recipe.components, ...components] },
           skipped: prev.skipped + skipped,
+          linked: prev.linked + linked,
         };
       }
       skippedTotal += skipped;
-      continue;
+      inProgress.delete(block);
+      done.add(block);
+      return;
     }
 
     recipes.push({
@@ -270,9 +326,14 @@ export function planImport(
       method: block.method,
       custom: block.custom,
       skipped,
+      linked,
     });
     skippedTotal += skipped;
+    inProgress.delete(block);
+    done.add(block);
   }
+
+  for (const block of parsed.blocks) planBlock(block);
 
   const list = [...planned.values()];
 

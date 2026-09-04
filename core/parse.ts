@@ -99,6 +99,8 @@ export interface ParsedLine {
   readonly rate: number | null;
   readonly total: number | null;
   readonly entry: ParsedEntry;
+  /** 'portion' when the sheet's own formula adds this line to every item. */
+  readonly scope: 'batch' | 'portion';
   readonly warnings: readonly ParseWarning[];
 }
 
@@ -178,6 +180,11 @@ export interface ParseOptions {
    * in the file that they want nesting (TRD 7.1).
    */
   readonly knownRecipes?: readonly string[];
+  /**
+   * Zero-based rows the sheet's own formulas add per item rather than per
+   * batch, read from the workbook's formulas (core/formula-hints.ts).
+   */
+  readonly perPortionRows?: readonly number[];
 }
 
 /* ── cells ──────────────────────────────────────────────────────────── */
@@ -670,7 +677,7 @@ function parseLine(
     });
   }
 
-  return { row: index, name, kind, qty, unit, rawUnit, rate, total, entry, warnings };
+  return { row: index, name, kind, qty, unit, rawUnit, rate, total, entry, scope: 'batch', warnings };
 }
 
 /** Names match ignoring case, spacing and a trailing parenthetical. */
@@ -705,6 +712,11 @@ export function parseRows(
   const keepAs = options.keepAs ?? {};
   const rereadUnits = options.rereadUnits ?? {};
   const rowEdits = options.rowEdits ?? {};
+  // The rows the sheet's formulas add per item: marked where the line is made,
+  // whichever path builds it.
+  const perPortion = new Set(options.perPortionRows ?? []);
+  const scoped = (line: ParsedLine | null, index: number): ParsedLine | null =>
+    line !== null && perPortion.has(index) ? { ...line, scope: 'portion' } : line;
 
   const headerRow = options.headerRow ?? detectHeaderRow(rows);
 
@@ -801,7 +813,7 @@ export function parseRows(
       const recipeName = tidyDishName(carriedRecipe);
       if (recipeName === '') continue;
 
-      const line = parseLine(row, i, mapping, knownRecipes, rereadUnits, rowEdits[i]);
+      const line = scoped(parseLine(row, i, mapping, knownRecipes, rereadUnits, rowEdits[i]), i);
       if (line === null) continue;
 
       const key = recipeName.toLowerCase();
@@ -869,7 +881,7 @@ export function parseRows(
       continue;
     }
 
-    const line = parseLine(row, i, mapping, knownRecipes, rereadUnits, rowEdits[i]);
+    const line = scoped(parseLine(row, i, mapping, knownRecipes, rereadUnits, rowEdits[i]), i);
     if (line === null) continue;
 
     /** The sheet's own grouping, from whichever row first states one. */
