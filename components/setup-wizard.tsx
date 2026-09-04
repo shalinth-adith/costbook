@@ -103,10 +103,6 @@ export function SetupWizard({ initialCurrency }: { initialCurrency: string }) {
         taxTreatment: tax,
         charges: charges.filter((c) => c.name.trim() !== ''),
         foodCostTarget: target,
-        // Where menu prices customarily include the tax on the bill and the
-        // owner has put one on it, the target applies to what they keep.
-        pricesIncludeCharges:
-          hint.pricesIncludeTax === true && charges.some((c) => c.name.trim() !== '' && c.borneBy === 'guest'),
       });
       setStep(5);
     });
@@ -424,8 +420,8 @@ export function SetupWizard({ initialCurrency }: { initialCurrency: string }) {
               {sellHow !== null && (
                 <p className="wiz-sellhow-note">
                   {hint.note}
-                  {sellHow !== 'dine_in' && hint.platforms.length > 0 ? (
-                    <> The usual platforms in {hint.region} are on your bill now, at typical rates; correct them in Settings.</>
+                  {sellHow !== 'dine_in' ? (
+                    <> A delivery app&rsquo;s commission is on your bill now at a typical figure; name your app and put its own figure on it in Settings.</>
                   ) : null}
                   {' '}<b>Typical, not yours.</b>
                 </p>

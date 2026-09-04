@@ -567,224 +567,227 @@ export function SettingsView({
           <>
             <h2 className="set-h2">
               How you price
-              <span className="set-h2-note">every figure below is a field, and every dish can differ</span>
+              <span className="set-h2-note">one rule, applied to every dish</span>
             </h2>
 
             {/*
-              Forty years of menu-pricing research and every costing tool come
-              down to one ladder of cost lines with one of three last steps.
-              The step is chosen here, once; the ladder is drawn on every dish.
-              Nothing is a formula the operator types.
+              The rule is a sentence, as it is on a kitchen's own sheet:
+              "Expected SP = cost / 0.2". Both ways of saying it are here and
+              tied — five times the cost is ingredients at 20% of the price —
+              and the third figure says what that leaves. Nothing else is
+              needed to price a dish; everything else on this tab is optional
+              and folded away.
             */}
+            {method === "money_per_plate" ? (
+              <p className="set-rule">
+                Sell every dish at what it costs to make plus {cur.symbol}{" "}
+                <input
+                  className="set-inline-field figure"
+                  inputMode="decimal"
+                  value={moneyPerPlate}
+                  aria-label="Money left per plate"
+                  onChange={(e) => setMoneyPerPlate(Number(e.target.value) || 0)}
+                />
+                . Then{" "}
+                <select
+                  className="set-inline-select"
+                  value={rounding}
+                  aria-label="Rounding rule"
+                  onChange={(e) => setRounding(e.target.value as PresetName)}
+                >
+                  {ROUNDING_CHOICES.map((r) => (
+                    <option key={r} value={r}>
+                      {describeRule(PRESETS[r])}
+                    </option>
+                  ))}
+                </select>
+                .
+              </p>
+            ) : (
+              <p className="set-rule">
+                Sell every dish at{" "}
+                <input
+                  className="set-inline-field figure"
+                  inputMode="decimal"
+                  value={factor}
+                  aria-label="Times the cost"
+                  onChange={(e) => {
+                    const v = Number(e.target.value) || 0;
+                    setFactor(v);
+                    setTarget(shareOfFactor(v));
+                  }}
+                />{" "}
+                times what it costs to make — that is, ingredients are{" "}
+                <input
+                  className="set-inline-field figure"
+                  inputMode="decimal"
+                  value={target}
+                  aria-label="Food cost target"
+                  onChange={(e) => {
+                    const v = Number(e.target.value) || 0;
+                    setTarget(v);
+                    setFactor(factorOfShare(v));
+                  }}
+                />
+                % of the price, and <b className="figure">{cur.symbol} {Math.round(100 - target)}</b> of every{" "}
+                <span className="figure">{cur.symbol} 100</span> is left for everything else. Then{" "}
+                <select
+                  className="set-inline-select"
+                  value={rounding}
+                  aria-label="Rounding rule"
+                  onChange={(e) => setRounding(e.target.value as PresetName)}
+                >
+                  {ROUNDING_CHOICES.map((r) => (
+                    <option key={r} value={r}>
+                      {describeRule(PRESETS[r])}
+                    </option>
+                  ))}
+                </select>
+                .
+              </p>
+            )}
             <p className="set-note set-typical">
               {worldHint.note} <b>Typical, not yours.</b>
             </p>
-            <div className="set-methods" role="radiogroup" aria-label="Pricing method">
-              {/*
-                Two rules, not three. "Ingredients are 20% of the price" and
-                "five times the cost" are one rule said two ways — a real
-                kitchen's sheet writes it `=cost/0.2` — so the card shows both
-                figures tied together, and editing either moves the other.
-                "Money per plate" is a genuinely different idea and stays.
-              */}
-              <label className={`set-method${method !== "money_per_plate" ? " is-on" : ""}`}>
-                <input
-                  type="radio"
-                  name="pricing-method"
-                  value="food_share"
-                  checked={method !== "money_per_plate"}
-                  onChange={() => setMethod("food_share")}
-                />
-                <span className="set-method-name">By the cost</span>
-                <span className="set-method-said">The price is a multiple of what the plate costs. Say it either way.</span>
-                <span className="set-method-field">
-                  Ingredients are{" "}
-                  <input
-                    className="set-inline-field figure"
-                    inputMode="decimal"
-                    value={target}
-                    aria-label="Food cost target"
-                    onChange={(e) => {
-                      const v = Number(e.target.value) || 0;
-                      setTarget(v);
-                      setFactor(factorOfShare(v));
-                    }}
-                  />
-                  % of the price — that is{" "}
-                  <input
-                    className="set-inline-field figure"
-                    inputMode="decimal"
-                    value={factor}
-                    aria-label="Times the cost"
-                    onChange={(e) => {
-                      const v = Number(e.target.value) || 0;
-                      setFactor(v);
-                      setTarget(shareOfFactor(v));
-                    }}
-                  />{" "}
-                  times the cost
-                </span>
-              </label>
-              <label className={`set-method${method === "money_per_plate" ? " is-on" : ""}`}>
-                <input
-                  type="radio"
-                  name="pricing-method"
-                  value="money_per_plate"
-                  checked={method === "money_per_plate"}
-                  onChange={() => setMethod("money_per_plate")}
-                />
-                <span className="set-method-name">Money per plate</span>
-                <span className="set-method-said">Every plate should leave a set amount after its cost, whatever it costs.</span>
-                <span className="set-method-field">
-                  Every plate leaves {cur.symbol}{" "}
-                  <input
-                    className="set-inline-field figure"
-                    inputMode="decimal"
-                    value={moneyPerPlate}
-                    aria-label="Money left per plate"
-                    onChange={(e) => setMoneyPerPlate(Number(e.target.value) || 0)}
-                  />
-                </span>
-              </label>
-            </div>
 
-            <h3 className="set-h3">What counts as the cost of a plate</h3>
-            <p className="set-note">
-              Ingredients always. Each line below is added on every dish once it
-              has a figure; leave it at zero and it is not counted. A dish can
-              carry its own figure for any of them.
-            </p>
-            <div className="set-lines">
-              <label className="set-line">
-                <span className="set-line-name">Wastage</span>
-                <span className="set-line-field">
-                  <input
-                    className="set-inline-field figure"
-                    inputMode="decimal"
-                    value={wastage}
-                    aria-label="Wastage percent"
-                    onChange={(e) => setWastage(Number(e.target.value) || 0)}
-                  />
-                  % of the ingredient cost. Zero means not counted.
+            <details className="set-more">
+              <summary>
+                <span className="set-more-texts">
+                  <span className="set-more-h">More ways to count the cost of a plate</span>
+                  <span className="set-more-sub">optional — most kitchens leave all of these off</span>
                 </span>
-              </label>
-              <label className="set-line">
-                <span className="set-line-name">Packaging</span>
-                <span className="set-line-field">
-                  {cur.symbol}{" "}
-                  <input
-                    className="set-inline-field figure"
-                    inputMode="decimal"
-                    value={packaging}
-                    aria-label="Packaging per portion"
-                    onChange={(e) => setPackaging(Number(e.target.value) || 0)}
-                  />{" "}
-                  a plate. Zero means not counted; a delivery kitchen usually counts the box here.
-                </span>
-              </label>
-              <label className="set-line">
-                <span className="set-line-name">On every plate</span>
-                <span className="set-line-field">
-                  {cur.symbol}{" "}
-                  <input
-                    className="set-inline-field figure"
-                    inputMode="decimal"
-                    value={accompaniments}
-                    aria-label="Accompaniments per plate"
-                    onChange={(e) => setAccompaniments(Number(e.target.value) || 0)}
-                  />{" "}
-                  a plate of sides, bread, condiments that are not on the recipe
-                </span>
-              </label>
-              <label className="set-line">
-                <span className="set-line-name">Kitchen time</span>
-                <span className="set-line-field">
-                  {cur.symbol}{" "}
-                  <input
-                    className="set-inline-field figure"
-                    inputMode="decimal"
-                    value={labourRate}
-                    aria-label="Kitchen rate per hour"
-                    onChange={(e) => setLabourRate(Number(e.target.value) || 0)}
-                  />{" "}
-                  an hour. Minutes a batch takes are set on each dish.
-                </span>
-              </label>
-              <label className="set-line">
-                <span className="set-line-name">Rent, gas and power</span>
-                <span className="set-line-field">
-                  {cur.symbol}{" "}
-                  <input
-                    className="set-inline-field figure"
-                    inputMode="decimal"
-                    value={overhead}
-                    aria-label="Overhead per plate"
-                    onChange={(e) => setOverhead(Number(e.target.value) || 0)}
-                  />{" "}
-                  a plate: last month&rsquo;s rent, gas and power, divided by the plates you served
-                </span>
-              </label>
-              <label className="set-line">
-                <span className="set-line-name">Rounding</span>
-                <span className="set-line-field">
-                  <select
-                    className="set-inline-select"
-                    value={rounding}
-                    aria-label="Rounding rule"
-                    onChange={(e) => setRounding(e.target.value as PresetName)}
-                  >
-                    {ROUNDING_CHOICES.map((r) => (
-                      <option key={r} value={r}>
-                        {describeRule(PRESETS[r])}
-                      </option>
-                    ))}
-                  </select>
-                </span>
-              </label>
-              <label className="set-line">
-                <span className="set-line-name">Tell me</span>
-                <span className="set-line-field">
-                  when a rate moves more than{" "}
-                  <input
-                    className="set-inline-field figure"
-                    inputMode="decimal"
-                    value={alertMove}
-                    aria-label="Rate move alert percent"
-                    onChange={(e) => setAlertMove(Number(e.target.value) || 0)}
-                  />
-                  % in a month. It goes on the dashboard&rsquo;s list for today, whether or not a dish crossed target.
-                </span>
-              </label>
-              <label className="set-line set-line-check">
-                <span className="set-line-name">The menu price</span>
-                <span className="set-line-field">
-                  <input
-                    type="checkbox"
-                    checked={includeCharges}
-                    onChange={(e) => setIncludeCharges(e.target.checked)}
-                    disabled={data.org.charges.length === 0}
-                  />{" "}
-                  already includes what the bill adds on top
-                  {data.org.charges.length === 0 ? (
-                    <span className="set-line-note"> — nothing is on the bill yet; see the Charges tab</span>
-                  ) : includeCharges ? (
-                    <span className="set-line-note">
-                      {" "}— the bill adds {guestAddsPercent.toFixed(1)}%, so a {target}% target is{" "}
-                      {(target * (1 + guestAddsPercent / 100)).toFixed(1)}% of what you keep
-                    </span>
-                  ) : (
-                    <span className="set-line-note"> — prices are quoted before the bill&rsquo;s charges</span>
-                  )}
-                </span>
-              </label>
-            </div>
+              </summary>
+              <p className="set-note">
+                Each line is added to every plate once it has a figure. Zero means not counted.
+                The price above needs none of them.
+              </p>
+              <div className="set-lines">
+                <label className="set-line set-line-check">
+                  <span className="set-line-name">A fixed amount instead</span>
+                  <span className="set-line-field">
+                    <input
+                      type="checkbox"
+                      checked={method === "money_per_plate"}
+                      onChange={(e) => setMethod(e.target.checked ? "money_per_plate" : "food_share")}
+                    />{" "}
+                    Price every dish at its cost plus a set amount, rather than times its cost.
+                    <span className="set-line-note"> For a menu where a coffee and a biryani should leave the same money.</span>
+                  </span>
+                </label>
+                <label className="set-line">
+                  <span className="set-line-name">Wastage</span>
+                  <span className="set-line-field">
+                    <input
+                      className="set-inline-field figure"
+                      inputMode="decimal"
+                      value={wastage}
+                      aria-label="Wastage percent"
+                      onChange={(e) => setWastage(Number(e.target.value) || 0)}
+                    />
+                    % of the ingredient cost
+                    <span className="set-line-note"> — for what gets trimmed, burnt or thrown away.</span>
+                  </span>
+                </label>
+                <label className="set-line">
+                  <span className="set-line-name">Packaging</span>
+                  <span className="set-line-field">
+                    {cur.symbol}{" "}
+                    <input
+                      className="set-inline-field figure"
+                      inputMode="decimal"
+                      value={packaging}
+                      aria-label="Packaging per portion"
+                      onChange={(e) => setPackaging(Number(e.target.value) || 0)}
+                    />{" "}
+                    a plate
+                    <span className="set-line-note"> — the box, bag or cup a delivery order goes out in.</span>
+                  </span>
+                </label>
+                <label className="set-line">
+                  <span className="set-line-name">Sides on every plate</span>
+                  <span className="set-line-field">
+                    {cur.symbol}{" "}
+                    <input
+                      className="set-inline-field figure"
+                      inputMode="decimal"
+                      value={accompaniments}
+                      aria-label="Accompaniments per plate"
+                      onChange={(e) => setAccompaniments(Number(e.target.value) || 0)}
+                    />{" "}
+                    a plate
+                    <span className="set-line-note"> — sambar, chutney, pickle, bread that go out with every dish but are not on its recipe.</span>
+                  </span>
+                </label>
+                <label className="set-line">
+                  <span className="set-line-name">The cook&rsquo;s time</span>
+                  <span className="set-line-field">
+                    {cur.symbol}{" "}
+                    <input
+                      className="set-inline-field figure"
+                      inputMode="decimal"
+                      value={labourRate}
+                      aria-label="Kitchen rate per hour"
+                      onChange={(e) => setLabourRate(Number(e.target.value) || 0)}
+                    />{" "}
+                    an hour
+                    <span className="set-line-note"> — if you want the price to cover the time a batch takes. Minutes are set on each dish.</span>
+                  </span>
+                </label>
+                <label className="set-line">
+                  <span className="set-line-name">Rent and bills</span>
+                  <span className="set-line-field">
+                    {cur.symbol}{" "}
+                    <input
+                      className="set-inline-field figure"
+                      inputMode="decimal"
+                      value={overhead}
+                      aria-label="Overhead per plate"
+                      onChange={(e) => setOverhead(Number(e.target.value) || 0)}
+                    />{" "}
+                    a plate
+                    <span className="set-line-note"> — last month&rsquo;s rent, gas and power divided by the plates you served, if you want the price to cover them.</span>
+                  </span>
+                </label>
+                <label className="set-line set-line-check">
+                  <span className="set-line-name">The menu price</span>
+                  <span className="set-line-field">
+                    <input
+                      type="checkbox"
+                      checked={includeCharges}
+                      onChange={(e) => setIncludeCharges(e.target.checked)}
+                      disabled={data.org.charges.length === 0}
+                    />{" "}
+                    already includes what the bill adds on top
+                    {data.org.charges.length === 0 ? (
+                      <span className="set-line-note"> — nothing is on the bill yet; see Charges</span>
+                    ) : includeCharges ? (
+                      <span className="set-line-note">
+                        {" "}— the bill adds {guestAddsPercent.toFixed(1)}%, so a {target}% target is{" "}
+                        {(target * (1 + guestAddsPercent / 100)).toFixed(1)}% of what you keep
+                      </span>
+                    ) : (
+                      <span className="set-line-note"> — prices are quoted before the bill&rsquo;s charges</span>
+                    )}
+                  </span>
+                </label>
+                <label className="set-line">
+                  <span className="set-line-name">Tell me</span>
+                  <span className="set-line-field">
+                    when a rate moves more than{" "}
+                    <input
+                      className="set-inline-field figure"
+                      inputMode="decimal"
+                      value={alertMove}
+                      aria-label="Rate move alert percent"
+                      onChange={(e) => setAlertMove(Number(e.target.value) || 0)}
+                    />
+                    % in a month
+                    <span className="set-line-note"> — it goes on the dashboard&rsquo;s list for today.</span>
+                  </span>
+                </label>
+              </div>
+            </details>
 
-            {/*
-              The formula is a description of how their place works. This is
-              the same arithmetic on one of their own dishes, following on the
-              keystroke — which is what makes the figures above feel theirs
-              rather than like a form they are filling in.
-            */}
             <div className="set-overrides">
               <div>
                 <span className="set-scope">A DISH CAN OVERRIDE</span>
@@ -892,13 +895,13 @@ export function SettingsView({
                   common answer for a single outlet, and it is a complete one.
                 </p>
               )}
-              {!charges.some((c) => c.borneBy === "operator") && worldHint.platforms.length > 0 && (
+              {!charges.some((c) => c.borneBy === "operator") && (
                 <div className="set-platforms">
-                  <span className="label">Selling on an app?</span>
+                  <span className="label">Selling on a delivery app?</span>
                   <p className="set-note">
-                    The usual platforms in {worldHint.region} take{" "}
-                    {worldHint.platforms.map((p) => `${p.name} ${p.commission[0]}–${p.commission[1]}%`).join(", ")}{" "}
-                    of the order. Add one as a row and put your own figure on it. <b>Typical, not yours.</b>
+                    Apps usually take {worldHint.appCommission[0]} to {worldHint.appCommission[1]}% of the
+                    order. Add yours as a row, name it, and put its own figure on it.{" "}
+                    <b>Typical, not yours.</b>
                   </p>
                   <div className="set-platform-btns">
                     {suggestedPlatforms(worldHint, charges.length + 1).map((c) => (
@@ -908,7 +911,7 @@ export function SettingsView({
                         className="btn"
                         onClick={() => setCharges((cs) => [...cs, { ...c, order: cs.length + 1 }])}
                       >
-                        Add {c.name.replace(" commission", "")}
+                        Add a delivery app
                       </button>
                     ))}
                   </div>

@@ -115,7 +115,9 @@ export const DEFAULT_MODEL: CostingModel = {
   // offered 30, so an account that skipped the question priced two points
   // apart from one that accepted the suggestion — for no stated reason.
   foodCostTarget: 30,
-  rounding: 'up_to_tenth',
+  // Up to the next whole number: 46.30 is charged as 47. The owner's own
+  // words, and what a menu board looks like.
+  rounding: 'up_whole',
   method: 'food_share',
   moneyPerPlate: 0,
   factor: 3.3,
@@ -132,6 +134,7 @@ export const DEFAULT_MODEL: CostingModel = {
  * can never drift apart.
  */
 export const ROUNDING_CHOICES: readonly PresetName[] = [
+  'up_whole',
   'up_to_tenth',
   'next_9',
   'up_to_5',

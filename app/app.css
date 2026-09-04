@@ -3860,3 +3860,23 @@
 .set-body { animation: set-arrive 240ms var(--ease-enter) both; }
 .set-live { animation: set-arrive 280ms var(--ease-enter) 40ms both; }
 .set-live-sub { margin: 0; font-size: 12px; color: var(--text-tertiary); }
+
+/* ── Settings: the rule as one sentence, the rest folded away ─────── */
+.set-rule { font-size: 17px; line-height: 2.2; max-inline-size: 66ch; margin: 0 0 var(--sp-3); }
+.set-rule .set-inline-field { inline-size: 64px; font-size: 16px; }
+.set-more { margin: var(--sp-5) 0 var(--sp-4); border: 1px solid var(--border-hairline); border-radius: var(--radius-field); background: var(--surface-card); }
+.set-more > summary { list-style: none; cursor: pointer; display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; }
+.set-more > summary::-webkit-details-marker { display: none; }
+.set-more > summary::before { content: "▸"; float: inline-start; margin-inline-end: 8px; color: var(--text-tertiary); transition: transform var(--dur-micro) var(--ease-enter); }
+.set-more[open] > summary::before { transform: rotate(90deg); }
+.set-more-h { font-weight: 600; font-size: 14px; }
+.set-more-sub { font-size: 12px; color: var(--text-tertiary); padding-inline-start: 18px; }
+.set-more[open] > summary { border-block-end: 1px solid var(--border-row); }
+.set-more > .set-note, .set-more > .set-lines { margin-inline: 16px; }
+.set-more > .set-lines { border-top: 0; margin-block-end: var(--sp-3); }
+.set-more > summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+/* The fold's arrow sits beside its title, not above it. */
+.set-more > summary { flex-direction: row; align-items: baseline; gap: 10px; }
+.set-more > summary::before { float: none; margin: 0; flex: none; }
+.set-more > summary .set-more-texts { display: flex; flex-direction: column; gap: 2px; }
+.set-more-sub { padding-inline-start: 0; }

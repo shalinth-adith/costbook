@@ -31,10 +31,12 @@ describe("up to the next tenth", () => {
     expect(applyRounding(2.51, tenth)).toBeCloseTo(2.6, 9);
   });
 
-  it("is the default a new account starts with", async () => {
-    const { DEFAULT_MODEL } = await import("@/lib/costing");
+  it("is offered, but the next whole number is what a new account starts with", async () => {
+    // The owner's words: "46.30 should give us 47, not 46.30".
+    const { DEFAULT_MODEL, ROUNDING_CHOICES } = await import("@/lib/costing");
     const { BLANK_ORG } = await import("@/lib/org");
-    expect(DEFAULT_MODEL.rounding).toBe("up_to_tenth");
-    expect(BLANK_ORG.rounding).toBe("up_to_tenth");
+    expect(DEFAULT_MODEL.rounding).toBe("up_whole");
+    expect(BLANK_ORG.rounding).toBe("up_whole");
+    expect(ROUNDING_CHOICES).toContain("up_to_tenth");
   });
 });
