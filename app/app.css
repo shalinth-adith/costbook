@@ -3799,7 +3799,15 @@
   padding: 4px 10px; border-radius: 999px; background: var(--accent-tint); color: var(--accent);
   font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
 }
-.wiz-count { margin-inline-start: auto; font-size: 13px; color: var(--text-tertiary); }
+.wiz-ticks { margin-inline-start: auto; display: flex; gap: 22px; list-style: none; margin-block: 0; padding: 0; }
+.wiz-tick { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-tertiary); }
+.wiz-tick-no {
+  display: inline-grid; place-items: center; inline-size: 22px; block-size: 22px; border-radius: 50%;
+  font-size: 11px; border: 1px solid var(--border-control); color: var(--text-tertiary);
+}
+.wiz-tick[data-state='now'] { color: var(--text-primary); font-weight: 600; }
+.wiz-tick[data-state='now'] .wiz-tick-no { background: var(--surface-inverse); color: var(--text-on-inverse); border-color: var(--surface-inverse); }
+.wiz-tick[data-state='done'] .wiz-tick-no { background: var(--accent-tint); color: var(--accent); border-color: transparent; }
 
 .wiz-body {
   flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 520px; gap: 56px;
@@ -3908,3 +3916,32 @@
   .wiz-top, .wiz-body { padding-inline: var(--sp-4); }
   .wiz-h { font-size: 28px; }
 }
+
+/* Screen 2, the rules, and screen 3, the review. */
+.wiz-typed { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-secondary); }
+.wiz-input-sm { inline-size: 110px; max-inline-size: 110px; block-size: 38px; text-align: end; }
+.wiz-input[aria-invalid='true'] { border-color: var(--accent); }
+.wiz-rules { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.wiz-rule {
+  display: grid; gap: 4px; padding: 12px 14px; text-align: start; cursor: pointer; font: inherit;
+  color: var(--text-primary); background: var(--surface-page); border: 1px solid var(--border-hairline); border-radius: 12px;
+  transition: border-color var(--dur-micro) var(--ease-enter), background var(--dur-micro) var(--ease-enter);
+}
+.wiz-rule:hover { border-color: var(--border-control); background: var(--surface-sunken); }
+.wiz-rule.is-on { border-color: var(--accent); background: var(--accent-tint); }
+.wiz-rule:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.wiz-rule-said { font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+.wiz-rule-fig { font-size: 12.5px; color: var(--text-secondary); }
+.wiz-review { padding: 24px 0 8px; border-block-start: 1px solid var(--border-hairline); display: grid; gap: 12px; }
+.wiz-review:first-of-type { margin-block-start: 20px; }
+.wiz-review-head { display: flex; align-items: center; justify-content: space-between; }
+.wiz-review .wiz-rows { background: var(--surface-sunken); }
+.wiz-edit {
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; padding: 6px 12px;
+  color: var(--text-primary); background: var(--surface-page); border: 1px solid var(--border-control); border-radius: 999px;
+}
+.wiz-edit:hover { background: var(--surface-sunken); }
+.wiz-edit:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.wiz-save-note { font-size: 14px; color: var(--text-secondary); margin: 20px 0 0; }
+.wiz-back { font: inherit; }
+@media (max-width: 900px) { .wiz-ticks { display: none; } }
