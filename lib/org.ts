@@ -94,14 +94,6 @@ export const BLANK_ORG: Org = {
   setupDone: false,
 };
 
-/** The four the wizard asks, in order, for the progress ticks in A22. */
-export const SETUP_STEPS = [
-  { no: 1, label: 'Your restaurant' },
-  { no: 2, label: 'Country' },
-  { no: 3, label: 'Currency' },
-  { no: 4, label: 'Strength' },
-] as const;
-
 export const TARGET_MIN = 15;
 export const TARGET_MAX = 45;
 

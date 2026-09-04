@@ -16,9 +16,10 @@ export const dynamic = "force-dynamic";
 
 export default async function SetupPreviewPage() {
   const { org } = await book();
+  const defaults = { foodCostTarget: org.foodCostTarget, rounding: org.rounding, staleAfterDays: org.staleAfterDays };
   return (
     <CurrencyProvider code={org.currency}>
-      <SetupWizard initialCurrency={org.currency} preview />
+      <SetupWizard initialCurrency={org.currency} defaults={defaults} preview />
     </CurrencyProvider>
   );
 }

@@ -35,9 +35,10 @@ export default async function SetupPage() {
    * org and the fixture happen to start on the same default.
    */
   const code = org.currency;
+  const defaults = { foodCostTarget: org.foodCostTarget, rounding: org.rounding, staleAfterDays: org.staleAfterDays };
   return (
     <CurrencyProvider code={code}>
-      <SetupWizard initialCurrency={code} />
+      <SetupWizard initialCurrency={code} defaults={defaults} />
     </CurrencyProvider>
   );
 }

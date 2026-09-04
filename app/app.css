@@ -1488,229 +1488,6 @@
 /* One screen, no page scroll. Only the step body scrolls, and only when a step
    genuinely overflows — the tax explainer is the one that can. The footer must
    stay reachable without hunting for it. */
-.wiz {
-  min-height: 100dvh; display: grid;
-  grid-template-rows: var(--sp-14) auto minmax(0, 1fr) auto;
-  background: var(--surface-page);
-}
-.wiz-top {
-  display: flex; align-items: center; gap: var(--sp-4);
-  padding-inline: var(--sp-6);
-  background: var(--surface-card);
-  border-block-end: 1px solid var(--border-hairline);
-}
-.wiz-preview {
-  margin-inline-start: 16px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--accent-tint);
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.wiz-kicker {
-  font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
-  color: var(--text-tertiary);
-}
-.wiz-count { margin-inline-start: auto; font-size: 12.5px; color: var(--text-secondary); }
-
-/* Four named ticks, not a bar filling across the page: names tell someone who
-   left and came back what is left, rather than how much. */
-.wiz-ticks {
-  display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: var(--sp-3); list-style: none; margin: 0;
-  padding: var(--sp-4) var(--sp-6) 0;
-  max-inline-size: none; margin-inline: auto; inline-size: 100%;
-}
-.wiz-tick { display: grid; gap: 6px; }
-.wiz-tick-rule { block-size: 4px; border-radius: 2px; background: var(--border-hairline); }
-.wiz-tick[data-state='done'] .wiz-tick-rule { background: var(--on-ink); }
-.wiz-tick[data-state='current'] .wiz-tick-rule { background: var(--text-primary); }
-.wiz-tick-label { font-size: 11.5px; color: var(--text-tertiary); }
-.wiz-tick[data-state='current'] .wiz-tick-label { color: var(--text-primary); font-weight: 600; }
-
-.wiz-body { overflow-y: auto; padding: var(--sp-8) var(--sp-6); }
-.wiz-step { max-inline-size: none; margin-inline: auto; }
-.wiz-eyebrow {
-  font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em;
-  color: var(--text-tertiary); margin: 0 0 var(--sp-3);
-}
-.wiz-h {
-  font-size: 30px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2;
-  margin: 0 0 var(--sp-3); max-inline-size: 22ch; text-wrap: pretty;
-}
-.wiz-h2 { font-size: 19px; font-weight: 600; margin: var(--sp-8) 0 var(--sp-4); }
-.wiz-lede {
-  font-size: 14px; line-height: 1.6; color: var(--text-secondary);
-  margin: 0 0 var(--sp-6); max-inline-size: 62ch; text-wrap: pretty;
-}
-
-.wiz-field { display: grid; gap: 6px; margin-block-end: var(--sp-6); max-inline-size: 520px; }
-.wiz-label { font-size: 13.5px; font-weight: 600; }
-.wiz-help { font-size: 12.5px; color: var(--text-tertiary); }
-.wiz-input {
-  block-size: var(--row-default); padding-inline: var(--sp-3);
-  font: inherit; font-size: 14px; color: var(--text-primary);
-  background: var(--surface-card);
-  border: 1px solid var(--border-control); border-radius: var(--radius-field);
-}
-.wiz-input:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-
-.wiz-currencies { display: flex; flex-wrap: wrap; gap: 6px; }
-.wiz-cur {
-  block-size: 34px; padding-inline: var(--sp-3);
-  font: inherit; font-size: 12.5px; color: var(--text-secondary);
-  background: var(--surface-card);
-  border: 1px solid var(--border-control); border-radius: var(--radius-chip);
-  cursor: pointer;
-}
-.wiz-cur[data-on='true'] {
-  background: var(--surface-inverse); color: var(--text-on-inverse);
-  border-color: var(--surface-inverse);
-}
-.wiz-cur:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-
-.wiz-note {
-  margin: var(--sp-4) 0 0; padding: var(--sp-4);
-  font-size: 13px; line-height: 1.6; color: var(--text-secondary);
-  background: var(--surface-sunken); border-radius: var(--radius-panel);
-  max-inline-size: 66ch;
-}
-.wiz-note strong { color: var(--text-primary); }
-
-/* Two answers and an explainer. The third is quiet because it is not a third
-   answer — choosing for them would misprice a menu by the tax rate. */
-.wiz-choices { display: grid; gap: var(--sp-3); max-inline-size: 680px; }
-.wiz-choice {
-  display: grid; gap: 4px; text-align: start;
-  padding: var(--sp-4); font: inherit; cursor: pointer;
-  background: var(--surface-card);
-  border: 1px solid var(--border-control); border-radius: var(--radius-panel);
-}
-.wiz-choice:hover { border-color: var(--border-control-hover); }
-.wiz-choice[data-on='true'] { border-color: var(--text-primary); box-shadow: inset 0 0 0 1px var(--text-primary); }
-.wiz-choice:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-.wiz-choice.is-quiet { background: none; border-style: dashed; }
-.wiz-choice-h { font-size: 14.5px; font-weight: 600; }
-.wiz-choice-p { font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
-
-.wiz-explain {
-  margin-block-start: var(--sp-4); padding: var(--sp-5);
-  background: var(--surface-card); border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-panel); max-inline-size: 760px;
-  font-size: 13px; line-height: 1.6; color: var(--text-secondary);
-}
-.wiz-explain h3 { font-size: 13px; font-weight: 600; color: var(--text-primary); margin: var(--sp-4) 0 4px; }
-.wiz-explain p { margin: 0 0 var(--sp-2); }
-.wiz-explain-pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-5); margin-block: var(--sp-3); }
-.wiz-explain-fig { font-size: 13px; color: var(--text-primary); }
-.wiz-explain-fig b { font-size: 18px; }
-.wiz-explain-punch { color: var(--text-primary); font-weight: 500; }
-
-.wiz-charges { display: grid; gap: 6px; max-inline-size: 780px; margin-block-end: var(--sp-3); }
-.wiz-charge-head, .wiz-charge {
-  display: grid; grid-template-columns: 1fr 110px 190px 80px; gap: var(--sp-3);
-  align-items: center;
-}
-.wiz-charge-head { font-size: 11.5px; color: var(--text-tertiary); padding-inline: 2px; }
-.wiz-amt { display: flex; align-items: center; gap: 6px; }
-.wiz-amt .wiz-input { inline-size: 70px; text-align: end; }
-.wiz-stack, .wiz-remove, .wiz-add {
-  block-size: 34px; padding-inline: var(--sp-3); font: inherit; font-size: 12.5px;
-  color: var(--text-secondary); background: var(--surface-card); cursor: pointer;
-  border: 1px solid var(--border-control); border-radius: var(--radius-field);
-}
-.wiz-stack:hover, .wiz-remove:hover, .wiz-add:hover { background: var(--surface-sunken); }
-.wiz-add { border-style: dashed; }
-
-.wiz-bill {
-  margin-block-start: var(--sp-5); padding: var(--sp-4);
-  background: var(--surface-card); border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-panel); max-inline-size: 420px;
-}
-.wiz-bill h3 { font-size: 12.5px; font-weight: 600; margin: 0 0 var(--sp-3); color: var(--text-secondary); }
-.wiz-bill-row {
-  display: flex; justify-content: space-between; gap: var(--sp-4);
-  padding-block: 6px; font-size: 13px;
-  border-block-end: 1px dotted var(--border-row);
-}
-.wiz-bill-row.is-total {
-  border-block-end: 0; border-block-start: 1px solid var(--border-strong);
-  margin-block-start: 4px; padding-block-start: var(--sp-2);
-  font-weight: 600; font-size: 14px;
-}
-
-.wiz-target { display: grid; gap: var(--sp-2); max-inline-size: 460px; }
-.wiz-target-fig { font-size: 44px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
-.wiz-target-fig span { font-size: 24px; color: var(--text-tertiary); }
-.wiz-slider { inline-size: 100%; accent-color: var(--text-primary); }
-.wiz-slider:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 4px; }
-.wiz-slider-ends { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-tertiary); }
-/* The sentence is the control: the largest text on the step, because a target
-   is a percentage until it is a price. */
-.wiz-sentence {
-  margin: var(--sp-6) 0 0; font-size: 22px; line-height: 1.4;
-  letter-spacing: -0.01em; max-inline-size: 30ch; text-wrap: pretty;
-}
-.wiz-sentence-sub { font-size: 14px; color: var(--text-secondary); }
-
-
-.wiz-doors { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); max-inline-size: 860px; }
-.wiz-door {
-  display: grid; gap: 6px; text-align: start; padding: var(--sp-5);
-  font: inherit; cursor: pointer;
-  background: var(--surface-card);
-  border: 1px solid var(--border-control); border-radius: var(--radius-panel);
-}
-.wiz-door:hover { border-color: var(--border-control-hover); }
-.wiz-door:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-.wiz-door.is-primary {
-  background: var(--surface-inverse); border-color: var(--surface-inverse);
-  color: var(--text-on-inverse);
-}
-.wiz-door.is-primary .wiz-door-p { color: var(--text-on-inverse-secondary); }
-.wiz-door-h { font-size: 15.5px; font-weight: 600; }
-.wiz-door-p { font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
-
-.wiz-foot {
-  display: flex; align-items: center; gap: var(--sp-4);
-  padding: var(--sp-4) var(--sp-6);
-  background: var(--surface-card); border-block-start: 1px solid var(--border-hairline);
-}
-.wiz-foot > * { flex: 0 0 auto; }
-.wiz-foot-note { margin-inline: auto; font-size: 12.5px; color: var(--text-tertiary); }
-.wiz-back, .wiz-next {
-  block-size: var(--row-default); padding-inline: 18px; font: inherit; font-size: 13.5px;
-  border-radius: var(--radius-field); cursor: pointer;
-  border: 1px solid var(--border-control); background: var(--surface-card);
-  color: var(--text-primary);
-}
-.wiz-next {
-  background: var(--surface-inverse); color: var(--text-on-inverse);
-  border-color: var(--surface-inverse); font-weight: 600;
-}
-.wiz-back:disabled, .wiz-next:disabled {
-  background: var(--surface-sunken); color: var(--text-tertiary);
-  border-color: var(--border-control); cursor: not-allowed;
-}
-.wiz-back:focus-visible, .wiz-next:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-
-/* 768 · the three steps whose layout actually changes. Steps 1 and 3 are
-   already single-column and lose only their outer margin. */
-@media (max-width: 900px) {
-  .wiz-h { font-size: 24px; }
-  .wiz-explain-pair { grid-template-columns: 1fr; gap: var(--sp-3); }
-  .wiz-doors { grid-template-columns: 1fr; }
-  .wiz-charge-head { display: none; }
-  .wiz-charge { grid-template-columns: 1fr 90px; grid-template-areas: 'name amt' 'stack remove'; }
-  .wiz-body { padding-inline: var(--sp-4); }
-  .wiz-ticks { padding-inline: var(--sp-4); }
-  .wiz-top, .wiz-foot { padding-inline: var(--sp-4); }
-  .wiz-sentence { font-size: 19px; }
-}
 
 /* ── A27 · Settings ──────────────────────────────────────────────────────── */
 .set { max-inline-size: none; margin-inline: auto; padding: var(--sp-6); }
@@ -3761,13 +3538,6 @@
 .wiz-sellhow { margin: 0 0 var(--sp-5); }
 .wiz-sellhow-q { display: block; font-weight: 600; margin-block-end: 8px; }
 .wiz-sellhow-opts { display: flex; flex-wrap: wrap; gap: 8px; }
-.wiz-chip {
-  font: inherit; font-size: 14px; padding: 8px 14px; cursor: pointer;
-  background: var(--surface-card); color: var(--text-primary);
-  border: 1px solid var(--border-control); border-radius: var(--radius-chip);
-}
-.wiz-chip.is-on { background: var(--surface-inverse); color: var(--text-on-inverse); border-color: var(--surface-inverse); }
-.wiz-chip:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .wiz-sellhow-note { margin: 10px 0 0; font-size: 13.5px; color: var(--text-secondary); line-height: 1.55; max-inline-size: 62ch; }
 .set-typical { margin: 0 0 var(--sp-3); max-inline-size: 70ch; }
 .set-platforms { margin: var(--sp-3) 0 var(--sp-4); padding: 12px 14px; background: var(--surface-sunken); border: 1px solid var(--border-hairline); border-radius: var(--radius-field); }
@@ -4015,19 +3785,126 @@
 
 /* ── Setup: the restaurant's portfolio, one answer a screen ───────────── */
 .wiz-h { font-family: var(--font-display), var(--font-sans), sans-serif; font-weight: 800; font-size: 44px; letter-spacing: -0.03em; line-height: 1.02; max-inline-size: 22ch; text-wrap: balance; }
-.wiz-input-lg { block-size: 64px; font-size: 26px; font-weight: 600; padding-inline: 18px; }
-.wiz-big { font-size: 96px; margin: 18px 0 6px; letter-spacing: -0.03em; }
-.wiz-countries { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-block-start: 14px; }
-.wiz-countries .wiz-chip { justify-content: space-between; display: flex; align-items: center; block-size: 48px; padding-inline: 16px; font-size: 15px; border-radius: 12px; }
-.wiz-chip-sub { font-size: 12px; opacity: .65; }
-.wiz-cur { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+
+/* ── The setup screen ───────────────────────────────────────────────────────
+   One page, two halves: the four answers on the left at the app's own scale,
+   and on the right what they set up, from real values. */
+.wiz { min-block-size: 100dvh; display: flex; flex-direction: column; background: var(--surface-page); }
+.wiz-top {
+  display: flex; align-items: center; gap: var(--sp-5);
+  padding: 18px 40px; border-block-end: 1px solid var(--border-hairline);
+}
+.wiz-kicker { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+.wiz-preview {
+  padding: 4px 10px; border-radius: 999px; background: var(--accent-tint); color: var(--accent);
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.wiz-count { margin-inline-start: auto; font-size: 13px; color: var(--text-tertiary); }
+
+.wiz-body {
+  flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 520px; gap: 56px;
+  padding: 36px 40px 48px; align-items: start;
+}
+.wiz-form { min-inline-size: 0; }
+.wiz-eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); margin: 0 0 10px; }
+.wiz-h { font-size: 34px; line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 12px; }
+.wiz-lede { font-size: 15.5px; line-height: 1.6; color: var(--text-secondary); max-inline-size: 720px; margin: 0 0 8px; }
+
+.wiz-sec {
+  display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 32px;
+  padding: 28px 0; border-block-start: 1px solid var(--border-hairline);
+}
+.wiz-sec:first-of-type { margin-block-start: 24px; }
+.wiz-sec-head { display: grid; gap: 4px; align-content: start; }
+.wiz-sec-no { font-size: 11px; color: var(--text-tertiary); letter-spacing: 0.08em; }
+.wiz-sec-h { font-size: 18px; font-weight: 600; margin: 0; }
+.wiz-sec-p { font-size: 13.5px; line-height: 1.55; color: var(--text-secondary); margin: 2px 0 0; }
+.wiz-sec-body { display: grid; gap: 12px; align-content: start; min-inline-size: 0; }
+
+.wiz-input {
+  block-size: 44px; inline-size: 100%; max-inline-size: 520px; padding-inline: 14px;
+  font: inherit; font-size: 15px; color: var(--text-primary);
+  background: var(--surface-page); border: 1px solid var(--border-control); border-radius: 10px;
+}
+.wiz-input:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+.wiz-countries { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.wiz-chip {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  block-size: 38px; padding-inline: 12px; font: inherit; font-size: 13.5px; text-align: start; cursor: pointer;
+  color: var(--text-primary); background: var(--surface-page); border: 1px solid var(--border-hairline); border-radius: 10px;
+  transition: border-color var(--dur-micro) var(--ease-enter), background var(--dur-micro) var(--ease-enter);
+}
+.wiz-chip:hover { border-color: var(--border-control); background: var(--surface-sunken); }
+.wiz-chip.is-on { background: var(--surface-inverse); color: var(--text-on-inverse); border-color: var(--surface-inverse); }
+.wiz-chip:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.wiz-chip-sub { font-size: 11px; opacity: .65; }
+.wiz-note { grid-column: 1 / -1; font-size: 13px; color: var(--text-secondary); margin: 0; }
+
+.wiz-currencies { display: flex; flex-wrap: wrap; gap: 8px; }
+.wiz-cur {
+  display: grid; gap: 1px; padding: 8px 12px; min-inline-size: 118px; text-align: start; cursor: pointer;
+  font: inherit; color: var(--text-primary); background: var(--surface-page);
+  border: 1px solid var(--border-hairline); border-radius: 10px;
+  transition: border-color var(--dur-micro) var(--ease-enter), background var(--dur-micro) var(--ease-enter);
+}
+.wiz-cur .figure { font-size: 13px; }
+.wiz-cur-name { font-size: 11.5px; color: var(--text-tertiary); }
+.wiz-cur:hover { border-color: var(--border-control); background: var(--surface-sunken); }
 .wiz-cur.is-on { background: var(--surface-inverse); color: var(--text-on-inverse); border-color: var(--surface-inverse); }
-.wiz-cur-name { font-size: 12px; opacity: .7; }
-.wiz-sizes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-block-start: 18px; }
-.wiz-size { display: flex; flex-direction: column; gap: 6px; padding: 22px 20px; text-align: start; font: inherit; cursor: pointer; background: var(--surface-sunken); color: var(--text-primary); border: 1.5px solid var(--border-hairline); border-radius: 16px; transition: transform var(--dur-micro) var(--ease-enter), border-color var(--dur-micro) var(--ease-enter); }
-.wiz-size:hover { transform: translateY(-1px); border-color: var(--border-control); }
+.wiz-cur.is-on .wiz-cur-name { color: var(--text-on-inverse-secondary); }
+.wiz-cur:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+.wiz-sizes { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.wiz-size {
+  display: grid; gap: 2px; padding: 12px 14px; text-align: start; cursor: pointer; font: inherit;
+  color: var(--text-primary); background: var(--surface-page); border: 1px solid var(--border-hairline); border-radius: 12px;
+  transition: border-color var(--dur-micro) var(--ease-enter), background var(--dur-micro) var(--ease-enter);
+}
+.wiz-size:hover { border-color: var(--border-control); background: var(--surface-sunken); }
 .wiz-size.is-on { border-color: var(--accent); background: var(--accent-tint); }
 .wiz-size:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-.wiz-size-label { font-size: 30px; }
-.wiz-size-said { font-size: 13px; color: var(--text-secondary); }
-.wiz-body, .wiz-step { max-inline-size: none; }
+.wiz-size-label { font-size: 16px; font-weight: 600; }
+.wiz-size-said { font-size: 12.5px; color: var(--text-secondary); }
+
+.wiz-foot { display: flex; align-items: center; gap: 18px; padding-block-start: 28px; border-block-start: 1px solid var(--border-hairline); }
+.wiz-foot-note { font-size: 13px; color: var(--text-tertiary); }
+.wiz-next:disabled { opacity: .5; cursor: not-allowed; }
+.wiz-next:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+/* The right half. Sticky so it stays beside whichever answer is being typed. */
+.wiz-live {
+  position: sticky; top: 24px; display: grid; gap: 14px; align-content: start;
+  padding: 26px 28px 28px; background: var(--surface-sunken); border: 1px solid var(--border-hairline); border-radius: 16px;
+}
+.wiz-live-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); margin: 6px 0 0; }
+.wiz-live-label:first-child { margin-block-start: 0; }
+.wiz-card { background: var(--surface-page); border: 1px solid var(--border-hairline); border-radius: 12px; overflow: hidden; }
+.wiz-card-head { display: grid; gap: 2px; padding: 18px 20px 16px; border-block-end: 1px solid var(--border-hairline); }
+.wiz-card-name { font-size: 24px; line-height: 1.15; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.wiz-card-name.is-empty { color: var(--text-tertiary); }
+.wiz-card-sub { font-size: 13px; color: var(--text-secondary); }
+.wiz-card-money { display: grid; gap: 4px; padding: 16px 20px 18px; }
+.wiz-card-money-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); }
+.wiz-card-money-fig { font-size: 44px; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.wiz-card-money-more { font-size: 13px; line-height: 1.5; color: var(--text-secondary); margin-block-start: 6px; }
+
+.wiz-rows { display: grid; margin: 0; background: var(--surface-page); border: 1px solid var(--border-hairline); border-radius: 12px; overflow: hidden; }
+.wiz-row { display: grid; gap: 3px; padding: 12px 16px; border-block-start: 1px solid var(--border-hairline); }
+.wiz-row:first-child { border-block-start: 0; }
+.wiz-row dt { font-size: 12.5px; color: var(--text-tertiary); }
+.wiz-row dd { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-primary); }
+.wiz-row dd b { font-weight: 600; }
+
+.wiz-then { margin: 0; padding-inline-start: 20px; display: grid; gap: 8px; font-size: 13.5px; line-height: 1.5; color: var(--text-secondary); }
+.wiz-then b { color: var(--text-primary); font-weight: 600; }
+
+@media (max-width: 1100px) {
+  .wiz-body { grid-template-columns: 1fr; gap: 32px; }
+  .wiz-live { position: static; }
+  .wiz-sec { grid-template-columns: 1fr; gap: 14px; }
+}
+@media (max-width: 700px) {
+  .wiz-top, .wiz-body { padding-inline: var(--sp-4); }
+  .wiz-h { font-size: 28px; }
+}
