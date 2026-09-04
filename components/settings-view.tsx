@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { type Charge, applyCharges, effectiveRate } from "@/core/charges";
 import { currency, formatMoney } from "@/core/currency";
@@ -52,6 +52,24 @@ const EXAMPLE_PRICE = 100;
  */
 const ROUNDING_SHOWN: readonly number[] = [46.3, 118.7, 232.4];
 
+/**
+ * A figure that ticks when it changes. The live panel follows every keystroke,
+ * and a value that moves without a trace is one the eye misses; a short
+ * settle says "this one moved".
+ */
+function LiveFigure({ children }: { children: string }) {
+  const [tick, setTick] = useState(false);
+  const prev = useRef(children);
+  useEffect(() => {
+    if (prev.current === children) return undefined;
+    prev.current = children;
+    setTick(true);
+    const t = setTimeout(() => setTick(false), 480);
+    return () => clearTimeout(t);
+  }, [children]);
+  return <span className={`live-fig${tick ? " is-tick" : ""}`}>{children}</span>;
+}
+
 /** One line of the worked example. The figure column stays a figure. */
 function WorkedRow({
   said,
@@ -65,7 +83,7 @@ function WorkedRow({
   return (
     <div className={`set-worked-row${strong === true ? " is-strong" : ""}`}>
       <dt>{said}</dt>
-      <dd className="figure">{figure}</dd>
+      <dd className="figure"><LiveFigure>{figure}</LiveFigure></dd>
     </div>
   );
 }
@@ -221,11 +239,143 @@ export function SettingsView({
     });
   };
 
+  const liveCosting = (
+    <>
+            {data.sample === null ? null : (
+              <section className="set-worked">
+                <h3 className="set-h3">
+                  On one of your dishes, right now
+                  <span className="set-worked-dish">{data.sample.name}</span>
+                </h3>
+                <dl className="set-worked-rows">
+                  <WorkedRow
+                    said="Ingredients, as costed today"
+                    figure={money(sampleIngredients)}
+                  />
+                  <WorkedRow
+                    said={`Wastage at ${wastage}%`}
+                    figure={`+ ${money(sampleWaste)}`}
+                  />
+                  <WorkedRow
+                    said="Packaging"
+                    figure={`+ ${money(packaging)}`}
+                  />
+                  {accompaniments > 0 ? (
+                    <WorkedRow said="On every plate" figure={`+ ${money(accompaniments)}`} />
+                  ) : null}
+                  {overhead > 0 ? (
+                    <WorkedRow said="Rent, gas and power" figure={`+ ${money(overhead)}`} />
+                  ) : null}
+                  <WorkedRow
+                    said="Plate cost"
+                    figure={money(samplePlate)}
+                    strong
+                  />
+                  <WorkedRow
+                    said={`Cost ${sampleSuggestion.methodLabel}`}
+                    figure={money(sampleSuggestion.net)}
+                  />
+                  {includeCharges && data.org.charges.length > 0 ? (
+                    <WorkedRow said="Plus what the bill adds" figure={money(sampleSuggestion.exact)} />
+                  ) : null}
+                  <WorkedRow
+                    said="Suggested price"
+                    figure={money(sampleSuggestion.rounded)}
+                    strong
+                  />
+                </dl>
+                <p className="set-note">
+                  This is your dish and your rates, not an illustration. Change
+                  a figure above and this follows on the same keystroke.
+                </p>
+              </section>
+            )}
+
+            {/* Nobody can predict what a rounding rule does to their menu from
+                its name, so it is shown on three prices rather than described. */}
+            <section className="set-rounding-eg">
+              <h3 className="set-h3">What that rounding does to real prices</h3>
+              <div className="set-rounding-rows">
+                {ROUNDING_SHOWN.map((raw) => (
+                  <div className="set-rounding-row" key={raw}>
+                    <span className="figure set-rounding-from">
+                      {money(raw)}
+                    </span>
+                    <span
+                      className="figure set-rounding-arrow"
+                      aria-hidden="true"
+                    >
+                      &rarr;
+                    </span>
+                    <span className="figure set-rounding-to">
+                      <LiveFigure>{money(applyRounding(raw, PRESETS[rounding]))}</LiveFigure>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+    </>
+  );
+  const liveCharges = (
+    <>
+            {bill !== null && (
+              <div className="wiz-bill">
+                <h3>One {money(EXAMPLE_PRICE)} dish, itemised</h3>
+                <div className="wiz-bill-row">
+                  <span>Menu price</span>
+                  <span className="figure">{money(EXAMPLE_PRICE)}</span>
+                </div>
+                {bill.lines.map((l, i) => (
+                  <div className="wiz-bill-row" key={i} data-borne={l.borneBy}>
+                    <span>
+                      {l.name}{" "}
+                      <em>
+                        {l.borneBy === "guest"
+                          ? "the guest pays"
+                          : "you bear this"}
+                      </em>
+                    </span>
+                    <span className="figure">
+                      {l.borneBy === "operator" ? "−" : ""}
+                      {money(l.amount)}
+                    </span>
+                  </div>
+                ))}
+                <div className="wiz-bill-row is-total">
+                  <span>The guest pays</span>
+                  <span className="figure"><LiveFigure>{money(bill.guestTotal)}</LiveFigure></span>
+                </div>
+                <div className="wiz-bill-row is-total">
+                  <span>You keep</span>
+                  <span className="figure"><LiveFigure>{money(bill.operatorKeeps)}</LiveFigure></span>
+                </div>
+              </div>
+            )}
+    </>
+  );
+
+  const guestCharges = charges.filter((c) => c.name.trim() !== "" && c.borneBy === "guest").length;
+  const operatorCharges = charges.filter((c) => c.name.trim() !== "" && c.borneBy === "operator").length;
+  const summaryOf: Readonly<Record<Tab, string>> = {
+    Organisation: `${name.trim() === "" ? data.org.name : name} · ${cur.symbol} · ${taxLabel(data.org.taxTreatment).toLowerCase()}`,
+    Costing: `${PRICING_METHODS.find((pm) => pm.name === method)?.label ?? "Food share"} · ${
+      method === "food_share" ? `${target}%` : method === "money_per_plate" ? `${cur.symbol} ${moneyPerPlate} a plate` : `× ${factor}`
+    } · ${describeRule(PRESETS[rounding])}`,
+    Charges:
+      guestCharges + operatorCharges === 0
+        ? "Nothing on the bill"
+        : `${guestCharges} on the bill · ${operatorCharges} you bear`,
+    Team: data.members.length === 1 ? "One person, the owner" : `${data.members.length} people`,
+    Billing: `${data.plan === "free" ? "Free" : "Paid"} · ${data.recipeCount} of ${data.plan === "free" ? FREE_LIMITS.recipes : "unlimited"} dishes`,
+  };
+
   return (
     <div className="set">
       <div className="set-head">
         <div>
           <h1 className="set-h">Settings</h1>
+          {dirty && <span className="set-pill-unsaved">Unsaved changes</span>}
           <p className="set-lede">
             Everything here is also editable where it acts — on the dish, in the
             cost breakdown, beside the figure it produces. This screen is for
@@ -238,22 +388,30 @@ export function SettingsView({
       </div>
 
       {/* Tabs at 1440; the same list stacks at 768. */}
-      <div className="set-tabs" role="tablist" aria-label="Settings sections">
+      <div className="set-cols">
+      {/*
+        The sections down the left, each with what it currently says — so the
+        page reads as one account at a glance, not five tabs to open. The
+        summaries follow the fields live: change the method and the word
+        under "Costing" changes with it.
+      */}
+      <nav className="set-nav" role="tablist" aria-label="Settings sections">
         {TABS.map((t) => (
           <button
             key={t}
-            role="tab"
             type="button"
-            aria-selected={t === tab}
-            className="set-tab"
+            role="tab"
+            aria-selected={tab === t}
+            className={`set-nav-item${tab === t ? " is-on" : ""}`}
             onClick={() => setTab(t)}
           >
-            {t}
+            <span className="set-nav-name">{t}</span>
+            <span className="set-nav-sum">{summaryOf[t]}</span>
           </button>
         ))}
-      </div>
+      </nav>
 
-      <div className="set-body" role="tabpanel">
+      <div className="set-body" role="tabpanel" key={tab}>
         {tab === "Organisation" && (
           <>
             <SettingRow
@@ -610,80 +768,6 @@ export function SettingsView({
               keystroke — which is what makes the figures above feel theirs
               rather than like a form they are filling in.
             */}
-            {data.sample === null ? null : (
-              <section className="set-worked">
-                <h3 className="set-h3">
-                  On one of your dishes, right now
-                  <span className="set-worked-dish">{data.sample.name}</span>
-                </h3>
-                <dl className="set-worked-rows">
-                  <WorkedRow
-                    said="Ingredients, as costed today"
-                    figure={money(sampleIngredients)}
-                  />
-                  <WorkedRow
-                    said={`Wastage at ${wastage}%`}
-                    figure={`+ ${money(sampleWaste)}`}
-                  />
-                  <WorkedRow
-                    said="Packaging"
-                    figure={`+ ${money(packaging)}`}
-                  />
-                  {accompaniments > 0 ? (
-                    <WorkedRow said="On every plate" figure={`+ ${money(accompaniments)}`} />
-                  ) : null}
-                  {overhead > 0 ? (
-                    <WorkedRow said="Rent, gas and power" figure={`+ ${money(overhead)}`} />
-                  ) : null}
-                  <WorkedRow
-                    said="Plate cost"
-                    figure={money(samplePlate)}
-                    strong
-                  />
-                  <WorkedRow
-                    said={`Cost ${sampleSuggestion.methodLabel}`}
-                    figure={money(sampleSuggestion.net)}
-                  />
-                  {includeCharges && data.org.charges.length > 0 ? (
-                    <WorkedRow said="Plus what the bill adds" figure={money(sampleSuggestion.exact)} />
-                  ) : null}
-                  <WorkedRow
-                    said="Suggested price"
-                    figure={money(sampleSuggestion.rounded)}
-                    strong
-                  />
-                </dl>
-                <p className="set-note">
-                  This is your dish and your rates, not an illustration. Change
-                  a figure above and this follows on the same keystroke.
-                </p>
-              </section>
-            )}
-
-            {/* Nobody can predict what a rounding rule does to their menu from
-                its name, so it is shown on three prices rather than described. */}
-            <section className="set-rounding-eg">
-              <h3 className="set-h3">What that rounding does to real prices</h3>
-              <div className="set-rounding-rows">
-                {ROUNDING_SHOWN.map((raw) => (
-                  <div className="set-rounding-row" key={raw}>
-                    <span className="figure set-rounding-from">
-                      {money(raw)}
-                    </span>
-                    <span
-                      className="figure set-rounding-arrow"
-                      aria-hidden="true"
-                    >
-                      &rarr;
-                    </span>
-                    <span className="figure set-rounding-to">
-                      {money(applyRounding(raw, PRESETS[rounding]))}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </section>
-
             <div className="set-overrides">
               <div>
                 <span className="set-scope">A DISH CAN OVERRIDE</span>
@@ -920,39 +1004,6 @@ export function SettingsView({
               </button>
             </div>
 
-            {bill !== null && (
-              <div className="wiz-bill">
-                <h3>A {money(EXAMPLE_PRICE)} dish, itemised</h3>
-                <div className="wiz-bill-row">
-                  <span>Menu price</span>
-                  <span className="figure">{money(EXAMPLE_PRICE)}</span>
-                </div>
-                {bill.lines.map((l, i) => (
-                  <div className="wiz-bill-row" key={i} data-borne={l.borneBy}>
-                    <span>
-                      {l.name}{" "}
-                      <em>
-                        {l.borneBy === "guest"
-                          ? "the guest pays"
-                          : "you bear this"}
-                      </em>
-                    </span>
-                    <span className="figure">
-                      {l.borneBy === "operator" ? "−" : ""}
-                      {money(l.amount)}
-                    </span>
-                  </div>
-                ))}
-                <div className="wiz-bill-row is-total">
-                  <span>The guest pays</span>
-                  <span className="figure">{money(bill.guestTotal)}</span>
-                </div>
-                <div className="wiz-bill-row is-total">
-                  <span>You keep</span>
-                  <span className="figure">{money(bill.operatorKeeps)}</span>
-                </div>
-              </div>
-            )}
             <p className="set-note">
               Charges the guest pays are added; charges you bear are taken off
               what reaches you.
@@ -985,6 +1036,65 @@ export function SettingsView({
             start={start}
           />
         )}
+      </div>
+
+      {/*
+        What the section on the left does, live. A worked example on one of
+        the owner's own dishes for costing; the itemised bill for charges; the
+        account in one card for the rest. Sticky, so it stays beside the field
+        being typed in.
+      */}
+      <aside className="set-live" key={`live-${tab}`}>
+        {tab === "Costing" && liveCosting}
+        {tab === "Charges" && (
+          <>
+            {liveCharges}
+            <p className="set-live-sub">Follows the stack as you type it.</p>
+            {bill === null || bill.lines.length === 0 ? (
+              <p className="set-note">
+                Nothing on the bill: a {money(EXAMPLE_PRICE)} dish is {money(EXAMPLE_PRICE)} to the
+                guest and {money(EXAMPLE_PRICE)} to you.
+              </p>
+            ) : null}
+          </>
+        )}
+        {tab === "Organisation" && (
+          <div className="set-card">
+            <span className="label">Your account, in one card</span>
+            <dl className="set-card-rows">
+              <div><dt>Name</dt><dd>{name.trim() === "" ? data.org.name : name}</dd></div>
+              <div><dt>Currency</dt><dd className="figure">{cur.symbol} · {cur.name}</dd></div>
+              <div><dt>Supplier tax</dt><dd>{taxLabel(data.org.taxTreatment)}</dd></div>
+              <div><dt>Units</dt><dd className="figure">{data.org.defaultMassUnit} · {data.org.defaultVolumeUnit}</dd></div>
+              <div><dt>A rate is stale after</dt><dd className="figure">{stale} days</dd></div>
+              <div><dt>On the book</dt><dd className="figure">{data.recipeCount} dishes · {data.ingredientCount} ingredients</dd></div>
+            </dl>
+            <p className="set-note">
+              Currency and the tax answer never change here: every rate on file was typed in them.
+            </p>
+          </div>
+        )}
+        {tab === "Team" && (
+          <div className="set-card">
+            <span className="label">Who is in</span>
+            <p className="set-card-big">{data.members.length === 1 ? "One person" : `${data.members.length} people`}</p>
+            <p className="set-note">
+              Costbook is one owner per account for now, and the owner can do everything. A second
+              person is a screen away, not a migration.
+            </p>
+          </div>
+        )}
+        {tab === "Billing" && (
+          <div className="set-card">
+            <span className="label">Your plan</span>
+            <p className="set-card-big">{data.plan === "free" ? "Free" : "Paid"}</p>
+            <dl className="set-card-rows">
+              <div><dt>Dishes</dt><dd className="figure">{data.recipeCount} of {data.plan === "free" ? FREE_LIMITS.recipes : "unlimited"}</dd></div>
+              <div><dt>Ingredients</dt><dd className="figure">{data.ingredientCount}</dd></div>
+            </dl>
+          </div>
+        )}
+      </aside>
       </div>
     </div>
   );

@@ -3787,3 +3787,76 @@
 .me-more { font-size: 12px; color: var(--text-tertiary); }
 .me-note { margin-top: 8px; }
 .sales-read { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+/* ── Settings: a desktop page ─────────────────────────────────────── */
+/* It was an 1100px column with rows capped at 720px: a tablet on a monitor.
+   Now the same 1480px measure as the sheet, in three columns — the sections
+   with what they say, the fields, and what the fields do, live. */
+.set { max-inline-size: 1480px; }
+.set-head { position: relative; }
+.set-cols { display: grid; grid-template-columns: 224px minmax(0, 1fr) 400px; gap: var(--sp-8); align-items: start; margin-block-start: var(--sp-6); }
+.set-row, .set-charges { max-inline-size: none; }
+.set-body { padding-block-start: 0; min-width: 0; animation: dc-arrive 360ms var(--ease-enter) both; }
+
+.set-nav { position: sticky; top: var(--sp-4); display: flex; flex-direction: column; gap: 2px; }
+.set-nav-item {
+  display: flex; flex-direction: column; gap: 3px; text-align: start;
+  padding: 10px 12px 10px 14px; font: inherit; cursor: pointer;
+  background: none; border: 0; border-inline-start: 3px solid transparent; border-radius: 0 var(--radius-field) var(--radius-field) 0;
+  color: var(--text-secondary);
+  transition: background var(--dur-micro) var(--ease-enter), color var(--dur-micro) var(--ease-enter), border-color var(--dur-micro) var(--ease-enter), transform var(--dur-micro) var(--ease-enter);
+}
+.set-nav-item:hover { background: var(--surface-sunken); color: var(--text-primary); transform: translateX(2px); }
+.set-nav-item.is-on { background: var(--surface-card); color: var(--text-primary); border-inline-start-color: var(--text-primary); box-shadow: 0 1px 0 var(--border-hairline), 0 6px 18px rgb(23 27 36 / 0.05); }
+.set-nav-item:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.set-nav-name { font-size: 14px; font-weight: 600; }
+.set-nav-sum { font-size: 12px; line-height: 1.4; color: var(--text-tertiary); }
+.set-nav-item.is-on .set-nav-sum { color: var(--text-secondary); }
+
+.set-live { position: sticky; top: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; animation: dc-arrive 420ms var(--ease-enter) 80ms both; }
+.set-live .set-worked { margin-block-start: 0; }
+.set-live .set-rounding-eg { margin-block-start: 0; padding: var(--sp-4) 16px; background: var(--surface-card); border: 1px solid var(--border-hairline); border-radius: var(--radius-field); }
+.set-live .set-rounding-eg .set-h3 { margin-block-start: 0; }
+.set-live .wiz-bill { margin: 0; }
+.set-live-h { display: flex; flex-direction: column; gap: 2px; }
+.set-live-sub { font-size: 12px; color: var(--text-tertiary); }
+.set-card { background: var(--surface-card); border: 1px solid var(--border-hairline); border-radius: var(--radius-field); padding: var(--sp-4) 16px; }
+.set-card-big { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; margin: 6px 0 4px; }
+.set-card-rows { margin: 10px 0 0; display: flex; flex-direction: column; }
+.set-card-rows > div { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-block-end: 1px solid var(--border-row); font-size: 13.5px; }
+.set-card-rows dt { color: var(--text-secondary); }
+.set-card-rows dd { margin: 0; text-align: end; }
+
+.set-pill-unsaved {
+  position: absolute; inset-inline-end: 0; inset-block-start: 40px;
+  font-family: var(--font-mono, inherit); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 4px 9px; border-radius: 3px; background: var(--near-tint); color: var(--near-ink-strong); border: 1px solid var(--near-edge);
+  animation: dc-arrive 300ms var(--ease-enter) both;
+}
+
+/* Figures in the live panel settle when they change. */
+.live-fig { display: inline-block; transition: color 200ms var(--ease-enter); }
+.live-fig.is-tick { animation: fig-tick 480ms var(--ease-enter); color: var(--text-primary); }
+@keyframes fig-tick { 0% { transform: translateY(-3px); opacity: 0.35; } 100% { transform: none; opacity: 1; } }
+
+/* Method cards lift under the pointer. */
+.set-method { transition: border-color var(--dur-micro) var(--ease-enter), box-shadow var(--dur-micro) var(--ease-enter), transform var(--dur-micro) var(--ease-enter); }
+.set-method:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgb(23 27 36 / 0.06); }
+
+@media (max-width: 1100px) {
+  .set-cols { grid-template-columns: minmax(0, 1fr); gap: var(--sp-5); }
+  .set-nav { position: static; flex-direction: row; overflow-x: auto; gap: 6px; padding-block-end: 6px; border-block-end: 1px solid var(--border-hairline); }
+  .set-nav-item { border-inline-start: 0; border-block-end: 2px solid transparent; border-radius: var(--radius-field) var(--radius-field) 0 0; white-space: nowrap; }
+  .set-nav-item.is-on { border-block-end-color: var(--text-primary); box-shadow: none; }
+  .set-nav-sum { display: none; }
+  .set-live { position: static; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .set-body, .set-live, .set-pill-unsaved, .live-fig.is-tick { animation: none; }
+  .set-nav-item:hover, .set-method:hover { transform: none; }
+}
+/* A section switch is a quick settle, not the dashboard's slower arrival. */
+@keyframes set-arrive { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.set-body { animation: set-arrive 240ms var(--ease-enter) both; }
+.set-live { animation: set-arrive 280ms var(--ease-enter) 40ms both; }
+.set-live-sub { margin: 0; font-size: 12px; color: var(--text-tertiary); }
