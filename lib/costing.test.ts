@@ -3,11 +3,18 @@ import { describe, expect, it } from 'vitest';
 import { recipeCost } from '@/core/recipe';
 
 import { DEFAULT_MODEL, buildUp, foodCostPercent, statusFor, suggestPrice } from './costing';
+
+/**
+ * The figures these tests reason about, stated. The product's defaults are
+ * zero (a default nobody entered must not move a price); the arithmetic of a
+ * wastage percentage and a flat packaging line is tested with real ones.
+ */
+const MODEL = { ...DEFAULT_MODEL, wastagePercent: 2, packagingPerPortion: 0.35 };
 import { meta, pantry } from './data';
 
 /** Narrows a plated dish's build-up, which the type keeps nullable. */
 function platedBuild(id: string) {
-  const b = buildUp(costOf(id));
+  const b = buildUp(costOf(id), MODEL);
   if (b.ingredientsPerPortion === null || b.total === null || b.wastage === null || b.packaging === null) {
     throw new Error(`${id} has no portions`);
   }
@@ -92,26 +99,26 @@ describe('the suggested price shows its working', () => {
   const build = platedBuild('plate');
 
   it('divides the cost by the target', () => {
-    const s = suggestPrice(build.total, DEFAULT_MODEL);
-    expect(s.exact).toBeCloseTo(build.total / (DEFAULT_MODEL.foodCostTarget / 100), 10);
+    const s = suggestPrice(build.total, MODEL);
+    expect(s.exact).toBeCloseTo(build.total / (MODEL.foodCostTarget / 100), 10);
   });
 
   it('always rounds up, never down', () => {
     // Rounding a suggested price down silently erodes the target the operator
     // just set (COSTING_MODELS Axis F).
     for (const rounding of ['charm_99', 'up_to_5', 'nearest_whole', 'none'] as const) {
-      const s = suggestPrice(build.total, { ...DEFAULT_MODEL, rounding });
+      const s = suggestPrice(build.total, { ...MODEL, rounding });
       expect(s.rounded).toBeGreaterThanOrEqual(s.exact - 0.005);
     }
   });
 
   it('ends a charm price in .99', () => {
-    const s = suggestPrice(build.total, { ...DEFAULT_MODEL, rounding: 'charm_99' });
+    const s = suggestPrice(build.total, { ...MODEL, rounding: 'charm_99' });
     expect(Number((s.rounded % 1).toFixed(2))).toBeCloseTo(0.99, 6);
   });
 
   it('offers the alternative with the food cost it produces', () => {
-    const s = suggestPrice(build.total, DEFAULT_MODEL);
+    const s = suggestPrice(build.total, MODEL);
     expect(s.alternative).not.toBe(s.rounded);
     expect(s.roundedFoodCost).toBeCloseTo((build.total / s.rounded) * 100, 10);
     expect(s.alternativeFoodCost).toBeCloseTo((build.total / s.alternative) * 100, 10);

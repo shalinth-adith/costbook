@@ -13,6 +13,9 @@ import { describe, expect, it } from 'vitest';
 import { flatComponent, ingredientComponent } from '@/core/recipe';
 
 import { DEFAULT_MODEL } from './costing';
+
+/** The figures this file reasons about: the product's defaults are zero, so state them. */
+const MODEL = { ...DEFAULT_MODEL, wastagePercent: 2, packagingPerPortion: 0.35 };
 import { pantryWith } from './edit';
 import { firstDish } from './first-dish';
 import type { DishMeta } from './data';
@@ -48,7 +51,7 @@ const ask = (over: {
     recipes,
     pantry: pantryWith(recipes[0] ?? DOSA, recipes, [GHEE]),
     meta: over.meta ?? { dosa: SOLD },
-    model: DEFAULT_MODEL,
+    model: MODEL,
     history: over.history ?? {},
     ingredientCount: 9,
   });
@@ -79,7 +82,7 @@ describe('which state', () => {
       recipes: [DOSA],
       pantry: pantryWith(DOSA, [DOSA], [noRate]),
       meta: { dosa: SOLD },
-      model: DEFAULT_MODEL,
+      model: MODEL,
       history: {},
       ingredientCount: 1,
     });

@@ -46,6 +46,19 @@ export const PRICING_METHODS: readonly {
   { name: 'times_cost', label: 'Times the cost', said: 'The price is the plate cost times a number.' },
 ];
 
+/**
+ * "Ingredients are 20% of the price" and "five times the cost" are one rule
+ * said two ways, and a real kitchen's sheet says it the second way
+ * (`=J/0.2`). The screen shows both figures tied together; these keep them
+ * consistent, to two decimals, so 20% is 5 and 30% is 3.33.
+ */
+export function factorOfShare(sharePercent: number): number {
+  return sharePercent > 0 ? Math.round((100 / sharePercent) * 100) / 100 : 0;
+}
+export function shareOfFactor(factor: number): number {
+  return factor > 0 ? Math.round((100 / factor) * 10) / 10 : 0;
+}
+
 export interface CostingModel {
   /** Applied to the ingredient cost per portion. */
   readonly wastagePercent: number;
@@ -93,8 +106,11 @@ export interface DishCostInputs {
  * was entered by the operator, which is why each one renders with a chip.
  */
 export const DEFAULT_MODEL: CostingModel = {
-  wastagePercent: 2,
-  packagingPerPortion: 0.35,
+  // Zero, meaning not counted. A real kitchen's own sheet (1,015 lines of one)
+  // carries no wastage and no packaging; a default of 2% and 0.35 a plate
+  // added 76% to a 0.46 plate before the owner had typed anything.
+  wastagePercent: 0,
+  packagingPerPortion: 0,
   // 30, matching what the setup wizard starts at. It carried 32 while setup
   // offered 30, so an account that skipped the question priced two points
   // apart from one that accepted the suggestion — for no stated reason.

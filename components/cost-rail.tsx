@@ -181,8 +181,12 @@ export function CostRail({
               <Row op="" label="Batch ingredient cost" value={m.money(build.linesTotal)} />
               <Row op="÷" label="Portions per batch" value={String(build.portions)} />
               <Row op="=" label="Ingredient cost per portion" value={m.money(build.ingredientsPerPortion)} rule strong />
-              <Row op="+" label={`Wastage, ${percent(model.wastagePercent, 1)}`} value={m.money(build.wastage.amount)} />
-              <Row op="+" label="Packaging, flat per portion" value={m.money(build.packaging.amount)} />
+              {build.wastage.amount > 0 ? (
+                <Row op="+" label={`Wastage, ${percent(model.wastagePercent, 1)}`} value={m.money(build.wastage.amount)} />
+              ) : null}
+              {build.packaging.amount > 0 ? (
+                <Row op="+" label="Packaging, flat per portion" value={m.money(build.packaging.amount)} />
+              ) : null}
               {build.accompaniments !== null ? (
                 <Row op="+" label="On every plate: sides, bread, condiments" value={m.money(build.accompaniments.amount)} />
               ) : null}
@@ -217,8 +221,14 @@ export function CostRail({
                 </span>
               </div>
               <p className="buildup-note">
-                <span className="figure">{model.wastagePercent}%</span> wastage and{' '}
-                <span className="figure">{m.withSymbol(model.packagingPerPortion)}</span> packaging, per portion.
+                {model.wastagePercent > 0 || model.packagingPerPortion > 0 ? (
+                  <>
+                    <span className="figure">{model.wastagePercent}%</span> wastage and{' '}
+                    <span className="figure">{m.withSymbol(model.packagingPerPortion)}</span> packaging, per portion.
+                  </>
+                ) : (
+                  <>No wastage or packaging counted: the plate cost is the ingredients alone.</>
+                )}
                 {isDefault ? (
                   <> Set once in <Link href="/settings" className="link-inline">Settings</Link>.</>
                 ) : (

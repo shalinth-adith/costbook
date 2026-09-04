@@ -20,7 +20,8 @@ import {
 import {
   ROUNDING_CHOICES,
   suggestPrice,
-  PRICING_METHODS,
+  factorOfShare,
+  shareOfFactor,
   type CostingModel,
   type PricingMethod,
 } from "@/lib/costing";
@@ -252,14 +253,12 @@ export function SettingsView({
                     said="Ingredients, as costed today"
                     figure={money(sampleIngredients)}
                   />
-                  <WorkedRow
-                    said={`Wastage at ${wastage}%`}
-                    figure={`+ ${money(sampleWaste)}`}
-                  />
-                  <WorkedRow
-                    said="Packaging"
-                    figure={`+ ${money(packaging)}`}
-                  />
+                  {wastage > 0 ? (
+                    <WorkedRow said={`Wastage at ${wastage}%`} figure={`+ ${money(sampleWaste)}`} />
+                  ) : null}
+                  {packaging > 0 ? (
+                    <WorkedRow said="Packaging" figure={`+ ${money(packaging)}`} />
+                  ) : null}
                   {accompaniments > 0 ? (
                     <WorkedRow said="On every plate" figure={`+ ${money(accompaniments)}`} />
                   ) : null}
@@ -359,8 +358,10 @@ export function SettingsView({
   const operatorCharges = charges.filter((c) => c.name.trim() !== "" && c.borneBy === "operator").length;
   const summaryOf: Readonly<Record<Tab, string>> = {
     Organisation: `${name.trim() === "" ? data.org.name : name} · ${cur.symbol} · ${taxLabel(data.org.taxTreatment).toLowerCase()}`,
-    Costing: `${PRICING_METHODS.find((pm) => pm.name === method)?.label ?? "Food share"} · ${
-      method === "food_share" ? `${target}%` : method === "money_per_plate" ? `${cur.symbol} ${moneyPerPlate} a plate` : `× ${factor}`
+    Costing: `${
+      method === "money_per_plate"
+        ? `${cur.symbol} ${moneyPerPlate} left a plate`
+        : `Ingredients ${target}% of the price · × ${factor}`
     } · ${describeRule(PRESETS[rounding])}`,
     Charges:
       guestCharges + operatorCharges === 0
@@ -579,56 +580,72 @@ export function SettingsView({
               {worldHint.note} <b>Typical, not yours.</b>
             </p>
             <div className="set-methods" role="radiogroup" aria-label="Pricing method">
-              {PRICING_METHODS.map((pm) => (
-                <label key={pm.name} className={`set-method${method === pm.name ? " is-on" : ""}`}>
+              {/*
+                Two rules, not three. "Ingredients are 20% of the price" and
+                "five times the cost" are one rule said two ways — a real
+                kitchen's sheet writes it `=cost/0.2` — so the card shows both
+                figures tied together, and editing either moves the other.
+                "Money per plate" is a genuinely different idea and stays.
+              */}
+              <label className={`set-method${method !== "money_per_plate" ? " is-on" : ""}`}>
+                <input
+                  type="radio"
+                  name="pricing-method"
+                  value="food_share"
+                  checked={method !== "money_per_plate"}
+                  onChange={() => setMethod("food_share")}
+                />
+                <span className="set-method-name">By the cost</span>
+                <span className="set-method-said">The price is a multiple of what the plate costs. Say it either way.</span>
+                <span className="set-method-field">
+                  Ingredients are{" "}
                   <input
-                    type="radio"
-                    name="pricing-method"
-                    value={pm.name}
-                    checked={method === pm.name}
-                    onChange={() => setMethod(pm.name)}
+                    className="set-inline-field figure"
+                    inputMode="decimal"
+                    value={target}
+                    aria-label="Food cost target"
+                    onChange={(e) => {
+                      const v = Number(e.target.value) || 0;
+                      setTarget(v);
+                      setFactor(factorOfShare(v));
+                    }}
                   />
-                  <span className="set-method-name">{pm.label}</span>
-                  <span className="set-method-said">{pm.said}</span>
-                  <span className="set-method-field">
-                    {pm.name === "food_share" ? (
-                      <>
-                        Ingredients are{" "}
-                        <input
-                          className="set-inline-field figure"
-                          inputMode="decimal"
-                          value={target}
-                          aria-label="Food cost target"
-                          onChange={(e) => setTarget(Number(e.target.value) || 0)}
-                        />
-                        % of the price
-                      </>
-                    ) : pm.name === "money_per_plate" ? (
-                      <>
-                        Every plate leaves {cur.symbol}{" "}
-                        <input
-                          className="set-inline-field figure"
-                          inputMode="decimal"
-                          value={moneyPerPlate}
-                          aria-label="Money left per plate"
-                          onChange={(e) => setMoneyPerPlate(Number(e.target.value) || 0)}
-                        />
-                      </>
-                    ) : (
-                      <>
-                        Price is the cost times{" "}
-                        <input
-                          className="set-inline-field figure"
-                          inputMode="decimal"
-                          value={factor}
-                          aria-label="Times the cost"
-                          onChange={(e) => setFactor(Number(e.target.value) || 0)}
-                        />
-                      </>
-                    )}
-                  </span>
-                </label>
-              ))}
+                  % of the price — that is{" "}
+                  <input
+                    className="set-inline-field figure"
+                    inputMode="decimal"
+                    value={factor}
+                    aria-label="Times the cost"
+                    onChange={(e) => {
+                      const v = Number(e.target.value) || 0;
+                      setFactor(v);
+                      setTarget(shareOfFactor(v));
+                    }}
+                  />{" "}
+                  times the cost
+                </span>
+              </label>
+              <label className={`set-method${method === "money_per_plate" ? " is-on" : ""}`}>
+                <input
+                  type="radio"
+                  name="pricing-method"
+                  value="money_per_plate"
+                  checked={method === "money_per_plate"}
+                  onChange={() => setMethod("money_per_plate")}
+                />
+                <span className="set-method-name">Money per plate</span>
+                <span className="set-method-said">Every plate should leave a set amount after its cost, whatever it costs.</span>
+                <span className="set-method-field">
+                  Every plate leaves {cur.symbol}{" "}
+                  <input
+                    className="set-inline-field figure"
+                    inputMode="decimal"
+                    value={moneyPerPlate}
+                    aria-label="Money left per plate"
+                    onChange={(e) => setMoneyPerPlate(Number(e.target.value) || 0)}
+                  />
+                </span>
+              </label>
             </div>
 
             <h3 className="set-h3">What counts as the cost of a plate</h3>
@@ -648,7 +665,7 @@ export function SettingsView({
                     aria-label="Wastage percent"
                     onChange={(e) => setWastage(Number(e.target.value) || 0)}
                   />
-                  % of the ingredient cost
+                  % of the ingredient cost. Zero means not counted.
                 </span>
               </label>
               <label className="set-line">
@@ -662,7 +679,7 @@ export function SettingsView({
                     aria-label="Packaging per portion"
                     onChange={(e) => setPackaging(Number(e.target.value) || 0)}
                   />{" "}
-                  a plate
+                  a plate. Zero means not counted; a delivery kitchen usually counts the box here.
                 </span>
               </label>
               <label className="set-line">
