@@ -4008,3 +4008,22 @@
 .page-sub { margin-block-start: 2px; }
 @media (max-width: 1100px) { .dish-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: reduce) { .dish-bar { animation: none; } }
+
+/* ── Setup: the restaurant's portfolio, one answer a screen ───────────── */
+.wiz-h { font-family: var(--font-display), var(--font-sans), sans-serif; font-weight: 800; font-size: 44px; letter-spacing: -0.03em; line-height: 1.02; max-inline-size: 22ch; text-wrap: balance; }
+.wiz-input-lg { block-size: 64px; font-size: 26px; font-weight: 600; padding-inline: 18px; }
+.wiz-big { font-size: 96px; margin: 18px 0 6px; letter-spacing: -0.03em; }
+.wiz-countries { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-block-start: 14px; }
+.wiz-countries .wiz-chip { justify-content: space-between; display: flex; align-items: center; block-size: 48px; padding-inline: 16px; font-size: 15px; border-radius: 12px; }
+.wiz-chip-sub { font-size: 12px; opacity: .65; }
+.wiz-cur { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.wiz-cur.is-on { background: var(--surface-inverse); color: var(--text-on-inverse); border-color: var(--surface-inverse); }
+.wiz-cur-name { font-size: 12px; opacity: .7; }
+.wiz-sizes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-block-start: 18px; }
+.wiz-size { display: flex; flex-direction: column; gap: 6px; padding: 22px 20px; text-align: start; font: inherit; cursor: pointer; background: var(--surface-sunken); color: var(--text-primary); border: 1.5px solid var(--border-hairline); border-radius: 16px; transition: transform var(--dur-micro) var(--ease-enter), border-color var(--dur-micro) var(--ease-enter); }
+.wiz-size:hover { transform: translateY(-1px); border-color: var(--border-control); }
+.wiz-size.is-on { border-color: var(--accent); background: var(--accent-tint); }
+.wiz-size:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.wiz-size-label { font-size: 30px; }
+.wiz-size-said { font-size: 13px; color: var(--text-secondary); }
+.wiz-body, .wiz-step { max-inline-size: none; }

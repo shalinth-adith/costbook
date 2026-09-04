@@ -303,6 +303,8 @@ export function fromComponents(r: Recipe): Record<string, unknown>[] {
 export interface OrgRow {
   id: string;
   name: string;
+  country?: string | null;
+  team_size?: string | null;
   currency_code: string;
   food_cost_target: number | string;
   tax_treatment: string | null;
@@ -327,6 +329,8 @@ export interface OrgRow {
 export function toOrg(row: OrgRow): Org {
   return {
     name: row.name,
+    country: row.country ?? null,
+    teamSize: row.team_size ?? null,
     currency: row.currency_code,
     taxTreatment: (row.tax_treatment as TaxTreatment | null) ?? null,
     charges: Array.isArray(row.charges) ? (row.charges as Charge[]) : [],
@@ -352,6 +356,8 @@ export function toOrg(row: OrgRow): Org {
 export function fromOrg(patch: Partial<Org>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (patch.name !== undefined) out['name'] = patch.name;
+  if (patch.country !== undefined) out['country'] = patch.country;
+  if (patch.teamSize !== undefined) out['team_size'] = patch.teamSize;
   if (patch.currency !== undefined) out['currency_code'] = patch.currency;
   if (patch.taxTreatment !== undefined) out['tax_treatment'] = patch.taxTreatment;
   if (patch.charges !== undefined) out['charges'] = patch.charges;

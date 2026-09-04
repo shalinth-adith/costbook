@@ -2,9 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 
-import type { Charge } from '@/core/charges';
 
-import type { TaxTreatment } from '@/lib/org';
 import { currencyIsSettable, saveOrg } from '@/lib/book';
 
 /**
@@ -16,24 +14,19 @@ import { currencyIsSettable, saveOrg } from '@/lib/book';
  */
 export async function finishSetup(answers: {
   readonly name: string;
+  readonly country: string | null;
   readonly currency: string;
-  readonly taxTreatment: TaxTreatment;
-  readonly charges: readonly Charge[];
-  readonly foodCostTarget: number;
-  /** Whether the menu price already includes the guest's charges. Suggested by region, decided here. */
-  readonly pricesIncludeCharges?: boolean;
+  readonly teamSize: string | null;
 }): Promise<{ readonly ok: true }> {
   // Currency only moves while nothing is costed in it. Once a rate has been
   // typed, changing the label would leave every figure under the wrong symbol.
   const settable = await currencyIsSettable();
 
   await saveOrg({
-    ...(settable ? { currency: answers.currency } : {}),
+    ...(settable ? { currency: answers.currency.toUpperCase() } : {}),
     name: answers.name.trim(),
-    taxTreatment: answers.taxTreatment,
-    charges: answers.charges,
-    foodCostTarget: answers.foodCostTarget,
-    ...(answers.pricesIncludeCharges === undefined ? {} : { pricesIncludeCharges: answers.pricesIncludeCharges }),
+    country: answers.country,
+    teamSize: answers.teamSize,
     setupDone: true,
   });
 

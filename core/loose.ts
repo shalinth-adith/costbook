@@ -136,11 +136,22 @@ export function parseLooseLine(raw: string): LooseLine {
    * number in the second is the shape; anything else reads as a sentence.
    */
   const cols = line.split(/\t|\s*,\s*/).map((c) => c.trim());
-  if (cols.length >= 3 && cols[0] !== "" && looseNumber(cols[1] ?? "") !== null && isKnownUnit(cols[2] ?? "")) {
+  if (cols.length >= 3 && cols[0] !== "" && looseNumber(cols[1] ?? "") !== null && /^[A-Za-z]+$/.test(cols[2] ?? "")) {
     const qty = looseNumber(cols[1] ?? "");
-    const unit = normaliseUnit(cols[2] ?? "");
+    const word = cols[2] ?? "";
+    // "portion", "tin", "serving": a word Costbook cannot weigh. With a rate
+    // beside it the line is a cost with a label — 13 portions at 0.5 is 6.50
+    // — and needs nothing more; without one it needs a unit, as before.
+    const unit = isKnownUnit(word) ? normaliseUnit(word) : null;
     const rate = cols.length >= 4 ? looseNumber(cols[3] ?? "") : null;
-    return { raw, name: clean(cols[0] ?? ""), qty, unit, needs: null, rate, rateUnit: rate === null ? null : unit, perPlate: false };
+    const name = clean(cols[0] ?? "");
+    return {
+      raw, name, qty, unit,
+      needs: unit === null && rate === null ? "unit" : null,
+      rate,
+      rateUnit: rate === null ? null : (unit ?? word.toLowerCase()),
+      perPlate: false,
+    };
   }
 
   // "… per plate" / "… each": on every item, not in the batch.
@@ -158,9 +169,11 @@ export function parseLooseLine(raw: string): LooseLine {
   if (at !== null) {
     const r = looseNumber(at[1] ?? "");
     const u = at[2] ?? "";
-    if (r !== null && isKnownUnit(u)) {
+    // The rate's unit may be one Costbook weighs ("kg") or the sheet's own
+    // word ("portion"); either way the figure on the line is the rate.
+    if (r !== null && u !== "") {
       rate = r;
-      rateUnit = normaliseUnit(u);
+      rateUnit = isKnownUnit(u) ? normaliseUnit(u) : u.toLowerCase();
       line = clean(line.slice(0, at.index));
     }
   }

@@ -27,6 +27,10 @@ export type TaxTreatment = 'recoverable' | 'absorbed';
 
 export interface Org {
   readonly name: string;
+  /** Where the restaurant is, as a two-letter code. Proposes the currency once. */
+  readonly country: string | null;
+  /** How many people work in the kitchen, as a band (lib/countries.ts). */
+  readonly teamSize: string | null;
   /** Set once. Costbook never converts — see `currencyIsSettable`. */
   readonly currency: string;
   readonly taxTreatment: TaxTreatment | null;
@@ -67,6 +71,8 @@ export interface Org {
  */
 export const BLANK_ORG: Org = {
   name: '',
+  country: null,
+  teamSize: null,
   currency: 'INR',
   taxTreatment: null,
   charges: [],
@@ -90,10 +96,10 @@ export const BLANK_ORG: Org = {
 
 /** The four the wizard asks, in order, for the progress ticks in A22. */
 export const SETUP_STEPS = [
-  { no: 1, label: 'Your place' },
-  { no: 2, label: 'Supplier tax' },
-  { no: 3, label: "The bill" },
-  { no: 4, label: 'Your target' },
+  { no: 1, label: 'Your restaurant' },
+  { no: 2, label: 'Country' },
+  { no: 3, label: 'Currency' },
+  { no: 4, label: 'Strength' },
 ] as const;
 
 export const TARGET_MIN = 15;

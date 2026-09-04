@@ -228,12 +228,12 @@ describe("a rate on the line, as a sheet carries one", () => {
     expect([l.qty, l.unit, l.rate, l.perPlate]).toEqual([100, "g", null, false]);
   });
   it("turns a cost with a label into something that needs nobody", () => {
-    // The sheet's "Poriya (side), 13 portion, 0.5": no unit Costbook measures.
-    const l = parseLooseLine("13 portion Poriya (side) @ 0.5/portion");
-    expect(l.unit).toBeNull();
-    expect(l.rate).toBeNull(); // 'portion' is not a unit, so the rate form does not apply
+    // The sheet's "Poriya (side), 13 portion, 0.5": no unit Costbook weighs,
+    // but a rate beside it. 13 × 0.5 is the line's cost, and it is ready.
     const m = parseLooseLine("Poriya (side), 13, portion, 0.5");
-    expect(m.unit).toBeNull(); // not a known unit either way
+    expect([m.name, m.qty, m.unit, m.rate, m.rateUnit, m.needs]).toEqual(["Poriya (side)", 13, null, 0.5, "portion", null]);
+    const l = parseLooseLine("13 portion Poriya (side) @ 0.5/portion");
+    expect([l.qty, l.unit, l.rate, l.needs]).toEqual([13, null, 0.5, null]);
   });
 });
 
