@@ -3,88 +3,62 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * A figure that is seen arriving, and seen changing.
+ * A figure that shows it has changed, without animating its value.
  *
- * `CountUp` on the dashboard counts whole numbers up from zero once. This is
- * the money version, and it does one more thing that matters on a cost sheet:
- * when a figure changes it counts from what it was, not from zero. Editing a
- * line and watching the batch total travel from 51.66 to 153.66 says
- * something true — that this edit did that. Resetting to zero first would
- * say only that something happened.
+ * This counted. It was built to count — watching a batch total travel from
+ * 51.66 to 204.66 says "this edit did that" — and it broke a rule this
+ * project wrote down long before I arrived:
  *
- * Motion here is not decoration. Every figure on these screens is the
- * argument the product is making, and a figure that moves is the one to read.
+ *   FLOWS.md, rules that apply to every screen:  "A figure never animates
+ *   its value."
  *
- * Rounded to the money's own precision before comparing, so a tween never
- * ends on a value that renders differently from the one it was given.
+ *   FLOWS.md §6, on the rate-change panel, which is the product's centre:
+ *   "the numbers appear at their new values immediately and never count up".
+ *
+ * The rule is better than the idea it overruled. Every figure on these
+ * screens is the argument the product is making, and a figure mid-count is
+ * a figure that cannot be read, compared or trusted at a glance. On a screen
+ * an owner is using to decide a price, a number that is briefly wrong on
+ * purpose is worse than no motion at all.
+ *
+ * So the value appears immediately, and the change is marked the way the
+ * same document prescribes for the impact panel: a brief tint, held and then
+ * fading. The eye is drawn to what moved; the figure is readable throughout.
  */
 export function Ticker({
   value,
   format,
-  duration,
   className,
 }: {
   value: number;
-  /** How the figure is written. Called on every frame, so keep it cheap. */
   format: (value: number) => string;
-  /** Milliseconds. Arrival is longer than a change, because it travels further. */
-  duration?: number;
   className?: string;
 }) {
-  const [shown, setShown] = useState(value);
-  /*
-   * The last value this instance drew, so a change counts from it.
-   *
-   * Starts at zero, which makes the first run an arrival. On React's
-   * development double-mount it starts at zero again and the arrival simply
-   * replays — harmless, and deliberately not guarded against: the guard is
-   * what once left every figure on the dashboard sitting at zero, because
-   * the first pass set it and the cleanup cancelled the frame it scheduled.
-   */
-  const from = useRef(0);
+  const [changed, setChanged] = useState(false);
+  const previous = useRef(value);
 
   useEffect(() => {
-    const start = from.current;
-    from.current = value;
+    if (previous.current === value) return undefined;
+    previous.current = value;
 
-    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    /*
-     * A hidden tab counts as "cannot animate", not as "animate later".
-     *
-     * Frame callbacks do not fire while the document is hidden, so a tween
-     * started there never advances and the figure sits at whatever it last
-     * drew — a stale number, presented as a current one, which is the one
-     * thing a costing screen must never do. Jump straight to the value; the
-     * arrival is worth nothing to somebody who is not looking.
-     */
-    if (still || start === value || !Number.isFinite(value) || document.hidden) {
-      setShown(value);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches)
       return undefined;
-    }
 
-    const span = duration ?? (start === 0 ? 560 : 380);
-    const began = performance.now();
-    let frame = 0;
-
-    const tick = (now: number) => {
-      const t = Math.min((now - began) / span, 1);
-      // Ease out: most of the distance early, then settling. A linear count
-      // reads as a spinner rather than as a figure arriving at a value.
-      const eased = 1 - (1 - t) ** 3;
-      setShown(start + (value - start) * eased);
-      if (t < 1) frame = requestAnimationFrame(tick);
-      else setShown(value);
-    };
-
-    frame = requestAnimationFrame(tick);
-    // Whatever happens to the frames, the figure ends up correct. A tween
-    // that stalls must not leave the wrong number on screen.
-    const settle = setTimeout(() => { setShown(value); }, span + 150);
+    setChanged(true);
+    // Held about a second, then fading, per the same rule.
+    const done = setTimeout(() => {
+      setChanged(false);
+    }, 1000);
     return () => {
-      cancelAnimationFrame(frame);
-      clearTimeout(settle);
+      clearTimeout(done);
     };
-  }, [value, duration]);
+  }, [value]);
 
-  return <span className={className}>{format(shown)}</span>;
+  return (
+    <span
+      className={`${className ?? ""}${changed ? " is-changed" : ""}`.trim()}
+    >
+      {format(value)}
+    </span>
+  );
 }

@@ -422,7 +422,6 @@ export function SettingsView({
             <SettingRow
               label="Business name"
               help="On printed prep cards and exports."
-              scope="APPLIES EVERYWHERE"
             >
               <input
                 className="set-input"
@@ -438,22 +437,20 @@ export function SettingsView({
 
             <SettingRow
               label="Currency"
-              help="Set once. Costbook does not convert — changing it would leave every rate on file meaning something else."
-              scope="NO OVERRIDES, EVER"
+              help="Set once, and never changed: Costbook does not convert, so a change would leave every rate on file meaning something else. To move currency, write to us and we will do it with you."
             >
+              {/* The symbol only when it is not the code. A dirham's symbol
+                  IS "AED", so printing both rendered "AED · UAE dirham · AED". */}
               <p className="set-fixed figure">
-                {cur.code} · {cur.name} · {cur.symbol}
-              </p>
-              <p className="set-note">
-                To move currency you start a new organisation and import into
-                it. Write to us and we&rsquo;ll do the move with you.
+                {cur.symbol === cur.code
+                  ? `${cur.code} · ${cur.name}`
+                  : `${cur.code} · ${cur.name} · ${cur.symbol}`}
               </p>
             </SettingRow>
 
             <SettingRow
               label="How supplier tax reaches you"
               help="Whether tax your supplier bills comes back to you. It decides which figure you type as a rate."
-              scope="NO OVERRIDES, EVER"
             >
               <p className="set-fixed">{taxLabel(data.org.taxTreatment)}</p>
               <div className="set-seg">
@@ -485,7 +482,6 @@ export function SettingsView({
             <SettingRow
               label="Default units"
               help="What a new component line starts in. Any line can be changed as you type it."
-              scope="EVERY LINE CAN OVERRIDE"
             >
               <div className="set-units">
                 <div className="set-unit-group">
@@ -544,7 +540,6 @@ export function SettingsView({
             <SettingRow
               label="When a rate counts as stale"
               help="After this long we mark the rate on the ingredient, and any dish that leans on it."
-              scope="APPLIES EVERYWHERE"
             >
               <span className="set-inline">
                 <input
@@ -792,13 +787,15 @@ export function SettingsView({
               </div>
             </details>
 
+            {/* Two lists, each with its own heading. These are headings for a
+                list rather than chips on a form row, which is why they stay. */}
             <div className="set-overrides">
               <div>
-                <span className="set-scope">A DISH CAN OVERRIDE</span>
+                <span className="set-overrides-h">A dish can set its own</span>
                 <p>target · rounding · wastage · packaging · what goes on every plate · overhead · kitchen minutes</p>
               </div>
               <div>
-                <span className="set-scope">NO OVERRIDES, EVER</span>
+                <span className="set-overrides-h">The same for every dish</span>
                 <p>currency · how supplier tax is treated</p>
               </div>
             </div>
@@ -1125,25 +1122,36 @@ export function SettingsView({
   );
 }
 
+/**
+ * One setting: what it is called and what it does, then the control.
+ *
+ * The grid has two columns and this used to hand it three children, so the
+ * label landed on the left, the sentence explaining it landed on the right,
+ * and the field wrapped underneath the label — a screen of prose with the
+ * inputs stranded among it. The sentence belongs with the label it explains.
+ *
+ * The SCOPE chip is gone. FLOWS' rule for a chip is specific: it marks a
+ * value the user did not enter, and it comes with a change action, at the
+ * point of effect. "APPLIES EVERYWHERE" and "NO OVERRIDES, EVER" met none of
+ * that — they were a second label on every row saying something the sentence
+ * already said, on the one screen that is meant to be mostly forms.
+ */
 function SettingRow({
   label,
   help,
-  scope,
   children,
 }: {
   label: string;
   help: string;
-  scope: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="set-row">
       <div className="set-row-head">
         <span className="set-row-label">{label}</span>
-        <span className="set-scope">{scope}</span>
+        {help === '' ? null : <p className="set-row-help">{help}</p>}
       </div>
-      <p className="set-row-help">{help}</p>
-      {children}
+      <div className="set-row-body">{children}</div>
     </div>
   );
 }
@@ -1269,7 +1277,6 @@ function BillingTab({
             ? "Cost your menu, keep it, print it. No card on file."
             : `${termOf(subscription.term)?.label ?? "Paid"}, until ${subscription.periodEnd === null ? "further notice" : new Date(subscription.periodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}. Nothing renews by itself.`
         }
-        scope={plan === "free" ? "FREE" : "PAID"}
       >
         <button
           type="button"
@@ -1348,7 +1355,7 @@ function BillingTab({
         </tbody>
       </table>
 
-      <SettingRow label="Invoices" scope="" help="">
+      <SettingRow label="Invoices" help="">
         {/* No invoice is generated anywhere in the product. Promising a PDF
             "with your business name on it" described a feature that does not
             exist, on the one screen where a person is deciding to pay. */}
@@ -1359,7 +1366,7 @@ function BillingTab({
         </p>
       </SettingRow>
 
-      <SettingRow label="Payment method" scope="" help="">
+      <SettingRow label="Payment method" help="">
         {/* No card is ever kept: a stretch is one payment, taken by the
             provider, and nothing renews. Saying "you'll be asked for one"
             described a subscription this product deliberately does not run. */}

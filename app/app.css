@@ -4044,10 +4044,11 @@
 .wig-note.is-warn { background: var(--accent-tint); color: var(--text-primary); padding: 12px 14px; border-radius: 10px; }
 .wig-note b { font-weight: 600; }
 
-/* ── Motion: the four places the app was still standing still ──────────────
-   Everything here is either feedback for something a person did, or an
-   arrival that draws the eye to the figure that matters. Nothing loops, and
-   the reduced-motion rule in tokens.css switches all of it off. */
+/* ── Motion, within the rule the project wrote down ────────────────────────
+   FLOWS: "A figure never animates its value", and on the rate-change panel,
+   "the numbers appear at their new values immediately and never count up".
+   So nothing here moves a number. What moves is feedback for something a
+   person did, and a tint on the figure that changed. */
 
 /* 1. Press. A control that does not move under the finger reads as a picture
       of a control — and this was missing on every button in the app. */
@@ -4057,24 +4058,23 @@
 .wiz-cur:active,
 .wiz-rule:active,
 .plans-term:active,
-.set-pill:active,
-.wig-row:active { transform: translateY(1px); }
+.set-pill:active { transform: translateY(1px); }
 .btn { transition: background var(--dur-micro) var(--ease-enter), border-color var(--dur-micro) var(--ease-enter), transform var(--dur-micro) var(--ease-exit); }
 .btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
 .btn:disabled { transition: none; }
 
-/* 2. A figure that is working. The label above it breathes while a save is in
-      flight, so "Saving…" is not the only sign anything is happening. */
-.btn.is-busy, .wiz-next:disabled[aria-busy='true'] { animation: pulse-soft 1.1s var(--ease-enter) infinite; }
-@keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.72; } }
+/* 2. The figure that just changed, marked the way the impact panel marks one:
+      a brief tint, held and then fading. The value itself never moves. */
+.is-changed { animation: fig-changed 1.4s var(--ease-enter) both; }
+@keyframes fig-changed {
+  0% { background: var(--accent-tint); box-shadow: 0 0 0 4px var(--accent-tint); }
+  55% { background: var(--accent-tint); box-shadow: 0 0 0 4px var(--accent-tint); }
+  100% { background: transparent; box-shadow: 0 0 0 4px transparent; }
+}
 
-/* 3. The breakdown: the bar draws from the left, and nothing else moves.
-      The rows and the warning under them are the content, and content is
-      never parked invisible waiting for an animation to release it — a
-      backgrounded tab, or a browser that never runs the animation, would
-      leave somebody reading an empty panel. The bar is the one part whose
-      absence for a moment costs nothing, because every figure it draws is
-      written out in the rows underneath. */
+/* 3. The breakdown's bar draws from the left. It is a picture of the figures
+      written out beneath it, not a figure itself, and every number it stands
+      for is readable in the rows whether it has drawn or not. */
 .wig-bar > .wig-seg {
   transform-origin: left center;
   animation: share-grow 620ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
@@ -4085,24 +4085,40 @@
 .wig-bar > .wig-seg:nth-child(5) { animation-delay: 280ms; }
 .wig-bar > .wig-seg:nth-child(6) { animation-delay: 350ms; }
 .wig-bar > .wig-seg:nth-child(7) { animation-delay: 420ms; }
-/* The one figure on this panel that is a verdict rather than a part. */
 .wig-row.is-left { transition: color var(--dur-state) var(--ease-enter); }
 
-/* 4. The plans page: the trial bar fills, the terms arrive together. */
+/* 4. The plans page: the trial bar fills, the terms lift under the cursor. */
 .plans-bar > span { transform-origin: left center; animation: share-grow 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: 120ms; }
-.plans-term { animation: row-in 320ms var(--ease-enter) both; }
-.plans-term:nth-child(2) { animation-delay: 60ms; }
-.plans-term:nth-child(3) { animation-delay: 120ms; }
-.plans-term:nth-child(4) { animation-delay: 180ms; }
 .plans-term { transition: border-color var(--dur-micro) var(--ease-enter), background var(--dur-micro) var(--ease-enter), transform var(--dur-micro) var(--ease-exit); }
 .plans-term:hover { transform: translateY(-1px); }
 
-/* Setup. The questions themselves never animate in — they are what somebody
-   came to answer. Only the step markers move, as the answers are given. */
+/* Setup. The questions never animate in — they are what somebody came to
+   answer. Only the step markers move, as the answers are given. */
 .wiz-tick-no { transition: background var(--dur-state) var(--ease-enter), color var(--dur-state) var(--ease-enter), border-color var(--dur-state) var(--ease-enter); }
 .wiz-tick-rule { transition: background var(--dur-state) var(--ease-enter); }
 
 @media (prefers-reduced-motion: reduce) {
-  .wig-bar > .wig-seg, .plans-bar > span, .plans-term, .btn.is-busy { animation: none; }
+  .wig-bar > .wig-seg, .plans-bar > span, .is-changed { animation: none; }
   .btn:active:not(:disabled), .plans-term:hover { transform: none; }
+}
+
+/* ── Settings: a label, its sentence, and the control beside them ───────────
+   The row is a two-column grid and used to be handed three children, so the
+   sentence explaining a field sat in the column the field should have been
+   in, and the field wrapped under the label. FLOWS calls this screen "mostly
+   forms"; it was reading as an essay with inputs in it. */
+.set-row-head { gap: 4px; }
+.set-row-help { margin: 0; max-inline-size: 34ch; }
+.set-row-body { display: grid; gap: 10px; align-content: start; min-inline-size: 0; }
+.set-row-body > .set-note { margin: 0; }
+/* A choice is as wide as its choices. The body column is wider than the one
+   these used to sit in, and a segmented control stretched across it reads as
+   an empty box with two buttons at one end. */
+.set-row-body > .set-seg,
+.set-row-body > .set-units,
+.set-row-body > .set-inline { inline-size: max-content; max-inline-size: 100%; }
+
+.set-overrides-h {
+  display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--text-tertiary); margin-block-end: 4px;
 }
