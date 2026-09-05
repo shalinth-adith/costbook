@@ -195,7 +195,27 @@ export interface CostBuildUp {
   readonly overhead: DefaultedFigure | null;
   /** Every line above, added up. Null when there are no portions. */
   readonly total: number | null;
-  /** Always available: what one base unit of the output costs. */
+  /*
+ * ── A batch does not carry its labour into the dish ────────────────────────
+ *
+ * Settled by the owner, 5 September 2026, and written here because this is
+ * the function that would have to change.
+ *
+ * A sub-recipe passes its ingredient cost up to whatever uses it, and nothing
+ * else. The per-plate figures below — packaging, accompaniments, overhead,
+ * kitchen time — are charged once, on the dish that is actually served.
+ *
+ * The reasoning is the kitchen's own: labour and overhead are worked out
+ * monthly, across everything the kitchen made, and divided over the plates
+ * that went out. Charging a batch's minutes into every dish that draws on it
+ * would count that month's labour twice — once in the batch and again in the
+ * per-plate overhead the monthly costing already spread.
+ *
+ * So this is not a gap to be filled later. The rail says as much on the
+ * screen, and `core/recipe.ts` keeps a sub-recipe's cost to its ingredients
+ * deliberately.
+ */
+/** Always available: what one base unit of the output costs. */
   readonly perBaseUnit: number;
 }
 
