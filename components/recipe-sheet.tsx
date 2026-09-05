@@ -24,6 +24,7 @@ import { suggestPrice } from '@/lib/costing';
 
 import { ComponentCards } from './component-cards';
 import { PrepCard } from './prep-card';
+import { WhereItGoes } from './where-it-goes';
 import { Toast, type ToastState } from './toast';
 import { type Flag, deliveryState, whenSent } from '@/lib/flags';
 
@@ -606,6 +607,12 @@ export function RecipeSheet({
           </section>
 
         </div>
+
+        <WhereItGoes
+          price={dish.sellingPrice ?? suggestion?.rounded ?? null}
+          build={build}
+          model={model}
+        />
 
         <CostRail
           cost={cost}

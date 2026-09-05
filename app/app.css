@@ -4002,3 +4002,44 @@
 /* A toast that reports work not saved. It waits to be read. */
 .toast.is-sticky { border: 1px solid var(--accent); box-shadow: 0 10px 30px rgba(0,0,0,.16); }
 .toast.is-sticky .toast-text { color: var(--text-on-inverse); }
+
+/* ── Where every hundred goes ───────────────────────────────────────────────
+   The one screen that answers whether the trade's 0.2 leaves anything. */
+.wig { display: grid; gap: 14px; margin-block-end: var(--sp-4); }
+.wig-bar {
+  display: flex; block-size: 14px; border-radius: 7px; overflow: hidden;
+  background: var(--surface-sunken); border: 1px solid var(--border-hairline);
+}
+.wig-seg { display: block; block-size: 100%; }
+.wig-seg.is-food { background: #C2410C; }
+.wig-seg.is-packaging { background: #B45309; }
+.wig-seg.is-sides { background: #A16207; }
+.wig-seg.is-kitchen_time { background: #4D7C0F; }
+.wig-seg.is-overheads { background: #0F766E; }
+.wig-seg.is-commission { background: #6D28D9; }
+.wig-seg.is-left { background: #1E6B3A; }
+.wig-dot { inline-size: 9px; block-size: 9px; border-radius: 3px; display: inline-block; margin-inline-end: 9px; vertical-align: baseline; }
+.wig-dot.is-food { background: #C2410C; }
+.wig-dot.is-packaging { background: #B45309; }
+.wig-dot.is-sides { background: #A16207; }
+.wig-dot.is-kitchen_time { background: #4D7C0F; }
+.wig-dot.is-overheads { background: #0F766E; }
+.wig-dot.is-commission { background: #6D28D9; }
+.wig-dot.is-left { background: #1E6B3A; }
+
+.wig-rows { display: grid; margin: 0; }
+.wig-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 9px 0; border-block-start: 1px solid var(--border-hairline); }
+.wig-row:first-child { border-block-start: 0; }
+.wig-row dt { display: flex; align-items: baseline; gap: 0; flex-wrap: wrap; font-size: 14px; }
+.wig-row dd { margin: 0; display: flex; align-items: baseline; gap: 14px; white-space: nowrap; }
+.wig-said { flex-basis: 100%; padding-inline-start: 18px; font-size: 12px; color: var(--text-tertiary); }
+.wig-share { inline-size: 34px; text-align: end; color: var(--text-secondary); }
+.wig-share::after { content: ' of 100'; font-size: 10.5px; color: var(--text-tertiary); }
+.wig-row.is-missing dt { color: var(--text-tertiary); }
+.wig-none { font-size: 12.5px; color: var(--text-tertiary); }
+.wig-row.is-left { border-block-start: 1.5px solid var(--text-primary); font-weight: 600; padding-block-start: 12px; }
+.wig-row.is-losing { color: var(--accent); }
+
+.wig-note { font-size: 13px; line-height: 1.55; color: var(--text-secondary); margin: 0; }
+.wig-note.is-warn { background: var(--accent-tint); color: var(--text-primary); padding: 12px 14px; border-radius: 10px; }
+.wig-note b { font-weight: 600; }
