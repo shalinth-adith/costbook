@@ -1,5 +1,7 @@
 'use client';
 
+import { signOut } from '@/app/sign-up/actions';
+
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
 
@@ -111,7 +113,18 @@ export function AppShell({
             </svg>
           </button>
           <span className="topbar-org">{orgName}</span>
-          <span className="avatar" aria-hidden="true">{initialsOf(orgName)}</span>
+          {/* The account menu. The initials were a stand-in for it; now they open it. */}
+          <details className="acct">
+            <summary className="avatar" aria-label="Account menu">{initialsOf(orgName)}</summary>
+            <div className="acct-menu" role="menu">
+              <span className="acct-org">{orgName}</span>
+              <Link href="/settings" role="menuitem">Settings</Link>
+              <Link href="/plans" role="menuitem">Your plan</Link>
+              <form action={signOut}>
+                <button type="submit" className="acct-out" role="menuitem">Sign out</button>
+              </form>
+            </div>
+          </details>
         </div>
       </header>
       {children}

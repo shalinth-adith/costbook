@@ -19,8 +19,6 @@ export type SignUpState =
   | { readonly kind: 'sent'; readonly email: string }
   | { readonly kind: 'failed'; readonly message: string };
 
-export const SIGNUP_IDLE: SignUpState = { kind: 'idle' };
-
 /**
  * Create the account.
  *

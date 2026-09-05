@@ -4,9 +4,10 @@ import { revalidatePath } from 'next/cache';
 
 import { book, getMeta, getRecipe, saveIngredient, saveMeta, saveRecipe } from '@/lib/book';
 import { roomForRecipe } from '@/lib/guard';
-import { flatComponent } from '@/core/recipe';
+import { RecipeError, flatComponent, ingredientComponent, recipeComponent } from '@/core/recipe';
 import { toBase, unitFamily } from '@/core/units';
-import type { LineEntry, RecipeComponent } from '@/core/recipe';
+import type { RecipeComponent } from '@/core/recipe';
+import type { Ingredient } from '@/core/ingredient';
 import { draftFrom } from '@/lib/draft';
 
 export interface Ack {
@@ -178,6 +179,15 @@ export async function createDishFromPaste(input: {
   const components: RecipeComponent[] = [];
   let created = 0;
 
+  /*
+   * Two passes: build every line first, write afterwards. A line is built
+   * through the same constructors the cost sheet uses, which refuse a unit
+   * from another family — "200 ml ghee" against ghee bought by the kilo was
+   * stored as 200 base units and costed as 200 g, a wrong figure that
+   * announced nothing. Refusing it here, before any ingredient is created,
+   * means a refused dish leaves nothing behind.
+   */
+  const toCreate: Ingredient[] = [];
   for (const row of drafted.lines) {
     // A line with no quantity cannot become a component — the engine refuses
     // a quantity of zero, and inventing one would be inventing a cost. It is
@@ -203,56 +213,53 @@ export async function createDishFromPaste(input: {
       continue;
     }
     const unit = row.line.unit;
-    const entry: LineEntry =
-      lineRate !== null && rateUnit !== null
-        ? { mode: 'rate', ratePerBaseUnit: lineRate / toBase(1, rateUnit) }
-        : { mode: 'ingredient_rate' };
+    const priced = lineRate !== null && rateUnit !== null ? { ratePerUnit: lineRate, rateUnit } : {};
 
-    if (row.match.kind === 'recipe') {
-      components.push({
-        kind: 'recipe',
-        scope,
-        childId: row.match.recipe.id,
-        qty: toBase(row.line.qty, unit),
-        unit,
-        entry: { mode: 'ingredient_rate' },
-      });
-      continue;
+    try {
+      if (row.match.kind === 'recipe') {
+        components.push(recipeComponent(row.match.recipe, row.line.qty, unit, { scope }));
+        continue;
+      }
+
+      let ingredient: Ingredient;
+      if (row.match.kind === 'ingredient') {
+        ingredient = row.match.ingredient;
+      } else {
+        // New. Priced by the line's own rate where it carries one — that becomes
+        // its shelf rate, per the unit the rate was written in — and at
+        // nothing otherwise, until somebody says.
+        const packUnit = lineRate !== null && rateUnit !== null ? rateUnit : unit;
+        const family = unitFamily(packUnit) ?? 'mass';
+        ingredient = {
+          id: `ing-${Date.now().toString(36)}-${String(created)}`,
+          name: row.line.name,
+          family,
+          purchaseQty: toBase(1, packUnit),
+          purchasePrice: lineRate,
+          purchaseUnit: packUnit,
+          yieldPercent: 100,
+          yieldIsAssumed: true,
+          ...(lineRate !== null ? { pricedAt: new Date().toISOString().slice(0, 10) } : {}),
+        };
+        toCreate.push(ingredient);
+        created += 1;
+      }
+
+      components.push(ingredientComponent(ingredient, row.line.qty, unit, { scope, ...priced }));
+    } catch (e) {
+      if (e instanceof RecipeError) {
+        return {
+          message: `${row.line.name}: ${e.message} Change that line and create the dish again; nothing has been created.`,
+          undoable: false,
+          id: null,
+        };
+      }
+      throw e;
     }
-
-    let ingredientId: string;
-    if (row.match.kind === 'ingredient') {
-      ingredientId = row.match.ingredient.id;
-    } else {
-      // New. Priced by the line's own rate where it carries one — that becomes
-      // its shelf rate, per the unit the rate was written in — and at
-      // nothing otherwise, until somebody says.
-      ingredientId = `ing-${Date.now().toString(36)}-${String(created)}`;
-      const packUnit = lineRate !== null && rateUnit !== null ? rateUnit : unit;
-      const family = unitFamily(packUnit) ?? 'mass';
-      await saveIngredient({
-        id: ingredientId,
-        name: row.line.name,
-        family,
-        purchaseQty: toBase(1, packUnit),
-        purchasePrice: lineRate,
-        purchaseUnit: packUnit,
-        yieldPercent: 100,
-        yieldIsAssumed: true,
-        ...(lineRate !== null ? { pricedAt: new Date().toISOString().slice(0, 10) } : {}),
-      });
-      created += 1;
-    }
-
-    components.push({
-      kind: 'ingredient',
-      scope,
-      ingredientId,
-      qty: toBase(row.line.qty, unit),
-      unit,
-      entry,
-    });
   }
+
+  // Every line passed. Only now do the new ingredients exist.
+  for (const ingredient of toCreate) await saveIngredient(ingredient);
 
   // A batch with a stated weight is made by the kilo: other dishes can use
   // it by weight, as a dosa uses its batter. It still plates into portions.

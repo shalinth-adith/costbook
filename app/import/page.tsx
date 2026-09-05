@@ -74,6 +74,7 @@ export default async function ImportPage() {
       <CurrencyProvider code={code}>
         <ImportWizard
           existing={b.ingredients}
+          existingRecipes={b.recipes}
           knownRecipes={b.recipes.map((r) => r.name)}
           currencyCode={code}
           onUseCurrency={adoptCurrency}

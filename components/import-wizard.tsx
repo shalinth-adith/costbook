@@ -5,6 +5,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import type { Ingredient } from '@/core/ingredient';
+import type { Recipe } from '@/core/recipe';
 import {
   type ColumnMapping,
   type Field,
@@ -90,6 +91,7 @@ const STEPS: readonly { key: Step; label: string }[] = [
  */
 export function ImportWizard({
   existing,
+  existingRecipes,
   knownRecipes,
   onCommit,
   currencyCode,
@@ -98,6 +100,8 @@ export function ImportWizard({
   onUseTarget,
 }: {
   existing: readonly Ingredient[];
+  /** Dishes already in the book. Named on the sheet, they are linked to, never re-imported. */
+  existingRecipes: readonly Recipe[];
   knownRecipes: readonly string[];
   /** What the account prices in, so a sheet in another currency can say so. */
   currencyCode: string;
@@ -150,8 +154,8 @@ export function ImportWizard({
   );
 
   const plan = useMemo(
-    () => (parsed === null ? null : planImport(parsed, existing, new Date().toISOString().slice(0, 10))),
-    [parsed, existing],
+    () => (parsed === null ? null : planImport(parsed, existing, new Date().toISOString().slice(0, 10), existingRecipes)),
+    [parsed, existing, existingRecipes],
   );
 
   const lineCount = useMemo(
@@ -426,10 +430,9 @@ export function ImportWizard({
                       {p.suspect ? (
                         <span className="warn-ink">Unpriced — {p.suspectWhy}</span>
                       ) : p.existing ? (
-                        <>
-                          Updates the one you have
-                          {p.wasRate === null ? '' : ''}
-                        </>
+                        p.ingredient.purchasePrice !== null && p.ingredient.purchasePrice !== p.wasRate
+                          ? <>Rate moves{p.wasRate === null ? '' : ` from ${m.withSymbol(p.wasRate)}`}; everything else stays as you have it</>
+                          : <>Already on file, kept as it is</>
                       ) : (
                         'New ingredient'
                       )}
@@ -1100,6 +1103,8 @@ export function ImportWizard({
             <div className="arrivals">
               <Arrival label="Ingredients, new" value={plan.summary.ingredientsNew} />
               <Arrival label="Rates updated" value={plan.summary.ratesUpdated} />
+              <Arrival label="Ingredients kept as they are" value={plan.summary.ingredientsKept} />
+              <Arrival label="Dishes already in your book, left alone" value={plan.summary.dishesKept} />
               <Arrival label="Dishes created" value={plan.summary.dishes} />
               <Arrival label="Rows skipped" value={plan.summary.rowsSkipped} />
             </div>

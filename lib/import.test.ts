@@ -56,8 +56,11 @@ describe('a spreadsheet becomes a costed menu', () => {
     const cost = recipeCost(first.recipe, pantry);
     if (!isComplete(cost)) throw new Error('should be costed');
 
-    // 600 x 0.052 + 150 x 0.040 + 8 x (2.68/8) + 25 flat
-    expect(cost.batch).toBeCloseTo(31.2 + 6 + 2.68 + 25, 6);
+    // 600 x 0.052 + 150 x 0.040 / 0.88 + 8 x (2.68/8) + 25 flat.
+    // Onion is already on file with a yield of 88, and an import keeps what
+    // the owner set about a thing they already have; only the rate moves.
+    // It used to rebuild the onion from the row, yield back to 100.
+    expect(cost.batch).toBeCloseTo(31.2 + 6 / 0.88 + 2.68 + 25, 6);
   });
 
   it('derives a rate from a spend where the sheet gives one', () => {

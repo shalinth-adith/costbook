@@ -15,14 +15,17 @@ import type { Recipe } from "@/core/recipe";
 
 import { draftFrom, matchKey } from "./draft";
 
-const ing = (name: string, price: number | null = 100): Ingredient =>
+// An oil is bought by the litre. It was "mass" here, and "10 ml Sesame oil"
+// still landed, because the draft never checked the family; the create did
+// not either, and stored ten grams. Now the draft says the unit does not fit.
+const ing = (name: string, price: number | null = 100, family: "mass" | "volume" = "mass"): Ingredient =>
   ({
     id: name.toLowerCase().replace(/\s+/g, "-"),
     name,
-    family: "mass",
+    family,
     purchaseQty: 1000,
     purchasePrice: price,
-    purchaseUnit: "kg",
+    purchaseUnit: family === "mass" ? "kg" : "l",
     yieldPercent: 100,
     yieldIsAssumed: false,
   }) as Ingredient;
@@ -38,7 +41,7 @@ const rec = (name: string): Recipe =>
     components: [],
   }) as Recipe;
 
-const SHELF = [ing("Onion"), ing("Sesame oil"), ing("Mustard seed", null)];
+const SHELF = [ing("Onion"), ing("Sesame oil", 100, "volume"), ing("Mustard seed", null)];
 const RECIPES = [rec("Sambar"), rec("Coconut Chutney")];
 
 const draft = (text: string) =>

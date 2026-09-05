@@ -64,6 +64,10 @@ export interface ImportPlan {
     readonly ingredientsNew: number;
     readonly ratesUpdated: number;
     readonly dishes: number;
+    /** Dishes named on the sheet that are already in the book: linked to, not re-imported. */
+    readonly dishesKept: number;
+    /** Ingredients on file whose rate the sheet did not move. */
+    readonly ingredientsKept: number;
     readonly rowsSkipped: number;
     /** Ingredients arriving with no rate because their row could not be trusted. */
     readonly unpriced: number;
@@ -142,6 +146,7 @@ export function planImport(
   const knownById = new Map(existingRecipes.map((r) => [idFor(r.name), r]));
   const done = new Set<ParsedBlock>();
   const inProgress = new Set<ParsedBlock>();
+  let dishesKept = 0;
 
   const childFor = (line: ParsedLine, self: ParsedBlock): Recipe | null => {
     const id = idFor(line.name);
@@ -156,6 +161,18 @@ export function planImport(
 
   function planBlock(block: ParsedBlock): void {
     if (done.has(block) || inProgress.has(block)) return;
+    /*
+     * A dish already in the book is left as it is. A second import of the
+     * same sheet used to write every one of them again — lines replaced,
+     * the price and notes the owner had typed since reset to the sheet's —
+     * and used to plan its ingredients as updates. What is added is what is
+     * new; what exists is linked to by name, never overwritten.
+     */
+    if (knownById.has(idFor(block.name === '' ? `sheet-${block.row}` : block.name))) {
+      dishesKept += 1;
+      done.add(block);
+      return;
+    }
     inProgress.add(block);
     const components: RecipeComponent[] = [];
     let skipped = 0;
@@ -343,8 +360,10 @@ export function planImport(
     summary: {
       ingredientsNew: list.filter((p) => !p.existing).length,
       // A rate only counts as updated when there is actually a rate to write.
-      ratesUpdated: list.filter((p) => p.existing && p.ingredient.purchasePrice !== null).length,
+      ratesUpdated: list.filter(rateMoved).length,
       dishes: recipes.length,
+      dishesKept,
+      ingredientsKept: list.filter((p) => p.existing && !rateMoved(p)).length,
       rowsSkipped: skippedTotal,
       unpriced: list.filter((p) => p.ingredient.purchasePrice === null).length,
     },
@@ -388,6 +407,11 @@ function suspicion(line: ParsedLine, parsed: ParseResult): string | null {
   return null;
 }
 
+/** An ingredient on file whose rate the sheet moved. */
+function rateMoved(p: PlannedIngredient): boolean {
+  return p.existing && p.ingredient.purchasePrice !== null && p.ingredient.purchasePrice !== p.wasRate;
+}
+
 function makeIngredient(
   line: ParsedLine,
   onFile: Ingredient | undefined,
@@ -396,9 +420,27 @@ function makeIngredient(
 ): Ingredient {
   const unit = line.unit ?? 'g';
 
+  /*
+   * One already on file is kept, with only what the sheet can honestly
+   * change: its rate, when the sheet states one in a unit it is bought in.
+   * It was rebuilt from the sheet row — yield back to assumed, supplier
+   * gone, a row with no rate setting the price to nothing — which is how a
+   * second import erased what the owner had typed by hand.
+   */
+  if (onFile !== undefined) {
+    if (rate === null || familyOf(line.unit) !== onFile.family) return onFile;
+    return {
+      ...onFile,
+      purchaseQty: toBase(1, unit),
+      purchaseUnit: unit,
+      purchasePrice: rate,
+      pricedAt: today,
+    };
+  }
+
   // A pack of one unit at the sheet's rate is the only thing the sheet says.
   const made = ingredientFromPack({
-    id: onFile?.id ?? idFor(line.name),
+    id: idFor(line.name),
     name: line.name,
     family: familyOf(line.unit),
     packQty: 1,

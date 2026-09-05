@@ -13,6 +13,7 @@
  */
 
 import type { Ingredient } from "@/core/ingredient";
+import { unitFamily } from "@/core/units";
 import type { Recipe } from "@/core/recipe";
 import { type LooseLine, parseLooseBlock } from "@/core/loose";
 
@@ -98,22 +99,28 @@ export function draftFrom(input: DraftInput): Draft {
      */
     const recipe = key === "" ? undefined : byRecipe.get(key);
     if (recipe !== undefined) {
+      const fits = line.unit === null || unitFamily(line.unit) === recipe.family;
       return {
-        line,
+        // A weight of a dish made by the plate, or plates of one made by the
+        // kilo: the unit does not fit, and the line needs one that does.
+        line: fits ? line : { ...line, needs: "unit" },
         match: { kind: "recipe", recipe },
-        ready: line.qty !== null,
+        ready: fits && line.qty !== null,
       };
     }
 
     const ingredient = key === "" ? undefined : byIngredient.get(key);
     if (ingredient !== undefined) {
+      // "200 ml ghee" against ghee bought by the kilo needs a density Costbook
+      // does not hold. Said here, on the check step, not after the create.
+      const fits = line.unit === null || unitFamily(line.unit) === ingredient.family;
       return {
-        line,
+        line: fits ? line : { ...line, needs: "unit" },
         match: { kind: "ingredient", ingredient },
         // On the shelf but with no rate on file is still not costable. The
         // dish takes the line and reports a floor until a rate arrives —
         // unless the line carries its own rate, as a sheet's row does.
-        ready: line.qty !== null && (ingredient.purchasePrice !== null || line.rate !== null),
+        ready: fits && line.qty !== null && (ingredient.purchasePrice !== null || line.rate !== null),
       };
     }
 

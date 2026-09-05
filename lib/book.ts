@@ -509,26 +509,36 @@ export async function saveRecipe(
     throw new WriteFailed("anything", "No account is signed in.");
   const supabase = await supabaseServer();
 
-  check(
-    recipe.name,
-    await supabase
-      .from("recipes")
-      .upsert(fromRecipe(recipe, meta, b.orgId), { onConflict: "id" }),
-  );
-  check(
-    recipe.name,
-    await supabase
-      .from("recipe_components")
-      .delete()
-      .eq("recipe_id", recipe.id),
-  );
+  await writeRecipes(supabase, [fromRecipe(recipe, meta, b.orgId)], fromComponents(recipe), meta !== undefined, recipe.name);
+}
 
-  const lines = fromComponents(recipe);
-  if (lines.length > 0) {
-    check(
-      `the lines of ${recipe.name}`,
-      await supabase.from("recipe_components").insert(lines),
-    );
+/**
+ * The recipe rows and their lines, as one transaction.
+ *
+ * `save_recipes` (migration 19) upserts the rows, replaces the lines, and
+ * either all of it lands or none of it does. Until the function exists on a
+ * project the old three statements run instead — loudly noted, because a
+ * save that can leave a dish with no lines is the thing the function ends.
+ */
+async function writeRecipes(
+  supabase: Awaited<ReturnType<typeof supabaseServer>>,
+  rows: readonly Record<string, unknown>[],
+  lines: readonly Record<string, unknown>[],
+  withMeta: boolean,
+  what: string,
+): Promise<void> {
+  const res = await supabase.rpc("save_recipes", { p_recipes: rows, p_lines: lines, p_with_meta: withMeta });
+  if (res.error === null) return;
+  if (res.error.code !== "PGRST202") {
+    check(what, res);
+    return;
+  }
+  console.warn("save_recipes is not on this project yet; apply migration 19. Saving in three statements instead.");
+  check(what, await supabase.from("recipes").upsert([...rows], { onConflict: "id" }));
+  const ids = rows.map((r) => r.id as string);
+  check(what, await supabase.from("recipe_components").delete().in("recipe_id", ids));
+  for (let i = 0; i < lines.length; i += 500) {
+    check(`the lines of ${what}`, await supabase.from("recipe_components").insert(lines.slice(i, i + 500)));
   }
 }
 
@@ -599,31 +609,13 @@ export async function saveBook(input: {
   }
 
   if (input.recipes.length > 0) {
-    check(
+    await writeRecipes(
+      supabase,
+      input.recipes.map((r) => fromRecipe(r, input.meta[r.id], orgId)),
+      input.recipes.flatMap(fromComponents),
+      true,
       "your dishes",
-      await supabase.from("recipes").upsert(
-        input.recipes.map((r) => fromRecipe(r, input.meta[r.id], orgId)),
-        { onConflict: "id" },
-      ),
     );
-
-    const ids = input.recipes.map((r) => r.id);
-    check(
-      "the old lines",
-      await supabase.from("recipe_components").delete().in("recipe_id", ids),
-    );
-
-    const lines = input.recipes.flatMap(fromComponents);
-    // Chunked: a large sheet produces thousands of lines, and one statement
-    // carrying all of them is a request nobody's proxy is expecting.
-    for (let i = 0; i < lines.length; i += 500) {
-      check(
-        "your recipe lines",
-        await supabase
-          .from("recipe_components")
-          .insert(lines.slice(i, i + 500)),
-      );
-    }
   }
 }
 

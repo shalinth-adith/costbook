@@ -2,7 +2,8 @@
 
 import type { CostedLine } from '@/core/recipe';
 
-import { rateUnitOf, DASH, lineQty, lineRate, qty } from '@/lib/format';
+import { rateUnitOf, DASH, lineRate, qty, shownQty } from '@/lib/format';
+import { toBase } from '@/core/units';
 
 import { useMoney } from './currency-provider';
 
@@ -71,16 +72,22 @@ export function ComponentCards({
                   <span className="figure ccard-value">{DASH}</span>
                 ) : (
                   <span className="ccard-qty">
+                    {/* Shown in the cook's unit (500 g, not 0.5 kg) and read back
+                        in that same unit. It showed kilos and stored the typed
+                        figure as grams, so 0.6 on a kilo line became 0.6 g. */}
                     <input
                       className="figure qty-input"
                       type="number"
                       min={0}
                       step="any"
-                      value={lineQty(line.qty, line.unit)}
+                      value={shownQty(line.qty, line.unit).qty}
                       aria-label={`Quantity of ${line.name}`}
-                      onChange={(e) => handlers.onQty(i, Number(e.target.value))}
+                      onChange={(e) => {
+                        const n = Number(e.target.value);
+                        if (Number.isFinite(n) && n > 0) handlers.onQty(i, toBase(n, shownQty(line.qty, line.unit).unit));
+                      }}
                     />
-                    <span className="figure ccard-unit">{line.unit}</span>
+                    <span className="figure ccard-unit">{shownQty(line.qty, line.unit).unit}</span>
                   </span>
                 )}
               </label>
