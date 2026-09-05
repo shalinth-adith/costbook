@@ -21,6 +21,7 @@ import {
 import { ORG } from '@/lib/data';
 import { outputText, percent, points } from '@/lib/format';
 
+import { Ticker } from './ticker';
 import { useMoney } from './currency-provider';
 import { toBase } from '@/core/units';
 
@@ -284,7 +285,11 @@ export function CostRail({
             * the owner never asked for, and the button label wrapped.
             */}
           <div className="price-one">
-            <span className="price-one-figure figure">{m.withSymbol(suggestion.rounded)}</span>
+            <Ticker
+              className="price-one-figure figure"
+              value={suggestion.rounded}
+              format={(v) => m.withSymbol(v)}
+            />
             <span className="price-one-said">
               Costs <b>{m.withSymbol(build.total)}</b> to make.{' '}
               {model.method === 'money_per_plate' ? (

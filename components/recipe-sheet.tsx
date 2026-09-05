@@ -24,6 +24,7 @@ import { suggestPrice } from '@/lib/costing';
 
 import { ComponentCards } from './component-cards';
 import { PrepCard } from './prep-card';
+import { Ticker } from './ticker';
 import { WhereItGoes } from './where-it-goes';
 import { Toast, type ToastState } from './toast';
 import { type Flag, deliveryState, whenSent } from '@/lib/flags';
@@ -490,17 +491,29 @@ export function RecipeSheet({
       <div className="dish-bar">
         <div className="dish-tile">
           <span className="label">A plate costs</span>
-          <span className="dish-tile-fig display">{build.complete && build.total !== null ? m.withSymbol(build.total) : '—'}</span>
+          <span className="dish-tile-fig display">
+            {build.complete && build.total !== null
+              ? <Ticker value={build.total} format={(v) => m.withSymbol(v)} />
+              : '—'}
+          </span>
           <span className="dish-tile-sub">{build.complete ? 'every rate on file' : 'a floor: a rate is missing'}</span>
         </div>
         <div className="dish-tile">
           <span className="label">Sells at</span>
-          <span className="dish-tile-fig display">{dish.sellingPrice === null ? '—' : m.withSymbol(dish.sellingPrice)}</span>
+          <span className="dish-tile-fig display">
+            {dish.sellingPrice === null
+              ? '—'
+              : <Ticker value={dish.sellingPrice} format={(v) => m.withSymbol(v)} />}
+          </span>
           <span className="dish-tile-sub">{dish.sellingPrice === null ? 'no price yet' : dish.onMenu ? 'on the menu' : 'not on the menu'}</span>
         </div>
         <div className={`dish-tile${fc === null ? '' : fc > model.foodCostTarget + 2 ? ' is-over' : fc >= model.foodCostTarget - 2 ? ' is-near' : ' is-on'}`}>
           <span className="label">Keeps, of every {m.symbol} 100</span>
-          <span className="dish-tile-fig display">{fc === null ? '—' : `${m.symbol} ${String(Math.round(100 - fc))}`}</span>
+          <span className="dish-tile-fig display">
+            {fc === null
+              ? '—'
+              : <Ticker value={100 - fc} format={(v) => `${m.symbol} ${String(Math.round(v))}`} />}
+          </span>
           <span className="dish-tile-sub">you planned {m.symbol} {String(Math.round(100 - model.foodCostTarget))}</span>
         </div>
         <div className="dish-tile">
@@ -510,7 +523,9 @@ export function RecipeSheet({
         </div>
         <div className="dish-tile">
           <span className="label">Whole batch</span>
-          <span className="dish-tile-fig display">{m.withSymbol(build.linesTotal)}</span>
+          <span className="dish-tile-fig display">
+            <Ticker value={build.linesTotal} format={(v) => m.withSymbol(v)} />
+          </span>
           <span className="dish-tile-sub">ingredients</span>
         </div>
       </div>

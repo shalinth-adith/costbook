@@ -6,6 +6,7 @@ import type { CostBuildUp, CostingModel } from "@/lib/costing";
 import { SAID, SHORT, whereItGoes } from "@/lib/where";
 
 import { useMoney } from "./currency-provider";
+import { Ticker } from "./ticker";
 
 /**
  * Where every hundred a guest pays actually goes.
@@ -88,7 +89,11 @@ export function WhereItGoes({
                 <span className="wig-none">not counted</span>
               ) : (
                 <>
-                  <span className="figure">{m.withSymbol(s.amount)}</span>
+                  <Ticker
+                    className="figure"
+                    value={s.amount}
+                    format={(v) => m.withSymbol(v)}
+                  />
                   <span className="figure wig-share">
                     {Math.round(s.share)}
                   </span>
@@ -104,7 +109,11 @@ export function WhereItGoes({
             {losing ? "Short, on every plate" : split.left.label}
           </dt>
           <dd>
-            <span className="figure">{m.withSymbol(split.left.amount)}</span>
+            <Ticker
+              className="figure"
+              value={split.left.amount}
+              format={(v) => m.withSymbol(v)}
+            />
             <span className="figure wig-share">
               {Math.round(split.left.share)}
             </span>
