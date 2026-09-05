@@ -28,6 +28,14 @@ export function DishSheet({
   onPortions,
   method,
   onMethod,
+  portionSize,
+  onPortionSize,
+  contains,
+  onContains,
+  prepTime,
+  onPrepTime,
+  doNot,
+  onDoNot,
   labourMinutes,
   labourRatePerHour,
   onLabourMinutes,
@@ -46,6 +54,22 @@ export function DishSheet({
   /** How to prepare it, as typed. Prints on the prep card. */
   method: string | null;
   onMethod: (v: string) => void;
+  /*
+   * The four the prep card prints and nothing could type.
+   *
+   * They arrived only from an imported sheet's columns, so a kitchen that
+   * typed its menu in by hand had a card with no portion, no allergens and no
+   * prep time — the three lines a cook actually reads off a card taped to a
+   * wall — and the "do not" box was hard-coded empty for everybody.
+   */
+  portionSize: string | null;
+  onPortionSize: (v: string) => void;
+  contains: string;
+  onContains: (v: string) => void;
+  prepTime: string | null;
+  onPrepTime: (v: string) => void;
+  doNot: string | null;
+  onDoNot: (v: string) => void;
   /** Minutes of kitchen time one batch takes. Null when nobody has said. */
   labourMinutes: number | null;
   /** The account's one kitchen rate, so the sheet can say what the minutes cost. */
@@ -106,6 +130,53 @@ export function DishSheet({
             ? `At ${m.withSymbol(labourRatePerHour)} an hour, set in Settings. Spread over the portions.`
             : 'Counted once a kitchen rate is set in Settings.'}
         </span>
+      </label>
+
+      <label className="field">
+        <span className="label">One portion is</span>
+        <input
+          className="field-input"
+          value={portionSize ?? ''}
+          placeholder="2 idly and a ladle of sambar"
+          onChange={(e) => { onPortionSize(e.target.value); }}
+        />
+        <span className="field-help">Prints on the prep card beside PORTION. Costs nothing.</span>
+      </label>
+
+      <label className="field">
+        <span className="label">Contains</span>
+        <input
+          className="field-input"
+          value={contains}
+          placeholder="Peanut, dairy, mustard"
+          onChange={(e) => { onContains(e.target.value); }}
+        />
+        <span className="field-help">
+          Separated by commas. Never guessed from ingredient names — a guess under CONTAINS is
+          worse than a blank line, because a kitchen cannot tell them apart.
+        </span>
+      </label>
+
+      <label className="field">
+        <span className="label">Prep time</span>
+        <input
+          className="field-input"
+          value={prepTime ?? ''}
+          placeholder="20 minutes, plus overnight soaking"
+          onChange={(e) => { onPrepTime(e.target.value); }}
+        />
+      </label>
+
+      <label className="field">
+        <span className="label">Do not</span>
+        <textarea
+          className="field-textarea"
+          value={doNot ?? ''}
+          rows={2}
+          placeholder="Do not boil the coconut. It splits."
+          onChange={(e) => { onDoNot(e.target.value); }}
+        />
+        <span className="field-help">The one thing that ruins it. Prints in its own box.</span>
       </label>
 
       <label className="field">

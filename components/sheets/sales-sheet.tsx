@@ -18,6 +18,9 @@ export function SalesSheet({
   open,
   onClose,
   periodSaid,
+  period,
+  periods,
+  onPeriod,
   recipes,
   busy,
   onSave,
@@ -25,6 +28,11 @@ export function SalesSheet({
   open: boolean;
   onClose: () => void;
   periodSaid: string;
+  /** The month being recorded, as `YYYY-MM`. */
+  period: string;
+  /** The months a person can choose between: this one and the year behind it. */
+  periods: readonly { readonly id: string; readonly said: string }[];
+  onPeriod: (period: string) => void;
   recipes: readonly Recipe[];
   busy: boolean;
   onSave: (text: string) => void;
@@ -51,6 +59,20 @@ export function SalesSheet({
         </button>
       }
     >
+      <label className="field sales-month">
+        <span className="label">Which month</span>
+        {/* The period was fixed to last month, so a kitchen catching up on a
+            quarter could record one of the three and no more. */}
+        <select
+          className="wiz-input"
+          value={period}
+          onChange={(e) => { onPeriod(e.target.value); }}
+        >
+          {periods.map((p) => (
+            <option key={p.id} value={p.id}>{p.said}</option>
+          ))}
+        </select>
+      </label>
       <p className="sheet-copy">
         One dish a line, with how many sold: the two columns from your till or the app&rsquo;s
         dashboard, pasted. Names are matched to your dishes; anything that matches nothing is

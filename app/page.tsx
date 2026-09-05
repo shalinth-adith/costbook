@@ -55,7 +55,7 @@ export default function Landing() {
           <Link href="/sign-up" className="btn btn-primary lp-btn-lg">Start free</Link>
           {/* Someone who knows the shape of a wizard finishes it. */}
           <span className="lp-act-said">
-            Four short questions about your place, then bring your menu in.
+            A short setup — your restaurant, then the rules you price by — and then bring your menu in.
           </span>
         </div>
       </section>

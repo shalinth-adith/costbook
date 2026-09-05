@@ -187,6 +187,17 @@ export function LibraryView({
               button beside it. */}
           {/* A link, not a sheet. Creating a dish is the work, not an
               interruption to it — see app/recipes/new/page.tsx. */}
+          {/* Every figure on this page, as a spreadsheet. A book you cannot
+              take away is not yours — and there was no way to get one out. */}
+          {bare ? null : (
+            <a href="/recipes/export" className="btn" download>
+              <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+                <path d="M6 1.6v6.2M3.4 5.4 6 8l2.6-2.6M2 10h8" />
+              </svg>
+              Export
+            </a>
+          )}
           <Link
             href="/recipes/new"
             className={bare ? 'btn' : 'btn btn-primary'}

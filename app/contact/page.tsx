@@ -38,7 +38,7 @@ export default function Contact() {
       <main>
         <h1>Write to us.</h1>
         <p>
-          Costbook is made by a small team in Madurai, and the address below
+          Costbook is made by a small team, and the address below
           reaches us rather than a help desk. We usually reply within a day.
         </p>
 

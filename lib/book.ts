@@ -569,14 +569,32 @@ async function recordRate(
  * identity the operator would recognise — they reorder, retype and delete
  * them freely — so matching them up would be inventing a history nobody kept.
  */
+/** A save refused because the dish moved on while somebody had it open. */
+export class Stale extends Error {
+  constructor() {
+    super(
+      "Somebody saved this dish while you had it open, so nothing has been " +
+        "written — yours would have replaced theirs with no record of it. " +
+        "Reload the page and make your change again.",
+    );
+    this.name = "Stale";
+  }
+}
+
 export async function saveRecipe(
   recipe: Recipe,
   meta: DishMeta | undefined,
-): Promise<void> {
+  /**
+   * The `updated_at` the screen loaded. Given, the write refuses when the row
+   * has moved since; omitted, it writes as it always did — which is what
+   * import, a paste and a brand new dish all want.
+   */
+  expect?: string | null,
+): Promise<string | null> {
   if (!supabaseConfigured()) {
     memory.putRecipe(recipe);
     if (meta !== undefined) memory.putMeta(recipe.id, meta);
-    return;
+    return new Date().toISOString();
   }
   const b = await book();
   // Loud, not silent. A write that quietly does nothing is worse than one that
@@ -585,7 +603,14 @@ export async function saveRecipe(
     throw new WriteFailed("anything", "No account is signed in.");
   const supabase = await supabaseServer();
 
-  await writeRecipes(supabase, [fromRecipe(recipe, meta, b.orgId)], fromComponents(recipe), meta !== undefined, recipe.name);
+  return writeRecipes(
+    supabase,
+    [fromRecipe(recipe, meta, b.orgId)],
+    fromComponents(recipe),
+    meta !== undefined,
+    recipe.name,
+    expect ?? null,
+  );
 }
 
 /**
@@ -602,20 +627,32 @@ async function writeRecipes(
   lines: readonly Record<string, unknown>[],
   withMeta: boolean,
   what: string,
-): Promise<void> {
-  const res = await supabase.rpc("save_recipes", { p_recipes: rows, p_lines: lines, p_with_meta: withMeta });
-  if (res.error === null) return;
+  expect: string | null = null,
+): Promise<string | null> {
+  const res = await supabase.rpc("save_recipes", {
+    p_recipes: rows,
+    p_lines: lines,
+    p_with_meta: withMeta,
+    ...(expect === null ? {} : { p_expect: expect }),
+  });
+  if (res.error === null) return typeof res.data === "string" ? res.data : null;
+  // Raised by the function itself when the row moved on. Not a fault to
+  // report as one: somebody else got there first, and both edits still exist.
+  if (res.error.code === "40001" || res.error.message.includes("stale_recipe")) throw new Stale();
   if (res.error.code !== "PGRST202") {
     check(what, res);
-    return;
+    return null;
   }
-  console.warn("save_recipes is not on this project yet; apply migration 19. Saving in three statements instead.");
+  console.warn("save_recipes is not on this project yet; apply migrations 19 and 22. Saving in three statements instead, with no protection against two people saving one dish.");
   check(what, await supabase.from("recipes").upsert([...rows], { onConflict: "id" }));
   const ids = rows.map((r) => r.id as string);
   check(what, await supabase.from("recipe_components").delete().in("recipe_id", ids));
   for (let i = 0; i < lines.length; i += 500) {
     check(`the lines of ${what}`, await supabase.from("recipe_components").insert(lines.slice(i, i + 500)));
   }
+  const back = await supabase.from("recipes").select("updated_at").eq("id", ids[0] ?? "").limit(1);
+  const row = (back.data as { updated_at: string }[] | null)?.[0];
+  return row === undefined ? null : row.updated_at;
 }
 
 /** Everything an import produces, in as few round trips as it can be done. */
@@ -799,6 +836,22 @@ export async function saveMeta(
         : (current?.pricing ?? NO_DISH_PRICING),
     pricedAt: patch.pricedAt !== undefined ? patch.pricedAt : (current?.pricedAt ?? null),
     keptAtPricing: patch.keptAtPricing !== undefined ? patch.keptAtPricing : (current?.keptAtPricing ?? null),
+    /*
+     * Merged key by key, and only when the patch carries any.
+     *
+     * These are the columns an imported sheet brought plus the three the prep
+     * card asks for by hand. A patch that sets "Contains" must not drop the
+     * "Storage" column somebody's workbook carried; an empty value clears
+     * that one key and leaves the rest.
+     */
+    custom:
+      patch.custom === undefined
+        ? (current?.custom ?? {})
+        : Object.fromEntries(
+            Object.entries({ ...(current?.custom ?? {}), ...patch.custom }).filter(
+              ([, v]) => v.trim() !== '',
+            ),
+          ),
   };
 
   const supabase = await supabaseServer();
@@ -807,6 +860,7 @@ export async function saveMeta(
     await supabase
     .from("recipes")
     .update({
+      custom: next.custom,
       category: next.category,
       station: next.station,
       portion_size: next.portionSize,

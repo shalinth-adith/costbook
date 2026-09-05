@@ -52,7 +52,7 @@ import { unitFamily } from '@/core/units';
 import { addComponent, pantryWith, removeLine, setQty, toggleScope } from '@/lib/edit';
 import type { DishMeta } from '@/lib/data';
 import { ROUNDING_LABEL } from '@/lib/costing';
-import { allergensFrom, methodLines, prepTimeFrom } from '@/lib/prep';
+import { PREP_KEYS, allergensFrom, doNotFrom, methodLines, prepTimeFrom } from '@/lib/prep';
 import { money, percent } from '@/lib/format';
 
 import { useMoney } from './currency-provider';
@@ -138,11 +138,22 @@ export function RecipeSheet({
   const [saving, setSaving] = useState(false);
 
   /** The dish's own fields, editable here rather than only in the database. */
+  /*
+   * The dish as this screen last knew it. Sent with a save so the server can
+   * refuse one that would replace somebody else's work, and replaced by what
+   * the server wrote so a second save from this same screen goes through.
+   */
+  const [version, setVersion] = useState<string | null>(dish.updatedAt ?? null);
+
   const [fields, setFields] = useState({
     name: initialRecipe.name,
     category: dish.category,
     station: dish.station,
     method: dish.method ?? null,
+    portionSize: dish.portionSize,
+    contains: allergensFrom(dish.custom).join(', '),
+    prepTime: prepTimeFrom(dish.custom),
+    doNot: doNotFrom(dish.custom),
   });
 
   /** Wastage and packaging, once the operator has set them for this dish. */
@@ -215,7 +226,13 @@ export function RecipeSheet({
     try {
       const ack = await run();
       setToast(ack);
-      setDirty(false);
+      // The version the server wrote, so a second save from this screen is not
+      // mistaken for somebody else's. Absent means nothing was written — a
+      // refusal — and the screen keeps the version it had.
+      if (ack.version !== undefined && ack.version !== null) setVersion(ack.version);
+      // Still dirty when nothing was saved: the work is still on screen and
+      // still unsaved, and telling somebody it is safe would be the lie.
+      setDirty(ack.version === undefined ? false : ack.version === null);
     } finally {
       setSaving(false);
     }
@@ -260,7 +277,19 @@ export function RecipeSheet({
     edit(result.recipe);
   };
 
-  const dishFields = { category: fields.category, station: fields.station, method: fields.method };
+  const dishFields = {
+    category: fields.category,
+    station: fields.station,
+    method: fields.method,
+    portionSize: fields.portionSize,
+    // The three prep lines live where an imported sheet's columns live, so a
+    // typed allergen and a column called "Allergens" are one fact.
+    custom: {
+      [PREP_KEYS.contains]: fields.contains,
+      [PREP_KEYS.prepTime]: fields.prepTime ?? '',
+      [PREP_KEYS.doNot]: fields.doNot ?? '',
+    },
+  };
   const named: Recipe = { ...recipe, name: fields.name };
 
   const suggestion =
@@ -346,13 +375,13 @@ export function RecipeSheet({
     return (
       <PrepCard
         name={fields.name}
-        dish={{ ...dish, category: fields.category, station: fields.station }}
+        dish={{ ...dish, category: fields.category, station: fields.station, portionSize: fields.portionSize }}
         portions={recipe.portions}
         lines={cost.lines}
         steps={methodLines(dish.method)}
-        prepTime={prepTimeFrom(dish.custom)}
-        contains={allergensFrom(dish.custom)}
-        doNot={null}
+        prepTime={fields.prepTime}
+        contains={fields.contains.split(',').map((a) => a.trim()).filter((a) => a !== '')}
+        doNot={fields.doNot}
         orgName={orgName}
         onBack={() => setView('costing')}
       />
@@ -622,7 +651,7 @@ export function RecipeSheet({
                     className="btn btn-primary"
                     disabled={!dirty || saving}
                     title={dirty ? undefined : 'Nothing has changed since this was last saved.'}
-                    onClick={() => void commit(() => saveChanges(named, dishFields))}
+                    onClick={() => void commit(() => saveChanges(named, dishFields, version))}
                   >
                     {saving ? 'Saving…' : 'Save changes'}
                   </button>
@@ -729,6 +758,14 @@ export function RecipeSheet({
         onPortions={(v) => edit({ ...recipe, portions: v })}
         method={fields.method}
         onMethod={(v) => { setFields((f) => ({ ...f, method: v.trim() === '' ? null : v })); setDirty(true); }}
+        portionSize={fields.portionSize}
+        onPortionSize={(v) => { setFields((f) => ({ ...f, portionSize: v.trim() === '' ? null : v })); setDirty(true); }}
+        contains={fields.contains}
+        onContains={(v) => { setFields((f) => ({ ...f, contains: v })); setDirty(true); }}
+        prepTime={fields.prepTime}
+        onPrepTime={(v) => { setFields((f) => ({ ...f, prepTime: v.trim() === '' ? null : v })); setDirty(true); }}
+        doNot={fields.doNot}
+        onDoNot={(v) => { setFields((f) => ({ ...f, doNot: v.trim() === '' ? null : v })); setDirty(true); }}
         labourMinutes={labourMinutes}
         labourRatePerHour={orgModel.labourRatePerHour}
         onLabourMinutes={(v) => {

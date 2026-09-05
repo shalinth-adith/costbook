@@ -46,6 +46,15 @@ export const PUBLIC_PATHS: readonly string[] = [
   // Reached from the sign-in screen by someone who cannot get in. Gating the
   // page that tells them how to ask for help would be a closed loop.
   "/contact",
+  /*
+   * The two files that say which pages a crawler may read.
+   *
+   * Both were being redirected to /sign-in, so the landing page could not be
+   * indexed because the file granting permission to index it was behind a
+   * login. Neither carries anything an account would.
+   */
+  "/robots.txt",
+  "/sitemap.xml",
 ];
 
 /** Whether a path is reachable with no session. */

@@ -11,7 +11,7 @@ import { MIN_PASSWORD, PASSWORD_RULE } from './entry-shell';
  * Sign up (A31).
  *
  * Two fields only. Business name is step 1 of the wizard; asking here means
- * asking twice, and a form with four questions before the account exists loses
+ * asking twice, and a form with the whole of setup before the account exists loses
  * people who would have finished five after it.
  */
 export function SignUpForm() {
@@ -68,7 +68,7 @@ export function SignUpForm() {
         <h1 className="entry-title">Your account exists. Now open the email.</h1>
         <p className="entry-sub">
           We&rsquo;ve sent a link to <b>{sent}</b>. Open it on any device and you&rsquo;ll go
-          straight to the four questions.
+          straight to setting up your book.
         </p>
 
         <div className="notice notice-flat">
@@ -102,7 +102,7 @@ export function SignUpForm() {
           and we&rsquo;ll send again — the account moves with it, nothing is created twice.
         </p>
         {/*
-          * No "continue to the four questions" button.
+          * No "continue to setup" button.
           *
           * It pushed /setup, and this screen is only ever shown to somebody
           * who has no session yet — so the proxy sent them to /sign-in, which
@@ -178,7 +178,7 @@ export function SignUpForm() {
         {pending ? 'Creating your account…' : 'Create my account'}
       </button>
       <p className="entry-foot">
-        Next you&rsquo;ll answer four short questions about your place — about a minute.
+        Next you&rsquo;ll set up your book — your restaurant, then the rules you price by. About a minute.
       </p>
 
       {/*
@@ -188,7 +188,7 @@ export function SignUpForm() {
         * call at all — and dropped the visitor on "Your account exists. Now
         * open the email." No account existed and no email had been sent. The
         * next screen then offered "Send it again", which ran a countdown in
-        * the browser and sent nothing, and a button to the four questions,
+        * the browser and sent nothing, and a button onward to setup,
         * which the proxy bounced to /sign-in because there was no session.
         * A person following that path could not tell any of it, and waited.
         *

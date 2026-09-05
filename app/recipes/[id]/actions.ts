@@ -9,7 +9,7 @@ import type { DishMeta, DishPricing } from '@/lib/data';
 import { pantryOf, recipeCost } from '@/core/recipe';
 import { formatMoney } from '@/core/currency';
 import { buildUp, foodCostPercent, modelForDish, tryRecipeCost } from '@/lib/costing';
-import { book, getMeta, getRecipe, recipesUsing, saveIngredient, saveMeta, saveRecipe, orgModel } from '@/lib/book';
+import { Stale, book, getMeta, getRecipe, recipesUsing, saveIngredient, saveMeta, saveRecipe, orgModel } from '@/lib/book';
 
 /**
  * The writes the cost sheet makes.
@@ -23,6 +23,11 @@ import { book, getMeta, getRecipe, recipesUsing, saveIngredient, saveMeta, saveR
 export interface Ack {
   readonly message: string;
   readonly undoable: boolean;
+  /**
+   * The dish's version after the write, for the screen to hold and send back
+   * with its next save. Absent when nothing was written.
+   */
+  readonly version?: string | null;
 }
 
 function refresh(id: string): void {
@@ -135,14 +140,29 @@ export async function keepPrice(recipe: Recipe, dish: Partial<DishMeta>): Promis
 }
 
 /** Save changes to a dish already on the menu, leaving its price alone. */
-export async function saveChanges(recipe: Recipe, dish: Partial<DishMeta>): Promise<Ack> {
+export async function saveChanges(
+  recipe: Recipe,
+  dish: Partial<DishMeta>,
+  /** The version the screen loaded, so a save cannot silently replace somebody else's. */
+  expect?: string | null,
+): Promise<Ack> {
   const refused = await refusedBecause(recipe);
-  if (refused !== null) return { message: refused, undoable: false };
-  await saveRecipe(recipe, undefined);
+  // `version: null` so the screen keeps its work marked unsaved. Leaving it
+  // out would read as "nothing to save", which is the opposite of the truth.
+  if (refused !== null) return { message: refused, undoable: false, version: null };
+  let version: string | null;
+  try {
+    version = await saveRecipe(recipe, undefined, expect ?? null);
+  } catch (error) {
+    // Said, not thrown: the operator has a screen full of work and needs to
+    // be told to reload, not shown an error page that loses it.
+    if (error instanceof Stale) return { message: error.message, undoable: false, version: null };
+    throw error;
+  }
   await saveMeta(recipe.id, dish);
   refresh(recipe.id);
 
-  return { message: `${recipe.name} saved.`, undoable: true };
+  return { message: `${recipe.name} saved.`, undoable: true, version };
 }
 
 export async function removeFromMenu(id: string): Promise<Ack> {

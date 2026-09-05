@@ -65,6 +65,33 @@ export function allergensFrom(custom: Readonly<Record<string, string>> | undefin
   return [];
 }
 
+/**
+ * The keys Costbook writes when somebody types these on the dish itself.
+ *
+ * The same shelf an imported sheet's columns land on, read by the three
+ * functions here — so a column called "Allergens" from a workbook and a line
+ * typed into the dish sheet are the same fact, and neither overwrites the
+ * other by accident.
+ */
+export const PREP_KEYS = {
+  contains: 'Contains',
+  prepTime: 'Prep time',
+  doNot: 'Do not',
+} as const;
+
+/** What must not happen to this dish. Printed under the method, in its own box. */
+export function doNotFrom(custom: Readonly<Record<string, string>> | undefined): string | null {
+  if (custom === undefined) return null;
+  for (const [heading, value] of Object.entries(custom)) {
+    const key = heading.toLowerCase().replace(/[^a-z]/g, '');
+    if (key === 'donot' || key === 'never' || key === 'donotdo') {
+      const said = value.trim();
+      if (said !== '') return said;
+    }
+  }
+  return null;
+}
+
 /** Prep time, only where the sheet carried a column for it. */
 export function prepTimeFrom(custom: Readonly<Record<string, string>> | undefined): string | null {
   if (custom === undefined) return null;

@@ -54,7 +54,7 @@ export function DashboardEmpty({ target }: { target: number }) {
         ))}
         <p className="fd-settled">
           Your currency, tax and <span className="figure">{target}%</span> target are already set
-          from the four questions. Nothing else needs configuring.
+          from setup. Nothing else needs configuring.
         </p>
       </section>
     </div>

@@ -7,7 +7,7 @@ import { book } from "@/lib/book";
 import { landingFor } from "@/lib/landing";
 
 /**
- * The four questions, asked once after sign-up and before there is any data.
+ * Setup, asked once after sign-up and before there is any data.
  *
  * Not reachable afterwards. Every answer is also in Settings, where changing
  * one shows what it reprices before it commits; walking the wizard a second

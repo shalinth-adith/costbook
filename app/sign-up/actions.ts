@@ -45,7 +45,7 @@ export async function createAccount(email: string, password: string): Promise<Si
    * It used to return `sent`, which put "We've sent a link to <address>" in
    * front of somebody when nothing had been sent and no account had been made.
    * There is nowhere for a link to arrive from in this path — there is no mail
-   * provider and no row. The four questions are the honest next screen.
+   * provider and no row. Setting up the book is the honest next screen.
    */
   if (!supabaseConfigured()) redirect(await afterSignIn(null));
 
@@ -59,7 +59,7 @@ export async function createAccount(email: string, password: string): Promise<Si
   }
 
   // Email confirmation is off, so a session arrives with the account and the
-  // next stop is the four questions.
+  // next stop is setting up the book.
   // A new account has four unanswered questions, so this lands on /setup —
   // but it says so by asking, not by knowing.
   if (data.session !== null) redirect(await afterSignIn(null));

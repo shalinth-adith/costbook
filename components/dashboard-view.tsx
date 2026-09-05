@@ -348,6 +348,13 @@ export function DashboardView({
   recipes: readonly Recipe[];
   onSaveSales: (period: string, text: string) => Promise<{ readonly message: string; readonly undoable: boolean }>;
 }) {
+  /*
+   * Which month the sales sheet is recording. Last month by default, because
+   * that is the one a person is nearly always entering — but a kitchen
+   * catching up after a quarter could previously record one month of three.
+   */
+  const [salesFor, setSalesFor] = useState(salesPeriod);
+
   const m = useMoney();
   const [salesOpen, setSalesOpen] = useState(false);
   const [salesBusy, setSalesBusy] = useState(false);
@@ -783,14 +790,17 @@ export function DashboardView({
       </section>
 
       <SalesSheet
+        period={salesFor}
+        periods={monthsBack(salesPeriod)}
+        onPeriod={setSalesFor}
         open={salesOpen}
         onClose={() => setSalesOpen(false)}
-        periodSaid={periodSaid(salesPeriod)}
+        periodSaid={periodSaid(salesFor)}
         recipes={recipes}
         busy={salesBusy}
         onSave={(text) => {
           setSalesBusy(true);
-          void onSaveSales(salesPeriod, text).then((ack) => {
+          void onSaveSales(salesFor, text).then((ack) => {
             setSalesBusy(false);
             setSalesOpen(false);
             setSalesNote(ack.message);
@@ -849,4 +859,17 @@ export function DashboardView({
       )}
     </>
   );
+}
+
+/** This month and the twelve behind it, newest first. */
+function monthsBack(from: string): readonly { readonly id: string; readonly said: string }[] {
+  const [y, m] = from.split('-').map(Number);
+  const out: { id: string; said: string }[] = [];
+  const start = new Date(Date.UTC(y ?? 2026, (m ?? 1) - 1, 1));
+  for (let i = 0; i < 13; i += 1) {
+    const d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() - i, 1));
+    const id = `${String(d.getUTCFullYear())}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    out.push({ id, said: periodSaid(id) });
+  }
+  return out;
 }
