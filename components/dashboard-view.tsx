@@ -211,6 +211,25 @@ function Todo({
           <span className="td-go" aria-hidden="true">→</span>
         </Link>
       );
+    case "confirm_yield":
+      return (
+        <Link href="/ingredients?show=assumed" className="td-row ink-quiet">
+          <span className="td-mark" aria-hidden="true" />
+          <span className="td-said">
+            <b>
+              Confirm what is left of{" "}
+              {action.count === 1 ? "one ingredient" : `${String(action.count)} ingredients`}{" "}
+              after trimming
+            </b>
+            {" — each is costed as though nothing is lost. Start with "}
+            <b>{action.first.name}</b>
+            {", it is in "}
+            <span className="figure">{action.firstUsedIn}</span>
+            {action.firstUsedIn === 1 ? " dish." : " dishes."}
+          </span>
+        </Link>
+      );
+
     case "price_ingredients":
       return (
         <Link href="/ingredients" className="td-row ink-quiet">

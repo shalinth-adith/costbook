@@ -16,7 +16,7 @@ import {
 import type { RateChange } from './org';
 import type { Pantry } from '@/core/recipe';
 
-export type IngredientFilter = 'all' | 'no_rate' | 'stale' | 'locked';
+export type IngredientFilter = 'all' | 'no_rate' | 'stale' | 'locked' | 'assumed';
 export type IngredientStatus = 'ok' | 'no_rate' | 'stale' | 'locked';
 
 export interface IngredientRow {
@@ -161,6 +161,13 @@ export function board(
       no_rate: sorted.filter((r) => r.status === 'no_rate').length,
       stale: sorted.filter((r) => r.status === 'stale').length,
       locked: sorted.filter((r) => r.status === 'locked').length,
+      /*
+       * Yields nobody has confirmed. Not a status — an ingredient can be
+       * perfectly priced, fresh and still costed as though nothing is lost
+       * to peel and trim, which is why this sits beside the statuses rather
+       * than among them.
+       */
+      assumed: sorted.filter((r) => r.yieldIsAssumed && r.rate !== null && r.usedIn > 0).length,
     },
   };
 }
@@ -176,6 +183,7 @@ export function applyIngredientFilter(
     if (filter === 'no_rate' && r.status !== 'no_rate') return false;
     if (filter === 'stale' && r.status !== 'stale') return false;
     if (filter === 'locked' && r.status !== 'locked') return false;
+    if (filter === 'assumed' && !(r.yieldIsAssumed && r.rate !== null && r.usedIn > 0)) return false;
     if (q !== '') {
       const inName = r.name.toLowerCase().includes(q);
       const inSupplier = (r.supplier ?? '').toLowerCase().includes(q);

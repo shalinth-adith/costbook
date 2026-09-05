@@ -24,6 +24,7 @@ interface Ack { readonly message: string; readonly undoable: boolean }
 const FILTERS: readonly { value: IngredientFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'no_rate', label: 'No rate' },
+  { value: 'assumed', label: 'Yield not confirmed' },
   { value: 'stale', label: 'Stale' },
   { value: 'locked', label: 'Locked' },
 ];
@@ -37,6 +38,7 @@ export function IngredientsView({
   onPreviewRate,
   onSetRateAndRaise,
   currencyCode,
+  startFilter = 'all',
 }: {
   board: IngredientBoard;
   onAdd: (i: NewIngredient) => Promise<Ack & { id: string | null }>;
@@ -46,11 +48,19 @@ export function IngredientsView({
   /** Apply the rate and reprice the dishes it pushed under target. */
   onSetRateAndRaise: (id: string, packPrice: number, raises: RatePreview['raises']) => Promise<Ack>;
   currencyCode: string;
+  /**
+   * Which filter the screen opens on, from the query.
+   *
+   * The dashboard's worklist sends somebody here to do one job — the yields
+   * nobody has confirmed — and landing on the whole list with the job to find
+   * again is how a worklist stops being one.
+   */
+  startFilter?: IngredientFilter;
   onSetRates: (changes: readonly { id: string; packPrice: number }[]) => Promise<Ack>;
   onSetYield: (id: string, yieldPercent: number) => Promise<Ack>;
 }) {
   const m = useMoney();
-  const [filter, setFilter] = useState<IngredientFilter>('all');
+  const [filter, setFilter] = useState<IngredientFilter>(startFilter);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
@@ -61,7 +71,20 @@ export function IngredientsView({
   const [edits, setEdits] = useState<Readonly<Record<string, string>>>({});
 
   const rows = useMemo(
-    () => applyIngredientFilter(board.rows, filter, query),
+    () => {
+      const kept = applyIngredientFilter(board.rows, filter, query);
+      /*
+       * The yield job is a worklist, so it is ordered like one.
+       *
+       * Every other view of this screen is "what changed most recently",
+       * which is right for prices. Here the dashboard has just said "start
+       * with Salt, it is in nine dishes" and landing on a list where Salt is
+       * fortieth makes that sentence useless. Most dishes first, which is the
+       * same ranking the worklist used to choose its lead.
+       */
+      if (filter !== 'assumed') return kept;
+      return [...kept].sort((a, b) => b.usedIn - a.usedIn || a.name.localeCompare(b.name));
+    },
     [board.rows, filter, query],
   );
 
@@ -195,7 +218,8 @@ export function IngredientsView({
         </div>
 
         <span className="toolbar-note">
-          Sorted by most recently priced · <span className="figure">{rows.length}</span> of{' '}
+          {filter === 'assumed' ? 'Most dishes first' : 'Sorted by most recently priced'} ·{' '}
+          <span className="figure">{rows.length}</span> of{' '}
           <span className="figure">{board.counts.all}</span>
         </span>
       </div>

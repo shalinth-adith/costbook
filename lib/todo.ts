@@ -98,6 +98,26 @@ export type Action =
       readonly percent: number;
       readonly usedIn: number;
     }
+  /**
+   * Yields nobody has confirmed, as one job.
+   *
+   * Every ingredient records whether its yield was stated by the operator or
+   * assumed by Costbook, and until now no screen said which. An assumed 100%
+   * is the quiet kind of wrong: a coconut that really yields 62 is costed as
+   * though nothing is lost, every chutney it reaches is understated, and
+   * nothing on any screen looks unusual. Unlike a missing rate, which
+   * announces itself as a floor, this one produces a plausible figure.
+   *
+   * Only ingredients that carry a rate and reach a dish: an assumed yield on
+   * something unpriced or unused changes nothing.
+   */
+  | {
+      readonly kind: 'confirm_yield';
+      readonly count: number;
+      /** The one reaching the most dishes, to start with. */
+      readonly first: Ingredient;
+      readonly firstUsedIn: number;
+    }
   /** A rate older than the operator's own threshold, most used first. */
   | {
       readonly kind: 'refresh_rate';
@@ -299,6 +319,25 @@ export function todo(input: TodoInput): Todo {
 
   for (const s of stale) {
     out.push({ kind: 'refresh_rate', ingredient: s.ingredient, days: s.days, usedIn: s.usedIn });
+  }
+
+  /*
+   * 5. Yields nobody has confirmed. Last, because none of them is urgent and
+   *    every one of them is quietly wrong until somebody looks.
+   */
+  const assumed = input.ingredients
+    .filter((i) => i.yieldIsAssumed && i.purchasePrice !== null)
+    .map((i) => ({ ingredient: i, usedIn: usage.get(i.id) ?? 0 }))
+    .filter((u) => u.usedIn > 0)
+    .sort((a, b) => b.usedIn - a.usedIn || a.ingredient.name.localeCompare(b.ingredient.name));
+  const leadYield = assumed[0];
+  if (leadYield !== undefined) {
+    out.push({
+      kind: 'confirm_yield',
+      count: assumed.length,
+      first: leadYield.ingredient,
+      firstUsedIn: leadYield.usedIn,
+    });
   }
 
   return { actions: out.slice(0, SHOWN), total: out.length };

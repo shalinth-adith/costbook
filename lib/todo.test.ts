@@ -272,3 +272,64 @@ describe("the list as a whole", () => {
     expect(t.total).toBe(0);
   });
 });
+
+describe("a yield nobody confirmed", () => {
+  /*
+   * The quiet kind of wrong. A missing rate announces itself as a floor; an
+   * assumed 100% yield produces a plausible figure that is simply too low,
+   * on every dish the ingredient reaches, with nothing on any screen to say
+   * so. Every ingredient has carried this flag since the first import and
+   * until now nothing read it.
+   */
+  const assumed = (id: string, price: number | null, usedIn = true) =>
+    ({
+      ...ing(id, price),
+      yieldPercent: 100,
+      yieldIsAssumed: true,
+    }) as Ingredient;
+
+  it("asks about the one reaching the most dishes", () => {
+    const { actions } = todo({
+      ...base,
+      recipes: [recipe("a", ["coconut", "salt"]), recipe("b", ["coconut"])],
+      ingredients: [assumed("coconut", 190), assumed("salt", 22)],
+    });
+    const job = actions.find((a) => a.kind === "confirm_yield");
+    expect(job).toBeDefined();
+    if (job?.kind !== "confirm_yield") return;
+    expect(job.first.id).toBe("coconut");
+    expect(job.firstUsedIn).toBe(2);
+    expect(job.count).toBe(2);
+  });
+
+  it("says nothing about a yield the operator has stated", () => {
+    const stated = { ...assumed("coconut", 190), yieldIsAssumed: false } as Ingredient;
+    const { actions } = todo({
+      ...base,
+      recipes: [recipe("a", ["coconut"])],
+      ingredients: [stated],
+    });
+    expect(actions.some((a) => a.kind === "confirm_yield")).toBe(false);
+  });
+
+  it("says nothing about one with no rate, which has a bigger problem", () => {
+    const { actions } = todo({
+      ...base,
+      recipes: [recipe("a", ["coconut"])],
+      ingredients: [assumed("coconut", null)],
+    });
+    expect(actions.some((a) => a.kind === "confirm_yield")).toBe(false);
+  });
+
+  it("says nothing about one no dish reaches, because it changes nothing", () => {
+    const { actions } = todo({
+      ...base,
+      recipes: [recipe("a", ["salt"])],
+      ingredients: [assumed("salt", 22, false), assumed("orphan", 100)],
+    });
+    const job = actions.find((a) => a.kind === "confirm_yield");
+    if (job?.kind !== "confirm_yield") return;
+    expect(job.count).toBe(1);
+    expect(job.first.id).toBe("salt");
+  });
+});

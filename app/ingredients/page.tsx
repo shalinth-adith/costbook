@@ -1,7 +1,7 @@
 import { AppShell } from '@/components/app-shell';
 import { CurrencyProvider } from '@/components/currency-provider';
 import { IngredientsView } from '@/components/ingredients-view';
-import { board } from '@/lib/ingredients';
+import { type IngredientFilter, board } from '@/lib/ingredients';
 import { FREE_LIMITS } from '@/lib/org';
 import { book, pantry } from '@/lib/book';
 
@@ -11,8 +11,17 @@ import { requireSetup } from '@/lib/guard';
 export const dynamic = 'force-dynamic';
 
 /** A19. One ingredient, entered once, priced once. */
-export default async function IngredientsPage() {
+export default async function IngredientsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await requireSetup();
+
+  // The worklist links here with the job it sent somebody to do.
+  const q = (await searchParams) ?? {};
+  const asked = q['show'];
+  const startFilter: IngredientFilter = asked === 'assumed' ? 'assumed' : 'all';
 
   const b = await book();
   const code = b.org.currency;
@@ -46,6 +55,7 @@ export default async function IngredientsPage() {
           onPreviewRate={previewRate}
           onSetRateAndRaise={setRateAndRaise}
           currencyCode={code}
+          startFilter={startFilter}
           onSetRates={setRates}
           onSetYield={setYield}
         />
