@@ -5,7 +5,7 @@ import { useMoney } from './currency-provider';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { looseNumber } from '@/core/loose';
-import { normaliseUnit } from '@/core/units';
+import { normaliseUnit, unitFamily } from '@/core/units';
 
 import type { Ingredient } from '@/core/ingredient';
 import type { Pantry, Recipe } from '@/core/recipe';
@@ -27,6 +27,8 @@ export function ComponentPicker({
   alwaysOpen = false,
   onCreateIngredient,
   creating = false,
+  defaultMassUnit = 'g',
+  defaultVolumeUnit = 'ml',
 }: {
   shelf: readonly Ingredient[];
   recipes: readonly Recipe[];
@@ -43,6 +45,15 @@ export function ComponentPicker({
    * takes an afternoon.
    */
   onPick: (choice: PickerChoice, amount?: { qty: number; unit: string }) => void;
+  /**
+   * What a number typed with no unit means, from Settings.
+   *
+   * A recipe is written in the units a kitchen cooks in — grams and
+   * millilitres for most, kilos and litres for a kitchen that works in
+   * bigger amounts. Not in the units a supplier sells in.
+   */
+  defaultMassUnit?: 'g' | 'kg';
+  defaultVolumeUnit?: 'ml' | 'l';
   /** Inside a drawer the list is the whole point, so it does not wait for focus. */
   alwaysOpen?: boolean;
   /**
@@ -82,8 +93,23 @@ export function ComponentPicker({
     }
   }, [pending]);
 
-  const defaultUnit = (c: PickerChoice): string =>
-    c.kind === 'ingredient' ? c.ingredient.purchaseUnit : c.recipe.outputUnit;
+  /*
+   * What a number with no unit means.
+   *
+   * It used to mean the pack: rice bought by the 25 kg sack made a bare "800"
+   * into 800 kg — a thousandfold overstatement, silently, on the one field
+   * somebody types fastest. A recipe is written in the units a kitchen cooks
+   * in, and those are the account's own defaults, set once in Settings. Only
+   * where a thing is neither weighed nor poured — a piece, a portion — does
+   * the pack's own unit still decide.
+   */
+  const defaultUnit = (c: PickerChoice): string => {
+    const packUnit = c.kind === 'ingredient' ? c.ingredient.purchaseUnit : c.recipe.outputUnit;
+    const family = unitFamily(packUnit);
+    if (family === 'mass') return defaultMassUnit;
+    if (family === 'volume') return defaultVolumeUnit;
+    return packUnit;
+  };
 
   /**
    * Add the pending row. An empty field adds it at one purchase unit, so

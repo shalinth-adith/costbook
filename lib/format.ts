@@ -130,22 +130,21 @@ export function when(iso: string | null, today: string): string {
 }
 
 /**
- * A quantity in the unit a cook would say it in.
+ * A quantity, in the unit it was written in.
  *
- * Lines are stored in base units and were shown in the unit the ingredient
- * is bought in — so 30 ml of ghee on a plate read as "0.03 l", and 10 g of
- * curry leaf as "0.01 kg". Nobody in a kitchen says either. Below a kilo it
- * is grams; below a litre it is millilitres; at or above, the big unit. The
- * stored figure never changes — only the way it is said.
+ * This used to convert by magnitude: anything under a kilo was shown in
+ * grams, anything under a litre in millilitres. The intention was kindness —
+ * "0.03 l of ghee is 30 ml to anyone who has poured it" — and the effect was
+ * that the product overruled the operator. Type 0.8 kg of rice and it came
+ * back as 800 g; type 1500 g and it came back as 1.5 kg. Neither is wrong
+ * arithmetic and both are the wrong words: a sheet that says 0.8 kg says it
+ * because that is how that kitchen buys and counts rice, and a costing tool
+ * that quietly restates a kitchen's own figures is a tool they check twice.
  *
- * Pieces and unknown units are left alone: there is no smaller piece.
+ * So grams stay grams and kilos stay kilos. The place to spare somebody a
+ * fiddly figure is the moment they type it, not afterwards.
  */
 export function shownQty(baseQty: number, unit: string): { readonly qty: string; readonly unit: string } {
-  const small: Readonly<Record<string, string>> = { kg: 'g', l: 'ml' };
-  const to = small[unit];
-  if (to !== undefined && baseQty < 1000) {
-    return { qty: qty(baseQty), unit: to };
-  }
   return { qty: lineQty(baseQty, unit), unit };
 }
 

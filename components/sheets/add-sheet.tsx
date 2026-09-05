@@ -24,6 +24,8 @@ export function AddSheet({
   onPick,
   onCreateIngredient,
   creating,
+  defaultMassUnit,
+  defaultVolumeUnit,
 }: {
   open: boolean;
   onClose: () => void;
@@ -36,6 +38,9 @@ export function AddSheet({
   /** Creating one here keeps the recipe open behind the drawer (A20). */
   onCreateIngredient: (i: { name: string; packQty: number; packUnit: string; packPrice: number | null }) => void;
   creating: boolean;
+  /** What a number typed with no unit means. From Settings. */
+  defaultMassUnit: 'g' | 'kg';
+  defaultVolumeUnit: 'ml' | 'l';
 }) {
   return (
     <Sheet title="Add a component" open={open} onClose={onClose}>
@@ -51,6 +56,8 @@ export function AddSheet({
         alwaysOpen
         onCreateIngredient={onCreateIngredient}
         creating={creating}
+        defaultMassUnit={defaultMassUnit}
+        defaultVolumeUnit={defaultVolumeUnit}
       />
       <p className="sheet-foot-note">
         A line marked <strong>SUB</strong> is another recipe of yours, with its own yield. Adding

@@ -82,6 +82,8 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           owner={b.members.find((mm) => mm.role === 'owner')?.name ?? 'the owner'}
           flags={b.flags.filter((f) => f.recipeId === id)}
           orgName={b.org.name}
+          defaultMassUnit={b.org.defaultMassUnit}
+          defaultVolumeUnit={b.org.defaultVolumeUnit}
         />
       </CurrencyProvider>
     </AppShell>

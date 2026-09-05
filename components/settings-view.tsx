@@ -481,7 +481,7 @@ export function SettingsView({
                 can be changed as it is typed. */}
             <SettingRow
               label="Default units"
-              help="What a new component line starts in. Any line can be changed as you type it."
+              help="What a number with no unit means when you add a line. Type the unit — 800 g, 1.3 kg — and that is what the line keeps."
             >
               <div className="set-units">
                 <div className="set-unit-group">

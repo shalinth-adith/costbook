@@ -1,8 +1,23 @@
 /**
- * A quantity in the unit a cook would say it in.
+ * A quantity, said in the unit it was written in.
  *
- * The stored figure is in base units and must not move. Only how it is said
- * changes: 30 ml is "30 ml", not "0.03 l"; a kilo and a half is still "1.5 kg".
+ * This file used to assert the opposite, and the reason it did is worth
+ * keeping: a Koottu sheet imported with ghee in litres displayed "0.03 l",
+ * which is 30 ml to anybody who has poured it. The fix then was to convert
+ * by magnitude — anything under a kilo shown in grams, anything under a litre
+ * in millilitres.
+ *
+ * That fix cured the symptom and created a worse disease. It also meant that
+ * a person who typed 0.8 kg of rice was shown 800 g, and one who typed
+ * 1500 g was shown 1.5 kg. A costing tool that restates a kitchen's own
+ * figures in units it did not choose is one whose every figure gets checked
+ * twice, which is the opposite of the product's whole argument.
+ *
+ * So the unit is kept. The ghee case is real and its answer belongs where
+ * the line is made rather than where it is drawn: a sheet whose column says
+ * litres and whose amount is a millilitre amount is a sheet the importer
+ * should read in millilitres. Until that is built, an imported line reads in
+ * the unit its sheet used, which is at least that sheet's own word.
  */
 
 import { describe, expect, it } from "vitest";
@@ -10,18 +25,21 @@ import { describe, expect, it } from "vitest";
 import { shownQty } from "./format";
 
 describe("shownQty", () => {
-  it("says a small volume in millilitres, not a fraction of a litre", () => {
-    // The line that started this: ghee on the Koottu sheet read "0.03 l".
-    expect(shownQty(30, "l")).toEqual({ qty: "30", unit: "ml" });
+  it("keeps a small amount in the big unit, because that is what was written", () => {
+    // The old rule turned each of these into the smaller unit. Faithful now.
+    expect(shownQty(30, "l")).toEqual({ qty: "0.03", unit: "l" });
+    expect(shownQty(10, "kg")).toEqual({ qty: "0.01", unit: "kg" });
+    expect(shownQty(800, "kg")).toEqual({ qty: "0.8", unit: "kg" });
   });
 
-  it("says a small mass in grams, not a fraction of a kilo", () => {
-    // "0.01 kg" of curry leaf is 10 g to anybody who has held one.
-    expect(shownQty(10, "kg")).toEqual({ qty: "10", unit: "g" });
-    expect(shownQty(250, "kg")).toEqual({ qty: "250", unit: "g" });
+  it("keeps a large amount in the small unit, for the same reason", () => {
+    expect(shownQty(1500, "g")).toEqual({ qty: "1500", unit: "g" });
+    expect(shownQty(2500, "ml")).toEqual({ qty: "2500", unit: "ml" });
   });
 
-  it("keeps the big unit at or above a whole one", () => {
+  it("still converts out of base units, which is not a choice", () => {
+    // Every quantity is stored in base units. Printing 1500 beside "kg"
+    // would be wrong by a factor of a thousand.
     expect(shownQty(1000, "kg")).toEqual({ qty: "1", unit: "kg" });
     expect(shownQty(1500, "kg")).toEqual({ qty: "1.5", unit: "kg" });
     expect(shownQty(2000, "l")).toEqual({ qty: "2", unit: "l" });

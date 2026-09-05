@@ -83,6 +83,8 @@ export function RecipeSheet({
   owner,
   flags,
   orgName,
+  defaultMassUnit,
+  defaultVolumeUnit,
 }: {
   initialRecipe: Recipe;
   otherRecipes: readonly Recipe[];
@@ -101,6 +103,9 @@ export function RecipeSheet({
   flags: readonly Flag[];
   /** The café's own name, which the prep card prints where it is taped up. */
   orgName: string;
+  /** What a number typed with no unit means, from Settings. */
+  defaultMassUnit: 'g' | 'kg';
+  defaultVolumeUnit: 'ml' | 'l';
 }) {
   const [recipe, setRecipe] = useState<Recipe>(initialRecipe);
   const [layout, setLayout] = useState<Layout>('table');
@@ -815,6 +820,8 @@ export function RecipeSheet({
         usedInCount={usedInCount}
         onPick={onPick}
         creating={saving}
+        defaultMassUnit={defaultMassUnit}
+        defaultVolumeUnit={defaultVolumeUnit}
         onCreateIngredient={(input) => {
           void commit(async () => {
             const ack = await addIngredient(input);

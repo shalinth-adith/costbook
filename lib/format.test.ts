@@ -8,22 +8,8 @@ import { ago, lineQty, lineRate, rateUnitOf, shownQty, when } from "./format";
  * rate per kilo.
  */
 
-describe("shownQty", () => {
-  it("speaks in the unit a cook would say", () => {
-    expect(shownQty(500, "kg")).toEqual({ qty: "500", unit: "g" });
-    expect(shownQty(2000, "kg")).toEqual({ qty: "2", unit: "kg" });
-    expect(shownQty(250, "l")).toEqual({ qty: "250", unit: "ml" });
-  });
-
-  it("is the pair the Cards field reads back, so what is shown is what is stored", () => {
-    // The card showed kilos and stored the typed figure as grams: 0.6 on a
-    // kilo line became 0.6 g. Whatever unit this returns is the unit the
-    // field converts from.
-    const shown = shownQty(1000, "kg");
-    expect(shown.unit).toBe("kg");
-    expect(shown.qty).toBe("1");
-  });
-});
+/* `shownQty` has its own file, lib/shown-qty.test.ts, which also carries the
+   history of why the rule changed. */
 
 describe("rateUnitOf", () => {
   it("quotes a rate by the kilo and the litre, never by the gram", () => {
