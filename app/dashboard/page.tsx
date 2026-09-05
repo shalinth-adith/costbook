@@ -2,6 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { CurrencyProvider } from "@/components/currency-provider";
 import { DashboardView, type StaleRate } from "@/components/dashboard-view";
 import { PlanNotice } from '@/components/plan-notice';
+import { MonthCard } from '@/components/month-card';
 import { KitchenCard } from "@/components/kitchen-card";
 
 import { book, orgModel, pantry } from "@/lib/book";
@@ -14,6 +15,7 @@ import { spread } from "@/lib/spread";
 import { pilesOf } from "@/lib/profit";
 import { todo } from "@/lib/todo";
 import { engineer, lastMonth } from '@/lib/engineering';
+import { compareMonth } from '@/lib/month';
 import { saveMonthSales } from './actions';
 import { usageOf } from "@/lib/usage";
 
@@ -137,6 +139,20 @@ export default async function DashboardPage() {
    * the month is left out rather than placed by a guess.
    */
   const salesPeriod = lastMonth(today);
+
+  /*
+   * Last month against the one before it. Computed by rolling rate changes
+   * back rather than from a snapshot, so it works for months that passed
+   * before this screen existed.
+   */
+  const month = compareMonth({
+    recipes: b.recipes,
+    ingredients: b.ingredients,
+    meta: b.meta,
+    model,
+    history: b.history,
+    period: salesPeriod,
+  });
   const engineered = engineer(
     salesPeriod,
     data.rows.map((r) => ({
@@ -160,6 +176,7 @@ export default async function DashboardPage() {
         {/* Above the numbers, where the owner already is (A40). The only thing
             on this page that came from another person. */}
         <PlanNotice plan={b.plan} subscription={b.subscription} />
+        <MonthCard month={month} />
         <KitchenCard flags={b.flags} today={today} />
         <DashboardView
           orgName={b.org.name}

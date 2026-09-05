@@ -4122,3 +4122,20 @@
   display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
   text-transform: uppercase; color: var(--text-tertiary); margin-block-end: 4px;
 }
+
+/* ── The month, against the month before ───────────────────────────────────
+   A fixed window with an edge, for a kitchen that closes its books monthly.
+   The figure never animates; it is the answer, not an effect. */
+.mc { display: grid; gap: 10px; margin-block-end: var(--sp-4); }
+.mc-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); margin: 0; }
+.mc-figure { font-size: 46px; line-height: 1; letter-spacing: -0.02em; margin: 0; font-variant-numeric: tabular-nums; }
+.mc-figure.is-up { color: var(--over-ink); }
+.mc-figure.is-down { color: var(--on-ink); }
+.mc-figure.is-flat { color: var(--text-primary); }
+.mc-said { margin: 0; font-size: 15px; line-height: 1.55; color: var(--text-secondary); max-inline-size: 70ch; }
+.mc-said b { color: var(--text-primary); font-weight: 600; }
+.mc-cross, .mc-worst { margin: 0; font-size: 14px; color: var(--text-secondary); }
+.mc-cross b, .mc-worst b { color: var(--text-primary); font-weight: 600; }
+.mc-quiet { margin: 0; font-size: 15px; line-height: 1.55; color: var(--text-secondary); max-inline-size: 70ch; }
+.mc-quiet b { color: var(--text-primary); font-weight: 600; }
+.mc-caveat { margin: 4px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--text-tertiary); max-inline-size: 66ch; }
