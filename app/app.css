@@ -3998,3 +3998,7 @@
 /* The one sentence a plan owes the owner before it ends. */
 .plan-notice { margin-block-end: var(--sp-4); }
 .plan-notice.is-ended { background: var(--accent-tint); border-color: transparent; }
+
+/* A toast that reports work not saved. It waits to be read. */
+.toast.is-sticky { border: 1px solid var(--accent); box-shadow: 0 10px 30px rgba(0,0,0,.16); }
+.toast.is-sticky .toast-text { color: var(--text-on-inverse); }

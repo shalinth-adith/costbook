@@ -225,7 +225,9 @@ export function RecipeSheet({
     setSaving(true);
     try {
       const ack = await run();
-      setToast(ack);
+      // Nothing written means the message is a refusal, and a refusal waits to
+      // be read: the work is still on screen and still unsaved.
+      setToast({ ...ack, sticky: ack.version === null });
       // The version the server wrote, so a second save from this screen is not
       // mistaken for somebody else's. Absent means nothing was written — a
       // refusal — and the screen keeps the version it had.
