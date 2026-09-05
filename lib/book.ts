@@ -638,7 +638,7 @@ async function writeRecipes(
   if (res.error === null) return typeof res.data === "string" ? res.data : null;
   // Raised by the function itself when the row moved on. Not a fault to
   // report as one: somebody else got there first, and both edits still exist.
-  if (res.error.code === "40001" || res.error.message.includes("stale_recipe")) throw new Stale();
+  if (res.error.code === "PT409" || res.error.code === "409" || res.error.message.includes("stale_recipe")) throw new Stale();
   if (res.error.code !== "PGRST202") {
     check(what, res);
     return null;
