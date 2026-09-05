@@ -30,8 +30,16 @@ export async function raiseFlag(input: {
   const b = await book();
   if (b.orgId === null) return { ok: false, message: 'Sign in first.' };
 
-  // Named, because a message to a role is a message to nobody.
-  const owner = b.members.find((m) => m.role === 'owner');
+  /*
+   * Named, because a message to a role is a message to nobody — and recorded
+   * by id, because `flags_settle` only lets the person it was sent to mark it
+   * seen. It was never written, so that update matched no row, reported
+   * success, and the owner's unread count never cleared.
+   *
+   * Someone invited and not yet arrived is not a recipient: their id is an
+   * invitation, not a user.
+   */
+  const owner = b.members.find((m) => m.role === 'owner' && m.accepted);
   const to = owner?.name ?? 'the owner';
 
   if (!supabaseConfigured()) return { ok: true, message: `${to} has it.` };
@@ -50,6 +58,7 @@ export async function raiseFlag(input: {
     org_id: b.orgId,
     recipe_id: input.recipeId,
     sent_by: auth.user?.id ?? null,
+    sent_to: owner?.id ?? null,
     sent_by_name: me?.name ?? 'Someone in the kitchen',
     note: input.note.trim() === '' ? null : input.note.trim(),
     cost: input.cost,
@@ -64,15 +73,31 @@ export async function raiseFlag(input: {
   return { ok: true, message: `${to} has it.` };
 }
 
-/** The owner has read it. Only the person it was sent to can say so. */
+/**
+ * The owner has read it. Only the person it was sent to can say so.
+ *
+ * The rows it changed are read back, because an update refused by row
+ * security changes nothing and reports no error: this said "Marked seen." to
+ * an owner whose unread count then stayed exactly where it was.
+ */
 export async function markSeen(id: string): Promise<FlagAck> {
   if (!supabaseConfigured()) return { ok: true, message: 'Marked seen.' };
 
   const supabase = await supabaseServer();
   const now = new Date().toISOString();
-  const { error } = await supabase.from('flags').update({ seen_at: now, opened_at: now }).eq('id', id);
+  const { data, error } = await supabase
+    .from('flags')
+    .update({ seen_at: now, opened_at: now })
+    .eq('id', id)
+    .select('id');
 
   if (error !== null) return { ok: false, message: error.message };
+  if ((data ?? []).length === 0) {
+    return {
+      ok: false,
+      message: 'That one was sent to somebody else, so only they can mark it seen.',
+    };
+  }
 
   revalidatePath('/', 'layout');
   return { ok: true, message: 'Marked seen.' };

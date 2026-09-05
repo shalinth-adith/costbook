@@ -219,8 +219,18 @@ export function toMeta(row: RecipeRow): DishMeta {
   };
 }
 
+/**
+ * A recipe as a row.
+ *
+ * With no meta, only the shape of the dish: its name, what one batch makes,
+ * how many it plates. Everything the dish says about itself — its section, its
+ * price, the columns an imported sheet carried — is left out of the payload
+ * entirely, so an update does not touch it. It used to send those columns as
+ * nulls and an empty object, which is how saving a cost sheet wiped the
+ * allergens and prep time off a dish imported from a sheet.
+ */
 export function fromRecipe(r: Recipe, meta: DishMeta | undefined, orgId: string): Record<string, unknown> {
-  return {
+  const shape = {
     id: r.id,
     org_id: orgId,
     name: r.name,
@@ -228,6 +238,13 @@ export function fromRecipe(r: Recipe, meta: DishMeta | undefined, orgId: string)
     output_qty: r.outputQty,
     output_unit: r.outputUnit,
     portions: r.portions,
+    // A sub-recipe is one that plates into nothing of its own.
+    is_sub_recipe: r.portions === null,
+    updated_at: new Date().toISOString(),
+  };
+  if (meta === undefined) return shape;
+  return {
+    ...shape,
     category: meta?.category ?? null,
     station: meta?.station ?? null,
     portion_size: meta?.portionSize ?? null,
@@ -241,9 +258,6 @@ export function fromRecipe(r: Recipe, meta: DishMeta | undefined, orgId: string)
     ...pricingColumns(meta?.pricing),
     priced_at: meta?.pricedAt ?? null,
     kept_at_pricing: meta?.keptAtPricing ?? null,
-    // A sub-recipe is one that plates into nothing of its own.
-    is_sub_recipe: r.portions === null,
-    updated_at: new Date().toISOString(),
   };
 }
 

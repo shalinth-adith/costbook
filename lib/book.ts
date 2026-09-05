@@ -51,6 +51,21 @@ import * as memory from "./store";
 import { supabaseConfigured } from "./supabase/env";
 import { supabaseServer } from "./supabase/server";
 
+
+/**
+ * A read the application cannot do without.
+ *
+ * Most reads degrade to an empty list, which is right for a book with nothing
+ * in it yet. The plan is not one of those: an empty answer there means "free",
+ * which silently takes away what somebody paid for.
+ */
+export class ReadFailed extends Error {
+  constructor(what: string, why: string) {
+    super(`Costbook could not read ${what}. ${why}`);
+    this.name = "ReadFailed";
+  }
+}
+
 /**
  * A write that failed, in words.
  *
@@ -209,7 +224,7 @@ export const book = cache(async (): Promise<Book> => {
     supabase.from("subscriptions").select("plan, status, term, started_at, current_period_end, provider_reference").limit(1),
     supabase
       .from("ingredient_rate_history")
-      .select("ingredient_id, price_from, price_to, changed_at, source")
+      .select("ingredient_id, purchase_qty, price_from, price_to, changed_at, source")
       .order("changed_at", { ascending: false }),
     supabase.from("flags").select("*").order("sent_at", { ascending: false }),
     supabase.from("dish_sales").select("recipe_id, period, sold"),
@@ -264,7 +279,32 @@ export const book = cache(async (): Promise<Book> => {
 
   const dishName = new Map(recipeRows.map((r) => [r.id, r.name]));
 
-  const subRow = (subRes.data as SubscriptionRow[] | null)?.[0];
+  /*
+   * A read that fails is not "free".
+   *
+   * This select asks for the columns migration 18 adds. On a project without
+   * it the whole query is refused, and the refusal used to fall through the
+   * `?? []` below into a free plan — silently, for a paid account, taking the
+   * cap and the import with it. The narrow select is what every project has
+   * carried since the first migration, so a plan stays a plan; anything else
+   * wrong here is thrown, because a bill nobody can read is not a detail.
+   */
+  let subRows = subRes.data as SubscriptionRow[] | null;
+  if (subRes.error !== null) {
+    if (subRes.error.code === "42703" || subRes.error.code === "PGRST204") {
+      console.warn(
+        "subscriptions is missing the term columns; apply migration 18. " +
+          "Reading the plan without them for now.",
+      );
+      const narrow = await supabase.from("subscriptions").select("plan, status, current_period_end").limit(1);
+      if (narrow.error !== null) throw new ReadFailed("your plan", narrow.error.message);
+      subRows = narrow.data as SubscriptionRow[] | null;
+    } else {
+      throw new ReadFailed("your plan", subRes.error.message);
+    }
+  }
+
+  const subRow = subRows?.[0];
   const subscription: Subscription = subRow === undefined ? FREE_SUBSCRIPTION : {
     plan: subRow.plan,
     status: subRow.status ?? "active",
@@ -609,11 +649,17 @@ export async function saveBook(input: {
   }
 
   if (input.recipes.length > 0) {
+    /*
+     * All or none carry meta, never some of each: a bulk upsert sends one
+     * column list for every row, and a payload whose objects have different
+     * keys is refused outright.
+     */
+    const withMeta = input.recipes.every((r) => input.meta[r.id] !== undefined);
     await writeRecipes(
       supabase,
-      input.recipes.map((r) => fromRecipe(r, input.meta[r.id], orgId)),
+      input.recipes.map((r) => fromRecipe(r, withMeta ? input.meta[r.id] : undefined, orgId)),
       input.recipes.flatMap(fromComponents),
-      true,
+      withMeta,
       "your dishes",
     );
   }
@@ -782,6 +828,69 @@ export async function savePlan(next: Plan): Promise<void> {
     "your plan",
     await supabase.from("subscriptions").update({ plan: next }).eq("org_id", b.orgId),
   );
+}
+
+/** An order opened at the provider, as the server recorded it. */
+export interface RecordedOrder {
+  readonly term: Term;
+  readonly amount: number;
+}
+
+/**
+ * Record what an order was for, before the browser is sent to pay it.
+ *
+ * The provider signs the order and the payment, not the amount or the term,
+ * so this row is the only place that knows what was actually asked for.
+ */
+export async function recordOrder(input: {
+  readonly id: string;
+  readonly term: Term;
+  readonly amount: number;
+  readonly currency: string;
+}): Promise<void> {
+  if (!supabaseConfigured()) return;
+  const b = await book();
+  if (b.orgId === null) throw new WriteFailed("an order", "No account is signed in.");
+  const supabase = await supabaseServer();
+  check(
+    "your order",
+    await supabase.from("payment_orders").insert({
+      id: input.id,
+      org_id: b.orgId,
+      term: input.term,
+      amount: input.amount,
+      currency: input.currency,
+      status: "open",
+    }),
+  );
+}
+
+/**
+ * Claim an open order for a payment, once.
+ *
+ * One conditional update: open becomes paid, and only from open. A second
+ * confirmation of the same payment matches no row and gets null, which is how
+ * a replayed callback is refused rather than stacking another stretch. Row
+ * security does the rest — an order belonging to another book matches nothing
+ * either. Returns what the order was for, so the caller never has to trust
+ * the term it was handed.
+ */
+export async function claimOrder(orderId: string, paymentId: string): Promise<RecordedOrder | null> {
+  if (!supabaseConfigured()) return null;
+  const supabase = await supabaseServer();
+  const res = await supabase
+    .from("payment_orders")
+    .update({ status: "paid", payment_id: paymentId, paid_at: new Date().toISOString() })
+    .eq("id", orderId)
+    .eq("status", "open")
+    .select("term, amount");
+  // A duplicate payment_id trips the unique index rather than returning rows:
+  // the same refusal, said by the database.
+  if (res.error !== null) return null;
+  const row = (res.data as { term: string; amount: number }[] | null)?.[0];
+  const term = termOf(row?.term);
+  if (row === undefined || term === undefined) return null;
+  return { term: term.id, amount: row.amount };
 }
 
 /**

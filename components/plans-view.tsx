@@ -83,7 +83,8 @@ export function PlansView({
       try {
         const checkout = await beginCheckout(term.id);
         if (checkout.mode === "sandbox") {
-          await activateSandbox(term.id);
+          const refused = await activateSandbox(term.id);
+          if (refused !== undefined) setFault(refused.message);
           return;
         }
         if (checkout.mode === "none") {
@@ -92,7 +93,7 @@ export function PlansView({
           );
           return;
         }
-        await openRazorpay(checkout, term.id);
+        await openRazorpay(checkout, term.id, setFault);
       } catch (e) {
         setFault(
           e instanceof Error
@@ -392,6 +393,7 @@ async function openRazorpay(
     name: string;
   },
   term: Term,
+  onFault: (message: string) => void,
 ): Promise<void> {
   const w = window as unknown as RazorpayWindow;
   if (w.Razorpay === undefined) {
@@ -417,17 +419,39 @@ async function openRazorpay(
     name: "Costbook",
     description: `${checkout.name} · ${termOf(term)?.label ?? term}`,
     order_id: checkout.orderId,
+    /*
+     * The order alone. What was bought is on the server, recorded when the
+     * order was opened; sending the term from here is what let a month be
+     * paid for and a year confirmed.
+     *
+     * A refusal comes back as a sentence and is shown. It used to be thrown
+     * away with the promise, so a payment that failed verification looked to
+     * the owner exactly like one that worked.
+     */
     handler: (r: {
       razorpay_order_id: string;
       razorpay_payment_id: string;
       razorpay_signature: string;
     }) => {
       void confirmPayment({
-        term,
         orderId: r.razorpay_order_id,
         paymentId: r.razorpay_payment_id,
         signature: r.razorpay_signature,
-      });
+      })
+        .then((refused) => {
+          if (refused !== undefined) onFault(refused.message);
+        })
+        .catch(() => {
+          onFault(
+            "Costbook could not confirm that payment. Nothing has changed on " +
+              "your account — reload the page, and write to us if you were charged.",
+          );
+        });
+    },
+    // Closing the form is not a failure, but it should not leave the page
+    // looking as though something is still happening.
+    modal: {
+      ondismiss: () => onFault("The payment form was closed. Nothing has been charged."),
     },
     theme: { color: "#FF6A3D" },
   });

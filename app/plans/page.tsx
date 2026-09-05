@@ -3,6 +3,7 @@ import { PlansView } from "@/components/plans-view";
 
 import { book } from "@/lib/book";
 import { razorpayConfigured } from "@/lib/razorpay";
+import { sandboxAllowed } from "@/lib/sandbox";
 
 /**
  * Six dishes free, then a stretch of months bought here.
@@ -24,7 +25,7 @@ export default async function PlansPage({
   const { paid } = await searchParams;
   const mode = razorpayConfigured()
     ? "razorpay"
-    : process.env.COSTBOOK_BILLING_SANDBOX === "true"
+    : (await sandboxAllowed())
       ? "sandbox"
       : "none";
   return (
