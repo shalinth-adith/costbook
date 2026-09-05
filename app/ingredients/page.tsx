@@ -19,10 +19,16 @@ export default async function IngredientsPage() {
   const today = new Date().toISOString().slice(0, 10);
   const depth = b.plan === 'free' ? FREE_LIMITS.rateHistory : undefined;
 
-  const data = board(b.ingredients, await pantry(), today, (id) => {
-    const log = b.history[id] ?? [];
-    return depth === undefined ? log : log.slice(0, depth);
-  });
+  const data = board(
+    b.ingredients,
+    await pantry(),
+    today,
+    (id) => {
+      const log = b.history[id] ?? [];
+      return depth === undefined ? log : log.slice(0, depth);
+    },
+    b.org.staleAfterDays,
+  );
 
   return (
     <AppShell

@@ -93,6 +93,11 @@ export interface CostingModel {
   readonly pricesIncludeCharges: boolean;
   /** The account's charge stack, so a price can be said net and gross. */
   readonly charges: readonly Charge[];
+  /**
+   * How many decimals the account's money has. Two unless it is one of the
+   * three-decimal currencies, where rounding to two loses real fils.
+   */
+  readonly decimals?: number;
 }
 
 /** A dish's own figures that are not settings: labour is a fact about the dish. */
@@ -370,12 +375,12 @@ export function suggestPrice(total: number, model: CostingModel): PriceSuggestio
         ? total * model.factor
         : total / (model.foodCostTarget / 100);
   const exact = stickerOf(net, model);
-  const rounded = applyRounding(exact, ruleFor(model.rounding));
+  const rounded = applyRounding(exact, ruleFor(model.rounding), model.decimals);
 
   // The other candidate, so the operator sees what the choice costs rather
   // than being handed one figure and asked to trust it.
   const alternativeName: PresetName = model.rounding === 'next_9' ? 'up_to_5' : 'next_9';
-  const alternative = applyRounding(exact, ruleFor(alternativeName));
+  const alternative = applyRounding(exact, ruleFor(alternativeName), model.decimals);
 
   return {
     net,

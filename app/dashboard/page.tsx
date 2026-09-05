@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/app-shell";
 import { CurrencyProvider } from "@/components/currency-provider";
 import { DashboardView, type StaleRate } from "@/components/dashboard-view";
+import { PlanNotice } from '@/components/plan-notice';
 import { KitchenCard } from "@/components/kitchen-card";
 
 import { book, orgModel, pantry } from "@/lib/book";
@@ -158,6 +159,7 @@ export default async function DashboardPage() {
       <CurrencyProvider code={b.org.currency}>
         {/* Above the numbers, where the owner already is (A40). The only thing
             on this page that came from another person. */}
+        <PlanNotice plan={b.plan} subscription={b.subscription} />
         <KitchenCard flags={b.flags} today={today} />
         <DashboardView
           orgName={b.org.name}
@@ -171,6 +173,7 @@ export default async function DashboardPage() {
             ingredients: b.ingredients,
             history: b.history,
             model,
+            meta: b.meta,
             staleAfterDays: staleAfter,
             alertMovePercent: b.org.alertMovePercent,
             today,

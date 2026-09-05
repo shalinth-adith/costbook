@@ -49,6 +49,9 @@ export interface Piles {
  * wrong number available.
  */
 export function standingOf(row: DashboardRow, target: number): Standing {
+  // The dish's own judged where it has one. The account's is the fallback,
+  // and is what every row carried before dishes could set their own.
+  const judged = row.target ?? target;
   const cost = row.costPerPortion;
   const price = row.sellingPrice;
 
@@ -104,7 +107,7 @@ export function standingOf(row: DashboardRow, target: number): Standing {
     row,
     keeps,
     keepsMoney,
-    pile: keeps >= 100 - target ? "earning" : "thin",
+    pile: keeps >= 100 - judged ? "earning" : "thin",
   };
 }
 

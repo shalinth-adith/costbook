@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import type { Charge } from "@/core/charges";
-import type { PresetName } from "@/core/rounding";
+import { PRESETS, type PresetName } from "@/core/rounding";
 import type { PricingMethod } from "@/lib/costing";
 import type { Org } from "@/lib/org";
 
@@ -21,9 +21,46 @@ import { requireRole } from "@/lib/guard";
  */
 export async function saveCosting(patch: CostingPatch): Promise<{ readonly ok: true }> {
   await requireRole("costing");
+  check(patch);
   await saveOrg(toOrgPatch(patch));
   revalidatePath("/", "layout");
   return { ok: true };
+}
+
+/**
+ * Every figure, against the same bounds the database holds.
+ *
+ * Without this the screen's own coercion decided what was written: a cleared
+ * "days before a rate is stale" became `0`, which the column refuses, and the
+ * refusal arrived as a thrown write inside a transition — the error page, for
+ * a field somebody blanked. Rounding had no constraint at all, so an unknown
+ * rule was stored and read back as one nothing could apply.
+ */
+function check(patch: CostingPatch): void {
+  const range = (
+    value: number | undefined,
+    what: string,
+    low: number,
+    high: number,
+    { above = false }: { above?: boolean } = {},
+  ): void => {
+    if (value === undefined) return;
+    const ok = Number.isFinite(value) && (above ? value > low : value >= low) && value <= high;
+    if (!ok) throw new Error(`${what} has to be between ${low} and ${high}.`);
+  };
+
+  range(patch.foodCostTarget, "What the food costs of every hundred", 0, 100, { above: true });
+  range(patch.wastagePercent, "Wastage", 0, 100);
+  range(patch.packagingPerPortion, "Packaging a plate", 0, 100_000);
+  range(patch.accompanimentsPerPortion, "What goes on every plate", 0, 100_000);
+  range(patch.labourRatePerHour, "The kitchen rate an hour", 0, 100_000);
+  range(patch.overheadPerPortion, "Overhead a plate", 0, 100_000);
+  range(patch.moneyPerPlate, "What every plate should leave", 0, 100_000);
+  range(patch.factor, "The multiplier", 0, 100, { above: true });
+  range(patch.alertMovePercent, "The move worth telling you about", 0, 1000);
+  if (patch.rounding !== undefined && !(patch.rounding in PRESETS)) {
+    throw new Error("That is not a rounding rule Costbook knows.");
+  }
 }
 
 export async function saveOrganisation(patch: {
@@ -34,7 +71,16 @@ export async function saveOrganisation(patch: {
   readonly defaultVolumeUnit?: "ml" | "l";
 }): Promise<{ readonly ok: true }> {
   await requireRole("costing");
-  await saveOrg(patch);
+  if (patch.name !== undefined && patch.name.trim() === "") {
+    throw new Error("Your restaurant needs a name — it heads every prep card.");
+  }
+  if (
+    patch.staleAfterDays !== undefined &&
+    (!Number.isInteger(patch.staleAfterDays) || patch.staleAfterDays < 1 || patch.staleAfterDays > 365)
+  ) {
+    throw new Error("A rate goes stale after a whole number of days, up to 365.");
+  }
+  await saveOrg({ ...patch, ...(patch.name === undefined ? {} : { name: patch.name.trim() }) });
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -44,6 +90,15 @@ export async function saveCharges(
   charges: readonly Charge[],
 ): Promise<{ readonly ok: true }> {
   await requireRole("charges");
+  for (const c of charges) {
+    if (c.name.trim() === "") throw new Error("Every charge needs a name — it goes on the bill.");
+    if (!Number.isFinite(c.value) || c.value < 0) {
+      throw new Error(`${c.name} cannot be a negative amount.`);
+    }
+    if (c.mode === "percent" && c.value > 100) {
+      throw new Error(`${c.name} is a percentage, so it cannot be over 100.`);
+    }
+  }
   await saveOrg({ charges: charges.map((c, i) => ({ ...c, order: i + 1 })) });
   revalidatePath("/", "layout");
   return { ok: true };

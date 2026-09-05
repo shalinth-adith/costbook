@@ -343,4 +343,19 @@ describe('a step rule smaller than its own step', () => {
     // rather than one real option and one seven times the cost.
     expect(0.2125 / five).toBeGreaterThan(0.15);
   });
+
+  describe('a currency with three decimals', () => {
+    it('keeps the third place when the rule is to leave the figure exact', () => {
+      // A rial and a dinar are quoted to the fils. Rounding them to two places
+      // threw away up to nine of them before any rule had been applied.
+      expect(applyRounding(2.3456, PRESETS.none, 3)).toBeCloseTo(2.346, 10);
+      expect(applyRounding(2.3456, PRESETS.none)).toBeCloseTo(2.35, 10);
+    });
+
+    it('lets a step rule land on a thousandth rather than stopping at a hundredth', () => {
+      const out = applyRounding(0.004, PRESETS.up_to_5, 3);
+      expect(out).toBeGreaterThan(0);
+      expect(out).toBeLessThanOrEqual(0.005);
+    });
+  });
 });

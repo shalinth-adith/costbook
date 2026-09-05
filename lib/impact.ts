@@ -15,7 +15,7 @@
 import type { Ingredient } from '@/core/ingredient';
 import { type Pantry, type Recipe, pantryOf, recipeCost } from '@/core/recipe';
 
-import { modelForDish, type CostingModel, buildUp, foodCostPercent } from './costing';
+import { buildUp, foodCostPercent, modelForDish, tryRecipeCost, type CostingModel } from './costing';
 import type { DishMeta } from './data';
 
 export interface Movement {
@@ -108,7 +108,18 @@ function snap(
   model: CostingModel,
 ): Snapshot {
   const own = modelForDish(model, meta?.pricing);
-  const build = buildUp(recipeCost(recipe, pantry), own, { labourMinutes: meta?.pricing?.labourMinutes });
+  /*
+   * Tried, not assumed.
+   *
+   * A dish the engine refuses outright — a per-portion line on a batch that
+   * plates into nothing, a cycle that reached the book another way — threw
+   * from here, and this runs inside the dashboard's own arithmetic. One dish
+   * nobody could cost took down the page for the whole menu. It counts as a
+   * dish with no cost, which is what every other reader here does with it.
+   */
+  const attempt = tryRecipeCost(recipe, pantry);
+  if (!attempt.ok) return { cost: null, foodCost: null };
+  const build = buildUp(attempt.cost, own, { labourMinutes: meta?.pricing?.labourMinutes });
   const cost = build.complete ? build.total : null;
   const price = meta?.sellingPrice ?? null;
   return { cost, foodCost: cost === null ? null : foodCostPercent(cost, price, own) };

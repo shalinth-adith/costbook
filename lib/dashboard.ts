@@ -35,6 +35,16 @@ export interface DashboardRow {
   readonly status: TargetStatus;
   /** Points against the target. Null when there is no food cost to compare. */
   readonly delta: number | null;
+  /**
+   * The target this dish is actually judged by: its own where it sets one,
+   * the account's otherwise.
+   *
+   * The cost was already worked out with the dish's own model while the
+   * status, the delta and the piles were worked out against the account's —
+   * so a dish with its own 20% read ON TARGET at 25% here and OVER on its own
+   * sheet, and its "raise to" figure differed between the two screens.
+   */
+  readonly target?: number;
   /** What is missing, if anything. */
   readonly gap: RowGap;
   /** How many of its component lines are other dishes. */
@@ -84,6 +94,7 @@ export function dashboard(input: DashboardInput): Dashboard {
     const attempt = tryRecipeCost(recipe, pantry);
     if (!attempt.ok) continue;
     const dishModelHere = modelForDish(model, dish?.pricing);
+    const dishTarget = dishModelHere.foodCostTarget;
     const build = buildUp(attempt.cost, dishModelHere, { labourMinutes: dish?.pricing?.labourMinutes });
 
     const costPerPortion = build.complete ? build.total : null;
@@ -104,14 +115,15 @@ export function dashboard(input: DashboardInput): Dashboard {
       costPerPortion,
       sellingPrice: dish.sellingPrice,
       foodCostPercent: fc,
-      status: statusFor(fc, target),
-      delta: fc === null ? null : fc - target,
+      target: dishTarget,
+      status: statusFor(fc, dishTarget),
+      delta: fc === null ? null : fc - dishTarget,
       gap,
       nestedCount: recipe.components.filter((c) => c.kind === 'recipe').length,
       // The bar stops at the target; anything beyond it is drawn as overshoot,
       // hatched, so the excess is visible as a quantity rather than a colour.
-      barBase: fc === null ? 0 : Math.min(fc, target) * BAR_SCALE,
-      barOver: fc === null ? 0 : Math.max(0, fc - target) * BAR_SCALE,
+      barBase: fc === null ? 0 : Math.min(fc, dishTarget) * BAR_SCALE,
+      barOver: fc === null ? 0 : Math.max(0, fc - dishTarget) * BAR_SCALE,
     });
   }
 

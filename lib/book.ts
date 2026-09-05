@@ -16,6 +16,7 @@
 import { FREE_SUBSCRIPTION, type Subscription, type Term, endOf, termOf, tierOf } from "./plan";
 import { cache } from "react";
 
+import { currency } from "@/core/currency";
 import type { Ingredient } from "@/core/ingredient";
 import { type Pantry, type Recipe, pantryOf } from "@/core/recipe";
 
@@ -162,11 +163,14 @@ function fromMemory(): Book {
     ingredients: [...memory.allIngredients()],
     meta: { ...memory.allMeta() },
     members: [...memory.members()],
-    plan: memory.plan(),
-    subscription: { ...FREE_SUBSCRIPTION, plan: memory.plan() },
-    history: {},
+    plan: tierOf(memory.subscription()),
+    subscription: memory.subscription(),
+    // Read from the store rather than left empty: drift, the to-do list and
+    // the month's sales were all blank without a database, so every screen
+    // that depends on them was unreviewable in development.
+    history: memory.allRateHistory(),
     flags: [],
-    sales: {},
+    sales: memory.allSales(),
   };
 }
 
@@ -222,13 +226,43 @@ export const book = cache(async (): Promise<Book> => {
       .is("accepted_at", null)
       .gt("expires_at", new Date().toISOString()),
     supabase.from("subscriptions").select("plan, status, term, started_at, current_period_end, provider_reference").limit(1),
+    /*
+     * The last year, not all of it.
+     *
+     * Every screen that reads history asks about the last month or the last
+     * few changes; this loaded every row ever written, on every page, for
+     * every visitor. A kitchen importing a price list monthly writes
+     * thousands a year, and the free tier only ever shows three of them.
+     */
     supabase
       .from("ingredient_rate_history")
       .select("ingredient_id, purchase_qty, price_from, price_to, changed_at, source")
+      .gte("changed_at", new Date(Date.now() - 366 * 86_400_000).toISOString())
       .order("changed_at", { ascending: false }),
     supabase.from("flags").select("*").order("sent_at", { ascending: false }),
     supabase.from("dish_sales").select("recipe_id, period, sold"),
   ]);
+
+  /*
+   * A read that failed is not an empty book.
+   *
+   * Every one of these fell through `?? []` on any error, so a renamed column
+   * or a missing migration showed a kitchen with no recipes in it and said
+   * nothing at all — the same shape as the bug that made a paid account read
+   * as free. The tables are named so the sentence points at the cause.
+   */
+  for (const [what, res] of [
+    ["your dishes", recipesRes],
+    ["your recipe lines", componentsRes],
+    ["your ingredients", ingredientsRes],
+    ["who is on this book", membersRes],
+    ["your invitations", invitesRes],
+    ["your rate history", historyRes],
+    ["what the kitchen sent you", flagsRes],
+    ["your sales", salesRes],
+  ] as const) {
+    if (res.error !== null) throw new ReadFailed(what, res.error.message);
+  }
 
   const recipeRows = (recipesRes.data ?? []) as RecipeRow[];
   const componentRows = (componentsRes.data ?? []) as ComponentRow[];
@@ -418,6 +452,8 @@ export async function pantry(): Promise<Pantry> {
 export async function orgModel(): Promise<CostingModel> {
   const { org } = await book();
   return {
+    // So a price is rounded in the money it will be printed in.
+    decimals: currency(org.currency).decimals,
     wastagePercent: org.wastagePercent,
     packagingPerPortion: org.packagingPerPortion,
     foodCostTarget: org.foodCostTarget,
@@ -676,8 +712,8 @@ export async function clearBook(): Promise<void> {
   if (b.orgId === null)
     throw new WriteFailed("anything", "No account is signed in.");
   const supabase = await supabaseServer();
-  await supabase.from("recipes").delete().eq("org_id", b.orgId);
-  await supabase.from("ingredients").delete().eq("org_id", b.orgId);
+  check("your dishes", await supabase.from("recipes").delete().eq("org_id", b.orgId));
+  check("your ingredients", await supabase.from("ingredients").delete().eq("org_id", b.orgId));
 }
 
 /**
@@ -766,7 +802,9 @@ export async function saveMeta(
   };
 
   const supabase = await supabaseServer();
-  await supabase
+  check(
+    "this dish",
+    await supabase
     .from("recipes")
     .update({
       category: next.category,
@@ -783,7 +821,8 @@ export async function saveMeta(
       archived: next.archived,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", id);
+    .eq("id", id),
+  );
 }
 
 /*
@@ -904,7 +943,19 @@ export async function activateSubscription(term: Term, reference: string, now: D
   const t = termOf(term);
   if (t === undefined) throw new Error("That is not a term Costbook sells.");
   if (!supabaseConfigured()) {
-    memory.setPlan("paid");
+    // The same row the database would hold, so the plans screen shows real
+    // dates in development rather than a plan with no end.
+    const from = tierOf(memory.subscription(), now) === "paid" && memory.subscription().periodEnd !== null
+      ? new Date(memory.subscription().periodEnd ?? now)
+      : now;
+    memory.setSubscription({
+      plan: "paid",
+      status: "active",
+      term: t.id,
+      startedAt: from.toISOString(),
+      periodEnd: endOf(from, t.months).toISOString(),
+      reference,
+    });
     return;
   }
   const b = await book();
@@ -937,7 +988,10 @@ export async function saveSales(
   period: string,
   rows: readonly { readonly recipeId: string; readonly sold: number }[],
 ): Promise<void> {
-  if (!supabaseConfigured()) return;
+  if (!supabaseConfigured()) {
+    memory.putSales(period, rows);
+    return;
+  }
   const b = await book();
   if (b.orgId === null) throw new WriteFailed("sales", "No account is signed in.");
   const supabase = await supabaseServer();

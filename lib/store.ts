@@ -19,6 +19,7 @@ import { type Pantry, type Recipe, pantryOf } from '@/core/recipe';
 import type { CostingModel } from './costing';
 import type { DishMeta } from './data';
 import { BLANK_ORG, type Member, type Org, type Plan, type RateChange, type RateSource } from './org';
+import { FREE_SUBSCRIPTION, type Subscription } from './plan';
 
 interface State {
   recipes: Recipe[];
@@ -41,6 +42,9 @@ interface State {
    * Append-only: a rate that was true on a date stays true for that date.
    */
   rateHistory: Record<string, RateChange[]>;
+  subscription: Subscription;
+  /** recipe id → period → sold. The database keeps these in `dish_sales`. */
+  sales: Record<string, Record<string, number>>;
 }
 
 /**
@@ -79,6 +83,8 @@ function state(): State {
     members: [],
     plan: 'free',
     rateHistory: {},
+    subscription: FREE_SUBSCRIPTION,
+    sales: {},
   };
   return holder[KEY];
 }
@@ -132,7 +138,17 @@ export function putMeta(id: string, patch: Partial<DishMeta>): void {
         onMenu: patch.onMenu ?? false,
         ...patch,
       }
-    : { ...current, ...patch };
+    // `pricing` merges field by field, as `saveMeta` does against the
+    // database. Spreading the patch whole replaced it, so a sheet setting
+    // labour minutes wiped a target set a minute earlier — here and only
+    // here, which is the worst kind of difference between the two paths.
+    : {
+        ...current,
+        ...patch,
+        ...(patch.pricing === undefined
+          ? {}
+          : { pricing: { ...(current.pricing ?? {}), ...patch.pricing } }),
+      };
 }
 
 /**
@@ -287,6 +303,29 @@ export function clearBook(): void {
   s.recipes = [];
   s.ingredients = [];
   s.meta = {};
+  // The history and the sales belong to the ingredients and dishes just
+  // removed. Keeping them left a cleared book quoting rate changes for
+  // things that were no longer in it.
+  s.rateHistory = {};
+  s.sales = {};
+}
+
+/** Every rate change on the book, as `book()` hands it to the screens. */
+export function allRateHistory(): Readonly<Record<string, readonly RateChange[]>> {
+  return state().rateHistory;
+}
+
+/** A month's sales, replaced when the same month is entered again. */
+export function putSales(period: string, rows: readonly { readonly recipeId: string; readonly sold: number }[]): void {
+  const s = state();
+  for (const r of rows) {
+    const byPeriod = s.sales[r.recipeId] ?? (s.sales[r.recipeId] = {});
+    byPeriod[period] = r.sold;
+  }
+}
+
+export function allSales(): Readonly<Record<string, Readonly<Record<string, number>>>> {
+  return state().sales;
 }
 
 
@@ -323,6 +362,17 @@ export function plan(): Plan {
 
 export function setPlan(next: Plan): void {
   state().plan = next;
+  state().subscription = { ...FREE_SUBSCRIPTION, plan: next };
+}
+
+/** The stretch, as the database would have recorded it. */
+export function setSubscription(next: Subscription): void {
+  state().subscription = next;
+  state().plan = next.plan;
+}
+
+export function subscription(): Subscription {
+  return state().subscription;
 }
 
 

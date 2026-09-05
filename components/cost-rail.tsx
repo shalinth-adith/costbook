@@ -258,7 +258,7 @@ export function CostRail({
                 'A rate is missing, so no price is offered yet.'
               )
             ) : (
-              'A price applies to a portion, and this is made by the batch rather than plated. It carries its cost into the dishes that use it.'
+              'A price applies to a portion, and this is made by the batch rather than plated. Its ingredient cost goes into the dishes that use it; the per-plate figures — packaging, kitchen time, overhead — are counted once, on the dish that is served.'
             )}
           </p>
           {missing.length > 0 ? (
@@ -314,8 +314,13 @@ export function CostRail({
             <div className="price-fact">
               <dt>Rounded</dt>
               <dd>
-                {suggestion.ruleLabel} —{' '}
-                <Link href="/settings" className="link-inline">a setting for every dish</Link>
+                {/* The sheet showing what each rule would charge exists and
+                    nothing opened it: this row pointed at Settings, which
+                    changes the rule for every dish rather than this one. */}
+                <button type="button" className="link-inline" onClick={onOpenRounding}>
+                  {suggestion.ruleLabel}
+                </button>{' '}
+                — <Link href="/settings" className="link-inline">or set it for every dish</Link>
               </dd>
             </div>
             {since !== null && sellingPrice !== null && spend !== null ? (

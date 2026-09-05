@@ -73,6 +73,23 @@ export async function POST(): Promise<NextResponse> {
     });
 
     if (signIn.error !== null) {
+      /*
+       * Only when there is nobody to sign in as.
+       *
+       * Any failure used to fall through to signUp — a wrong password, a rate
+       * limit, a provider hiccup — and with enumeration protection on, signUp
+       * returns no session at all. The next line then wrote to an org nobody
+       * was signed in to and the route answered 500 with no idea why. A
+       * signed-out visitor and a rate-limited one are different problems and
+       * only the first has this answer.
+       */
+      const noSuchAccount = /invalid login credentials/i.test(signIn.error.message);
+      if (!noSuchAccount) {
+        return NextResponse.json(
+          { error: 'dev-login could not sign in', detail: signIn.error.message },
+          { status: 502 },
+        );
+      }
       // First run: the account does not exist yet. Creating it fires the
       // signup trigger, so it arrives with an org, an outlet and a membership
       // exactly like a real one.
@@ -80,9 +97,12 @@ export async function POST(): Promise<NextResponse> {
         email: DEV_EMAIL,
         password: DEV_PASSWORD,
       });
-      if (signUp.error !== null) {
+      if (signUp.error !== null || signUp.data.session === null) {
         return NextResponse.json(
-          { error: 'dev-login could not establish a session', detail: signUp.error.message },
+          {
+            error: 'dev-login could not establish a session',
+            detail: signUp.error?.message ?? 'The project returned no session; email confirmation may be on.',
+          },
           { status: 500 },
         );
       }
@@ -92,13 +112,18 @@ export async function POST(): Promise<NextResponse> {
     }
   }
 
-  // Marks the org past setup so the guard does not bounce every request back
-  // to the wizard. Written to Postgres like any other org edit — this is the
-  // real record now, not a memory flag.
+  /*
+   * Marks the org past setup so the guard does not bounce every request back
+   * to the wizard — and nothing else, on an account that already exists.
+   *
+   * This wrote the name, the tax treatment and the target on every call, so
+   * signing in as the dev user quietly undid whatever those had been set to
+   * while testing the very screens that set them. A first run has no name yet
+   * and gets one.
+   */
+  const { org } = await book();
   await saveOrg({
-    name: DEV_ORG_NAME,
-    taxTreatment: 'absorbed',
-    foodCostTarget: 30,
+    ...(org.name.trim() === '' ? { name: DEV_ORG_NAME, taxTreatment: 'absorbed' as const } : {}),
     setupDone: true,
   });
 

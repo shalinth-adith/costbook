@@ -3994,3 +3994,7 @@
 .acct-menu a:hover, .acct-out:hover { background: var(--surface-sunken); }
 .acct-out { color: var(--accent); }
 .acct-menu form { margin: 0; }
+
+/* The one sentence a plan owes the owner before it ends. */
+.plan-notice { margin-block-end: var(--sp-4); }
+.plan-notice.is-ended { background: var(--accent-tint); border-color: transparent; }

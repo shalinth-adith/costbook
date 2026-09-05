@@ -20,11 +20,12 @@
  * acting on the order, so the order has to be right.
  */
 
-import type { Ingredient } from '@/core/ingredient';
+import { ageInDays, type Ingredient } from '@/core/ingredient';
 import type { Recipe } from '@/core/recipe';
 
-import { type CostingModel, suggestPrice } from './costing';
+import { type CostingModel, modelForDish, suggestPrice } from './costing';
 import type { DashboardRow } from './dashboard';
+import type { DishMeta } from './data';
 import type { RateChange } from './org';
 import { pilesOf } from './profit';
 import { movesSince, since } from './recent';
@@ -122,6 +123,8 @@ export interface TodoInput {
   readonly ingredients: readonly Ingredient[];
   readonly history: Readonly<Record<string, readonly RateChange[]>>;
   readonly model: CostingModel;
+  /** Each dish's own figures, so a raise is suggested by the model it prices with. */
+  readonly meta?: Readonly<Record<string, DishMeta>>;
   readonly staleAfterDays: number;
   /** A rate that moved more than this, in percent, over the last month is news. Ten unless the owner says. */
   readonly alertMovePercent?: number;
@@ -171,7 +174,10 @@ export function todo(input: TodoInput): Todo {
     const cost = s.row.costPerPortion;
     const price = s.row.sellingPrice;
     if (cost === null || price === null || s.keeps === null) continue;
-    const suggestion = suggestPrice(cost, input.model);
+    // The dish's own model, which is what its cost sheet will offer. The
+    // account's was used here, so a dish with its own target was told to
+    // raise to one figure on the dashboard and another on its own page.
+    const suggestion = suggestPrice(cost, modelForDish(input.model, input.meta?.[s.row.id]?.pricing));
     // A suggestion below the current price is not a raise. It happens when
     // rounding lands under the exact figure; leave the dish where it is.
     if (suggestion.rounded <= price) continue;
@@ -265,10 +271,15 @@ export function todo(input: TodoInput): Todo {
   const stale = input.ingredients
     .flatMap((i) => {
       if (i.purchasePrice === null) return [];
-      const last = input.history[i.id]?.[0]?.on;
-      if (last === undefined) return [];
-      const days = daysBetween(last, input.today);
-      if (days <= input.staleAfterDays) return [];
+      /*
+       * Aged from the date on the ingredient, which is what the Ingredients
+       * screen shows and what Settings' "when a rate counts as stale" means.
+       * This aged from the newest history entry instead, so a rate set from
+       * a cost sheet — which writes no history row — read as fresh here and
+       * stale there, on the same day, for the same ingredient.
+       */
+      const days = ageInDays(i, input.today);
+      if (days === null || days < input.staleAfterDays) return [];
       return [{ ingredient: i, days, usedIn: usage.get(i.id) ?? 0 }];
     })
     .filter((s) => s.usedIn > 0)

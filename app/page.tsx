@@ -48,7 +48,11 @@ export default function Landing() {
           Costbook works out what every dish costs and keeps it true as your rates change.
         </p>
         <div className="lp-act">
-          <Link href="/setup" className="btn btn-primary lp-btn-lg">Start free</Link>
+          {/* To sign-up, not to /setup: setup belongs to an account, so a
+              stranger pressing this was bounced to the sign-in screen with a
+              next parameter — asked to sign in to a product they have not
+              joined. */}
+          <Link href="/sign-up" className="btn btn-primary lp-btn-lg">Start free</Link>
           {/* Someone who knows the shape of a wizard finishes it. */}
           <span className="lp-act-said">
             Four short questions about your place, then bring your menu in.
@@ -82,7 +86,7 @@ export default function Landing() {
           </span>{' '}
           a month to keep it current.
         </p>
-        <Link href="/setup" className="btn btn-primary lp-btn-lg">Start free</Link>
+        <Link href="/sign-up" className="btn btn-primary lp-btn-lg">Start free</Link>
         {/* A person doing work by hand, so it cannot be the primary action —
             it does not scale and it framed the product as a service. */}
         <span className="lp-price-alt">

@@ -164,10 +164,14 @@ export function SignInForm({ next }: { next: string | null }) {
             </svg>
           </span>
           <div className="notice-text">
-            <span className="notice-title">Locked for 15 minutes</span>
+            {/* Written for a five-strikes lock this product does not have.
+                Supabase rate-limits the attempt instead, for the minute the
+                timer below is actually counting — so the card said fifteen
+                minutes while the clock beside it ran for one. */}
+            <span className="notice-title">Too many tries just now</span>
             <span className="notice-copy">
-              Five wrong passwords in a row. Nobody has been signed out of the
-              app, and your data is untouched.
+              Wait for the timer and try again. Nobody has been signed out of
+              the app, and your data is untouched.
             </span>
           </div>
         </div>
@@ -204,24 +208,33 @@ export function SignInForm({ next }: { next: string | null }) {
                 </>
               ) : (
                 <>
-                  On its way to <span className="figure">{live.email}</span>{" "}
-                  again. Open it and you are in.
+                  Look for the one already sent to{" "}
+                  <span className="figure">{live.email}</span>, and check the
+                  spam folder. If it is not there, write to us and we will let
+                  you in by hand.
                 </>
               )}
             </span>
           </div>
         </div>
         <div className="entry-row">
+          {/*
+            * "Send it again" sent nothing. It moved a timestamp in memory and
+            * the card then said "On its way" — the one kind of lie this
+            * screen cannot afford, because the person reading it is waiting
+            * for an email that will never arrive. There is no mail provider
+            * yet, so the honest action is the door that is open.
+            */}
           <button
             type="button"
-            className="btn btn-primary entry-action"
+            className="btn entry-action"
             onClick={() => {
               void resendVerification(live.email).then((r) =>
                 setResentAt(r.sentAt),
               );
             }}
           >
-            Send it again
+            I cannot find it
           </button>
           <button
             type="button"

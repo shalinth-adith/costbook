@@ -7,11 +7,11 @@
  */
 
 import {
-  type Ingredient,
+  STALE_AFTER_DAYS,
   ageInDays,
   ingredientCost,
-  isStale,
   ratePerUnit,
+  type Ingredient,
 } from '@/core/ingredient';
 import type { RateChange } from './org';
 import type { Pantry } from '@/core/recipe';
@@ -90,12 +90,25 @@ function packOf(ingredient: Ingredient): string {
   return `${qty} ${ingredient.purchaseUnit}`;
 }
 
+/** Older than the account's own limit. The one rule, used everywhere. */
+function agedPast(ingredient: Ingredient, today: string, days: number): boolean {
+  if (ingredient.purchasePrice === null) return false;
+  const age = ageInDays(ingredient, today);
+  return age !== null && age >= days;
+}
+
 export function board(
   ingredients: readonly Ingredient[],
   pantry: Pantry,
   today: string,
   /** Looked up per ingredient. Omitted where history is not wanted. */
   historyOf: (id: string) => readonly RateChange[] = () => [],
+  /**
+   * From Settings. It used the constant in `core/ingredient`, so an owner who
+   * set 30 days was still shown "stale" at 90 here while the dashboard used
+   * their figure — the same ingredient, two answers, on one book.
+   */
+  staleAfterDays: number = STALE_AFTER_DAYS,
 ): IngredientBoard {
   const used = usageCounts(pantry);
 
@@ -106,7 +119,7 @@ export function board(
         ? 'no_rate'
         : i.lockedBy !== undefined
           ? 'locked'
-          : isStale(i, today)
+          : agedPast(i, today, staleAfterDays)
             ? 'stale'
             : 'ok';
 

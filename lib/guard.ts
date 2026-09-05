@@ -98,6 +98,27 @@ export async function roomForRecipe(): Promise<
 }
 
 /**
+ * Whether there is room for another ingredient on this plan.
+ *
+ * Settings has shown "N of 250" since the cap existed and nothing ever
+ * counted: a figure on a progress bar that stopped nobody is not a limit, it
+ * is a decoration. Import is exempt by being paid-only.
+ */
+export async function roomForIngredient(): Promise<
+  { readonly ok: true } | { readonly ok: false; readonly message: string }
+> {
+  const { ingredients, plan } = await book();
+  if (plan !== 'free' || ingredients.length < FREE_LIMITS.ingredients) return { ok: true };
+  return {
+    ok: false,
+    message:
+      `The free trial holds ${FREE_LIMITS.ingredients} ingredients and you have them all. ` +
+      `Everything on the shelf stays where it is and every dish stays costed — what stops ` +
+      `is adding another. A plan lifts it.`,
+  };
+}
+
+/**
  * Whether this account may import a sheet at all.
  *
  * Import is a paid feature outright: the free tier is ten recipes entered by

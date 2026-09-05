@@ -98,7 +98,21 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.search,
   );
 
-  return to === null ? response : NextResponse.redirect(new URL(to, request.url));
+  if (to === null) return response;
+
+  /*
+   * The refreshed cookies travel with the redirect.
+   *
+   * `setAll` above writes any rotated token onto `response`, and this returned
+   * a brand new response instead — so a refresh that happened to land on a
+   * redirect (an unfinished account asking for any page, a finished one asking
+   * for /setup) left the browser holding a refresh token the server had
+   * already spent. The next request signed them out, for no reason they could
+   * see, which is the exact failure this file exists to prevent.
+   */
+  const bounce = NextResponse.redirect(new URL(to, request.url));
+  for (const cookie of response.cookies.getAll()) bounce.cookies.set(cookie);
+  return bounce;
 }
 
 export const config = {

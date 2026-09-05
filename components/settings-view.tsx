@@ -1349,17 +1349,24 @@ function BillingTab({
       </table>
 
       <SettingRow label="Invoices" scope="" help="">
+        {/* No invoice is generated anywhere in the product. Promising a PDF
+            "with your business name on it" described a feature that does not
+            exist, on the one screen where a person is deciding to pay. */}
         <p className="set-note">
-          Nothing yet — the free tier does not bill. Once you subscribe, every
-          invoice lands here as a PDF with your business name on it.
+          Not yet. A stretch is bought once and up front, and the payment
+          provider emails its own receipt. Ask us and we will send an invoice
+          in your business name.
         </p>
       </SettingRow>
 
       <SettingRow label="Payment method" scope="" help="">
-        <p className="set-fixed">No card on file</p>
+        {/* No card is ever kept: a stretch is one payment, taken by the
+            provider, and nothing renews. Saying "you'll be asked for one"
+            described a subscription this product deliberately does not run. */}
+        <p className="set-fixed">None kept</p>
         <p className="set-note">
-          You&rsquo;ll be asked for one only when you choose the paid tier.
-          Costbook never charges a card you added to try something.
+          A plan is paid once, for the months you choose, at the provider&rsquo;s
+          own form. Costbook keeps no card and nothing renews by itself.
         </p>
       </SettingRow>
     </>

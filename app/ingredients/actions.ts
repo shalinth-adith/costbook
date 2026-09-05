@@ -6,6 +6,7 @@ import { ingredientFromPack, withRate, withYield } from '@/core/ingredient';
 import type { UnitFamily } from '@/core/units';
 
 import { type Impact, headlineFor, impactOf } from '@/lib/impact';
+import { roomForIngredient } from '@/lib/guard';
 import { book, orgModel, recipesUsing, saveIngredient, saveMeta } from '@/lib/book';
 import { foodCostPercent, modelForDish, suggestPrice } from '@/lib/costing';
 
@@ -75,6 +76,10 @@ export async function addIngredient(input: {
   if (!Number.isFinite(input.packQty) || input.packQty <= 0) {
     return { message: 'A pack has to hold more than nothing.', undoable: false, id: null };
   }
+
+  // Server-side, because a cap the screen draws and nobody checks is not a cap.
+  const room = await roomForIngredient();
+  if (!room.ok) return { message: room.message, undoable: false, id: null };
 
   const made = ingredientFromPack({
     name,

@@ -35,7 +35,7 @@ export function LandingNav() {
           <Link href="/sign-in" className="lp-link">Sign in</Link>
           {/* Held in the layout at all times so its arrival moves nothing. */}
           <Link
-            href="/setup"
+            href="/sign-up"
             className={`btn btn-primary lp-nav-cta${past ? ' is-shown' : ''}`}
             tabIndex={past ? undefined : -1}
             aria-hidden={past ? undefined : true}

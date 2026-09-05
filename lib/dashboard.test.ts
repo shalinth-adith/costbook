@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_MODEL } from './costing';
-import { ORG, dishIds, meta, pantry } from './data';
+import { NO_DISH_PRICING, ORG, dishIds, meta, pantry } from './data';
 import { BAR_SCALE, applyFilter, categoriesOf, dashboard } from './dashboard';
 
 const model = { ...DEFAULT_MODEL, foodCostTarget: ORG.foodCostTarget };
@@ -139,5 +139,34 @@ describe('nesting is visible from the list', () => {
     expect(row('Parotta Kuruma Plate')?.nestedCount).toBe(2);
     expect(row('Mutton Kothu Parotta')?.nestedCount).toBe(1);
     expect(row('Filter Coffee')?.nestedCount).toBe(0);
+  });
+});
+
+describe("a dish with a target of its own", () => {
+  /*
+   * The cost was already worked out with the dish's own model while the
+   * status and the delta were worked out against the account's. A dish set to
+   * keep more than the house read ON TARGET here and OVER on its own sheet,
+   * off the same two figures.
+   */
+  const id = dishIds[0]!;
+  const strict = dashboard({
+    ids: [id],
+    pantry,
+    meta: { ...meta, [id]: { ...meta[id]!, pricing: { ...NO_DISH_PRICING, targetFoodCost: 10 } } },
+    model,
+  });
+
+  it("is judged by its own target, not the account's", () => {
+    const own = strict.rows[0];
+    expect(own?.target).toBe(10);
+    const house = data.rows.find((r) => r.id === id);
+    expect(house?.target).toBe(model.foodCostTarget);
+  });
+
+  it("measures its delta against that target too", () => {
+    const own = strict.rows[0];
+    if (own?.foodCostPercent == null || own.delta === null) return;
+    expect(own.delta).toBeCloseTo(own.foodCostPercent - 10, 10);
   });
 });

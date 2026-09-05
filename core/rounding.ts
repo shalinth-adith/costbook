@@ -60,7 +60,14 @@ export class RoundingError extends Error {
   }
 }
 
-/** Money precision. Two places is what every figure is displayed at. */
+/**
+ * Money precision, where the caller does not say.
+ *
+ * Two places suits most currencies and not all: an Omani rial and a Kuwaiti
+ * dinar carry three, and "leave the exact figure" was truncating their fils
+ * away — a price wrong by up to nine of them before anybody had chosen a
+ * rounding rule. Every entry point takes the account's own figure.
+ */
 const MONEY_DP = 2;
 
 /**
@@ -231,9 +238,9 @@ function latticeFor(rule: Exclude<RoundingRule, { mode: 'none' }>): Lattice {
  *
  * A suggestion nobody would act on costs more trust than silence (A26).
  */
-function scaleToFit<R extends RoundingRule>(rule: R, value: number): R {
+function scaleToFit<R extends RoundingRule>(rule: R, value: number, decimals: number): R {
   if (!Number.isFinite(value) || value <= 0) return rule;
-  if (rule.mode === 'step') return scaleStep(rule, value) as R;
+  if (rule.mode === 'step') return scaleStep(rule, value, decimals) as R;
   if (rule.mode !== 'charm') return rule;
 
   /*
@@ -269,28 +276,29 @@ function scaleToFit<R extends RoundingRule>(rule: R, value: number): R {
  * fault on a 0.03 figure that "the next 5" has on a 0.71 one: it was returning
  * 0.50, sixteen times the figure.
  */
-function scaleStep(rule: Extract<RoundingRule, { mode: 'step' }>, value: number) {
+function scaleStep(rule: Extract<RoundingRule, { mode: 'step' }>, value: number, decimals: number) {
   let { step } = rule;
-  // Never below a hundredth: a lattice finer than the currency's own precision
+  // Never below the currency's own precision: a lattice finer than that
   // rounds to figures it cannot print. Checked before dividing, so the step
-  // lands on 0.01 rather than stepping through it to 0.001.
-  while (value < step && step / 10 >= 0.01) step /= 10;
+  // lands on the smallest printable unit rather than stepping past it.
+  const finest = 10 ** -decimals;
+  while (value < step && step / 10 >= finest) step /= 10;
 
   return step === rule.step ? rule : { ...rule, step };
 }
 
 /** Apply a rounding rule to a figure. */
-export function applyRounding(value: number, rule: RoundingRule): number {
+export function applyRounding(value: number, rule: RoundingRule, decimals: number = MONEY_DP): number {
   if (!Number.isFinite(value)) {
     throw new RoundingError('invalid_value', 'That is not a figure we can round.');
   }
 
   if (rule.mode === 'none') {
-    const factor = 10 ** MONEY_DP;
+    const factor = 10 ** decimals;
     return Math.round(value * factor) / factor;
   }
 
-  const { stepUnits, offsetUnits } = latticeFor(scaleToFit(rule, value));
+  const { stepUnits, offsetUnits } = latticeFor(scaleToFit(rule, value, decimals));
   const units = toUnits(value);
 
   // Integers throughout, so a value already on the lattice stays put.

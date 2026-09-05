@@ -47,7 +47,16 @@ const row = (
     barOver: 0,
   }) as DashboardRow;
 
-const ing = (id: string, price: number | null, qty = 1000): Ingredient =>
+// `pricedAt` is what ages a rate, on this list and on the Ingredients screen
+// alike. It used to be read from the newest history row here and from the
+// ingredient there, so one screen called a rate stale while the other called
+// it fresh.
+const ing = (
+  id: string,
+  price: number | null,
+  qty = 1000,
+  pricedAt?: string,
+): Ingredient =>
   ({
     id,
     name: id,
@@ -57,6 +66,7 @@ const ing = (id: string, price: number | null, qty = 1000): Ingredient =>
     purchaseUnit: "kg",
     yieldPercent: 100,
     yieldIsAssumed: false,
+    ...(pricedAt === undefined ? {} : { pricedAt }),
   }) as Ingredient;
 
 const line = (id: string): RecipeComponent => ({
@@ -206,11 +216,10 @@ describe("a rate gone stale", () => {
     const { actions } = todo({
       ...base,
       recipes: [recipe("a", ["ghee", "hing"]), recipe("b", ["ghee"])],
-      ingredients: [ing("hing", 100), ing("ghee", 500)],
-      history: {
-        hing: [{ from: null, to: 100, qty: 1000, on: "2026-01-01", source: "manual" }],
-        ghee: [{ from: null, to: 500, qty: 1000, on: "2026-02-01", source: "manual" }],
-      },
+      ingredients: [
+        ing("hing", 100, 1000, "2026-01-01"),
+        ing("ghee", 500, 1000, "2026-02-01"),
+      ],
     });
     expect(actions[0]?.kind).toBe("refresh_rate");
     if (actions[0]?.kind !== "refresh_rate") return;
@@ -221,8 +230,7 @@ describe("a rate gone stale", () => {
     const { actions } = todo({
       ...base,
       recipes: [recipe("a", ["ghee"])],
-      ingredients: [ing("ghee", 500)],
-      history: { ghee: [{ from: null, to: 500, qty: 1000, on: "2026-08-20", source: "manual" }] },
+      ingredients: [ing("ghee", 500, 1000, "2026-08-20")],
     });
     expect(actions).toEqual([]);
   });
@@ -240,8 +248,7 @@ describe("the list as a whole", () => {
         row("Typo", 900, 5000, 18),
       ],
       recipes: [recipe("a", ["ghee"]), recipe("b", ["hing"])],
-      ingredients: [ing("ghee", null), ing("hing", 100)],
-      history: { hing: [{ from: null, to: 100, qty: 1000, on: "2026-01-01", source: "manual" }] },
+      ingredients: [ing("ghee", null), ing("hing", 100, 1000, "2026-01-01")],
     });
     expect(actions.map((a) => a.kind)).toEqual([
       "raise_price",

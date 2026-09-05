@@ -7,7 +7,8 @@ import type { Recipe } from '@/core/recipe';
 
 import type { DishMeta, DishPricing } from '@/lib/data';
 import { pantryOf, recipeCost } from '@/core/recipe';
-import { buildUp, foodCostPercent, modelForDish } from '@/lib/costing';
+import { formatMoney } from '@/core/currency';
+import { buildUp, foodCostPercent, modelForDish, tryRecipeCost } from '@/lib/costing';
 import { book, getMeta, getRecipe, recipesUsing, saveIngredient, saveMeta, saveRecipe, orgModel } from '@/lib/book';
 
 /**
@@ -66,19 +67,43 @@ async function keptNow(recipe: Recipe, price: number): Promise<number | null> {
 
 const today = (): string => new Date().toISOString().slice(0, 10);
 
+/** The account's money, so a message is not written in somebody else's. */
+async function money(amount: number): Promise<string> {
+  const { org } = await book();
+  return formatMoney(amount, org.currency);
+}
+
+/**
+ * Whether this dish can be costed at all, as a sentence when it cannot.
+ *
+ * Not "is anything missing" — a dish short a rate is ordinary and reports a
+ * floor. This is the structural kind: a line charged to each portion on a
+ * batch that plates into nothing, a link that closes a loop. Stored, they
+ * threw on every visit to the dashboard rather than on the screen that made
+ * them.
+ */
+async function refusedBecause(recipe: Recipe): Promise<string | null> {
+  const b = await book();
+  const withThis = [...b.recipes.filter((r) => r.id !== recipe.id), recipe];
+  const attempt = tryRecipeCost(recipe, pantryOf(withThis, b.ingredients));
+  return attempt.ok ? null : `${attempt.message} Nothing has been saved.`;
+}
+
 /** Save and put it on the menu at a price. */
 export async function saveAndPrice(
   recipe: Recipe,
   dish: Partial<DishMeta>,
   price: number,
 ): Promise<Ack> {
+  const refused = await refusedBecause(recipe);
+  if (refused !== null) return { message: refused, undoable: false };
   await saveRecipe(recipe, undefined);
   const kept = await keptNow(recipe, price);
   await saveMeta(recipe.id, { ...dish, onMenu: true, sellingPrice: price, pricedAt: today(), keptAtPricing: kept });
   refresh(recipe.id);
 
   return {
-    message: `${recipe.name} is on the menu at ₹ ${price.toFixed(2)}.`,
+    message: `${recipe.name} is on the menu at ${await money(price)}.`,
     undoable: false,
   };
 }
@@ -111,6 +136,8 @@ export async function keepPrice(recipe: Recipe, dish: Partial<DishMeta>): Promis
 
 /** Save changes to a dish already on the menu, leaving its price alone. */
 export async function saveChanges(recipe: Recipe, dish: Partial<DishMeta>): Promise<Ack> {
+  const refused = await refusedBecause(recipe);
+  if (refused !== null) return { message: refused, undoable: false };
   await saveRecipe(recipe, undefined);
   await saveMeta(recipe.id, dish);
   refresh(recipe.id);
@@ -141,7 +168,10 @@ export async function setIngredientRate(
     return { message: 'That ingredient is no longer in your list.', undoable: false };
   }
 
-  await saveIngredient(withRate(ingredient, packPrice));
+  // Dated, because the date is what every screen ages a rate by. It was left
+  // as it stood, so a rate typed here read as fresh on one screen and stale
+  // on another.
+  await saveIngredient(withRate(ingredient, packPrice, undefined, today()));
   const also = (await recipesUsing(ingredientId)).length;
   refresh(recipeId);
 
@@ -149,7 +179,7 @@ export async function setIngredientRate(
   const others = also <= 1 ? '' : ` ${also} recipes recosted.`;
 
   return {
-    message: `${ingredient.name} is now ₹ ${perUnit.toFixed(2)} / ${ingredient.purchaseUnit}.${others}`,
+    message: `${ingredient.name} is now ${await money(perUnit)} / ${ingredient.purchaseUnit}.${others}`,
     undoable: false,
   };
 }
