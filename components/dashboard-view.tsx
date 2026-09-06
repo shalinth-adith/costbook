@@ -3,12 +3,14 @@
 import type { Recipe } from '@/core/recipe';
 import { GROUP_SAID, periodSaid, type Engineered } from '@/lib/engineering';
 import { SalesSheet } from './sheets/sales-sheet';
+import { MonthCard } from './month-card';
 import Link from "next/link";
 import { useState } from "react";
 
 import type { DashboardRow, DashboardStats } from "@/lib/dashboard";
 import type { FirstDish } from "@/lib/first-dish";
 import type { Recent } from "@/lib/recent";
+import type { MonthCompare } from "@/lib/month";
 import { DASH } from "@/lib/format";
 import { isTrustworthy, perHundred } from "@/lib/plain";
 import {
@@ -336,6 +338,7 @@ export function DashboardView({
   onSaveSales,
   orgName,
   moved,
+  month,
   stats,
   piles,
   median,
@@ -349,6 +352,8 @@ export function DashboardView({
 }: {
   orgName: string;
   moved: Recent;
+  /** Last month against the one before it, from rate history rather than a snapshot. */
+  month: MonthCompare;
   stats: DashboardStats;
   piles: Piles;
   median: number | null;
@@ -589,6 +594,14 @@ export function DashboardView({
           </div>
         )}
       </section>
+
+      {/*
+        What last month did, after what to do today and before the per-dish
+        lists it explains. The page above answers "how am I doing now"; this
+        answers "what happened", which is a different question and belongs
+        after the actions rather than above them.
+      */}
+      <MonthCard month={month} />
 
       {/* ── best and weakest, by name ─────────────────────────────── */}
 

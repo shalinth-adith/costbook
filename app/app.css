@@ -3739,7 +3739,7 @@
 /* Every page fills the screen it is on; the ground is white; panels sit a
    warm shade below it. The owner's monitor is wide and a strip down the
    middle read as empty. */
-.costing, .nd, .set, .dh, .dash-hero, .dash-block, .stats.dash-top, .td { padding-inline: 40px; }
+.costing, .nd, .set, .dh, .dash-hero, .dash-block, .stats.dash-top, .td, .mc { padding-inline: 40px; }
 .page-head { padding-inline: 40px; }
 .set { padding-inline: 40px; }
 .costing { grid-template-columns: minmax(0, 1fr) 460px; }
@@ -4126,7 +4126,10 @@
 /* ── The month, against the month before ───────────────────────────────────
    A fixed window with an edge, for a kitchen that closes its books monthly.
    The figure never animates; it is the answer, not an effect. */
-.mc { display: grid; gap: 10px; margin-block-end: var(--sp-4); }
+/* Padding-inline is deliberately absent: the "Full width, on white" rule
+   above owns the page gutter, and a shorthand here would silently outrank it
+   by being later in the file. */
+.mc { display: grid; gap: 10px; padding-block-end: var(--sp-5); max-width: none; }
 .mc-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); margin: 0; }
 .mc-figure { font-size: 46px; line-height: 1; letter-spacing: -0.02em; margin: 0; font-variant-numeric: tabular-nums; }
 .mc-figure.is-up { color: var(--over-ink); }

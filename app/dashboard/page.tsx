@@ -2,7 +2,6 @@ import { AppShell } from "@/components/app-shell";
 import { CurrencyProvider } from "@/components/currency-provider";
 import { DashboardView, type StaleRate } from "@/components/dashboard-view";
 import { PlanNotice } from '@/components/plan-notice';
-import { MonthCard } from '@/components/month-card';
 import { KitchenCard } from "@/components/kitchen-card";
 
 import { book, orgModel, pantry } from "@/lib/book";
@@ -176,10 +175,10 @@ export default async function DashboardPage() {
         {/* Above the numbers, where the owner already is (A40). The only thing
             on this page that came from another person. */}
         <PlanNotice plan={b.plan} subscription={b.subscription} />
-        <MonthCard month={month} />
         <KitchenCard flags={b.flags} today={today} />
         <DashboardView
           orgName={b.org.name}
+          month={month}
           moved={moved}
           stats={data.stats}
           piles={pilesOf(data.rows, model.foodCostTarget)}

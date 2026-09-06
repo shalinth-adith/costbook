@@ -27,7 +27,7 @@ export function MonthCard({ month }: { month: MonthCompare }) {
 
   if (month.rateMoves === 0) {
     return (
-      <section className="card mc">
+      <section className="mc">
         <p className="mc-label">
           {said}, against {against}
         </p>
@@ -47,7 +47,7 @@ export function MonthCard({ month }: { month: MonthCompare }) {
     month.costNow === null
   ) {
     return (
-      <section className="card mc">
+      <section className="mc">
         <p className="mc-label">
           {said}, against {against}
         </p>
@@ -106,7 +106,7 @@ export function MonthCard({ month }: { month: MonthCompare }) {
   const worst = month.impact.moved[0];
 
   return (
-    <section className="card mc">
+    <section className="mc">
       <p className="mc-label">
         {said}, against {against}
       </p>
