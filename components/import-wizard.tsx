@@ -21,9 +21,12 @@ import {
 import { suspectUnits } from '@/core/units-suspect';
 
 import { type ImportPlan, flaggedRows, groupWarnings, looksLikeMappingError, planImport } from '@/lib/import';
+import { applyRemembered, type RememberedMap, rememberMap } from '@/lib/import-map';
+import type { ImportAck } from '@/app/import/actions';
 import { qty } from '@/lib/format';
 
 import { Sheet } from './sheet';
+import { ImpactTable } from './impact-table';
 import { useMoney } from './currency-provider';
 
 /*
@@ -98,6 +101,9 @@ export function ImportWizard({
   onUseCurrency,
   targetPercent,
   onUseTarget,
+  remembered,
+  returning = false,
+  onUndo,
 }: {
   existing: readonly Ingredient[];
   /** Dishes already in the book. Named on the sheet, they are linked to, never re-imported. */
@@ -111,7 +117,28 @@ export function ImportWizard({
   targetPercent: number;
   /** Adopt the target the sheet itself prices at. */
   onUseTarget?: ((percent: number) => Promise<unknown>) | undefined;
-  onCommit: (plan: ImportPlan) => Promise<{ message: string; undoable: boolean }>;
+  /**
+   * The column map this account accepted last time, by header text.
+   *
+   * FLOWS 3.3: next month's identical sheet arrives already mapped, and the
+   * operator is asked only about columns that changed. That is what turns
+   * import from an onboarding event into a monthly rhythm.
+   */
+  remembered?: RememberedMap | undefined;
+  /**
+   * Whether this book already has ingredients in it.
+   *
+   * Decides which question the screen after the commit answers. On a first
+   * import it is "what did we recognise"; on a repeat, §3.3 is explicit that
+   * the operator "does not care what was recognised; they care what moved".
+   */
+  returning?: boolean | undefined;
+  onCommit: (
+    plan: ImportPlan,
+    record?: { readonly filename: string; readonly mapping: RememberedMap },
+  ) => Promise<ImportAck>;
+  /** Put the last import's rates back, inside the seven-day window. */
+  onUndo?: ((id: string) => Promise<{ message: string; undoable: boolean }>) | undefined;
 }) {
   const m = useMoney();
   const router = useRouter();
@@ -122,6 +149,16 @@ export function ImportWizard({
   const [sheetName, setSheetName] = useState('');
   const [rows, setRows] = useState<readonly (readonly string[])[]>([]);
   const [mapping, setMapping] = useState<ColumnMapping>({});
+  /**
+   * How much of the map came from last month, and how much this sheet changed.
+   *
+   * Said out loud on the confirm step. A map that filled itself in and does
+   * not say so reads as Costbook having guessed well, which invites the
+   * operator to check every column — the opposite of what remembering it is
+   * for.
+   */
+  const [restoredFields, setRestoredFields] = useState(0);
+  const [changedFields, setChangedFields] = useState(0);
   const [busy, setBusy] = useState(false);
   /** Formula cells whose results the file does not carry. */
   const [uncomputed, setUncomputed] = useState(0);
@@ -140,6 +177,15 @@ export function ImportWizard({
   const [rowEdits, setRowEdits] = useState<Readonly<Record<number, RowEdit>>>({});
   const [problem, setProblem] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  /**
+   * What the commit did to the menu that was already there.
+   *
+   * Null on a first import, where nothing existed to move — and the screen
+   * says what was recognised instead, which is the interesting answer then.
+   */
+  const [moved, setMoved] = useState<ImportAck['moved']>(null);
+  const [importId, setImportId] = useState<string | null>(null);
+  const [undone, setUndone] = useState<string | null>(null);
   /** Which sample row the preview is reading back. */
   const [sample, setSample] = useState(0);
   /** The confirmation drawer: what would land, before it lands. */
@@ -286,9 +332,28 @@ export function ImportWizard({
        * there is no sentence — the mapping step is not a fallback here, it is
        * the only thing that can be asked.
        */
-      const detected = parseRows(grid.map((r) => r.map((c) => String(c ?? ''))), {}).mapping;
-      setMapping(detected);
-      setStep(missingFields(detected).length === 0 ? 'confirm' : 'map');
+      const text = grid.map((r) => r.map((c) => String(c ?? '')));
+      const read = parseRows(text, {});
+      const detected = read.mapping;
+
+      /*
+       * Last month's map, laid over this month's sheet (FLOWS 3.3).
+       *
+       * Matched by header text rather than column position, so a sheet that
+       * grew a column since last time still lands on the right fields — see
+       * `lib/import-map.ts`. Memory wins over detection where they disagree,
+       * because memory is what the operator corrected by hand.
+       */
+      const headerRow = read.headerRow === null ? [] : (text[read.headerRow] ?? []);
+      const laid =
+        remembered === undefined || headerRow.length === 0
+          ? { mapping: detected, restored: [], changed: [] }
+          : applyRemembered(remembered, headerRow, detected);
+
+      setRestoredFields(laid.restored.length);
+      setChangedFields(laid.changed.length);
+      setMapping(laid.mapping);
+      setStep(missingFields(laid.mapping).length === 0 ? 'confirm' : 'map');
     } catch {
       setProblem(
         'Costbook could not read that. It takes .xlsx and .csv — if yours is something else, ' +
@@ -326,10 +391,35 @@ export function ImportWizard({
   const commit = () => {
     if (plan === null) return;
     setBusy(true);
-    void onCommit(plan)
+    /*
+     * The map goes with the commit, by header text.
+     *
+     * Remembered only on a commit that the operator went through with — a map
+     * abandoned at the warnings step is one they were still arguing with, and
+     * restoring it next month would hand back the version they rejected.
+     */
+    const header = parsed?.headerRow === null || parsed === null
+      ? []
+      : (rows[parsed.headerRow] ?? []);
+    void onCommit(plan, { filename: fileName, mapping: rememberMap(mapping, header) })
       .then((ack) => {
         setResult(ack.message);
+        setMoved(ack.moved);
+        setImportId(ack.importId);
         setStep('done');
+      })
+      .finally(() => setBusy(false));
+  };
+
+  /** Put this import back. Only offered while the record exists. */
+  const undo = () => {
+    if (importId === null || onUndo === undefined) return;
+    setBusy(true);
+    void onUndo(importId)
+      .then((ack) => {
+        setUndone(ack.message);
+        setImportId(null);
+        router.refresh();
       })
       .finally(() => setBusy(false));
   };
@@ -581,6 +671,34 @@ export function ImportWizard({
               One real line from your file, put back into words. If it reads right, everything else
               will be too — the whole sheet was read the same way.
             </p>
+
+            {/*
+              * Said out loud, because a map that filled itself in and does not
+              * say so reads as a lucky guess — which invites the operator to
+              * check all twelve columns, the opposite of what remembering it
+              * is for (FLOWS 3.3).
+              */}
+            {restoredFields > 0 ? (
+              <p className="ic-memo">
+                <b>
+                  {restoredFields === 1
+                    ? 'One column is where you put it last time.'
+                    : `${String(restoredFields)} columns are where you put them last time.`}
+                </b>{' '}
+                {changedFields === 0 ? (
+                  <>
+                    Nothing about this sheet has moved since, so there is nothing to map
+                    again — read the line and carry on.
+                  </>
+                ) : (
+                  <>
+                    {changedFields === 1
+                      ? 'One column you mapped before is not in this sheet, so that one is asked again.'
+                      : `${String(changedFields)} columns you mapped before are not in this sheet, so those are asked again.`}
+                  </>
+                )}
+              </p>
+            ) : null}
 
             <div className="ic-row">
               <span className="ic-where figure">Row {reading.row + 1} of {lineCount}</span>
@@ -1161,25 +1279,100 @@ export function ImportWizard({
               </div>
             ) : (
               <p className="ac-file figure">
-                {fileName} · imported just now · undo for 7 days
+                {fileName} · imported just now
+                {importId === null ? '' : ' · undo for 7 days'}
               </p>
             )}
 
-            <div className="ac-counts">
-              <div>
-                <b className="figure">{plan.summary.dishes}</b>
-                <span>dishes costed.</span>
-              </div>
-              <div>
-                <b className="figure">{plan.summary.ingredientsNew + plan.summary.ratesUpdated}</b>
-                <span>ingredients priced.</span>
-              </div>
-            </div>
+            {/*
+              * FLOWS 3.3: "On a repeat import the user does not care what was
+              * recognised; they care what moved." So on a book that already
+              * had ingredients in it, the counts step aside and the movement
+              * leads — this is the bulk version of the rate-change moment in
+              * §6, and the tone rule from there holds here. Eleven dishes
+              * moving is an insight, not an alarm.
+              */}
+            {returning && moved !== null ? (
+              <>
+                <div className="ac-counts">
+                  <div>
+                    <b className="figure">{moved.moved.length}</b>
+                    <span>{moved.moved.length === 1 ? 'dish moved.' : 'dishes moved.'}</span>
+                  </div>
+                  <div>
+                    <b className="figure">{plan.summary.ratesUpdated}</b>
+                    <span>rates updated.</span>
+                  </div>
+                </div>
 
-            <p className="ac-copy">
-              Every one of them has a plate cost, a suggested price and a food cost you can open and
-              read step by step. Your sheet is untouched.
-            </p>
+                <p className="ac-copy">
+                  {moved.moved.length === 0 ? (
+                    <>
+                      Not one plate cost changed by as much as a whole unit of money. Your
+                      suppliers held, which is worth knowing before you take a call about it.
+                    </>
+                  ) : moved.crossCount === 0 ? (
+                    <>
+                      Every one of them is still inside its target. Nothing here needs a decision
+                      today.
+                    </>
+                  ) : (
+                    <>
+                      <b className="figure">{moved.crossCount}</b>{' '}
+                      {moved.crossCount === 1
+                        ? 'of them is now over its target'
+                        : 'of them are now over their target'}{' '}
+                      and was not before. Worst first.
+                    </>
+                  )}
+                </p>
+
+                {moved.moved.length > 0 ? (
+                  <ImpactTable impact={moved} currencyCode={currencyCode} limit={12} />
+                ) : null}
+              </>
+            ) : (
+              <>
+                <div className="ac-counts">
+                  <div>
+                    <b className="figure">{plan.summary.dishes}</b>
+                    <span>dishes costed.</span>
+                  </div>
+                  <div>
+                    <b className="figure">{plan.summary.ingredientsNew + plan.summary.ratesUpdated}</b>
+                    <span>ingredients priced.</span>
+                  </div>
+                </div>
+
+                <p className="ac-copy">
+                  Every one of them has a plate cost, a suggested price and a food cost you can open
+                  and read step by step. Your sheet is untouched.
+                </p>
+              </>
+            )}
+
+            {/*
+              * The undo the screen has always promised.
+              *
+              * FLOWS 3.3 puts the window at seven days rather than a confirm
+              * step, "because the user is committing a change to a menu that
+              * was already working". It says what it does and what it leaves
+              * alone: a person about to reprice their whole menu back should
+              * not have to find that out by doing it.
+              */}
+            {undone !== null ? (
+              <p className="ac-undone" role="status">{undone}</p>
+            ) : importId !== null && onUndo !== undefined && (moved?.moved.length ?? 0) > 0 ? (
+              <div className="ac-undo">
+                <button type="button" className="btn" disabled={busy} onClick={undo}>
+                  {busy ? 'Putting them back…' : 'Put these rates back'}
+                </button>
+                <span className="ac-undo-note">
+                  Every rate this sheet moved returns to what it was. Dishes and ingredients it
+                  added stay — this undoes the pricing, not the arrival. Open for 7 days.
+                </span>
+              </div>
+            ) : null}
 
             <button type="button" className="btn btn-primary btn-lg" onClick={() => router.push('/recipes')}>
               See your menu

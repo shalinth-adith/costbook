@@ -240,3 +240,22 @@ describe("a rate that moved and reached nothing", () => {
     expect(out.percent).not.toBeNull();
   });
 });
+
+describe("a supplier who changes the pack as well as the price", () => {
+  it("restates the old price against the old pack, not the new one", () => {
+    // The bug this guards. A history row's `purchase_qty` has always been the
+    // pack `price_to` was for; `rollBack` reads the field as the pack
+    // `price_from` was for. The two agree whenever the pack did not move,
+    // which is most of the time — so a sack replacing a bag made every
+    // restatement wrong by the ratio between them, silently.
+    //
+    // 1 kg at 40 becomes a 5 kg sack at 180. July's shelf must read 40 for a
+    // kilo, not 40 for five.
+    const sack: Ingredient = { ...ing("rice", 180), purchaseQty: 5000 };
+    const then = shelfAtEndOf("2026-07", [sack], {
+      rice: [{ from: 40, to: 180, qty: 1000, on: "2026-08-11", source: "import" }],
+    });
+    expect(then[0]?.purchasePrice).toBe(40);
+    expect(then[0]?.purchaseQty).toBe(1000);
+  });
+});

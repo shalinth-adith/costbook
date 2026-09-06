@@ -20,6 +20,7 @@ import type { CostingModel } from './costing';
 import type { DishMeta } from './data';
 import { BLANK_ORG, type Member, type Org, type Plan, type RateChange, type RateSource } from './org';
 import { FREE_SUBSCRIPTION, type Subscription } from './plan';
+import { type ImportRecord, type RememberedMap, UNDO_DAYS } from './import-map';
 
 interface State {
   recipes: Recipe[];
@@ -45,6 +46,22 @@ interface State {
   subscription: Subscription;
   /** recipe id → period → sold. The database keeps these in `dish_sales`. */
   sales: Record<string, Record<string, number>>;
+  /**
+   * Imports, newest last. Kept so a book with no database still remembers its
+   * column map and can still undo a price list — the two things FLOWS 3.3
+   * makes the repeat import out of. Without them the whole flow would only be
+   * reviewable against a live project.
+   */
+  imports: StoredImport[];
+}
+
+interface StoredImport {
+  id: string;
+  filename: string;
+  status: 'pending' | 'committed' | 'undone';
+  mapping: RememberedMap;
+  at: string;
+  ratesMoved: number;
 }
 
 /**
@@ -58,7 +75,7 @@ interface State {
  * State without changing this key hands old data to new code, which fails at
  * the first field that did not exist yet. Bump it whenever State changes.
  */
-const KEY = Symbol.for('costbook.store.v4');
+const KEY = Symbol.for('costbook.store.v5');
 
 interface Holder {
   [KEY]?: State;
@@ -85,6 +102,7 @@ function state(): State {
     rateHistory: {},
     subscription: FREE_SUBSCRIPTION,
     sales: {},
+    imports: [],
   };
   return holder[KEY];
 }
@@ -178,7 +196,11 @@ export function putIngredient(ingredient: Ingredient, source: RateSource = 'manu
       log.unshift({
         from: moved ? before.purchasePrice : ingredient.purchasePrice,
         to: ingredient.purchasePrice,
-        qty: ingredient.purchaseQty,
+        // The pack the OLD price was for, which is what every reader of this
+        // field wants — `rollBack` divides `from` by it. Writing the new pack
+        // here made a restatement wrong by the ratio whenever a supplier
+        // changed the pack along with the price.
+        qty: before.purchaseQty,
         on: ingredient.pricedAt ?? new Date().toISOString().slice(0, 10),
         source,
       });
@@ -308,6 +330,10 @@ export function clearBook(): void {
   // things that were no longer in it.
   s.rateHistory = {};
   s.sales = {};
+  // And the imports, for the same reason. An undo offer pointing at rates that
+  // are no longer on the book restores nothing and says it restored nothing,
+  // which reads as a broken button rather than as an empty account.
+  s.imports = [];
 }
 
 /** Every rate change on the book, as `book()` hands it to the screens. */
@@ -408,4 +434,103 @@ export function seedForTests(seed: {
   s.meta = { ...seed.meta };
   s.org = { ...BLANK_ORG, setupDone: true, ...seed.org };
   s.rateHistory = {};
+}
+
+/* ── Imports, for a book with no database ─────────────────────────────────
+ *
+ * The same four operations `lib/book.ts` performs against Postgres. They exist
+ * so the repeat-import flow — remembered map, seven-day undo — can be built
+ * and reviewed without a live project, which is how every other part of this
+ * store earns its place.
+ */
+
+/** The last import that was committed or undone, if there is one. */
+export function lastImport(): ImportRecord | null {
+  const s = state();
+  const row = [...s.imports]
+    .reverse()
+    .find((i) => i.status !== 'pending');
+  if (row === undefined) return null;
+  const age = Date.now() - new Date(row.at).getTime();
+  return {
+    id: row.id,
+    filename: row.filename,
+    status: row.status === 'undone' ? 'undone' : 'committed',
+    mapping: row.mapping,
+    at: row.at,
+    ratesMoved: row.ratesMoved,
+    undoable: row.status === 'committed' && age < UNDO_DAYS * 86_400_000,
+  };
+}
+
+export function startImport(filename: string, mapping: RememberedMap): string {
+  const s = state();
+  const id = `import-${Date.now().toString(36)}`;
+  s.imports.push({
+    id,
+    filename,
+    status: 'pending',
+    mapping,
+    at: new Date().toISOString(),
+    ratesMoved: 0,
+  });
+  return id;
+}
+
+export function finishImport(
+  id: string,
+  summary: Readonly<Record<string, number>>,
+): void {
+  const row = state().imports.find((i) => i.id === id);
+  if (row === undefined) return;
+  row.status = 'committed';
+  row.ratesMoved = summary.ratesUpdated ?? 0;
+}
+
+/**
+ * Put an import's rates back.
+ *
+ * The same contract as migration 24: every rate this import moved returns to
+ * what it was, its history rows go, and nothing that arrived is deleted.
+ */
+export function undoImport(
+  id: string,
+):
+  | { readonly ok: true; readonly restored: number }
+  | { readonly ok: false; readonly message: string } {
+  const s = state();
+  const row = s.imports.find((i) => i.id === id);
+  if (row === undefined)
+    return { ok: false, message: 'That import is not on this account any more.' };
+  if (row.status !== 'committed')
+    return { ok: false, message: 'That import has already been put back. Nothing changed.' };
+  if (Date.now() - new Date(row.at).getTime() >= UNDO_DAYS * 86_400_000)
+    return {
+      ok: false,
+      message: `Undo is open for ${String(UNDO_DAYS)} days and that window has closed. The rates stand as they are — you can still change any of them by hand.`,
+    };
+
+  let restored = 0;
+  for (const [ingredientId, log] of Object.entries(s.rateHistory)) {
+    // Oldest first, so what is restored is the figure that stood before this
+    // import began rather than the one it left part-way through.
+    const mine = [...log].filter((c) => c.importId === id).reverse();
+    const first = mine[0];
+    if (first === undefined) continue;
+
+    const at = s.ingredients.findIndex((i) => i.id === ingredientId);
+    const was = at === -1 ? undefined : s.ingredients[at];
+    if (was !== undefined) {
+      s.ingredients[at] = {
+        ...was,
+        purchasePrice: first.from,
+        purchaseQty: first.qty > 0 ? first.qty : was.purchaseQty,
+      };
+      restored += 1;
+    }
+    s.rateHistory[ingredientId] = log.filter((c) => c.importId !== id);
+  }
+
+  row.status = 'undone';
+  return { ok: true, restored };
 }

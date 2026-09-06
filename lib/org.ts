@@ -259,6 +259,13 @@ export interface RateChange {
   /** ISO date. */
   readonly on: string;
   readonly source: RateSource;
+  /**
+   * The import that wrote this, where one did.
+   *
+   * A price list moving 238 rates is one event, and the seven-day undo
+   * (FLOWS 3.3) puts all 238 back together or none of them.
+   */
+  readonly importId?: string;
 }
 
 /**

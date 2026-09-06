@@ -23,6 +23,7 @@ import { type Pantry, type Recipe, pantryOf } from "@/core/recipe";
 import type { CostingModel } from "./costing";
 import type { Flag } from "./flags";
 import { type DishMeta, NO_DISH_PRICING } from "./data";
+import { type ImportRecord, type RememberedMap, UNDO_DAYS } from "./import-map";
 import {
   BLANK_ORG,
   type Member,
@@ -236,7 +237,7 @@ export const book = cache(async (): Promise<Book> => {
      */
     supabase
       .from("ingredient_rate_history")
-      .select("ingredient_id, purchase_qty, price_from, price_to, changed_at, source")
+      .select("ingredient_id, purchase_qty, qty_from, price_from, price_to, changed_at, source, import_id")
       .gte("changed_at", new Date(Date.now() - 366 * 86_400_000).toISOString())
       .order("changed_at", { ascending: false }),
     supabase.from("flags").select("*").order("sent_at", { ascending: false }),
@@ -251,13 +252,41 @@ export const book = cache(async (): Promise<Book> => {
    * nothing at all — the same shape as the bug that made a paid account read
    * as free. The tables are named so the sentence points at the cause.
    */
+  /*
+   * The history read, once more without the columns migration 24 adds.
+   *
+   * PostgREST refuses a select naming a column that is not there, and this
+   * read runs on every page — so a project one migration behind would show
+   * every screen as an error, which is a far worse failure than a restatement
+   * that cannot tell an old pack from a new one. The precedent is
+   * `writeRecipes`, which falls back the same way when `save_recipes` is
+   * missing and says so in the log.
+   */
+  type HistoryRead = {
+    data: readonly Record<string, unknown>[] | null;
+    error: { code?: string; message: string } | null;
+  };
+  let historyRead = historyRes as unknown as HistoryRead;
+  if (historyRead.error !== null && missingColumn(historyRead.error)) {
+    console.warn(
+      "ingredient_rate_history has no qty_from or import_id yet; apply migration 24. " +
+        "Reading without them: an import cannot be undone, and a rate change that also " +
+        "changed the pack size will restate against the wrong pack.",
+    );
+    historyRead = (await supabase
+      .from("ingredient_rate_history")
+      .select("ingredient_id, purchase_qty, price_from, price_to, changed_at, source")
+      .gte("changed_at", new Date(Date.now() - 366 * 86_400_000).toISOString())
+      .order("changed_at", { ascending: false })) as unknown as HistoryRead;
+  }
+
   for (const [what, res] of [
     ["your dishes", recipesRes],
     ["your recipe lines", componentsRes],
     ["your ingredients", ingredientsRes],
     ["who is on this book", membersRes],
     ["your invitations", invitesRes],
-    ["your rate history", historyRes],
+    ["your rate history", historyRead],
     ["what the kitchen sent you", flagsRes],
     ["your sales", salesRes],
   ] as const) {
@@ -279,21 +308,37 @@ export const book = cache(async (): Promise<Book> => {
   for (const r of recipeRows) meta[r.id] = toMeta(r);
 
   const history: Record<string, RateChange[]> = {};
-  for (const h of (historyRes.data ?? []) as {
+  for (const h of (historyRead.data ?? []) as unknown as {
     ingredient_id: string;
     price_from: number | string | null;
     price_to: number | string;
     purchase_qty: number | string;
+    qty_from: number | string | null;
     changed_at: string;
     source: string | null;
+    import_id: string | null;
   }[]) {
     const list = history[h.ingredient_id] ?? (history[h.ingredient_id] = []);
     list.push({
       from: h.price_from === null ? null : Number(h.price_from),
       to: Number(h.price_to),
-      qty: Number(h.purchase_qty),
+      /*
+       * The pack `from` was for, which is what every reader of this field
+       * wants: `rollBack` divides last month's price by it to restate a dish
+       * at last month's rates.
+       *
+       * `purchase_qty` has always held the pack `price_to` was for, so a
+       * supplier moving an ingredient from a 1 kg bag to a 5 kg sack made
+       * every restatement wrong by the ratio between them — invisibly, since
+       * the two are equal whenever the pack did not change, which is most of
+       * the time. `qty_from` records the old pack; rows written before
+       * migration 24 cannot say, and fall back to the behaviour they have
+       * always had rather than to a guess.
+       */
+      qty: Number(h.qty_from ?? h.purchase_qty),
       on: h.changed_at.slice(0, 10),
       source: (h.source ?? "manual") as RateSource,
+      ...(h.import_id === null ? {} : { importId: h.import_id }),
     });
   }
 
@@ -513,8 +558,8 @@ export async function saveIngredient(
 
   // Read the rate as it stands before overwriting it, so the record has both
   // sides. The trigger that used to do this could not know the source.
-  const before =
-    b.ingredients.find((i) => i.id === ingredient.id)?.purchasePrice ?? null;
+  const was = b.ingredients.find((i) => i.id === ingredient.id);
+  const before = was?.purchasePrice ?? null;
 
   check(
     ingredient.name,
@@ -523,7 +568,7 @@ export async function saveIngredient(
       .upsert(fromIngredient(ingredient, b.orgId), { onConflict: "id" }),
   );
 
-  await recordRate(supabase, ingredient, before, source);
+  await recordRate(supabase, ingredient, before, was?.purchaseQty ?? null, source);
 }
 
 /**
@@ -542,6 +587,7 @@ async function recordRate(
   supabase: Awaited<ReturnType<typeof supabaseServer>>,
   ingredient: Ingredient,
   before: number | null,
+  beforeQty: number | null,
   source: RateSource,
 ): Promise<void> {
   const now = ingredient.purchasePrice;
@@ -555,6 +601,10 @@ async function recordRate(
     await supabase.from("ingredient_rate_history").insert({
       ingredient_id: ingredient.id,
       purchase_qty: ingredient.purchaseQty,
+      // The pack the old price was for. Equal to the new one except when a
+      // supplier changes the pack along with the price, which is exactly the
+      // case a restatement gets wrong without it.
+      qty_from: beforeQty ?? ingredient.purchaseQty,
       price_from: moved ? before : now,
       price_to: now,
       source,
@@ -655,11 +705,33 @@ async function writeRecipes(
   return row === undefined ? null : row.updated_at;
 }
 
+/**
+ * Whether a read failed because a column is not on this project yet.
+ *
+ * PostgREST answers 42703 for an unknown column and PGRST204 when its schema
+ * cache has not caught up. Matched on the message as well, because the code a
+ * given version returns has moved between the two and a fallback that stops
+ * working on an upgrade is worse than no fallback.
+ */
+function missingColumn(error: { code?: string; message?: string }): boolean {
+  if (error.code === "42703" || error.code === "PGRST204") return true;
+  const said = error.message ?? "";
+  return said.includes("qty_from") || said.includes("import_id");
+}
+
 /** Everything an import produces, in as few round trips as it can be done. */
 export async function saveBook(input: {
   readonly ingredients: readonly Ingredient[];
   readonly recipes: readonly Recipe[];
   readonly meta: Readonly<Record<string, DishMeta>>;
+  /**
+   * The import this write belongs to, where it is one.
+   *
+   * Stamped on every rate it moves, so the seven-day undo (FLOWS 3.3) can put
+   * the whole price list back as one event rather than asking the operator to
+   * remember which 238 rates arrived on Tuesday.
+   */
+  readonly importId?: string;
 }): Promise<void> {
   if (!supabaseConfigured()) {
     for (const i of input.ingredients) memory.putIngredient(i);
@@ -680,8 +752,10 @@ export async function saveBook(input: {
   const orgId = b.orgId;
 
   if (input.ingredients.length > 0) {
-    // Rates as they stand, before the import overwrites them.
+    // Rates as they stand, before the import overwrites them — the price and
+    // the pack it was for, because a supplier who moves one often moves both.
     const was = new Map(b.ingredients.map((i) => [i.id, i.purchasePrice]));
+    const wasQty = new Map(b.ingredients.map((i) => [i.id, i.purchaseQty]));
 
     check(
       "your ingredients",
@@ -706,9 +780,11 @@ export async function saveBook(input: {
       .map((i) => ({
         ingredient_id: i.id,
         purchase_qty: i.purchaseQty,
+        qty_from: wasQty.get(i.id) ?? i.purchaseQty,
         price_from: was.get(i.id) ?? null,
         price_to: i.purchasePrice,
         source: "import" as const,
+        import_id: input.importId ?? null,
       }));
 
     for (let i = 0; i < moves.length; i += 500) {
@@ -738,6 +814,176 @@ export async function saveBook(input: {
   }
 }
 
+/* ── The import as a record ───────────────────────────────────────────────
+ *
+ * FLOWS 3.3 turns import from a one-time onboarding event into a monthly
+ * rhythm, and the rhythm needs the previous import to still exist: its map, so
+ * next month's identical sheet arrives already mapped, and its rate changes,
+ * so a price list that repriced a working menu can be put back.
+ *
+ * The `imports` table has been in the schema since migration 1 and had never
+ * had a row written to it.
+ */
+
+/**
+ * The last import this account committed, if there is one.
+ *
+ * Deliberately not part of `book()`. That read runs on every page, and this
+ * answers a question only two screens ask — the import wizard, wanting the
+ * remembered map, and the import page, offering the undo.
+ */
+export async function lastImport(): Promise<ImportRecord | null> {
+  if (!supabaseConfigured()) return memory.lastImport();
+
+  const b = await book();
+  if (b.orgId === null) return null;
+  const supabase = await supabaseServer();
+
+  const res = await supabase
+    .from('imports')
+    .select('id, filename, status, mapping, summary, created_at')
+    .eq('org_id', b.orgId)
+    .in('status', ['committed', 'undone'])
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  /*
+   * A read that fails is not "this account has never imported".
+   *
+   * Answering null on an error would silently drop the remembered map and send
+   * an operator back through the mapping step for no reason they could see —
+   * the same shape as the bug that made a paid account read as free. The map
+   * is a convenience, so it does not throw; it says so in the log.
+   */
+  if (res.error !== null) {
+    console.warn('Could not read the last import:', res.error.message);
+    return null;
+  }
+
+  const row = (res.data ?? [])[0] as
+    | {
+        id: string;
+        filename: string;
+        status: string;
+        mapping: unknown;
+        summary: { ratesUpdated?: number } | null;
+        created_at: string;
+      }
+    | undefined;
+  if (row === undefined) return null;
+
+  const age = Date.now() - new Date(row.created_at).getTime();
+  return {
+    id: row.id,
+    filename: row.filename,
+    status: row.status === 'undone' ? 'undone' : 'committed',
+    mapping: (row.mapping ?? {}) as RememberedMap,
+    at: row.created_at,
+    ratesMoved: row.summary?.ratesUpdated ?? 0,
+    undoable: row.status === 'committed' && age < UNDO_DAYS * 86_400_000,
+  };
+}
+
+/**
+ * Open an import record, before anything is written.
+ *
+ * Opened first so its id can be stamped on every rate the commit moves. A
+ * record that failed to open returns null and the commit goes ahead without
+ * one: an import that works and cannot be undone is a great deal better than
+ * an import refused because its paperwork would not open.
+ */
+export async function startImport(
+  filename: string,
+  mapping: RememberedMap,
+): Promise<string | null> {
+  if (!supabaseConfigured()) return memory.startImport(filename, mapping);
+
+  const b = await book();
+  if (b.orgId === null) return null;
+  const supabase = await supabaseServer();
+
+  const res = await supabase
+    .from('imports')
+    .insert({
+      org_id: b.orgId,
+      filename,
+      status: 'pending',
+      mapping,
+      created_by: b.userId,
+    })
+    .select('id')
+    .limit(1);
+
+  if (res.error !== null) {
+    console.warn('Could not open an import record:', res.error.message);
+    return null;
+  }
+  return ((res.data ?? [])[0] as { id: string } | undefined)?.id ?? null;
+}
+
+/** Mark an import committed, and record what it did. */
+export async function finishImport(
+  id: string,
+  summary: Readonly<Record<string, number>>,
+): Promise<void> {
+  if (!supabaseConfigured()) {
+    memory.finishImport(id, summary);
+    return;
+  }
+  const supabase = await supabaseServer();
+  const res = await supabase
+    .from('imports')
+    .update({ status: 'committed', summary })
+    .eq('id', id);
+  if (res.error !== null) {
+    console.warn('Could not close the import record:', res.error.message);
+  }
+}
+
+/**
+ * Put an import's rates back.
+ *
+ * The work is one Postgres function (migration 24) because a half-undone
+ * import is the failure TRD 7 names: partial writes are worse than failed
+ * ones, since nothing prompts the operator to look. What arrives here is the
+ * refusal, translated into a sentence.
+ */
+export async function undoImport(
+  id: string,
+): Promise<
+  { readonly ok: true; readonly restored: number } | { readonly ok: false; readonly message: string }
+> {
+  if (!supabaseConfigured()) return memory.undoImport(id);
+
+  const supabase = await supabaseServer();
+  const res = await supabase.rpc('undo_import', { p_import: id });
+
+  if (res.error !== null) {
+    if (res.error.code === 'PGRST202') {
+      return {
+        ok: false,
+        message:
+          'Undo is not on this project yet. Apply migration 24 and it will work from the next import.',
+      };
+    }
+    return { ok: false, message: undoRefusal(res.error.code, res.error.message) };
+  }
+  return { ok: true, restored: Number(res.data ?? 0) };
+}
+
+/** The refusals migration 24 can raise, in the operator's words. */
+function undoRefusal(code: string | undefined, fallback: string): string {
+  if (code === 'PT409')
+    return 'That import has already been put back. Nothing changed.';
+  if (code === 'PT410')
+    return `Undo is open for ${String(UNDO_DAYS)} days and that window has closed. The rates stand as they are — you can still change any of them by hand.`;
+  if (code === 'PT403')
+    return 'That import belongs to another account.';
+  if (code === 'PT404')
+    return 'That import is not on this account any more.';
+  return `Nothing was put back. ${fallback}`;
+}
+
 export async function clearBook(): Promise<void> {
   if (!supabaseConfigured()) {
     memory.clearBook();
@@ -751,6 +997,10 @@ export async function clearBook(): Promise<void> {
   const supabase = await supabaseServer();
   check("your dishes", await supabase.from("recipes").delete().eq("org_id", b.orgId));
   check("your ingredients", await supabase.from("ingredients").delete().eq("org_id", b.orgId));
+  // The imports too. Their rate history went with the ingredients, so an undo
+  // offer that survived would restore nothing and report that it had — which
+  // reads as a broken button rather than as an empty account.
+  check("your imports", await supabase.from("imports").delete().eq("org_id", b.orgId));
 }
 
 /**

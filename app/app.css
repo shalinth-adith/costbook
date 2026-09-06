@@ -4142,3 +4142,53 @@
 .mc-quiet { margin: 0; font-size: 15px; line-height: 1.55; color: var(--text-secondary); max-inline-size: 70ch; }
 .mc-quiet b { color: var(--text-primary); font-weight: 600; }
 .mc-caveat { margin: 4px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--text-tertiary); max-inline-size: 66ch; }
+
+/* ── The repeat import ─────────────────────────────────────────────────────
+   FLOWS 3.3. A map that filled itself in says so; a sheet that repriced a
+   working menu can be put back for seven days. Both are plain text on the
+   page rather than banners — a banner makes the reader hunt for what it is
+   about, and both of these are about the thing directly above them. */
+
+/* The map, remembered. Sits under the read-back sentence on the confirm step. */
+.ic-memo {
+  margin: 0 0 var(--sp-4); font-size: 13.5px; line-height: 1.6;
+  color: var(--text-secondary); max-inline-size: 74ch;
+}
+.ic-memo b { color: var(--text-primary); font-weight: 600; }
+
+/* The undo, offered on the arrival screen right after a commit. */
+.ac-undo {
+  margin-block-start: var(--sp-6); padding-block-start: var(--sp-5);
+  border-block-start: 1px solid var(--border-row);
+  display: flex; align-items: center; gap: var(--sp-4); flex-wrap: wrap;
+}
+.ac-undo-note {
+  font-size: 12.5px; line-height: 1.55; color: var(--text-secondary);
+  max-inline-size: 62ch;
+}
+.ac-undone {
+  margin-block-start: var(--sp-6); padding-block-start: var(--sp-5);
+  border-block-start: 1px solid var(--border-row);
+  font-size: 14px; color: var(--text-primary);
+}
+
+/* The undo, still open days later, at the top of the import screen. */
+.iu-undo {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-5); flex-wrap: wrap;
+  background: var(--surface-sunken); border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-field); padding: var(--sp-4) 18px;
+  margin-block-end: var(--sp-5);
+}
+.iu-undo-text { display: grid; gap: 3px; min-inline-size: 0; }
+.iu-undo-title { margin: 0; font-size: 14px; color: var(--text-primary); }
+.iu-undo-copy {
+  margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--text-secondary);
+  max-inline-size: 66ch;
+}
+.iu-undo-act { flex: none; display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.iu-said {
+  margin: 0 0 var(--sp-5); font-size: 14px; color: var(--text-primary);
+  background: var(--surface-sunken); border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-field); padding: var(--sp-4) 18px;
+}

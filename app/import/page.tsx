@@ -1,9 +1,10 @@
 import { AppShell } from '@/components/app-shell';
 import { CurrencyProvider } from '@/components/currency-provider';
 import { ImportWizard } from '@/components/import-wizard';
-import { book } from '@/lib/book';
+import { book, lastImport } from '@/lib/book';
+import { ImportUndo } from '@/components/import-undo';
 
-import { adoptCurrency, adoptTarget, commitImport } from './actions';
+import { adoptCurrency, adoptTarget, commitImport, undoLastImport } from './actions';
 import { importAllowed, requireSetup } from '@/lib/guard';
 
 export const dynamic = 'force-dynamic';
@@ -25,6 +26,10 @@ export default async function ImportPage() {
    * step — having uploaded a workbook, mapped its columns and read a review
    * screen — is the version of this that feels like a trick.
    */
+  // The account's last import: its map, so this sheet arrives already mapped,
+  // and its id, so it can still be put back.
+  const last = await lastImport();
+
   const allowed = await importAllowed();
   if (!allowed.ok) {
     return (
@@ -72,6 +77,17 @@ export default async function ImportPage() {
       dishCount={b.recipes.length}
     >
       <CurrencyProvider code={code}>
+        {/*
+          * The undo, still open.
+          *
+          * FLOWS 3.3 gives a repeat import seven days rather than a confirm
+          * step, and a window that only exists on the screen you saw once is
+          * not a window. Somebody who notices on Thursday that their menu
+          * moved comes here, because here is where it moved from.
+          */}
+        {last !== null && last.undoable ? (
+          <ImportUndo last={last} onUndo={undoLastImport} />
+        ) : null}
         <ImportWizard
           existing={b.ingredients}
           existingRecipes={b.recipes}
@@ -81,6 +97,9 @@ export default async function ImportPage() {
           targetPercent={b.org.foodCostTarget}
           onUseTarget={adoptTarget}
           onCommit={commitImport}
+          remembered={last?.mapping}
+          returning={b.ingredients.length > 0}
+          onUndo={undoLastImport}
         />
       </CurrencyProvider>
     </AppShell>
