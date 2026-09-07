@@ -87,6 +87,19 @@
   --incomplete-ink: #3A414F;
   --incomplete-tint: #E4E7EE;
 
+  /* The frame, not the figures (The Kitchen Palette).
+     Soot is the footer floor: a step below the panel dark so it reads as the
+     ground the page stands on rather than another panel. Saffron is the
+     accent on it — ember on black goes muddy, saffron reads. Neither is
+     ever used inside the ledger, so an orange control keeps meaning "act". */
+  --soot: #0F1219;
+  --soot-rule: #262B36;
+  --on-soot: #FFFFFF;
+  --on-soot-secondary: #B4BBC9;
+  --on-soot-tertiary: #7E879A;
+  --saffron: #F5B335;
+  --saffron-deep: #D9951A;
+
   /* Focus. The one blue in the system, reserved for focus and nothing else. */
   --focus-ring: #2E5AAC;
   --focus-halo: #C9D6EE;

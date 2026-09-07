@@ -24,7 +24,6 @@ export default function robots(): MetadataRoute.Robots {
         "/settings",
         "/setup",
         "/plans",
-        "/place",
         "/api/",
       ],
     },

@@ -35,8 +35,16 @@ export type WordmarkMode =
    */
   | 'inert';
 
+/*
+ * Where the mark leads.
+ *
+ * It led to /place — a screen about the operator's own account, reached from
+ * nowhere else. The owner's report was "if I click Costbook it is showing
+ * another thing", which is the right reaction: a mark is the maker's signature,
+ * so pressing it should say who made this, not open a feature.
+ */
 export const HOME_OF: Record<Exclude<WordmarkMode, 'inert'>, string> = {
-  app: '/place',
+  app: '/about',
   public: '/',
 };
 

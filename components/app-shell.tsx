@@ -13,6 +13,7 @@ import { CurrencySheet } from './sheets/currency-sheet';
 import { Toast, type ToastState } from './toast';
 
 import { Wordmark } from './wordmark';
+import { AppFooter } from './app-footer';
 
 /**
  * Import is one of the five, per A16. A repeat import is a monthly rhythm once
@@ -100,22 +101,45 @@ export function AppShell({
         </nav>
 
         <div className="topbar-end">
-          {/* The chip already says which currency this is, so it is also the
-              way to change it. */}
-          <button type="button" className="currency-chip" onClick={() => setOpen(true)}>
-            {/* Several currencies use their code as their symbol — AED, SAR,
-                OMR — so printing both renders "AED AED". The code is the
-                label in that case. */}
-            <span className="figure">{c.symbol === c.code ? c.code : `${c.symbol} ${c.code}`}</span>
-            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor"
-              strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-              <path d="m3 4.8 3 3 3-3" />
-            </svg>
-          </button>
-          <span className="topbar-org">{orgName}</span>
-          {/* The account menu. The initials were a stand-in for it; now they open it. */}
+          {/*
+            * Offered only while it can still be answered.
+            *
+            * The currency is set once and never changed — Costbook does not
+            * convert, so moving it would leave every rate on file meaning
+            * something else, and Settings says exactly that. A chevron beside
+            * it on every screen of an account that has been costing for a year
+            * is a control that cannot do anything, which is worse than no
+            * control: it invites a click and then explains why not.
+            */}
+          {currencySettable ? (
+            <button type="button" className="currency-chip" onClick={() => setOpen(true)}>
+              {/* Several currencies use their code as their symbol — AED, SAR,
+                  OMR — so printing both renders "AED AED". The code is the
+                  label in that case. */}
+              <span className="figure">{c.symbol === c.code ? c.code : `${c.symbol} ${c.code}`}</span>
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                <path d="m3 4.8 3 3 3-3" />
+              </svg>
+            </button>
+          ) : null}
+          {/*
+            * The name opens the menu, and says so.
+            *
+            * The initials alone were the only handle, and a circle of letters
+            * does not read as a control. The name beside it was a plain span
+            * that did nothing when clicked — which is the worst arrangement of
+            * the two, because the thing that looks clickable is not.
+            */}
           <details className="acct">
-            <summary className="avatar" aria-label="Account menu">{initialsOf(orgName)}</summary>
+            <summary className="acct-trigger" aria-label="Account menu">
+              <span className="topbar-org">{orgName}</span>
+              <span className="avatar" aria-hidden="true">{initialsOf(orgName)}</span>
+              <svg className="acct-caret" width="11" height="11" viewBox="0 0 12 12" fill="none"
+                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                <path d="m3 4.8 3 3 3-3" />
+              </svg>
+            </summary>
             <div className="acct-menu" role="menu">
               <span className="acct-org">{orgName}</span>
               <Link href="/settings" role="menuitem">Settings</Link>
@@ -127,7 +151,21 @@ export function AppShell({
           </details>
         </div>
       </header>
-      {children}
+
+      {/*
+        * The page, framed.
+        *
+        * Content used to run to all four edges of the window and stop dead at
+        * the bottom — the last line of the dashboard sat on the sill with
+        * nothing under it, which reads as a page that was cut off rather than
+        * one that ended. Full width on white still holds: the frame sits a few
+        * pixels in from the glass and the ground outside it is the same white,
+        * so nothing is narrowed. It only draws the edge that was implied.
+        */}
+      <div className="page">{children}</div>
+
+      {/* Where the page ends, and where to find a person. */}
+      <AppFooter />
 
       <CurrencySheet
         open={open}
