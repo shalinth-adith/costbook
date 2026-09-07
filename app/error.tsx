@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { Wordmark } from '@/components/wordmark';
+import { reportFault } from '@/lib/report';
 
 import './legal.css';
 
@@ -23,8 +24,22 @@ export default function ErrorPage({
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    // Reported automatically, as the page claims.
+    /*
+     * Reported automatically, as the page claims.
+     *
+     * It said that from the day it was written and only wrote to the reader's
+     * own console, so the sentence below was false to their face. It writes to
+     * `app_errors` now, and the back office reads it.
+     */
     console.error('[costbook] unhandled', error);
+    // `detail` is spread in rather than set to undefined:
+    // exactOptionalPropertyTypes distinguishes "absent" from "undefined", and
+    // an error without a stack has no detail rather than an empty one.
+    void reportFault({
+      where: window.location.pathname,
+      message: error.message,
+      ...(error.stack === undefined ? {} : { detail: error.stack }),
+    });
   }, [error]);
 
   const ref = (error.digest ?? 'CB-LOCAL').toUpperCase();

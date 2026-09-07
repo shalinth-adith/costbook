@@ -18,6 +18,7 @@ import type { DishMeta } from '@/lib/data';
 import { type Impact, impactOf } from '@/lib/impact';
 import type { RememberedMap } from '@/lib/import-map';
 import { TARGET_MAX, TARGET_MIN } from '@/lib/org';
+import { reportFault } from '@/lib/report';
 
 /**
  * Commit an import.
@@ -113,7 +114,15 @@ export async function commitImport(
   } catch (error) {
     // Said plainly, and not as a success. An import that reports 74 dishes and
     // writes none is worse than one that fails, because nothing prompts the
-    // operator to look.
+    // operator to look — and written down for us, because FLOWS says a failed
+    // import is the one failure no later feature recovers from.
+    void reportFault({
+      where: 'commitImport',
+      message: error instanceof Error ? error.message : 'unknown',
+      ...(error instanceof Error && error.stack !== undefined
+        ? { detail: error.stack }
+        : {}),
+    });
     return {
       message:
         error instanceof Error

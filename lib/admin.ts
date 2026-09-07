@@ -197,3 +197,56 @@ export async function threads(): Promise<readonly Thread[]> {
     lastAt: t.last_at,
   }));
 }
+
+export interface ThreadWithMessages extends Thread {
+  readonly messages: readonly {
+    readonly id: string;
+    readonly fromAdmin: boolean;
+    readonly body: string;
+    readonly at: string;
+  }[];
+}
+
+/**
+ * Threads and what was said in them, longest wait first.
+ *
+ * One query rather than one per thread: an inbox that fetches a conversation
+ * per row is a screen that gets slower as support gets busier.
+ */
+export async function threadsWithMessages(): Promise<readonly ThreadWithMessages[]> {
+  if (!supabaseConfigured()) return [];
+  const supabase = await supabaseServer();
+  const { data, error } = await supabase
+    .from("support_threads")
+    .select(
+      "id, org_id, subject, status, opened_at, last_at, support_messages(id, from_admin, body, at)",
+    )
+    .order("last_at", { ascending: true });
+  if (error !== null) {
+    console.warn("Could not read support:", error.message);
+    return [];
+  }
+  return (
+    (data ?? []) as {
+      id: string;
+      org_id: string;
+      subject: string;
+      status: Thread["status"];
+      opened_at: string;
+      last_at: string;
+      support_messages:
+        | { id: string; from_admin: boolean; body: string; at: string }[]
+        | null;
+    }[]
+  ).map((t) => ({
+    id: t.id,
+    orgId: t.org_id,
+    subject: t.subject,
+    status: t.status,
+    openedAt: t.opened_at,
+    lastAt: t.last_at,
+    messages: [...(t.support_messages ?? [])]
+      .sort((x, y) => x.at.localeCompare(y.at))
+      .map((m) => ({ id: m.id, fromAdmin: m.from_admin, body: m.body, at: m.at })),
+  }));
+}

@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-import { accounts, requireAdmin, threads } from '@/lib/admin';
+import { AdminThread } from '@/components/admin-thread';
+import { accounts, requireAdmin, threadsWithMessages } from '@/lib/admin';
+
+import { closeThread, replyToThread } from './[id]/actions';
 
 export const metadata: Metadata = { title: 'Support · Costbook' };
 export const dynamic = 'force-dynamic';
@@ -20,7 +23,7 @@ export const dynamic = 'force-dynamic';
  */
 export default async function AdminSupport() {
   await requireAdmin();
-  const [rows, all] = await Promise.all([threads(), accounts()]);
+  const [rows, all] = await Promise.all([threadsWithMessages(), accounts()]);
   const nameOf = new Map(all.map((a) => [a.orgId, a.name]));
   const open = rows.filter((t) => t.status === 'open');
 
@@ -67,11 +70,19 @@ export default async function AdminSupport() {
             </p>
             <ul className="bo-threads">
               {rows.map((t) => (
-                <li key={t.id} className={`bo-thread is-${t.status}`}>
-                  <span className="bo-thread-who">{nameOf.get(t.orgId) ?? 'A kitchen'}</span>
-                  <span className="bo-thread-subject">{t.subject}</span>
-                  <span className="figure bo-thread-waited">{waited(t.lastAt)}</span>
-                  <span className={`bo-thread-state is-${t.status}`}>{t.status}</span>
+                <li key={t.id} className={`bo-thread-item is-${t.status}`}>
+                  <div className="bo-thread">
+                    <span className="bo-thread-who">{nameOf.get(t.orgId) ?? 'A kitchen'}</span>
+                    <span className="bo-thread-subject">{t.subject}</span>
+                    <span className="figure bo-thread-waited">{waited(t.lastAt)}</span>
+                    <span className={`bo-thread-state is-${t.status}`}>{t.status}</span>
+                  </div>
+                  <AdminThread
+                    id={t.id}
+                    messages={t.messages}
+                    onReply={replyToThread}
+                    onClose={closeThread}
+                  />
                 </li>
               ))}
             </ul>

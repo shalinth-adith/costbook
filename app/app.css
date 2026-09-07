@@ -5106,3 +5106,55 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 }
 .bo-branch b { color: var(--saffron); }
 .bo-branch span { display: block; margin-block-start: 5px; font-size: 12.5px; line-height: 1.6; color: var(--on-soot-tertiary); text-wrap: pretty; }
+
+/* ── Asking, and reading the answer ────────────────────────────────────────
+   A thread rather than an email, because there is no mail provider and an
+   answer that reaches nobody is not an answer. Read the next time they open
+   Costbook, the way a flag on a dish is. */
+.hp { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); gap: var(--sp-8); align-items: start; margin-block-start: var(--sp-6); }
+.hp-h2 { margin: 0 0 6px; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.hp-lede { margin: 0 0 var(--sp-4); font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); text-wrap: pretty; }
+.hp-ask { display: grid; gap: var(--sp-3); }
+.hp-text { inline-size: 100%; min-block-size: 0; }
+.hp-act { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.hp-or { font-size: 12.5px; color: var(--text-tertiary); }
+.hp-said { margin: 0; font-size: 13px; }
+.hp-said.is-ok { color: var(--on-ink); }
+.hp-said.is-bad { color: var(--over-ink); }
+.hp-none { margin: 0; font-size: 13.5px; color: var(--text-tertiary); }
+.hp-threads { display: grid; gap: var(--sp-4); align-content: start; }
+.hp-thread { padding: var(--sp-4) 16px; background: var(--surface-sunken); border: 1px solid var(--border-hairline); border-radius: var(--radius-panel); }
+.hp-thread-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); margin-block-end: var(--sp-3); }
+.hp-thread-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.hp-state { font-family: var(--font-mono), ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 8px; border-radius: 3px; white-space: nowrap; }
+.hp-state.is-open { background: var(--near-tint); color: var(--near-ink); }
+.hp-state.is-answered { background: var(--on-tint); color: var(--on-ink); }
+.hp-state.is-closed { background: var(--incomplete-tint); color: var(--incomplete-ink); }
+.hp-msgs { list-style: none; margin: 0 0 var(--sp-3); padding: 0; display: grid; gap: var(--sp-3); }
+.hp-msg { display: grid; gap: 3px; padding: 10px 12px; background: var(--surface-card); border: 1px solid var(--border-hairline); border-radius: 6px; }
+.hp-msg.is-us { border-inline-start: 3px solid var(--accent); }
+.hp-msg-who { font-family: var(--font-mono), ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-tertiary); }
+.hp-msg p { margin: 0; font-size: 14px; line-height: 1.6; white-space: pre-wrap; text-wrap: pretty; }
+.hp-msg-at { font-size: 11px; color: var(--text-quiet); }
+.hp-reply { display: grid; gap: var(--sp-2); }
+
+/* The inbox side of the same conversation. */
+.bo-thread-item { padding-block: var(--sp-4); border-block-end: 1px solid var(--soot-rule); }
+.bo-conv { margin-block-start: var(--sp-3); display: grid; gap: var(--sp-3); }
+.bo-msgs { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+.bo-msg { display: grid; gap: 3px; padding: 9px 12px; border-radius: 6px; background: rgb(255 255 255 / 0.04); }
+.bo-msg.is-us { background: rgb(245 179 53 / 0.09); }
+.bo-msg-who { font-family: var(--font-mono), ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--on-soot-tertiary); }
+.bo-msg p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--on-soot); white-space: pre-wrap; text-wrap: pretty; }
+.bo-msg-at { font-size: 11px; color: var(--on-soot-tertiary); }
+.bo-reply {
+  inline-size: 100%; min-block-size: 62px; resize: vertical; padding: 9px 11px;
+  font: inherit; font-size: 13.5px; line-height: 1.55;
+  background: rgb(255 255 255 / 0.04); color: var(--on-soot);
+  border: 1px solid var(--soot-rule); border-radius: 6px;
+}
+.bo-reply::placeholder { color: var(--on-soot-tertiary); }
+.bo-conv-act { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.bo-conv-said { font-size: 12.5px; color: var(--on-soot-secondary); }
+
+@media (max-width: 1100px) { .hp { grid-template-columns: 1fr; } }

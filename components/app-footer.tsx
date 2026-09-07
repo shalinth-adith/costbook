@@ -46,14 +46,16 @@ export function AppFooter() {
           <Link href="/ingredients">Ingredients</Link>
           <Link href="/import">Import a sheet</Link>
           <Link href="/settings">Settings</Link>
+          <Link href="/help">Help</Link>
         </nav>
         <div>
           <h4>Stuck on something?</h4>
           <p className="foot-help">
-            <a href="mailto:hello@costbook.in">hello@costbook.in</a> reaches the
-            people who build this, not a help desk. We usually reply within a
-            day. If a sheet will not import, send it — a file we cannot read is
-            a bug on our side.
+            <Link href="/help">Ask us from inside Costbook</Link> and the reply
+            appears on that page, so you need not watch an inbox. Or write to{" "}
+            <a href="mailto:hello@costbook.in">hello@costbook.in</a> — either
+            reaches the people who build this, not a help desk. If a sheet will
+            not import, send it: a file we cannot read is a bug on our side.
           </p>
         </div>
         <nav aria-label="About Costbook">
