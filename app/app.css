@@ -4948,3 +4948,161 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 @media (max-width: 900px) {
   .lg-top, .lg-hero, .lg-facts, .lg-body, .lg-foot { padding-inline: 20px; }
 }
+
+/* ══ The back office ═══════════════════════════════════════════════════════
+   The one screen that reads across every kitchen, for the person running the
+   product rather than the one running a restaurant. On soot, so it can never
+   be mistaken for the book — an admin looking at aggregate numbers should
+   never be one glance away from thinking they are looking at their own. */
+.bo {
+  min-block-size: 100vh; background: var(--soot); color: var(--on-soot);
+  padding: 0 40px var(--sp-14);
+}
+.bo-top {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: var(--sp-8); flex-wrap: wrap; padding-block: var(--sp-8) var(--sp-6);
+  border-block-end: 1px solid var(--soot-rule);
+}
+.bo-eyebrow {
+  margin: 0 0 6px; font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--saffron);
+}
+.bo-h1 {
+  margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 34px; font-weight: 800; letter-spacing: -0.03em; font-variation-settings: "opsz" 56;
+}
+.bo-nav { display: flex; gap: var(--sp-5); flex-wrap: wrap; font-size: 13.5px; }
+.bo-nav a { color: var(--on-soot-secondary); text-decoration: none; }
+.bo-nav a:hover { color: var(--saffron); }
+.bo-nav [aria-current='page'] { color: var(--on-soot); font-weight: 600; box-shadow: inset 0 -2px 0 var(--saffron); padding-block-end: 4px; }
+
+.bo-figs {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-5); padding-block: var(--sp-8);
+}
+.bo-fig { padding-inline-start: var(--sp-4); border-inline-start: 2px solid var(--soot-rule); }
+.bo-fig.is-good { border-inline-start-color: var(--on-ink-inverse); }
+.bo-fig.is-over { border-inline-start-color: var(--accent); }
+.bo-fig > p:first-child {
+  margin: 0 0 4px; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -0.03em;
+  font-variation-settings: "opsz" 56;
+}
+.bo-fig.is-good > p:first-child { color: var(--on-ink-inverse); }
+.bo-fig.is-over > p:first-child { color: var(--accent); }
+.bo-fig > p:last-child { margin: 0; font-size: 13px; line-height: 1.5; color: var(--on-soot-secondary); }
+.bo-fig-was { display: block; font-family: var(--font-mono), ui-monospace, monospace; font-size: 11.5px; color: var(--on-soot-tertiary); margin-block-start: 3px; }
+
+.bo-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-6); margin-block-end: var(--sp-6); }
+.bo-block {
+  background: rgb(255 255 255 / 0.03); border: 1px solid var(--soot-rule);
+  border-radius: var(--radius-panel); padding: var(--sp-5) 20px;
+}
+.bo-wide { margin-block-start: var(--sp-6); }
+.bo-h2 {
+  margin: 0 0 6px; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 19px; font-weight: 600; letter-spacing: -0.015em;
+}
+.bo-lede { margin: 0 0 var(--sp-4); font-size: 13.5px; line-height: 1.6; color: var(--on-soot-secondary); text-wrap: pretty; }
+.bo-lede b { color: var(--on-soot); }
+.bo-note { margin: var(--sp-4) 0 0; font-size: 12.5px; line-height: 1.6; color: var(--on-soot-tertiary); text-wrap: pretty; }
+.bo-note b { color: var(--saffron); }
+.bo-quiet { margin: 0; font-size: 15px; color: var(--on-soot); }
+.bo-empty { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--on-soot-tertiary); }
+
+/* The funnel: a bar per step, and what it lost against the one above. */
+.bo-funnel { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.bo-step {
+  display: grid; grid-template-columns: minmax(0, 1fr) 92px 42px 44px 38px;
+  gap: var(--sp-3); align-items: center; padding-block: 8px;
+  font-size: 13.5px; color: var(--on-soot-secondary);
+  border-block-end: 1px solid var(--soot-rule);
+}
+.bo-step:last-child { border-block-end: 0; }
+.bo-step.is-watch { color: var(--on-soot); }
+.bo-step-bar { block-size: 6px; border-radius: 3px; background: rgb(255 255 255 / 0.07); overflow: hidden; }
+.bo-step-bar > span { display: block; block-size: 100%; background: var(--on-soot-tertiary); border-radius: 3px; }
+.bo-step.is-watch .bo-step-bar > span { background: var(--saffron); }
+.bo-step-n { text-align: end; color: var(--on-soot); font-weight: 600; }
+.bo-step-share { text-align: end; font-size: 12px; color: var(--on-soot-tertiary); }
+.bo-step-lost { text-align: end; font-size: 12px; color: var(--accent); }
+
+/* Signups, six months of them. */
+.bo-months { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--sp-3); align-items: end; }
+.bo-month { display: grid; gap: 6px; justify-items: center; }
+.bo-month-n { font-size: 13px; color: var(--on-soot-secondary); }
+.bo-month.is-now .bo-month-n { color: var(--on-soot); font-weight: 600; }
+.bo-month-bar { inline-size: 100%; border-radius: 3px 3px 0 0; background: rgb(255 255 255 / 0.09); }
+.bo-month.is-now .bo-month-bar { background: linear-gradient(180deg, var(--saffron), var(--accent)); }
+.bo-month-said { font-family: var(--font-mono), ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--on-soot-tertiary); }
+
+.bo-terms { margin: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--sp-3); }
+.bo-terms > div { display: grid; gap: 3px; }
+.bo-terms dt { font-family: var(--font-mono), ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--on-soot-tertiary); }
+.bo-terms dd { margin: 0; font-size: 18px; font-weight: 600; color: var(--on-soot); }
+.bo-terms .bo-terms-n { font-size: 11.5px; font-weight: 400; color: var(--on-soot-tertiary); }
+
+.bo-seg { padding-block: var(--sp-3); border-block-end: 1px solid var(--soot-rule); }
+.bo-seg:last-of-type { border-block-end: 0; }
+.bo-seg-h { margin: 0 0 3px; font-size: 14px; color: var(--on-soot); }
+.bo-seg-h b { color: var(--saffron); }
+.bo-seg-who { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--on-soot-tertiary); text-wrap: pretty; }
+
+/* The accounts table. */
+.bo-table-wrap { overflow-x: auto; }
+.bo-table { inline-size: 100%; border-collapse: collapse; font-size: 13px; }
+.bo-table th {
+  text-align: start; padding: 8px 10px; border-block-end: 1px solid var(--soot-rule);
+  font-family: var(--font-mono), ui-monospace, monospace; font-size: 10.5px;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--on-soot-tertiary); font-weight: 500;
+  white-space: nowrap;
+}
+.bo-table td { padding: 10px; border-block-end: 1px solid var(--soot-rule); color: var(--on-soot-secondary); }
+.bo-table .end, .bo-table th.end { text-align: end; }
+.bo-table tr[data-idle='true'] .bo-name { color: var(--on-soot-secondary); }
+.bo-name { color: var(--on-soot); font-weight: 600; }
+.bo-dim { color: var(--on-soot-tertiary); }
+.bo-tag { display: inline-block; margin-inline-start: 8px; padding: 2px 7px; border-radius: 3px; font-size: 10.5px; background: rgb(255 106 61 / 0.16); color: #FF9B78; }
+.bo-plan { padding: 2px 8px; border-radius: 3px; font-size: 11.5px; font-family: var(--font-mono), ui-monospace, monospace; }
+.bo-plan.is-free { background: rgb(255 255 255 / 0.06); color: var(--on-soot-tertiary); }
+.bo-plan.is-paid { background: rgb(245 179 53 / 0.16); color: var(--saffron); }
+
+/* Faults, and threads. */
+.bo-errors, .bo-threads { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.bo-error {
+  display: grid; grid-template-columns: 118px 190px minmax(0, 1fr); gap: var(--sp-4);
+  padding-block: 9px; border-block-end: 1px solid var(--soot-rule); font-size: 13px;
+}
+.bo-error.is-seen { color: var(--on-soot-tertiary); }
+.bo-error-when { font-size: 11.5px; color: var(--on-soot-tertiary); }
+.bo-error-where { font-size: 12px; color: var(--saffron); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bo-error-msg { color: var(--on-soot-secondary); min-inline-size: 0; }
+
+.bo-thread {
+  display: grid; grid-template-columns: 200px minmax(0, 1fr) 60px 88px; gap: var(--sp-4);
+  align-items: baseline; padding-block: 11px; border-block-end: 1px solid var(--soot-rule); font-size: 13.5px;
+}
+.bo-thread-who { color: var(--on-soot); font-weight: 600; }
+.bo-thread-subject { color: var(--on-soot-secondary); min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bo-thread-waited { text-align: end; font-size: 12px; color: var(--on-soot-tertiary); }
+.bo-thread-state { justify-self: end; padding: 2px 8px; border-radius: 3px; font-family: var(--font-mono), ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.06em; }
+.bo-thread-state.is-open { background: rgb(245 179 53 / 0.16); color: var(--saffron); }
+.bo-thread-state.is-answered { background: rgb(111 195 163 / 0.14); color: var(--on-ink-inverse); }
+.bo-thread-state.is-closed { background: rgb(255 255 255 / 0.06); color: var(--on-soot-tertiary); }
+
+@media (max-width: 1100px) {
+  .bo-figs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bo-cols { grid-template-columns: 1fr; }
+  .bo-terms { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bo-error, .bo-thread { grid-template-columns: 1fr; gap: 4px; }
+}
+@media (max-width: 900px) { .bo { padding-inline: 20px; } }
+
+/* Import, reported beside the funnel rather than inside it. */
+.bo-branch {
+  margin: var(--sp-4) 0 0; padding-block-start: var(--sp-3);
+  border-block-start: 1px solid var(--soot-rule);
+  font-size: 13.5px; color: var(--on-soot-secondary);
+}
+.bo-branch b { color: var(--saffron); }
+.bo-branch span { display: block; margin-block-start: 5px; font-size: 12.5px; line-height: 1.6; color: var(--on-soot-tertiary); text-wrap: pretty; }
