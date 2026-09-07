@@ -224,3 +224,75 @@ function monthBefore(period: string): string {
 }
 
 const round = (n: number): number => Math.round(n * 100) / 100;
+
+/* ── What the books actually hold ─────────────────────────────────────────
+ *
+ * A six-month bar chart of signups is the conventional thing to draw and the
+ * wrong thing to draw here: with one account it is five zeroes and a one,
+ * and it stays that way for months. These say something at any number of
+ * accounts, and more as it grows.
+ */
+
+export interface Held {
+  readonly dishes: number;
+  readonly ingredients: number;
+  /** The largest book, so "is anybody using this properly" has an answer. */
+  readonly biggest: { readonly name: string; readonly dishes: number } | null;
+  /** Signed up, finished setup, and never wrote a dish down. */
+  readonly empty: number;
+}
+
+export function whatIsHeld(rows: readonly AccountRow[]): Held {
+  const dishes = rows.reduce((n, r) => n + r.recipes, 0);
+  const ingredients = rows.reduce((n, r) => n + r.ingredients, 0);
+  const top = [...rows].sort((a, b) => b.recipes - a.recipes)[0];
+  return {
+    dishes,
+    ingredients,
+    biggest: top === undefined || top.recipes === 0 ? null : { name: top.name, dishes: top.recipes },
+    empty: rows.filter((r) => r.setupDone && r.recipes === 0).length,
+  };
+}
+
+export type Freshness = "today" | "week" | "month" | "older" | "never";
+
+export interface Moved {
+  readonly key: Freshness;
+  readonly said: string;
+  readonly count: number;
+}
+
+/**
+ * When each book last had a rate move.
+ *
+ * The question FLOWS 10 actually asks — "an owner who costs a menu once and
+ * never returns still churns" — and the one a signup chart cannot answer. A
+ * book whose rates last moved in March is a book whose costs are wrong now,
+ * whether or not its owner signed up this month.
+ *
+ * Buckets rather than a mean, because the mean of a book touched today and
+ * one abandoned in spring is a number describing neither.
+ */
+export function movedWhen(
+  rows: readonly AccountRow[],
+  today: string,
+): readonly Moved[] {
+  const now = new Date(`${today}T00:00:00Z`).getTime();
+  const day = 86_400_000;
+  const age = (at: string) => (now - new Date(at).getTime()) / day;
+
+  const of = (test: (days: number) => boolean) =>
+    rows.filter((r) => r.lastRateAt !== null && test(age(r.lastRateAt))).length;
+
+  return [
+    { key: "today", said: "today", count: of((d) => d < 1) },
+    { key: "week", said: "this week", count: of((d) => d >= 1 && d < 7) },
+    { key: "month", said: "this month", count: of((d) => d >= 7 && d < 30) },
+    { key: "older", said: "longer ago", count: of((d) => d >= 30) },
+    {
+      key: "never",
+      said: "never",
+      count: rows.filter((r) => r.lastRateAt === null).length,
+    },
+  ];
+}

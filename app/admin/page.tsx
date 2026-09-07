@@ -12,10 +12,12 @@ import {
   costedButNeverMoved,
   funnelOf,
   importReach,
+  movedWhen,
   renewingWithin,
   revenueOf,
   signupsByMonth,
   stuckBeforeImport,
+  whatIsHeld,
 } from "@/lib/metrics";
 import { periodSaid } from "@/lib/engineering";
 
@@ -50,12 +52,15 @@ export default async function AdminPage() {
   const sheets = importReach(rows);
   const money = revenueOf(orders, today);
   const months = signupsByMonth(rows, 6, today);
+  const held = whatIsHeld(rows);
+  const moved = movedWhen(rows, today);
+  const joined = months.reduce((n, m) => n + m.count, 0);
+  const busiest = Math.max(1, ...moved.map((b) => b.count));
   const renewing = renewingWithin(rows, today, 30);
   const stuck = stuckBeforeImport(rows);
   const idle = costedButNeverMoved(rows);
   const waiting = support.filter((t) => t.status === "open");
   const unseen = errors.filter((e) => !e.seen);
-  const peak = Math.max(1, ...months.map((m) => m.count));
   const rupees = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
   return (
@@ -167,32 +172,62 @@ export default async function AdminPage() {
           </p>
         </section>
 
-        {/* ── signups ────────────────────────────────────────────── */}
+        {/* ── what the books hold ────────────────────────────────── */}
         <section className="bo-block">
-          <h2 className="bo-h2">Signing up</h2>
+          <h2 className="bo-h2">What the books hold</h2>
+          {/*
+            * A six-month bar chart of signups is the conventional thing to
+            * draw and the wrong thing here: with one account it is five
+            * zeroes and a one, and stays that way for months. These say
+            * something at any number of accounts, and more as it grows.
+            */}
           <p className="bo-lede">
-            Six months, including the ones nobody joined.
+            <b className="figure">{joined}</b>{" "}
+            {joined === 1 ? "kitchen" : "kitchens"} joined in the last six
+            months.
           </p>
-          <ol className="bo-months">
-            {months.map((m, i) => (
-              <li
-                key={m.period}
-                className={`bo-month${i === months.length - 1 ? " is-now" : ""}`}
-              >
-                <span className="figure bo-month-n">{m.count}</span>
-                <span
-                  className="bo-month-bar"
-                  style={{
-                    blockSize: `${String(Math.max(4, (m.count / peak) * 78))}px`,
-                  }}
-                  aria-hidden="true"
-                />
-                <span className="bo-month-said">
-                  {periodSaid(`${m.period}-01`).slice(0, 3)}
+
+          <dl className="bo-held">
+            <div>
+              <dt>Dishes costed</dt>
+              <dd className="figure">{held.dishes}</dd>
+            </div>
+            <div>
+              <dt>Ingredients on the shelves</dt>
+              <dd className="figure">{held.ingredients}</dd>
+            </div>
+            <div>
+              <dt>Most dishes in one book</dt>
+              <dd className="figure">
+                {held.biggest === null ? "—" : held.biggest.dishes}
+              </dd>
+              <dd className="bo-held-who">
+                {held.biggest === null ? "nobody has costed a dish" : held.biggest.name}
+              </dd>
+            </div>
+            <div className={held.empty > 0 ? "is-over" : ""}>
+              <dt>Set up, nothing written</dt>
+              <dd className="figure">{held.empty}</dd>
+            </div>
+          </dl>
+
+          <h3 className="bo-h3">When each book last moved a rate</h3>
+          <p className="bo-lede">
+            The question a signup chart cannot answer. A book whose rates last
+            moved in spring is a book whose costs are wrong now, whoever joined
+            this month.
+          </p>
+          <ul className="bo-moved">
+            {moved.map((b) => (
+              <li key={b.key} className={`bo-moved-row is-${b.key}${b.count === 0 ? " is-nil" : ""}`}>
+                <span className="bo-moved-said">{b.said}</span>
+                <span className="bo-moved-bar" aria-hidden="true">
+                  <span style={{ inlineSize: `${String((b.count / busiest) * 100)}%` }} />
                 </span>
+                <span className="figure bo-moved-n">{b.count}</span>
               </li>
             ))}
-          </ol>
+          </ul>
         </section>
       </div>
 

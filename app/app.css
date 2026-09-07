@@ -5345,3 +5345,46 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 .bo-tries dd { margin: 0; font-size: 22px; font-weight: 600; color: var(--on-soot); }
 .ba-main .bo-tries > div.is-over dd { color: var(--over-ink); }
 .ba-main .bo-tries > div.is-over dt { color: var(--over-ink); }
+
+/* What the books hold, and when they last moved. */
+.bo-held {
+  margin: 0 0 var(--sp-5); display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4);
+  padding-block-end: var(--sp-4); border-block-end: 1px solid var(--soot-rule);
+}
+.bo-held > div { display: grid; gap: 2px; }
+.bo-held dt {
+  font-family: var(--font-mono), ui-monospace, monospace; font-size: 10.5px;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--on-soot-tertiary);
+}
+.bo-held dd { margin: 0; font-size: 26px; font-weight: 600; color: var(--on-soot); line-height: 1.1; }
+.bo-held .bo-held-who { font-size: 12.5px; font-weight: 400; color: var(--on-soot-secondary); }
+.ba-main .bo-held > div.is-over dd { color: var(--over-ink); }
+.ba-main .bo-held > div.is-over dt { color: var(--over-ink); }
+
+.bo-h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.bo-moved { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.bo-moved-row {
+  display: grid; grid-template-columns: 96px minmax(0, 1fr) 34px; gap: var(--sp-3);
+  align-items: center; font-size: 13.5px; color: var(--on-soot-secondary);
+}
+.bo-moved-said { font-size: 13px; }
+.bo-moved-bar { block-size: 8px; border-radius: 4px; background: var(--border-row); overflow: hidden; }
+.bo-moved-bar > span { display: block; block-size: 100%; border-radius: 4px; background: var(--border-strong); }
+.bo-moved-row.is-today .bo-moved-bar > span { background: var(--on-ink); }
+.bo-moved-row.is-week .bo-moved-bar > span { background: var(--on-edge); }
+.bo-moved-row.is-older .bo-moved-bar > span { background: var(--near-control); }
+.bo-moved-row.is-never .bo-moved-bar > span { background: var(--over-edge); }
+.bo-moved-n { text-align: end; color: var(--on-soot); font-weight: 600; }
+/*
+ * A bucket nobody is in is still worth printing — "never: 0" is the answer
+ * you want, and hiding it would leave the reader unsure it was asked. It is
+ * faded rather than dropped, so the eye lands on the rows that hold books.
+ */
+.bo-moved-row.is-nil { color: var(--on-soot-tertiary); }
+.bo-moved-row.is-nil .bo-moved-n { color: var(--on-soot-tertiary); font-weight: 400; }
+
+@media (max-width: 720px) {
+  .bo-held { grid-template-columns: minmax(0, 1fr); gap: var(--sp-3); }
+  .bo-moved-row { grid-template-columns: 88px minmax(0, 1fr) 28px; gap: var(--sp-2); }
+}

@@ -8,8 +8,10 @@ import {
   importReach,
   renewingWithin,
   revenueOf,
+  movedWhen,
   signupsByMonth,
   stuckBeforeImport,
+  whatIsHeld,
 } from "./metrics";
 
 /**
@@ -206,5 +208,63 @@ describe("signups by month", () => {
       "2026-09-07",
     );
     expect(out.every((m) => m.count === 0)).toBe(true);
+  });
+});
+
+describe("what the books hold", () => {
+  const rows = [
+    acc({ orgId: "big", name: "Big Kitchen", setupDone: true, recipes: 62, ingredients: 210 }),
+    acc({ orgId: "small", name: "Small", setupDone: true, recipes: 4, ingredients: 20 }),
+    acc({ orgId: "empty", name: "Empty", setupDone: true }),
+  ];
+
+  it("adds up the dishes and ingredients across every book", () => {
+    const h = whatIsHeld(rows);
+    expect(h.dishes).toBe(66);
+    expect(h.ingredients).toBe(230);
+  });
+
+  it("names the largest book, so 'is anybody using this properly' has an answer", () => {
+    expect(whatIsHeld(rows).biggest).toEqual({ name: "Big Kitchen", dishes: 62 });
+  });
+
+  it("counts the accounts that finished setup and wrote nothing down", () => {
+    expect(whatIsHeld(rows).empty).toBe(1);
+  });
+
+  it("has no largest book when nobody has costed anything", () => {
+    // Null, not a name with nought beside it: "Empty, 0 dishes" reads as a
+    // fact about that account rather than as an absence of any.
+    expect(whatIsHeld([acc({ orgId: "a" })]).biggest).toBeNull();
+  });
+});
+
+describe("when each book last moved", () => {
+  const rows = [
+    acc({ orgId: "hot", lastRateAt: "2026-09-07T08:00:00Z" }),
+    acc({ orgId: "week", lastRateAt: "2026-09-04T08:00:00Z" }),
+    acc({ orgId: "month", lastRateAt: "2026-08-25T08:00:00Z" }),
+    acc({ orgId: "stale", lastRateAt: "2026-05-01T08:00:00Z" }),
+    acc({ orgId: "never" }),
+  ];
+
+  it("buckets every book, and every book lands in exactly one", () => {
+    const m = movedWhen(rows, "2026-09-07");
+    expect(m.map((b) => [b.key, b.count])).toEqual([
+      ["today", 1],
+      ["week", 1],
+      ["month", 1],
+      ["older", 1],
+      ["never", 1],
+    ]);
+    expect(m.reduce((n, b) => n + b.count, 0)).toBe(rows.length);
+  });
+
+  it("counts a book that never moved a rate as never, not as long ago", () => {
+    // The two are different questions: one was used and stopped, the other
+    // was never used for the thing the product is for.
+    const m = movedWhen([acc({ orgId: "a" })], "2026-09-07");
+    expect(m.find((b) => b.key === "never")?.count).toBe(1);
+    expect(m.find((b) => b.key === "older")?.count).toBe(0);
   });
 });
