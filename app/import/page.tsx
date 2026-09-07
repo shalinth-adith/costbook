@@ -4,7 +4,7 @@ import { ImportWizard } from '@/components/import-wizard';
 import { book, lastImport } from '@/lib/book';
 import { ImportUndo } from '@/components/import-undo';
 
-import { adoptCurrency, adoptTarget, commitImport, undoLastImport } from './actions';
+import { adoptCurrency, adoptTarget, beginImport, commitImport, undoLastImport } from './actions';
 import { importAllowed, requireSetup } from '@/lib/guard';
 
 export const dynamic = 'force-dynamic';
@@ -100,6 +100,7 @@ export default async function ImportPage() {
           remembered={last?.mapping}
           returning={b.ingredients.length > 0}
           onUndo={undoLastImport}
+          onBegin={beginImport}
         />
       </CurrencyProvider>
     </AppShell>

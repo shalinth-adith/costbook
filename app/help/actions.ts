@@ -35,9 +35,25 @@ export async function askForHelp(subject: string, body: string): Promise<Ack> {
   if (b.orgId === null) return { ok: false, message: 'Sign in again and it will send.' };
   const supabase = await supabaseServer();
 
+  /*
+   * The address, captured now rather than looked up later.
+   *
+   * The operator who writes may not be the owner and may have left the
+   * account by the time we answer, and `auth.users` is not readable from a
+   * client — so it is recorded at the one moment it is certainly known and
+   * certainly theirs.
+   */
+  const { data: who } = await supabase.auth.getUser();
+  const replyTo = who.user?.email ?? null;
+
   const opened = await supabase
     .from('support_threads')
-    .insert({ org_id: b.orgId, opened_by: b.userId, subject: said.slice(0, 160) })
+    .insert({
+      org_id: b.orgId,
+      opened_by: b.userId,
+      subject: said.slice(0, 160),
+      reply_to: replyTo,
+    })
     .select('id')
     .limit(1);
   if (opened.error !== null) {

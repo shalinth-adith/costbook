@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { isAdmin } from '@/lib/admin';
+import { queueMail } from '@/lib/mail';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { supabaseServer } from '@/lib/supabase/server';
 
@@ -37,8 +38,37 @@ export async function replyToThread(
     .update({ status: 'answered', last_at: new Date().toISOString() })
     .eq('id', threadId);
 
+  /*
+   * And written to the outbox, addressed and dated now.
+   *
+   * The reply is already delivered — it is on their Help screen. This is the
+   * second copy, for the day there is a provider: it posts then, carrying the
+   * date it was written rather than the date it was finally sent, so nobody
+   * is told "we replied today" about a thread a week old.
+   */
+  const thread = await supabase
+    .from('support_threads')
+    .select('subject, reply_to')
+    .eq('id', threadId)
+    .limit(1);
+  const t = ((thread.data ?? [])[0] as { subject: string; reply_to: string | null } | undefined);
+
+  let posted = 'It is on their Help screen now.';
+  if (t !== undefined && t.reply_to !== null) {
+    const mail = await queueMail({
+      to: t.reply_to,
+      subject: `Re: ${t.subject}`,
+      body: `${text}\n\n—\nYou can reply on your Help screen in Costbook.`,
+      threadId,
+    });
+    posted = mail.ok ? mail.message : `The mail was not written down: ${mail.message}`;
+  } else {
+    posted = 'No address on that thread, so nothing was queued to post.';
+  }
+
   revalidatePath('/admin/support');
-  return { ok: true, message: 'Sent. They see it next time they open Costbook.' };
+  revalidatePath('/admin/mail');
+  return { ok: true, message: `Replied. ${posted}` };
 }
 
 /** Nothing more to say on this one. */

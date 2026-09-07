@@ -27,6 +27,27 @@ import { reportFault } from '@/lib/report';
  * computed from — so what the operator agreed to is exactly what happens.
  * Partial imports are worse than failed ones (TRD 7).
  */
+/**
+ * Open the record when the sheet is read, not when it is committed.
+ *
+ * FLOWS 10 calls import completion "the one to watch — if a user reaches the
+ * mapping screen and abandons, the product has failed at its only real
+ * promise". Until now the row was written at commit, so an abandoned import
+ * left no trace at all and the number that matters most was the one number
+ * the database could never answer.
+ *
+ * A row opened here stays `pending` until the commit marks it `committed`.
+ * The difference between the two counts is the abandonment.
+ */
+export async function beginImport(
+  filename: string,
+  mapping: RememberedMap,
+): Promise<{ readonly importId: string | null }> {
+  const allowed = await importAllowed();
+  if (!allowed.ok) return { importId: null };
+  return { importId: await startImport(filename, mapping) };
+}
+
 export interface ImportAck {
   readonly message: string;
   readonly undoable: boolean;
@@ -51,7 +72,12 @@ export async function commitImport(
    * What the operator agreed to, so it can be remembered. The map is by header
    * text rather than column index — see `lib/import-map.ts` for why.
    */
-  record?: { readonly filename: string; readonly mapping: RememberedMap },
+  record?: {
+    readonly filename: string;
+    readonly mapping: RememberedMap;
+    /** The record opened at the mapping step, where there is one. */
+    readonly importId?: string | null;
+  },
 ): Promise<ImportAck> {
   /*
    * Server-side, because the screen refusing is a courtesy and this is the
@@ -100,7 +126,9 @@ export async function commitImport(
    * a great deal better than an import refused because its paperwork failed.
    */
   const importId =
-    record === undefined ? null : await startImport(record.filename, record.mapping);
+    record === undefined
+      ? null
+      : (record.importId ?? (await startImport(record.filename, record.mapping)));
 
   // Ingredients before recipes: a component line references an ingredient by
   // id, and the foreign key will not accept one that is not there yet.

@@ -250,3 +250,50 @@ export async function threadsWithMessages(): Promise<readonly ThreadWithMessages
       .map((m) => ({ id: m.id, fromAdmin: m.from_admin, body: m.body, at: m.at })),
   }));
 }
+
+export interface ImportAttempts {
+  /** Records opened at the mapping step. */
+  readonly started: number;
+  readonly committed: number;
+  readonly undone: number;
+  /**
+   * Opened and never finished.
+   *
+   * FLOWS 10 calls import completion "the one to watch — if a user reaches
+   * the mapping screen and abandons, the product has failed at its only real
+   * promise". Until the record was opened at the mapping step this number
+   * could not exist: somebody who uploaded, mapped, read the warnings and
+   * gave up wrote no row at all.
+   *
+   * Only counted after an hour. A record opened three minutes ago belongs to
+   * somebody still reading their warnings, and calling that an abandonment
+   * would report every import in progress as a failure.
+   */
+  readonly abandoned: number;
+  readonly inFlight: number;
+}
+
+export async function importAttempts(): Promise<ImportAttempts> {
+  const nil = { started: 0, committed: 0, undone: 0, abandoned: 0, inFlight: 0 };
+  if (!supabaseConfigured()) return nil;
+  const supabase = await supabaseServer();
+  const { data, error } = await supabase
+    .from("imports")
+    .select("status, created_at");
+  if (error !== null) {
+    console.warn("Could not read imports:", error.message);
+    return nil;
+  }
+
+  const rows = (data ?? []) as { status: string; created_at: string }[];
+  const anHourAgo = Date.now() - 3_600_000;
+  const pending = rows.filter((r) => r.status === "pending");
+
+  return {
+    started: rows.length,
+    committed: rows.filter((r) => r.status === "committed").length,
+    undone: rows.filter((r) => r.status === "undone").length,
+    abandoned: pending.filter((r) => new Date(r.created_at).getTime() < anHourAgo).length,
+    inFlight: pending.filter((r) => new Date(r.created_at).getTime() >= anHourAgo).length,
+  };
+}

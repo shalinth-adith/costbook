@@ -104,6 +104,7 @@ export function ImportWizard({
   remembered,
   returning = false,
   onUndo,
+  onBegin,
 }: {
   existing: readonly Ingredient[];
   /** Dishes already in the book. Named on the sheet, they are linked to, never re-imported. */
@@ -135,10 +136,24 @@ export function ImportWizard({
   returning?: boolean | undefined;
   onCommit: (
     plan: ImportPlan,
-    record?: { readonly filename: string; readonly mapping: RememberedMap },
+    record?: {
+      readonly filename: string;
+      readonly mapping: RememberedMap;
+      /** The record opened at the mapping step, so commit reuses it. */
+      readonly importId?: string | null;
+    },
   ) => Promise<ImportAck>;
   /** Put the last import's rates back, inside the seven-day window. */
   onUndo?: ((id: string) => Promise<{ message: string; undoable: boolean }>) | undefined;
+  /**
+   * Open the record as soon as the sheet is read.
+   *
+   * So an import that is started and abandoned leaves a row. Without it the
+   * step FLOWS calls the one to watch is the one thing the database cannot
+   * see: somebody who uploads, maps, reads the warnings and gives up writes
+   * nothing at all.
+   */
+  onBegin?: ((filename: string, mapping: RememberedMap) => Promise<{ importId: string | null }>) | undefined;
 }) {
   const m = useMoney();
   const router = useRouter();
@@ -185,6 +200,8 @@ export function ImportWizard({
    */
   const [moved, setMoved] = useState<ImportAck['moved']>(null);
   const [importId, setImportId] = useState<string | null>(null);
+  /** The record opened at the mapping step, so commit does not open a second. */
+  const [openedId, setOpenedId] = useState<string | null>(null);
   const [undone, setUndone] = useState<string | null>(null);
   /** Which sample row the preview is reading back. */
   const [sample, setSample] = useState(0);
@@ -354,6 +371,20 @@ export function ImportWizard({
       setChangedFields(laid.changed.length);
       setMapping(laid.mapping);
       setStep(missingFields(laid.mapping).length === 0 ? 'confirm' : 'map');
+
+      /*
+       * The record opens here, not at commit.
+       *
+       * This is the moment FLOWS cares about: the sheet has been read and the
+       * operator is looking at the mapping. If they walk away now the row
+       * stays `pending`, and the difference between opened and committed is
+       * the abandonment — the number the product could not see at all.
+       */
+      if (onBegin !== undefined) {
+        void onBegin(file.name, rememberMap(laid.mapping, headerRow)).then((r) => {
+          setOpenedId(r.importId);
+        });
+      }
     } catch {
       setProblem(
         'Costbook could not read that. It takes .xlsx and .csv — if yours is something else, ' +
@@ -401,7 +432,11 @@ export function ImportWizard({
     const header = parsed?.headerRow === null || parsed === null
       ? []
       : (rows[parsed.headerRow] ?? []);
-    void onCommit(plan, { filename: fileName, mapping: rememberMap(mapping, header) })
+    void onCommit(plan, {
+      filename: fileName,
+      mapping: rememberMap(mapping, header),
+      importId: openedId,
+    })
       .then((ack) => {
         setResult(ack.message);
         setMoved(ack.moved);

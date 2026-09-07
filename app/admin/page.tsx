@@ -3,9 +3,9 @@ import Link from "next/link";
 
 import {
   accounts,
+  importAttempts,
   paidOrders,
   recentErrors,
-  requireAdmin,
   threads,
 } from "@/lib/admin";
 import {
@@ -36,14 +36,14 @@ export const dynamic = "force-dynamic";
  * can act on is a decoration.
  */
 export default async function AdminPage() {
-  await requireAdmin();
 
   const today = new Date().toISOString().slice(0, 10);
-  const [rows, orders, errors, support] = await Promise.all([
+  const [rows, orders, errors, support, tries] = await Promise.all([
     accounts(),
     paidOrders(),
     recentErrors(6),
     threads(),
+    importAttempts(),
   ]);
 
   const funnel = funnelOf(rows);
@@ -60,22 +60,9 @@ export default async function AdminPage() {
 
   return (
     <div className="bo">
-      <header className="bo-top">
-        <div>
-          <p className="bo-eyebrow">Back office</p>
-          <h1 className="bo-h1">Costbook, whole</h1>
-        </div>
-        <nav className="bo-nav" aria-label="Back office">
-          <span aria-current="page">Metrics</span>
-          <Link href="/admin/accounts">Accounts</Link>
-          <Link href="/admin/support">
-            Support{waiting.length > 0 ? ` (${String(waiting.length)})` : ""}
-          </Link>
-          <Link href="/admin/health">
-            Health{unseen.length > 0 ? ` (${String(unseen.length)})` : ""}
-          </Link>
-          <Link href="/dashboard">Your own book</Link>
-        </nav>
+      <header className="ba-head">
+        <h1 className="ba-h1">Costbook, whole</h1>
+        <p className="ba-lede">How far kitchens get, what they pay, and who is worth a message.</p>
       </header>
 
       {/* The four figures that answer "how is it going" before any detail. */}
@@ -144,10 +131,39 @@ export default async function AdminPage() {
             .
             <span>
               Not a step on the way: costing by hand is a whole path, and the
-              free tier cannot import at all. It is still the one to watch — a
-              kitchen that reaches the mapping screen and stops has been failed
-              at the only real promise.
+              free tier cannot import at all.
             </span>
+          </p>
+
+          {/*
+            * The number FLOWS calls the one to watch, and the one the
+            * database could not answer until the record was opened at the
+            * mapping step rather than at commit.
+            */}
+          <dl className="bo-tries">
+            <div>
+              <dt>Sheets opened</dt>
+              <dd className="figure">{tries.started}</dd>
+            </div>
+            <div>
+              <dt>Committed</dt>
+              <dd className="figure">{tries.committed}</dd>
+            </div>
+            <div className={tries.abandoned > 0 ? "is-over" : ""}>
+              <dt>Abandoned</dt>
+              <dd className="figure">{tries.abandoned}</dd>
+            </div>
+            {tries.inFlight > 0 && (
+              <div>
+                <dt>Open now</dt>
+                <dd className="figure">{tries.inFlight}</dd>
+              </div>
+            )}
+          </dl>
+          <p className="bo-note">
+            A sheet is counted from the moment its columns are on screen. One
+            still open inside the hour is somebody reading their warnings, not
+            an abandonment.
           </p>
         </section>
 

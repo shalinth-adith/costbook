@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-import { accounts, requireAdmin } from '@/lib/admin';
+import { accounts } from '@/lib/admin';
 
 export const metadata: Metadata = { title: 'Accounts · Costbook' };
 export const dynamic = 'force-dynamic';
@@ -16,7 +16,6 @@ export const dynamic = 'force-dynamic';
  * console reports on accounts; it does not read a kitchen's costings.
  */
 export default async function AdminAccounts() {
-  await requireAdmin();
   const rows = await accounts();
 
   const when = (at: string | null) => {
@@ -30,18 +29,8 @@ export default async function AdminAccounts() {
 
   return (
     <div className="bo">
-      <header className="bo-top">
-        <div>
-          <p className="bo-eyebrow">Back office</p>
-          <h1 className="bo-h1">Accounts</h1>
-        </div>
-        <nav className="bo-nav" aria-label="Back office">
-          <Link href="/admin">Metrics</Link>
-          <span aria-current="page">Accounts</span>
-          <Link href="/admin/support">Support</Link>
-          <Link href="/admin/health">Health</Link>
-          <Link href="/dashboard">Your own book</Link>
-        </nav>
+      <header className="ba-head">
+        <h1 className="ba-h1">Accounts</h1>
       </header>
 
       <section className="bo-block bo-wide">

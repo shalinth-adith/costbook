@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { AdminThread } from '@/components/admin-thread';
-import { accounts, requireAdmin, threadsWithMessages } from '@/lib/admin';
+import { accounts, threadsWithMessages } from '@/lib/admin';
 
 import { closeThread, replyToThread } from './[id]/actions';
 
@@ -22,7 +22,6 @@ export const dynamic = 'force-dynamic';
  * Sorted by who has waited longest, which is the only fair order for a queue.
  */
 export default async function AdminSupport() {
-  await requireAdmin();
   const [rows, all] = await Promise.all([threadsWithMessages(), accounts()]);
   const nameOf = new Map(all.map((a) => [a.orgId, a.name]));
   const open = rows.filter((t) => t.status === 'open');
@@ -36,18 +35,8 @@ export default async function AdminSupport() {
 
   return (
     <div className="bo">
-      <header className="bo-top">
-        <div>
-          <p className="bo-eyebrow">Back office</p>
-          <h1 className="bo-h1">Support</h1>
-        </div>
-        <nav className="bo-nav" aria-label="Back office">
-          <Link href="/admin">Metrics</Link>
-          <Link href="/admin/accounts">Accounts</Link>
-          <span aria-current="page">Support</span>
-          <Link href="/admin/health">Health</Link>
-          <Link href="/dashboard">Your own book</Link>
-        </nav>
+      <header className="ba-head">
+        <h1 className="ba-h1">Support</h1>
       </header>
 
       <section className="bo-block bo-wide">

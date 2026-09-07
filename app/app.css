@@ -4954,10 +4954,7 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
    product rather than the one running a restaurant. On soot, so it can never
    be mistaken for the book — an admin looking at aggregate numbers should
    never be one glance away from thinking they are looking at their own. */
-.bo {
-  min-block-size: 100vh; background: var(--soot); color: var(--on-soot);
-  padding: 0 40px var(--sp-14);
-}
+.bo { color: var(--on-soot); }
 .bo-top {
   display: flex; align-items: flex-end; justify-content: space-between;
   gap: var(--sp-8); flex-wrap: wrap; padding-block: var(--sp-8) var(--sp-6);
@@ -5158,3 +5155,193 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 .bo-conv-said { font-size: 12.5px; color: var(--on-soot-secondary); }
 
 @media (max-width: 1100px) { .hp { grid-template-columns: 1fr; } }
+
+/* The outbox: written on one date, posted on another. */
+.bo-mailbar { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-5); flex-wrap: wrap; margin-block-end: var(--sp-4); }
+.bo-mailbar .bo-lede { margin: 0; max-inline-size: 68ch; }
+.bo-mailsaid { margin-block-end: var(--sp-4); }
+.bo-letters { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.bo-letter {
+  display: grid; grid-template-columns: 220px minmax(0, 1fr) 120px 80px;
+  gap: var(--sp-4); align-items: baseline;
+  padding-block: 11px; border-block-end: 1px solid var(--soot-rule); font-size: 13.5px;
+}
+.bo-letter.is-sent { color: var(--on-soot-tertiary); }
+.bo-letter-to { color: var(--on-soot); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bo-letter.is-sent .bo-letter-to { color: var(--on-soot-secondary); }
+.bo-letter-subject { color: var(--on-soot-secondary); min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bo-letter-when { text-align: end; font-size: 12px; color: var(--on-soot-tertiary); }
+.bo-letter-state { justify-self: end; padding: 2px 8px; border-radius: 3px; font-family: var(--font-mono), ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.06em; }
+.bo-letter-state.is-waiting { background: rgb(245 179 53 / 0.16); color: var(--saffron); }
+.bo-letter-state.is-sent { background: rgb(111 195 163 / 0.14); color: var(--on-ink-inverse); }
+.bo-letter-error { grid-column: 1 / -1; font-size: 12px; color: #FF9B78; }
+@media (max-width: 1100px) { .bo-letter { grid-template-columns: 1fr; gap: 4px; } }
+
+/* ══ The back office, with a rail ══════════════════════════════════════════
+   Five pages each carried their own header and a row of text links, and the
+   row was the problem: nothing on it said whether anything was waiting, so
+   the only way to find out was to open all five. A console you have to tour
+   to read is a console nobody opens.
+
+   The rail carries the counts. Two people waiting, three letters unsent, one
+   fault nobody has looked at — visible from whichever screen you are on. */
+.ba {
+  display: grid; grid-template-columns: 248px minmax(0, 1fr);
+  min-block-size: 100vh; background: var(--surface-page); color: var(--text-primary);
+}
+.ba-rail {
+  display: flex; flex-direction: column; gap: var(--sp-6);
+  padding: var(--sp-6) var(--sp-4) var(--sp-5);
+  /* Its own ground, stated. It inherited one from `.ba` until the content
+     went white, and then the rail's light ink was drawn on light — the same
+     fault as a white card inside a dark section: background does not
+     inherit, colour does. */
+  background: var(--soot); color: var(--on-soot);
+  border-inline-end: 1px solid var(--soot-rule);
+  position: sticky; top: 0; block-size: 100vh;
+}
+.ba-mark { display: grid; gap: 2px; text-decoration: none; padding-inline: 10px; }
+.ba-mark-name {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: var(--on-soot);
+  font-variation-settings: "opsz" 32;
+}
+.ba-mark-said {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--saffron);
+}
+
+.ba-nav { display: grid; gap: 2px; }
+.ba-item {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px;
+  padding: 9px 10px; border-radius: 6px; text-decoration: none;
+  border-inline-start: 2px solid transparent;
+  transition: background var(--dur-micro) var(--ease-enter), border-color var(--dur-micro) var(--ease-enter);
+}
+.ba-item:hover { background: rgb(255 255 255 / 0.04); }
+.ba-item.is-on { background: rgb(255 255 255 / 0.06); border-inline-start-color: var(--saffron); }
+.ba-item-said { font-size: 14px; font-weight: 500; color: var(--on-soot-secondary); }
+.ba-item.is-on .ba-item-said { color: var(--on-soot); font-weight: 600; }
+.ba-item-why {
+  grid-column: 1 / -1; font-size: 11.5px; line-height: 1.4;
+  color: var(--on-soot-tertiary); text-wrap: pretty;
+}
+/* Nought is never drawn: a row of zeroes teaches nothing and makes the one
+   number that matters harder to find. */
+.ba-item-n {
+  align-self: start; min-inline-size: 20px; text-align: center;
+  padding: 1px 6px; border-radius: 999px; font-size: 11.5px; font-weight: 600;
+  background: rgb(245 179 53 / 0.18); color: var(--saffron);
+}
+.ba-item-n.is-health { background: rgb(255 106 61 / 0.18); color: #FF9B78; }
+
+.ba-rail-foot { margin-block-start: auto; padding-inline: 10px; }
+.ba-out { font-size: 13px; color: var(--on-soot-tertiary); text-decoration: none; }
+.ba-out:hover { color: var(--saffron); }
+
+.ba-main { min-inline-size: 0; padding: var(--sp-8) 40px var(--sp-14); background: var(--surface-page); }
+.ba-head { margin-block-end: var(--sp-6); padding-block-end: var(--sp-5); border-block-end: 1px solid var(--border-hairline); }
+.ba-h1 {
+  margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 32px; font-weight: 800; letter-spacing: -0.03em; font-variation-settings: "opsz" 52;
+}
+.ba-lede { margin: 8px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--text-secondary); max-inline-size: 70ch; }
+
+/* The figures row loses its top padding: the head above it supplies the gap. */
+.ba-main .bo-figs { padding-block: 0 var(--sp-6); }
+.ba-main .bo-wide { margin-block-start: 0; }
+
+@media (max-width: 1000px) {
+  .ba { grid-template-columns: 1fr; }
+  .ba-rail {
+    position: static; block-size: auto; flex-direction: row; align-items: center;
+    gap: var(--sp-4); overflow-x: auto;
+    border-inline-end: 0; border-block-end: 1px solid var(--soot-rule);
+  }
+  .ba-nav { grid-auto-flow: column; gap: 4px; }
+  .ba-item { grid-template-columns: auto auto; white-space: nowrap; }
+  .ba-item-why { display: none; }
+  .ba-rail-foot { margin-block-start: 0; }
+  .ba-main { padding-inline: 20px; }
+}
+
+/* ══ The console reads as ink on white ═════════════════════════════════════
+   The palette's own rule is that soot is the frame, not the figures — the
+   top bar and the footer — because a screen of tables, addresses and numbers
+   is harder to read on a dark ground. An entire data console in soot broke
+   that rule, and reading a table of accounts proved it.
+
+   The rail stays dark, so you always know you are in the back office. The
+   content does not. Rather than rewriting sixty rules, the on-soot inks are
+   redefined inside the content column: every `.bo-*` rule written against
+   them now resolves to the ordinary ledger inks. Only the handful of literal
+   translucent-white surfaces need naming again. */
+.ba-main {
+  --on-soot: var(--text-primary);
+  --on-soot-secondary: var(--text-secondary);
+  --on-soot-tertiary: var(--text-tertiary);
+  --soot-rule: var(--border-hairline);
+}
+
+.ba-main .bo-block {
+  background: var(--surface-card);
+  border-color: var(--border-hairline);
+}
+.ba-main .bo-fig { border-inline-start-color: var(--border-hairline); }
+.ba-main .bo-fig.is-good { border-inline-start-color: var(--on-edge); }
+.ba-main .bo-fig.is-good > p:first-child { color: var(--on-ink); }
+.ba-main .bo-fig.is-over { border-inline-start-color: var(--over-edge); }
+
+.ba-main .bo-step-bar { background: var(--row, var(--border-row)); }
+.ba-main .bo-step-bar > span { background: var(--border-strong); }
+.ba-main .bo-step.is-watch .bo-step-bar > span { background: var(--accent); }
+.ba-main .bo-step-lost { color: var(--over-ink); }
+.ba-main .bo-branch b { color: var(--accent); }
+
+.ba-main .bo-month-bar { background: var(--surface-sunken); border: 1px solid var(--border-hairline); border-block-end: 0; }
+.ba-main .bo-month.is-now .bo-month-bar { background: linear-gradient(180deg, var(--saffron), var(--accent)); border-color: transparent; }
+
+.ba-main .bo-seg-h b { color: var(--accent); }
+.ba-main .bo-note b { color: var(--accent); }
+
+/* Rows: hairlines and the light status tints the ledger already uses. */
+.ba-main .bo-table th, .ba-main .bo-table td { border-block-end-color: var(--border-row); }
+.ba-main .bo-tag { background: var(--over-tint); color: var(--over-ink); }
+.ba-main .bo-plan.is-free { background: var(--incomplete-tint); color: var(--incomplete-ink); }
+.ba-main .bo-plan.is-paid { background: var(--near-tint); color: var(--near-ink); }
+
+.ba-main .bo-error, .ba-main .bo-thread, .ba-main .bo-letter,
+.ba-main .bo-thread-item { border-block-end-color: var(--border-row); }
+.ba-main .bo-error-where { color: var(--over-ink); }
+.ba-main .bo-error-msg { color: var(--text-secondary); }
+
+.ba-main .bo-thread-state.is-open, .ba-main .bo-letter-state.is-waiting { background: var(--near-tint); color: var(--near-ink); }
+.ba-main .bo-thread-state.is-answered, .ba-main .bo-letter-state.is-sent { background: var(--on-tint); color: var(--on-ink); }
+.ba-main .bo-thread-state.is-closed { background: var(--incomplete-tint); color: var(--incomplete-ink); }
+.ba-main .bo-letter-error { color: var(--over-ink); }
+
+/* The conversation, both sides. */
+.ba-main .bo-msg { background: var(--surface-sunken); border: 1px solid var(--border-hairline); }
+.ba-main .bo-msg.is-us { background: var(--near-tint); border-color: var(--near-edge); }
+.ba-main .bo-msg p { color: var(--text-primary); }
+.ba-main .bo-reply {
+  background: var(--surface-card); color: var(--text-primary);
+  border-color: var(--border-control);
+}
+.ba-main .bo-reply::placeholder { color: var(--text-quiet); }
+.ba-main .bo-conv-said { color: var(--text-secondary); }
+
+/* Sheets opened against sheets committed — the abandonment. */
+.bo-tries {
+  margin: var(--sp-4) 0 0; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  gap: var(--sp-4); padding-block-start: var(--sp-3);
+  border-block-start: 1px solid var(--soot-rule);
+}
+.bo-tries > div { display: grid; gap: 2px; }
+.bo-tries dt {
+  font-family: var(--font-mono), ui-monospace, monospace; font-size: 10.5px;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--on-soot-tertiary);
+}
+.bo-tries dd { margin: 0; font-size: 22px; font-weight: 600; color: var(--on-soot); }
+.ba-main .bo-tries > div.is-over dd { color: var(--over-ink); }
+.ba-main .bo-tries > div.is-over dt { color: var(--over-ink); }

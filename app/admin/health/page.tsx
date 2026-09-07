@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-import { recentErrors, requireAdmin } from '@/lib/admin';
+import { recentErrors } from '@/lib/admin';
 
 export const metadata: Metadata = { title: 'Health · Costbook' };
 export const dynamic = 'force-dynamic';
@@ -19,24 +19,13 @@ export const dynamic = 'force-dynamic';
  * account with none of the rules that protect it.
  */
 export default async function AdminHealth() {
-  await requireAdmin();
   const errors = await recentErrors(60);
   const unseen = errors.filter((e) => !e.seen);
 
   return (
     <div className="bo">
-      <header className="bo-top">
-        <div>
-          <p className="bo-eyebrow">Back office</p>
-          <h1 className="bo-h1">Health</h1>
-        </div>
-        <nav className="bo-nav" aria-label="Back office">
-          <Link href="/admin">Metrics</Link>
-          <Link href="/admin/accounts">Accounts</Link>
-          <Link href="/admin/support">Support</Link>
-          <span aria-current="page">Health</span>
-          <Link href="/dashboard">Your own book</Link>
-        </nav>
+      <header className="ba-head">
+        <h1 className="ba-h1">Health</h1>
       </header>
 
       <section className="bo-block bo-wide">
