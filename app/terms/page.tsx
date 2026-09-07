@@ -11,6 +11,13 @@ export default function Terms() {
     <LegalPage
       title="Terms"
       changed="12 August 2026"
+      summary="We work out what your dishes cost from the figures you give us and show the arithmetic in full. What you charge is yours, what you costed stays yours, and stopping paying never deletes anything."
+      facts={[
+        { n: '\u20B90', said: 'to cost your first six dishes, with no card' },
+        { n: '1', said: 'click to cancel, in Billing \u2014 no email required' },
+        { n: '30', said: 'days\u2019 notice before anything that matters changes' },
+        { n: '0', said: 'of your figures are deleted for not paying' },
+      ]}
       sections={[
         {
           h: 'What we do',

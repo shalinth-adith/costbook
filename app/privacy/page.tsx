@@ -12,6 +12,13 @@ export default function Privacy() {
       title="Privacy"
       changed="12 August 2026"
       note="Written in plain words on purpose."
+      summary="We hold your account and the recipes you put in it, and nothing else. Your rates are never pooled, sold, or used to train anything, and you can take everything out or have it deleted whenever you like."
+      facts={[
+        { n: '30', said: 'days an imported file is kept, so an import can be undone' },
+        { n: '3', said: 'companies touch your data: servers, email, card payment' },
+        { n: '0', said: 'advertising or analytics companies on that list' },
+        { n: '7', said: 'days to delete an account, backups included' },
+      ]}
       sections={[
         {
           h: 'What we hold',
