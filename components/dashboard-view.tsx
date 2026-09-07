@@ -4,6 +4,7 @@ import type { Recipe } from '@/core/recipe';
 import { GROUP_SAID, periodSaid, type Engineered } from '@/lib/engineering';
 import { SalesSheet } from './sheets/sales-sheet';
 import { MonthCard } from './month-card';
+import { TrendCard } from './trend-card';
 import Link from "next/link";
 import { useState } from "react";
 
@@ -11,6 +12,7 @@ import type { DashboardRow, DashboardStats } from "@/lib/dashboard";
 import type { FirstDish } from "@/lib/first-dish";
 import type { Recent } from "@/lib/recent";
 import type { MonthCompare } from "@/lib/month";
+import type { Trend } from "@/lib/trend";
 import { DASH } from "@/lib/format";
 import { isTrustworthy, perHundred } from "@/lib/plain";
 import {
@@ -339,6 +341,7 @@ export function DashboardView({
   orgName,
   moved,
   month,
+  trend,
   stats,
   piles,
   median,
@@ -354,6 +357,8 @@ export function DashboardView({
   moved: Recent;
   /** Last month against the one before it, from rate history rather than a snapshot. */
   month: MonthCompare;
+  /** Six months of plate cost from the rate history. */
+  trend: Trend;
   stats: DashboardStats;
   piles: Piles;
   median: number | null;
@@ -370,7 +375,7 @@ export function DashboardView({
   engineered: Engineered | null;
   salesPeriod: string;
   recipes: readonly Recipe[];
-  onSaveSales: (period: string, text: string) => Promise<{ readonly message: string; readonly undoable: boolean }>;
+  onSaveSales: (period: string, text: string) => Promise<{ readonly message: string; readonly undoable: boolean; readonly limit?: boolean }>;
 }) {
   /*
    * Which month the sales sheet is recording. Last month by default, because
@@ -381,9 +386,10 @@ export function DashboardView({
 
   const m = useMoney();
   const [salesOpen, setSalesOpen] = useState(false);
+  /** The last save was refused by the plan, so the note carries the way to the plans. */
+  const [salesLimit, setSalesLimit] = useState(false);
   const [salesBusy, setSalesBusy] = useState(false);
   const [salesNote, setSalesNote] = useState<string | null>(null);
-  const [open, setOpen] = useState<Pile | null>(null);
 
   if (first !== null) {
     return first.kind === "none" ? (
@@ -412,7 +418,6 @@ export function DashboardView({
   const total = piles.all.length;
   const answered = total - piles.unpriced.length;
   const solid = isTrustworthy(answered, total);
-  const shown = PILES.find((p) => p.key === open);
   const heroInk: "on" | "near" | "over" =
     keep === null
       ? "near"
@@ -494,6 +499,15 @@ export function DashboardView({
 
       {/* ── the headline ──────────────────────────────────────────── */}
 
+      {/*
+        * The figure and its history, side by side.
+        *
+        * The hero alone filled the left third of a wide screen and left the
+        * rest empty; the six bars alone did the same two rows down. Beside
+        * each other they are the first thing on the page: what you keep, and
+        * what it has been costing. One column again below 1100px.
+        */}
+      <div className="dh-row">
       <section className="dh dh-ring">
         {keep !== null && (
           <div className="dh-ring-wrap">
@@ -516,33 +530,32 @@ export function DashboardView({
             </p>
           ) : (
             <>
+              {/*
+                * One line, one mono line, one caveat. Three sentences used to
+                * say what the figure and the fainter ring already show — a
+                * dashboard is read at a glance, and a second telling of the
+                * same fact is where the glance stops.
+                */}
               <p className="dh-said">
-                That is what you keep out of every{" "}
-                <span className="figure">{whole(100)}</span> a guest pays you.
+                kept of every <span className="figure">{whole(100)}</span> a
+                guest pays.
               </p>
-              <p className="dh-against">
-                You planned to keep{" "}
-                <span className="figure strong">{whole(wantKeep)}</span>{" "}
-                — the fainter ring. So you are{" "}
-                <span
-                  className={`dh-verdict ${keep >= wantKeep ? "is-good" : "is-fine"}`}
-                >
-                  {keep >= wantKeep
-                    ? "ahead of your own target"
-                    : "a little behind it"}
+              <p className="dh-line figure">
+                Target <b>{whole(wantKeep)}</b>
+                <span className="dh-sep" aria-hidden="true">·</span>
+                <span className={`dh-verdict ${keep >= wantKeep ? "is-good" : "is-fine"}`}>
+                  {keep >= wantKeep ? "ahead of it" : "a little behind it"}
                 </span>
-                . The other{" "}
-                <span className="figure">{whole(spend)}</span>{" "}
-                goes to your suppliers.
+                <span className="dh-sep" aria-hidden="true">·</span>
+                {whole(spend)} to suppliers
               </p>
               {!solid && (
                 <p className="dh-caveat">
-                  <strong>Read that carefully.</strong> It only counts the{" "}
-                  <span className="figure">{answered}</span> dishes that have
-                  both a selling price and rates for everything in them.{" "}
-                  <span className="figure">{piles.unpriced.length}</span> more
-                  cannot be worked out yet, so this will move once they are
-                  done.
+                  <i aria-hidden="true" />
+                  From <span className="figure">{answered}</span> costed{" "}
+                  {answered === 1 ? "dish" : "dishes"}.{" "}
+                  <span className="figure">{piles.unpriced.length}</span> still{" "}
+                  {piles.unpriced.length === 1 ? "needs" : "need"} a price.
                 </p>
               )}
             </>
@@ -551,6 +564,9 @@ export function DashboardView({
       </section>
 
       {/* ── signals ───────────────────────────────────────────────── */}
+
+      <TrendCard trend={trend} />
+      </div>
 
       <ul className="sig" aria-label="Signals">
         {signals.map((s, i) => (
@@ -567,6 +583,8 @@ export function DashboardView({
 
       {/* ── do this today ─────────────────────────────────────────── */}
 
+      {/* What to do, and beside it what has been happening. */}
+      <div className="td-band">
       <section className="td">
         <div className="td-head">
           <h2 className="dash-h">Do this today</h2>
@@ -601,7 +619,44 @@ export function DashboardView({
         answers "what happened", which is a different question and belongs
         after the actions rather than above them.
       */}
+
+
+      <aside className="td-side" aria-label="What has been happening">
       <MonthCard month={month} />
+      <section className="dash-block">
+        <h2 className="dash-h">What changed lately</h2>
+        {/* Two lines in the month block's shape: the fact, then a clause. */}
+        {moved.arrivals.length > 0 && (
+          <p className="mline">
+            <b>
+              <span className="figure">{moved.arrivals.length}</span> rates given for the first time
+            </b>
+            <span className="mline-said">
+              {moved.arrivals.some((a) => a.source === "import") ? "mostly from a sheet" : "the book filling up"}
+            </span>
+          </p>
+        )}
+        {moved.moves.length === 0 ? (
+          <p className="mline">
+            <b>No supplier price moved in {moved.days} days</b>
+            <span className="mline-said">nothing drifted</span>
+          </p>
+        ) : (
+          <p className="mline">
+            <b>
+              <span className="figure">{moved.moves.length}</span> supplier{" "}
+              {moved.moves.length === 1 ? "price" : "prices"} moved in {moved.days} days
+            </b>
+            <span className="mline-said">
+              <span className="figure">{moved.impact.moved.length}</span>{" "}
+              {moved.impact.moved.length === 1 ? "dish costs" : "dishes cost"} something different
+            </span>
+          </p>
+        )}
+      </section>
+
+      </aside>
+      </div>
 
       {/* ── best and weakest, by name ─────────────────────────────── */}
 
@@ -666,19 +721,24 @@ export function DashboardView({
           </span>
         </div>
 
+        {/*
+          * A count is a question, and the answer is the list.
+          *
+          * These opened a drawer that listed the same dishes again. The
+          * Recipes screen is where somebody can actually act — search it,
+          * sort it, open a dish and price it — so the count goes there
+          * instead, carrying which pile it meant. A link also survives a
+          * refresh, a bookmark and the Back button, which a drawer does not.
+          */}
         {PILES.map((p, i) => {
           const list = piles[p.key];
           const share = total === 0 ? 0 : (list.length / total) * 100;
           return (
-            <button
+            <Link
               key={p.key}
-              type="button"
+              href={list.length === 0 ? '/recipes' : `/recipes?show=${p.key}`}
               className={`dc-card is-door ink-${p.ink}`}
               style={{ animationDelay: `${String(400 + i * 90)}ms` }}
-              onClick={() => {
-                setOpen(p.key);
-              }}
-              aria-haspopup="dialog"
             >
               <span className={`dc-icon ink-${p.ink}`} aria-hidden="true">
                 {p.icon}
@@ -687,7 +747,6 @@ export function DashboardView({
                 <CountUp to={list.length} duration={700 + i * 80} />
               </span>
               <span className="dc-what">{p.what}</span>
-              <span className="dc-why">{p.why}</span>
               <span className="dc-bar" aria-hidden="true">
                 <span
                   className={`dc-bar-fill ink-${p.ink}`}
@@ -698,56 +757,22 @@ export function DashboardView({
                 />
               </span>
               <span className="dc-share figure">
-                {Math.round(share)}% of the menu
+                {list.length === 0 ? "none" : `${String(Math.round(share))}% of the menu`}
               </span>
-              <span className="dc-go">
-                {list.length === 0 ? "nothing here" : "see which ones"}
-              </span>
-            </button>
+              {list.length > 0 && <span className="dc-go">see which ones</span>}
+            </Link>
           );
         })}
       </div>
 
-      <Sheet
-        title={shown?.title ?? ""}
-        open={shown !== undefined}
-        onClose={() => {
-          setOpen(null);
-        }}
-      >
-        {shown !== undefined && (
-          <div className="pl">
-            <p className="pl-lede">{shown.why}</p>
-            {piles[shown.key].length === 0 ? (
-              <p className="pl-empty">
-                Nothing is in here, which is the answer you want.
-              </p>
-            ) : (
-              <>
-                <div className="pl-head">
-                  <span>Dish</span>
-                  <span />
-                  <span className="pl-head-end">kept per {whole(100)}</span>
-                </div>
-                <div className="pl-rows">
-                  {piles[shown.key].map((s) => (
-                    <Row key={s.row.id} standing={s} whole={whole} />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-      </Sheet>
-
       {/* ── the ingredients that matter most ──────────────────────── */}
+
 
       {topUsed.length > 0 && (
         <section className="dash-block">
           <h2 className="dash-h">Ingredients that matter most</h2>
           <p className="dash-lede">
-            By how many dishes each one reaches, counting through your batches. These are
-            the prices worth arguing over with a supplier, and the ones to keep current.
+            The prices worth arguing over — by dishes reached.
           </p>
           <ul className="iu">
             {topUsed.map((u) => (
@@ -765,6 +790,7 @@ export function DashboardView({
         </section>
       )}
 
+
       {/* ── what changed ──────────────────────────────────────────── */}
 
       <section className="dash-block">
@@ -772,13 +798,30 @@ export function DashboardView({
         {engineered === null ? (
           <>
             <p className="dash-lede">
-              Cost says what a plate leaves. Sales say how often. Together they say which dishes to
-              push, which to reprice, and which to take off. Paste last month&rsquo;s numbers from
-              the till or the app and this fills in.
+              Paste {periodSaid(salesPeriod)}&rsquo;s sales and each dish lands in one of these.
             </p>
-            <button type="button" className="btn" onClick={() => setSalesOpen(true)}>
-              Add {periodSaid(salesPeriod)}&rsquo;s sales
-            </button>
+            {/*
+              * The four groups, empty, before any sales exist.
+              *
+              * A button on its own answered "what happens if I paste?" with
+              * nothing. The groups are what happens: every dish is sorted by
+              * how often it sells against what a plate leaves, and each group
+              * carries the one thing to do about it.
+              */}
+            <div className="me-grid is-empty" aria-label="What the sales will show">
+              {(["push", "sells_leaves_little", "leaves_sells_poorly", "neither"] as const).map((g) => (
+                <div key={g} className={`me-group is-${g}`}>
+                  <h3 className="me-h">{GROUP_SAID[g].title}</h3>
+                  <p className="me-do">{GROUP_SAID[g].doThis}</p>
+                  <p className="me-none">Fills in from your sales.</p>
+                </div>
+              ))}
+            </div>
+            {!salesOpen && (
+              <button type="button" className="btn" onClick={() => setSalesOpen(true)}>
+                Add {periodSaid(salesPeriod)}&rsquo;s sales
+              </button>
+            )}
           </>
         ) : (
           <>
@@ -819,54 +862,43 @@ export function DashboardView({
             </div>
           </>
         )}
-      </section>
 
-      <SalesSheet
-        period={salesFor}
-        periods={monthsBack(salesPeriod)}
-        onPeriod={setSalesFor}
-        open={salesOpen}
-        onClose={() => setSalesOpen(false)}
-        periodSaid={periodSaid(salesFor)}
-        recipes={recipes}
-        busy={salesBusy}
-        onSave={(text) => {
-          setSalesBusy(true);
-          void onSaveSales(salesFor, text).then((ack) => {
-            setSalesBusy(false);
-            setSalesOpen(false);
-            setSalesNote(ack.message);
-          });
-        }}
-      />
-      {salesNote !== null && <p className="dash-lede me-note">{salesNote}</p>}
-
-      <section className="dash-block">
-        <h2 className="dash-h">What changed lately</h2>
-        {moved.arrivals.length > 0 && (
-          <p className="dash-lede">
-            You gave <span className="figure">{moved.arrivals.length}</span>{" "}
-            ingredients a price for the first time
-            {moved.arrivals.some((a) => a.source === "import")
-              ? ", mostly from a sheet"
-              : ""}
-            . That is your book filling up rather than anything getting dearer.
-          </p>
+        {/*
+          * In place, not in a drawer.
+          *
+          * The sheet slid in from the right edge, a screen away from the
+          * section that asked for it, with a paragraph explaining what to
+          * paste. The panel opens under the button that opened it, where the
+          * numbers will show, and the placeholder does the explaining.
+          */}
+        {salesOpen && (
+          <SalesSheet
+            period={salesFor}
+            periods={monthsBack(salesPeriod)}
+            onPeriod={setSalesFor}
+            onClose={() => setSalesOpen(false)}
+            recipes={recipes}
+            busy={salesBusy}
+            onSave={(text) => {
+              setSalesBusy(true);
+              void onSaveSales(salesFor, text).then((ack) => {
+                setSalesBusy(false);
+                setSalesOpen(false);
+                setSalesNote(ack.message);
+                setSalesLimit(ack.limit === true);
+              });
+            }}
+          />
         )}
-        {moved.moves.length === 0 ? (
-          <p className="dash-lede">
-            No supplier price has changed in the last {moved.days} days, so
-            nothing has quietly drifted. That is good news rather than an empty
-            screen.
-          </p>
-        ) : (
-          <p className="dash-lede">
-            <span className="figure">{moved.moves.length}</span> supplier{" "}
-            {moved.moves.length === 1 ? "price" : "prices"} changed in the last{" "}
-            {moved.days} days, and{" "}
-            <span className="figure">{moved.impact.moved.length}</span>{" "}
-            {moved.impact.moved.length === 1 ? "dish" : "dishes"} cost something
-            different because of it.
+        {salesNote !== null && (
+          <p className="dash-lede me-note">
+            {salesNote}
+            {salesLimit ? (
+              <>
+                {" "}
+                <Link className="link" href="/plans">See the plans</Link>.
+              </>
+            ) : null}
           </p>
         )}
       </section>
@@ -900,7 +932,8 @@ function monthsBack(from: string): readonly { readonly id: string; readonly said
   const start = new Date(Date.UTC(y ?? 2026, (m ?? 1) - 1, 1));
   for (let i = 0; i < 13; i += 1) {
     const d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() - i, 1));
-    const id = `${String(d.getUTCFullYear())}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    // The first of the month, the shape `lastMonth` gives and the date column keys.
+    const id = `${String(d.getUTCFullYear())}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`;
     out.push({ id, said: periodSaid(id) });
   }
   return out;

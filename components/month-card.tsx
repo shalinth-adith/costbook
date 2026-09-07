@@ -31,11 +31,9 @@ export function MonthCard({ month }: { month: MonthCompare }) {
         <p className="mc-label">
           {said}, against {against}
         </p>
-        <p className="mc-quiet">
-          <b>No supplier price moved.</b> Your plate costs ended {said} exactly
-          where they started it. That is worth knowing, and it is not the same
-          as a month you have not entered — every rate on the book was already
-          current.
+        <p className="mline">
+          <b>No supplier price moved.</b>
+          <span className="mline-said">plate costs held · every rate current</span>
         </p>
       </section>
     );
@@ -67,12 +65,8 @@ export function MonthCard({ month }: { month: MonthCompare }) {
                   ? "One rate moved on the shelf and reached no dish."
                   : `${String(month.frozenByLineRates)} rates moved on the shelf and reached no dish.`}
               </b>{" "}
-              Every line using{" "}
-              {month.frozenByLineRates === 1 ? "it" : "them"} carries a rate
-              somebody typed on the line, so the dish prices off that rather
-              than off the shelf. That is what honouring an imported sheet
-              means, and it also means those lines will not follow a supplier
-              until somebody clears the typed rate.
+              Every line using {month.frozenByLineRates === 1 ? "it" : "them"}{" "}
+              carries a typed rate, which the shelf cannot move.
             </>
           ) : month.impact.moved.length === 0 ? (
             <>
@@ -82,18 +76,14 @@ export function MonthCard({ month }: { month: MonthCompare }) {
                   : `${String(month.rateMoves)} rates moved`}
                 , and no plate moved with it.
               </b>{" "}
-              The amounts are small enough in your dishes that not one of them
-              changed by as much as a whole unit of money. Worth knowing before
-              you take a supplier&rsquo;s call about it.
+              Too small an amount in any dish to change its cost.
             </>
           ) : (
             <>
               {month.rateMoves === 1
                 ? "One rate moved"
                 : `${String(month.rateMoves)} rates moved`}{" "}
-              in {said}, and no dish it reaches has every rate on file, so there
-              is nothing to compare yet. Fill those in and this starts
-              answering.
+              in {said}; no dish it reaches is fully costed yet.
             </>
           )}
         </p>
@@ -176,11 +166,7 @@ export function MonthCard({ month }: { month: MonthCompare }) {
         )}
 
       {/* What this cannot know, said once and plainly. */}
-      <p className="mc-caveat">
-        Measured on your dishes as they stand today, at each month&rsquo;s
-        rates. It answers what your suppliers did, not what you changed on the
-        recipes.
-      </p>
+      <p className="mc-caveat">Today&rsquo;s recipes at each month&rsquo;s rates — what suppliers did, not what you changed.</p>
     </section>
   );
 }

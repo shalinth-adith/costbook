@@ -15,6 +15,7 @@ import { pilesOf } from "@/lib/profit";
 import { todo } from "@/lib/todo";
 import { engineer, lastMonth } from '@/lib/engineering';
 import { compareMonth } from '@/lib/month';
+import { trendOf } from '@/lib/trend';
 import { saveMonthSales } from './actions';
 import { usageOf } from "@/lib/usage";
 
@@ -152,6 +153,15 @@ export default async function DashboardPage() {
     history: b.history,
     period: salesPeriod,
   });
+  // Six months of plate cost, the month comparison run six times.
+  const trend = trendOf({
+    recipes: b.recipes,
+    ingredients: b.ingredients,
+    meta: b.meta,
+    model,
+    history: b.history,
+    until: salesPeriod,
+  });
   const engineered = engineer(
     salesPeriod,
     data.rows.map((r) => ({
@@ -179,6 +189,7 @@ export default async function DashboardPage() {
         <DashboardView
           orgName={b.org.name}
           month={month}
+          trend={trend}
           moved={moved}
           stats={data.stats}
           piles={pilesOf(data.rows, model.foodCostTarget)}
