@@ -99,6 +99,21 @@ export function lastMonth(today: string): string {
   return t.toISOString().slice(0, 10);
 }
 
+/**
+ * A month as the database keys it: the first day, `YYYY-MM-01`.
+ *
+ * `dish_sales.period` is a date column, and the dashboard has handed the
+ * writer two shapes — `lastMonth` gives the first day, the month picker gives
+ * `YYYY-MM`. The second cannot be cast to a date, so choosing any month but
+ * the default failed at the write. Everything that records a month goes
+ * through here; anything that is not a month comes back null.
+ */
+export function monthStart(period: string): string | null {
+  const m = /^(\d{4})-(0[1-9]|1[0-2])(?:-\d{2})?$/.exec(period.trim());
+  if (m === null) return null;
+  return `${m[1] ?? ''}-${m[2] ?? ''}-01`;
+}
+
 /** "August 2026" for a stored period. */
 export function periodSaid(period: string): string {
   return new Date(`${period}T00:00:00Z`).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });

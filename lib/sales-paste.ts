@@ -45,3 +45,35 @@ export function parseSales(text: string, recipes: readonly Recipe[]): readonly S
       return { raw, name, sold: Number.isFinite(sold) ? sold : null, recipeId: split };
     });
 }
+
+/**
+ * A till export, as a grid, turned into the lines the paste box takes.
+ *
+ * One reader for both doors. A file goes through the same parser as a paste
+ * — the sheet is turned into "name<tab>count" lines and handed to
+ * `parseSales` — so what the read-out says, what is matched and what is
+ * named as unmatched cannot differ between the two.
+ *
+ * WHICH COLUMNS. The name is the first cell on a row that is not a number;
+ * the count is the last cell that is. A header row — one with no number on
+ * it at all — is skipped. Nothing is guessed from column headings, because
+ * till exports do not agree on what to call anything.
+ */
+export function salesTextFromGrid(grid: readonly (readonly unknown[])[]): string {
+  const isCount = (v: unknown): boolean =>
+    typeof v === 'number' ? Number.isFinite(v) : /^\s*\d[\d,]*(\.\d+)?\s*$/.test(String(v ?? ''));
+
+  const lines: string[] = [];
+  for (const row of grid) {
+    const cells = row.map((c) => (c === null || c === undefined ? '' : String(c).trim()));
+    if (cells.every((c) => c === '')) continue;
+    const countAt = cells.map(isCount).lastIndexOf(true);
+    if (countAt === -1) continue; // a header, or a row with nothing to count
+    const name = cells.find((c, i) => c !== '' && i !== countAt && !isCount(c));
+    if (name === undefined) continue;
+    const count = cells[countAt] ?? '';
+    // Whole units only. A till that reports 12.0 sold is reporting 12.
+    lines.push(`${name}\t${String(Math.round(Number(count.replace(/,/g, ''))))}`);
+  }
+  return lines.join('\n');
+}

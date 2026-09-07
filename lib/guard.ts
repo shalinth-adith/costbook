@@ -144,3 +144,25 @@ export async function importAllowed(): Promise<
       "whether the arithmetic matches yours.",
   };
 }
+
+/**
+ * Whether this plan may record sales.
+ *
+ * The same line as the sheet import: the free tier is for seeing whether the
+ * arithmetic matches yours, and menu engineering — which dishes to push,
+ * reprice or drop — is the part a subscription pays for. Checked here, at the
+ * write, and not only in the screen: a free account that reaches the panel by
+ * an old tab or a downgrade part-way through stops here.
+ */
+export async function salesAllowed(): Promise<
+  { readonly ok: true } | { readonly ok: false; readonly message: string }
+> {
+  const { plan } = await book();
+  if (canImport(plan)) return { ok: true };
+  return {
+    ok: false,
+    message:
+      "Recording sales is part of the paid tier. It is what turns a costed menu " +
+      "into an answer about which dishes to push, reprice or take off.",
+  };
+}
