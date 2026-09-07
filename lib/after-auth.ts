@@ -1,4 +1,6 @@
 import { book } from "./book";
+import { supabaseConfigured } from "./supabase/env";
+import { supabaseServer } from "./supabase/server";
 import { noteLogin } from "./use";
 import { landingFor, safeNext } from "./landing";
 
@@ -26,7 +28,7 @@ export async function afterSignIn(
    * office counts, written here because this is the only function both
    * sign-in and sign-up pass through on the way in.
    */
-  noteLogin();
+  if (supabaseConfigured()) noteLogin(await supabaseServer());
 
   if (!org.setupDone) return "/setup";
 

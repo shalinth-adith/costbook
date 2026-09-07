@@ -398,7 +398,7 @@ export const book = cache(async (): Promise<Book> => {
    * They are here. One line, after the response, at most once every ten
    * minutes — the whole of what the product records about its own use.
    */
-  noteVisit(auth.user.id);
+  noteVisit(supabase, auth.user.id);
 
   return {
     orgId: orgRow.id,

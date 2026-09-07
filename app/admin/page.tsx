@@ -216,7 +216,17 @@ export default async function AdminPage() {
               <dt>Visits</dt>
               <dd className="figure">{span.visits}</dd>
             </div>
-            <div className={span.cameBack === 0 && span.kitchens > 0 ? "is-over" : ""}>
+            {/*
+              * Only a worry once there have been at least two days with
+              * anybody on them. On the first day of recording nobody *can*
+              * have come back, and drawing that in red would be the console
+              * accusing the product of a failure the calendar made certain.
+              */}
+            <div
+              className={
+                span.cameBack === 0 && 14 - span.quietDays >= 2 ? "is-over" : ""
+              }
+            >
               <dt>Came back on another day</dt>
               <dd className="figure">{span.cameBack}</dd>
               <dd className="bo-use-of">of {span.kitchens} that appeared</dd>

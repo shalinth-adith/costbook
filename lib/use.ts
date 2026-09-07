@@ -1,7 +1,7 @@
 import { after } from "next/server";
 
 import { supabaseConfigured } from "./supabase/env";
-import { supabaseServer } from "./supabase/server";
+import type { supabaseServer } from "./supabase/server";
 
 /**
  * A record that somebody came back, and nothing else.
@@ -15,7 +15,10 @@ import { supabaseServer } from "./supabase/server";
  *
  *   It never blocks. Every write goes through `after`, which Next runs once
  *   the response is out of the door — including when the handler redirected,
- *   which is exactly the sign-in case.
+ *   which is exactly the sign-in case. The client is built *before* the
+ *   callback and handed to it: `after` runs outside the request, so a client
+ *   made inside it would reach for `cookies()` where there are none, and Next
+ *   refuses that outright.
  *
  *   It never writes per request. A visit is a stretch of work, not a page
  *   view: the first touch in ten minutes writes, and everything inside that
@@ -78,8 +81,8 @@ export function opensNewVisit(userId: string, now: number): boolean {
  * minute are two sign-ins. Called from the one place that knows a password
  * was accepted, so it cannot drift out of step with what actually happened.
  */
-export function noteLogin(): void {
-  send("login");
+export function noteLogin(client: Client): void {
+  send(client, "login");
 }
 
 /**
@@ -88,23 +91,35 @@ export function noteLogin(): void {
  * Called from `book()`, which every screen and every action in the product
  * goes through, so there is no list of instrumented pages to keep in step.
  */
-export function noteVisit(userId: string): void {
+export function noteVisit(client: Client, userId: string): void {
   if (!opensNewVisit(userId, Date.now())) return;
-  send("visit");
+  send(client, "visit");
 }
 
+/**
+ * The caller's own client, passed in rather than made here.
+ *
+ * Both callers already hold one, and the one place this could have made its
+ * own — inside the `after` callback — is the one place it must not.
+ */
+type Client = Awaited<ReturnType<typeof supabaseServer>>;
+
 /** The one write. Never throws, never blocks, never runs without a project. */
-function send(kind: "login" | "visit"): void {
+function send(client: Client, kind: "login" | "visit"): void {
   if (!supabaseConfigured()) return;
   try {
     after(async () => {
       try {
-        const supabase = await supabaseServer();
         // `kind` is the only thing the caller decides. Who it is recorded
         // against is read from the session inside the function.
-        await supabase.rpc("note_use", { kind });
-      } catch {
-        // Nothing. A count that failed is a count we do not have.
+        const { error } = await client.rpc("note_use", { kind });
+        // Swallowed, but not silent. A count that fails is a count we do not
+        // have, and the first version of this said nothing at all — which
+        // left "the table is empty" and "every write is being refused"
+        // looking exactly alike from the console.
+        if (error !== null) console.warn("Could not note use:", error.message);
+      } catch (e) {
+        console.warn("Could not note use:", e instanceof Error ? e.message : e);
       }
     });
   } catch {
