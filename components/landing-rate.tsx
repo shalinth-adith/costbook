@@ -21,12 +21,20 @@ import { useEffect, useState } from 'react';
  * advertisement.
  */
 
-/** name · what it reaches through · before · after · does it cross the target */
+/*
+ * name · what it reaches through · before · after · does it cross the target
+ *
+ * Four kitchens, on purpose. The list read as one regional menu, which sells
+ * the product as being for that cuisine — the arithmetic is the same wherever
+ * the plate comes from. Each of these reaches the onion through a base
+ * somebody else made, which is the only thing on this page a spreadsheet
+ * cannot follow.
+ */
 const DISHES: readonly (readonly [string, string, string, string, boolean])[] = [
-  ['Vada Curry (2 pc)', 'via Chicken Kuruma', '31.2', '33.6', true],
-  ['Ennai Kathirikai Kuzhambu', 'via Onion Thakkali Gravy', '31.0', '33.1', true],
-  ['Kaima Idly', 'via Onion Thakkali Gravy', '31.6', '32.4', true],
-  ['Parotta Kuruma Plate', 'via Chicken Kuruma', '38.9', '41.9', false],
+  ['Shakshuka', 'via Tomato Sofrito', '31.2', '33.6', true],
+  ['Beef Rendang', 'via Rendang Paste', '31.0', '33.1', true],
+  ['Chicken Katsu Curry', 'via Curry Base', '31.6', '32.4', true],
+  ['Lamb Tagine', 'via Tomato Sofrito', '38.9', '41.9', false],
 ];
 
 const BEFORE = 700;
@@ -62,7 +70,7 @@ export function LandingRate() {
   return (
     <div className="lp-panel">
       <div className="lp-panel-rate">
-        <span className="lp-panel-rate-name">Onion, big</span>
+        <span className="lp-panel-rate-name">Onion, large</span>
         <span className="lp-panel-rate-move">
           {moved ? (
             <>

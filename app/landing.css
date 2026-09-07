@@ -141,48 +141,12 @@
 
 /* ── 3 · three lines ───────────────────────────────────────────────── */
 
-.lp-lines { padding: 132px 72px 0; display: flex; flex-direction: column; gap: 56px; }
-.lp-line-block { display: flex; flex-direction: column; gap: 8px; max-width: 780px; }
-.lp-line-n {
-  font-size: 12.5px; letter-spacing: 0.1em; font-weight: 600; color: var(--on-ink);
-}
-.lp-line-block p {
-  margin: 0; font-size: 30px; font-weight: 500; letter-spacing: -0.02em;
-  line-height: 1.35; text-wrap: pretty;
-}
 
 /* ── 4 · the price ─────────────────────────────────────────────────── */
 
-.lp-price {
-  padding: 132px 72px 0;
-  display: flex; flex-direction: column; gap: 20px; align-items: flex-start;
-}
-.lp-price-said {
-  margin: 0; font-size: 30px; font-weight: 500; letter-spacing: -0.02em;
-  line-height: 1.4; max-width: 820px; text-wrap: pretty;
-}
-.lp-price-figure { font-weight: 600; }
-.lp-price .lp-btn-lg { margin-block-start: 8px; }
-.lp-price-alt {
-  font-size: 14px; color: var(--text-tertiary); line-height: 1.55;
-  max-width: 560px; text-wrap: pretty;
-}
-.lp-price-alt a { color: var(--text-secondary); }
 
 /* ── 5 · the footer ────────────────────────────────────────────────── */
 
-.lp-foot {
-  margin-block-start: 132px; border-block-start: 1px solid var(--border-hairline);
-  padding: 34px 72px 44px;
-  display: flex; align-items: center; justify-content: space-between; gap: 24px;
-}
-.lp-foot-where { font-size: 13.5px; color: var(--text-tertiary); }
-.lp-foot-links { display: flex; align-items: center; gap: 26px; }
-.lp-foot-links a {
-  font-size: 13.5px; color: var(--text-secondary); text-decoration: none;
-}
-.lp-foot-links a:hover { text-decoration: underline; text-underline-offset: 2px; }
-.lp-foot-links a.figure { font-size: 13px; }
 
 /* ── 768 ───────────────────────────────────────────────────────────── */
 
@@ -192,17 +156,187 @@
   .lp-hero h1 { font-size: 40px; letter-spacing: -0.03em; }
   .lp-lede { font-size: 17px; }
   .lp-screen, .lp-lines, .lp-price { padding: 88px var(--sp-6) 0; }
-  .lp-lines { gap: 44px; }
-  .lp-line-block p, .lp-price-said { font-size: 24px; }
   .lp-panel { padding: 24px 22px; gap: 22px; }
   .lp-panel-lead { font-size: 26px; }
   /* The rate and the mark stop competing for one line. */
   .lp-panel-row { flex-direction: column; align-items: flex-start; gap: 10px; }
   .lp-panel-row-figures { inline-size: 100%; }
   .lp-panel-mark { margin-inline-start: auto; }
-  .lp-foot {
-    margin-block-start: 88px; padding: 28px var(--sp-6) 36px;
-    flex-direction: column-reverse; align-items: flex-start; gap: 14px;
+}
+
+/* ══ The entry screen, on soot ═════════════════════════════════════════════
+   The nav, the sentence and the one screen sit on the dark ground the app
+   uses top and bottom; the three lines, the price and the footer stay on
+   white. A visitor meets the secondary colour before they meet the product,
+   and the panel — the only thing on the page that moves — is lit against it. */
+
+.lp-top {
+  background: var(--soot); color: var(--on-soot);
+  padding-block-end: 132px;
+}
+.lp-top .lp-nav { background: transparent; }
+.lp-top .lp-nav .wordmark { color: var(--on-soot); }
+.lp-top .lp-nav .wordmark:hover { color: var(--saffron); }
+.lp-top .lp-link { color: var(--on-soot-secondary); }
+.lp-top .lp-link:hover { color: var(--saffron); }
+.lp-top .lp-hero h1 { color: var(--on-soot); }
+.lp-top .lp-lede { color: var(--on-soot-secondary); }
+.lp-top .lp-act-said { color: var(--on-soot-tertiary); }
+.lp-top .lp-screen { padding-block-end: 0; }
+
+/* The panel is the lit object on the dark ground.
+   Its ink is reset: `.lp-top` sets a light colour for the soot around it, and
+   that inherits straight into a white card — every dish name, the rate and
+   the headline rendered white on white. */
+.lp-top .lp-panel {
+  color: var(--text-primary);
+  border-color: var(--soot-rule);
+  box-shadow: 0 40px 90px rgb(0 0 0 / 0.42);
+}
+
+/* ── motion ───────────────────────────────────────────────────────────────
+   One entrance, played once, then the page is still. Nothing loops: a page
+   that keeps moving while you read it is an advertisement. Every figure
+   still cuts to its value — the rule that a figure never animates holds. */
+@media (prefers-reduced-motion: no-preference) {
+  .lp-top .lp-hero h1,
+  .lp-top .lp-lede,
+  .lp-top .lp-act,
+  .lp-top .lp-screen {
+    animation: lp-rise 640ms var(--ease-enter) both;
   }
-  .lp-foot-links { gap: 20px; flex-wrap: wrap; }
+  .lp-top .lp-hero h1 { animation-delay: 80ms; }
+  .lp-top .lp-lede { animation-delay: 200ms; }
+  .lp-top .lp-act { animation-delay: 300ms; }
+  .lp-top .lp-screen { animation-delay: 380ms; animation-duration: 760ms; }
+
+  /* The rows arrive under the rate they follow from, one after another —
+     this is the only stagger on the page, and it is the claim: a rate moves,
+     and these follow it. */
+  .lp-panel-rows > .lp-panel-row { animation: lp-rise 520ms var(--ease-enter) both; }
+  .lp-panel-rows > .lp-panel-row:nth-child(1) { animation-delay: 620ms; }
+  .lp-panel-rows > .lp-panel-row:nth-child(2) { animation-delay: 700ms; }
+  .lp-panel-rows > .lp-panel-row:nth-child(3) { animation-delay: 780ms; }
+  .lp-panel-rows > .lp-panel-row:nth-child(4) { animation-delay: 860ms; }
+
+  /* The three lines and the price arrive as they are reached. Behind
+     @supports, so a browser without a scroll timeline shows them at rest
+     rather than at nothing. */
+  @supports (animation-timeline: view()) {
+    .lp-line-block, .lp-price-said, .lp-price .btn {
+      animation: lp-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 30%;
+    }
+  }
+}
+@keyframes lp-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 900px) {
+  .lp-top { padding-block-end: 72px; }
+}
+
+/* ══ Below the fold ════════════════════════════════════════════════════════
+   Three short lines down the left edge of a white page, then a sentence and
+   a button, then a hairline footer: the reader's report was "only white,
+   then snow". Each block now uses the width, and the page alternates ground
+   — soot, white, soot — so it has a rhythm rather than a drift. */
+
+/* ── 3 · three lines, across ──────────────────────────────────────────── */
+.lp-lines {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 56px; padding: 116px 72px;
+  border-block-end: 1px solid var(--border-hairline);
+}
+.lp-line-block { display: grid; gap: 10px; align-content: start; padding-block-start: 20px; border-block-start: 2px solid var(--text-primary); }
+.lp-line-n { font-size: 12px; letter-spacing: 0.12em; color: var(--accent); }
+.lp-line-h {
+  margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 21px; font-weight: 600; letter-spacing: -0.015em;
+}
+.lp-line-block p { margin: 0; font-size: 15px; line-height: 1.65; color: var(--text-secondary); text-wrap: pretty; }
+
+/* ── 4 · the price, on soot ───────────────────────────────────────────── */
+.lp-price {
+  background: var(--soot); color: var(--on-soot);
+  padding: 104px 72px;
+  display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 64px; align-items: start;
+}
+.lp-eyebrow {
+  margin: 0 0 var(--sp-4); font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--saffron);
+}
+.lp-price-h {
+  margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(28px, 3vw, 40px); font-weight: 800; line-height: 1.15;
+  letter-spacing: -0.03em; font-variation-settings: "opsz" 56; text-wrap: balance;
+}
+.lp-price-figure { color: var(--saffron); font-weight: 600; }
+.lp-price-note {
+  margin: var(--sp-5) 0 0; font-size: 14.5px; line-height: 1.65;
+  color: var(--on-soot-secondary); max-inline-size: 46ch; text-wrap: pretty;
+}
+
+.lp-tiers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.lp-tier {
+  display: grid; gap: 14px; align-content: start;
+  padding: 26px 24px; border-radius: 10px;
+  background: rgb(255 255 255 / 0.04); border: 1px solid var(--soot-rule);
+}
+.lp-tier.is-paid { background: rgb(245 179 53 / 0.07); border-color: rgb(245 179 53 / 0.34); }
+.lp-tier-name {
+  margin: 0; font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--on-soot-tertiary);
+}
+.lp-tier.is-paid .lp-tier-name { color: var(--saffron); }
+.lp-tier-fig {
+  margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -0.03em;
+  font-variation-settings: "opsz" 48;
+}
+.lp-tier-fig span { font-size: 14px; font-weight: 400; letter-spacing: 0; color: var(--on-soot-tertiary); margin-inline-start: 6px; }
+.lp-tier-has { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.lp-tier-has li {
+  position: relative; padding-inline-start: 20px;
+  font-size: 14px; line-height: 1.55; color: var(--on-soot-secondary); text-wrap: pretty;
+}
+.lp-tier-has li::before {
+  content: ''; position: absolute; inset-inline-start: 0; inset-block-start: 8px;
+  inline-size: 8px; block-size: 8px; border-radius: 2px; background: var(--soot-rule);
+}
+.lp-tier.is-paid .lp-tier-has li::before { background: var(--saffron); }
+.lp-tier-btn { justify-self: start; margin-block-start: 4px; }
+.lp-tier-alt { font-size: 13px; line-height: 1.55; color: var(--on-soot-tertiary); }
+.lp-tier-alt a { color: var(--saffron); text-underline-offset: 3px; }
+
+/* ── 5 · the footer ───────────────────────────────────────────────────── */
+.lp-foot {
+  background: var(--soot); color: var(--on-soot);
+  border-block-start: 1px solid var(--soot-rule);
+  padding: 44px 72px 36px;
+}
+.lp-foot-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 40px; flex-wrap: wrap; padding-block-end: 26px;
+  border-block-end: 1px solid var(--soot-rule);
+}
+.lp-foot-mark {
+  margin: 0 0 8px; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 24px; font-weight: 800; letter-spacing: -0.02em; font-variation-settings: "opsz" 40;
+}
+.lp-foot-said { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--on-soot-secondary); max-inline-size: 52ch; }
+.lp-foot-mail { font-size: 13.5px; color: var(--saffron); text-underline-offset: 3px; }
+.lp-foot-links { display: flex; gap: 28px; flex-wrap: wrap; padding-block-start: 24px; }
+.lp-foot-links a { font-size: 13.5px; color: var(--on-soot-secondary); text-decoration: none; }
+.lp-foot-links a:hover { color: var(--saffron); }
+
+@media (max-width: 1100px) {
+  .lp-lines { grid-template-columns: 1fr; gap: 40px; padding: 72px 40px; }
+  .lp-price { grid-template-columns: 1fr; gap: 40px; padding: 72px 40px; }
+  .lp-foot { padding-inline: 40px; }
+}
+@media (max-width: 760px) {
+  .lp-lines, .lp-price, .lp-foot { padding-inline: 20px; }
+  .lp-tiers { grid-template-columns: 1fr; }
 }
