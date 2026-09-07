@@ -6,12 +6,13 @@ import {
   costedButNeverMoved,
   funnelOf,
   importReach,
+  type Use,
+  dailyUse,
   renewingWithin,
   revenueOf,
-  movedWhen,
   signupsByMonth,
   stuckBeforeImport,
-  whatIsHeld,
+  useOver,
 } from "./metrics";
 
 /**
@@ -211,60 +212,85 @@ describe("signups by month", () => {
   });
 });
 
-describe("what the books hold", () => {
+const use = (p: Partial<Use> & { day: string }): Use => ({
+  orgId: "k1",
+  userId: "u1",
+  logins: 0,
+  visits: 0,
+  ...p,
+});
+
+describe("coming back, day by day", () => {
   const rows = [
-    acc({ orgId: "big", name: "Big Kitchen", setupDone: true, recipes: 62, ingredients: 210 }),
-    acc({ orgId: "small", name: "Small", setupDone: true, recipes: 4, ingredients: 20 }),
-    acc({ orgId: "empty", name: "Empty", setupDone: true }),
+    use({ day: "2026-09-05", orgId: "k1", userId: "u1", logins: 1, visits: 4 }),
+    use({ day: "2026-09-05", orgId: "k2", userId: "u2", logins: 2, visits: 1 }),
+    use({ day: "2026-09-07", orgId: "k1", userId: "u3", logins: 1, visits: 6 }),
   ];
 
-  it("adds up the dishes and ingredients across every book", () => {
-    const h = whatIsHeld(rows);
-    expect(h.dishes).toBe(66);
-    expect(h.ingredients).toBe(230);
+  it("draws the days nobody came, rather than closing the gap", () => {
+    // The whole point of a calendar series. Built from the rows alone, a week
+    // with two dead days would read as an unbroken line of activity.
+    const out = dailyUse(rows, 4, "2026-09-07");
+    expect(out.map((d) => d.day)).toEqual([
+      "2026-09-04",
+      "2026-09-05",
+      "2026-09-06",
+      "2026-09-07",
+    ]);
+    expect(out[0]).toMatchObject({ logins: 0, visits: 0, kitchens: 0 });
+    expect(out[2]).toMatchObject({ logins: 0, visits: 0, kitchens: 0 });
   });
 
-  it("names the largest book, so 'is anybody using this properly' has an answer", () => {
-    expect(whatIsHeld(rows).biggest).toEqual({ name: "Big Kitchen", dishes: 62 });
+  it("adds up a day and counts its kitchens and its people apart", () => {
+    const out = dailyUse(rows, 4, "2026-09-07");
+    expect(out[1]).toMatchObject({ logins: 3, visits: 5, kitchens: 2, people: 2 });
   });
 
-  it("counts the accounts that finished setup and wrote nothing down", () => {
-    expect(whatIsHeld(rows).empty).toBe(1);
+  it("counts two people from one kitchen as one kitchen and two people", () => {
+    const two = [
+      use({ day: "2026-09-07", orgId: "k1", userId: "a", visits: 2 }),
+      use({ day: "2026-09-07", orgId: "k1", userId: "b", visits: 3 }),
+    ];
+    const [day] = dailyUse(two, 1, "2026-09-07");
+    expect(day).toMatchObject({ kitchens: 1, people: 2, visits: 5 });
   });
 
-  it("has no largest book when nobody has costed anything", () => {
-    // Null, not a name with nought beside it: "Empty, 0 dishes" reads as a
-    // fact about that account rather than as an absence of any.
-    expect(whatIsHeld([acc({ orgId: "a" })]).biggest).toBeNull();
+  it("ends on today, so the last row is the one being lived in", () => {
+    const out = dailyUse([], 14, "2026-09-07");
+    expect(out.at(-1)?.day).toBe("2026-09-07");
+    expect(out).toHaveLength(14);
   });
 });
 
-describe("when each book last moved", () => {
+describe("a fortnight of use", () => {
   const rows = [
-    acc({ orgId: "hot", lastRateAt: "2026-09-07T08:00:00Z" }),
-    acc({ orgId: "week", lastRateAt: "2026-09-04T08:00:00Z" }),
-    acc({ orgId: "month", lastRateAt: "2026-08-25T08:00:00Z" }),
-    acc({ orgId: "stale", lastRateAt: "2026-05-01T08:00:00Z" }),
-    acc({ orgId: "never" }),
+    use({ day: "2026-09-05", orgId: "k1", userId: "u1", logins: 1, visits: 4 }),
+    use({ day: "2026-09-07", orgId: "k1", userId: "u1", logins: 1, visits: 6 }),
+    use({ day: "2026-09-06", orgId: "k2", userId: "u2", logins: 3, visits: 2 }),
   ];
+  const days = dailyUse(rows, 7, "2026-09-07");
 
-  it("buckets every book, and every book lands in exactly one", () => {
-    const m = movedWhen(rows, "2026-09-07");
-    expect(m.map((b) => [b.key, b.count])).toEqual([
-      ["today", 1],
-      ["week", 1],
-      ["month", 1],
-      ["older", 1],
-      ["never", 1],
-    ]);
-    expect(m.reduce((n, b) => n + b.count, 0)).toBe(rows.length);
+  it("separates a kitchen that came back from one that appeared once", () => {
+    // The number that tells a product people use from one people tried, and
+    // no total can answer it: k2 signed in three times, on one day.
+    const span = useOver(days, rows);
+    expect(span.kitchens).toBe(2);
+    expect(span.cameBack).toBe(1);
   });
 
-  it("counts a book that never moved a rate as never, not as long ago", () => {
-    // The two are different questions: one was used and stopped, the other
-    // was never used for the thing the product is for.
-    const m = movedWhen([acc({ orgId: "a" })], "2026-09-07");
-    expect(m.find((b) => b.key === "never")?.count).toBe(1);
-    expect(m.find((b) => b.key === "older")?.count).toBe(0);
+  it("totals the window and counts the days nobody was there", () => {
+    const span = useOver(days, rows);
+    expect(span.logins).toBe(5);
+    expect(span.visits).toBe(12);
+    expect(span.quietDays).toBe(4);
+  });
+
+  it("ignores rows outside the window it was given", () => {
+    // `useRows` fetches thirty days and the console draws fourteen. A row
+    // from three weeks ago must not be counted as a kitchen that came back.
+    const old = [...rows, use({ day: "2026-08-01", orgId: "k3", visits: 9 })];
+    const span = useOver(days, old);
+    expect(span.kitchens).toBe(2);
+    expect(span.visits).toBe(12);
   });
 });

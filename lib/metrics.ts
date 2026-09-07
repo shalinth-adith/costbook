@@ -225,74 +225,109 @@ function monthBefore(period: string): string {
 
 const round = (n: number): number => Math.round(n * 100) / 100;
 
-/* ── What the books actually hold ─────────────────────────────────────────
+/* ── Coming back, and using it ────────────────────────────────────────────
  *
- * A six-month bar chart of signups is the conventional thing to draw and the
- * wrong thing to draw here: with one account it is five zeroes and a one,
- * and it stays that way for months. These say something at any number of
- * accounts, and more as it grows.
+ * The back office used to count what the books held — dishes costed,
+ * ingredients on the shelves, how recently each kitchen moved a rate. Those
+ * are the kitchen's figures, not ours, and reading them across every account
+ * to judge how the product is doing is both the wrong question and more than
+ * we should be holding.
+ *
+ * These two numbers are the whole of what is watched now: did people come
+ * back, and did they use it when they did. Nothing here can say what anybody
+ * cooked, because nothing upstream records it.
  */
 
-export interface Held {
-  readonly dishes: number;
-  readonly ingredients: number;
-  /** The largest book, so "is anybody using this properly" has an answer. */
-  readonly biggest: { readonly name: string; readonly dishes: number } | null;
-  /** Signed up, finished setup, and never wrote a dish down. */
-  readonly empty: number;
+/** One person, one day, as `app_use` keeps it. */
+export interface Use {
+  /** `YYYY-MM-DD`, the database's day. */
+  readonly day: string;
+  readonly orgId: string;
+  readonly userId: string;
+  readonly logins: number;
+  readonly visits: number;
 }
 
-export function whatIsHeld(rows: readonly AccountRow[]): Held {
-  const dishes = rows.reduce((n, r) => n + r.recipes, 0);
-  const ingredients = rows.reduce((n, r) => n + r.ingredients, 0);
-  const top = [...rows].sort((a, b) => b.recipes - a.recipes)[0];
-  return {
-    dishes,
-    ingredients,
-    biggest: top === undefined || top.recipes === 0 ? null : { name: top.name, dishes: top.recipes },
-    empty: rows.filter((r) => r.setupDone && r.recipes === 0).length,
-  };
-}
-
-export type Freshness = "today" | "week" | "month" | "older" | "never";
-
-export interface Moved {
-  readonly key: Freshness;
-  readonly said: string;
-  readonly count: number;
+export interface UseDay {
+  readonly day: string;
+  readonly logins: number;
+  readonly visits: number;
+  /** Distinct kitchens that touched the book that day. */
+  readonly kitchens: number;
+  /** Distinct people, which is larger once a kitchen has staff. */
+  readonly people: number;
 }
 
 /**
- * When each book last had a rate move.
+ * The last `days` days, oldest first, with the empty ones kept.
  *
- * The question FLOWS 10 actually asks — "an owner who costs a menu once and
- * never returns still churns" — and the one a signup chart cannot answer. A
- * book whose rates last moved in March is a book whose costs are wrong now,
- * whether or not its owner signed up this month.
- *
- * Buckets rather than a mean, because the mean of a book touched today and
- * one abandoned in spring is a number describing neither.
+ * A quiet Sunday is a fact about the product and has to be drawn, so the
+ * series is built from the calendar and the rows are laid onto it — never
+ * from the rows alone, which would silently close the gaps and turn a week
+ * with two dead days into an unbroken line.
  */
-export function movedWhen(
-  rows: readonly AccountRow[],
+export function dailyUse(
+  rows: readonly Use[],
+  days: number,
   today: string,
-): readonly Moved[] {
-  const now = new Date(`${today}T00:00:00Z`).getTime();
-  const day = 86_400_000;
-  const age = (at: string) => (now - new Date(at).getTime()) / day;
+): readonly UseDay[] {
+  const start = new Date(`${today}T00:00:00Z`).getTime() - (days - 1) * 86_400_000;
 
-  const of = (test: (days: number) => boolean) =>
-    rows.filter((r) => r.lastRateAt !== null && test(age(r.lastRateAt))).length;
+  const byDay = new Map<string, Use[]>();
+  for (const r of rows) {
+    const list = byDay.get(r.day);
+    if (list === undefined) byDay.set(r.day, [r]);
+    else list.push(r);
+  }
 
-  return [
-    { key: "today", said: "today", count: of((d) => d < 1) },
-    { key: "week", said: "this week", count: of((d) => d >= 1 && d < 7) },
-    { key: "month", said: "this month", count: of((d) => d >= 7 && d < 30) },
-    { key: "older", said: "longer ago", count: of((d) => d >= 30) },
-    {
-      key: "never",
-      said: "never",
-      count: rows.filter((r) => r.lastRateAt === null).length,
-    },
-  ];
+  const out: UseDay[] = [];
+  for (let i = 0; i < days; i += 1) {
+    const day = new Date(start + i * 86_400_000).toISOString().slice(0, 10);
+    const on = byDay.get(day) ?? [];
+    out.push({
+      day,
+      logins: on.reduce((n, r) => n + r.logins, 0),
+      visits: on.reduce((n, r) => n + r.visits, 0),
+      kitchens: new Set(on.map((r) => r.orgId)).size,
+      people: new Set(on.map((r) => r.userId)).size,
+    });
+  }
+  return out;
+}
+
+export interface UseSpan {
+  readonly logins: number;
+  readonly visits: number;
+  /** Kitchens that appeared at all in the window. */
+  readonly kitchens: number;
+  /**
+   * Kitchens that appeared on more than one day.
+   *
+   * The one number that separates a product people use from one people tried.
+   * A signup that opened the book twice in a fortnight is a different account
+   * from one that opened it eight times, and no total can tell them apart.
+   */
+  readonly cameBack: number;
+  /** Days in the window on which nobody at all appeared. */
+  readonly quietDays: number;
+}
+
+export function useOver(days: readonly UseDay[], rows: readonly Use[]): UseSpan {
+  const within = new Set(days.map((d) => d.day));
+  const seen = rows.filter((r) => within.has(r.day));
+
+  const daysPerOrg = new Map<string, Set<string>>();
+  for (const r of seen) {
+    const had = daysPerOrg.get(r.orgId);
+    if (had === undefined) daysPerOrg.set(r.orgId, new Set([r.day]));
+    else had.add(r.day);
+  }
+
+  return {
+    logins: days.reduce((n, d) => n + d.logins, 0),
+    visits: days.reduce((n, d) => n + d.visits, 0),
+    kitchens: daysPerOrg.size,
+    cameBack: [...daysPerOrg.values()].filter((s) => s.size > 1).length,
+    quietDays: days.filter((d) => d.visits === 0 && d.logins === 0).length,
+  };
 }

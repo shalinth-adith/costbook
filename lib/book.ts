@@ -51,6 +51,7 @@ import {
 } from "./rows";
 import * as memory from "./store";
 import { supabaseConfigured } from "./supabase/env";
+import { noteVisit } from "./use";
 import { supabaseServer } from "./supabase/server";
 
 
@@ -392,6 +393,12 @@ export const book = cache(async (): Promise<Book> => {
     periodEnd: subRow.current_period_end ?? null,
     reference: subRow.provider_reference ?? null,
   };
+
+  /*
+   * They are here. One line, after the response, at most once every ten
+   * minutes — the whole of what the product records about its own use.
+   */
+  noteVisit(auth.user.id);
 
   return {
     orgId: orgRow.id,

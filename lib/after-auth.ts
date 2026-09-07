@@ -1,4 +1,5 @@
 import { book } from "./book";
+import { noteLogin } from "./use";
 import { landingFor, safeNext } from "./landing";
 
 /**
@@ -19,6 +20,13 @@ export async function afterSignIn(
   next: FormDataEntryValue | string | null,
 ): Promise<string> {
   const { org, role } = await book();
+
+  /*
+   * A password was accepted, so this is a login — the one event the back
+   * office counts, written here because this is the only function both
+   * sign-in and sign-up pass through on the way in.
+   */
+  noteLogin();
 
   if (!org.setupDone) return "/setup";
 

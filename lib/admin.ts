@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import type { AccountRow, PaidOrder } from "./metrics";
+import type { AccountRow, PaidOrder, Use } from "./metrics";
 import { supabaseConfigured } from "./supabase/env";
 import { supabaseServer } from "./supabase/server";
 
@@ -296,4 +296,45 @@ export async function importAttempts(): Promise<ImportAttempts> {
     abandoned: pending.filter((r) => new Date(r.created_at).getTime() < anHourAgo).length,
     inFlight: pending.filter((r) => new Date(r.created_at).getTime() >= anHourAgo).length,
   };
+}
+
+/**
+ * Who came back, day by day.
+ *
+ * A window rather than everything: the console draws a fortnight and there is
+ * no reason to carry three years of rows across the wire to do it. Ordered by
+ * day so the series can be laid onto the calendar without sorting again.
+ */
+export async function useRows(days = 30): Promise<readonly Use[]> {
+  if (!supabaseConfigured()) return [];
+  const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+
+  const supabase = await supabaseServer();
+  const { data, error } = await supabase
+    .from("app_use")
+    .select("day, org_id, user_id, logins, visits")
+    .gte("day", since)
+    .order("day", { ascending: true });
+  if (error !== null) {
+    // Before migration 27 this table does not exist, and the console should
+    // say "nothing yet" rather than fall over on a screen that has four
+    // other sections working.
+    console.warn("Could not read use:", error.message);
+    return [];
+  }
+  return (
+    (data ?? []) as {
+      day: string;
+      org_id: string;
+      user_id: string;
+      logins: number;
+      visits: number;
+    }[]
+  ).map((r) => ({
+    day: r.day,
+    orgId: r.org_id,
+    userId: r.user_id,
+    logins: Number(r.logins),
+    visits: Number(r.visits),
+  }));
 }

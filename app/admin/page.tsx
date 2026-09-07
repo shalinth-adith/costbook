@@ -7,17 +7,17 @@ import {
   paidOrders,
   recentErrors,
   threads,
+  useRows,
 } from "@/lib/admin";
 import {
   costedButNeverMoved,
+  dailyUse,
   funnelOf,
   importReach,
-  movedWhen,
   renewingWithin,
   revenueOf,
-  signupsByMonth,
   stuckBeforeImport,
-  whatIsHeld,
+  useOver,
 } from "@/lib/metrics";
 import { periodSaid } from "@/lib/engineering";
 
@@ -37,25 +37,46 @@ export const dynamic = "force-dynamic";
  * set up and never imported, costed and never used — because a count nobody
  * can act on is a decoration.
  */
+/**
+ * A day, named the way somebody reading a fortnight would name it.
+ *
+ * "Today" and "Yesterday" rather than two dates, because those are the two
+ * rows anybody actually looks at first, and a date makes the reader do the
+ * arithmetic to find out which one they are on.
+ */
+function dayName(day: string, today: string): string {
+  if (day === today) return "Today";
+  const gap = Math.round(
+    (new Date(`${today}T00:00:00Z`).getTime() - new Date(`${day}T00:00:00Z`).getTime()) /
+      86_400_000,
+  );
+  if (gap === 1) return "Yesterday";
+  return new Date(`${day}T00:00:00Z`).toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
 export default async function AdminPage() {
 
   const today = new Date().toISOString().slice(0, 10);
-  const [rows, orders, errors, support, tries] = await Promise.all([
+  const [rows, orders, errors, support, tries, used] = await Promise.all([
     accounts(),
     paidOrders(),
     recentErrors(6),
     threads(),
     importAttempts(),
+    useRows(30),
   ]);
 
   const funnel = funnelOf(rows);
   const sheets = importReach(rows);
   const money = revenueOf(orders, today);
-  const months = signupsByMonth(rows, 6, today);
-  const held = whatIsHeld(rows);
-  const moved = movedWhen(rows, today);
-  const joined = months.reduce((n, m) => n + m.count, 0);
-  const busiest = Math.max(1, ...moved.map((b) => b.count));
+  const fortnight = dailyUse(used, 14, today);
+  const span = useOver(fortnight, used);
+  const busiest = Math.max(1, ...fortnight.map((d) => d.visits));
   const renewing = renewingWithin(rows, today, 30);
   const stuck = stuckBeforeImport(rows);
   const idle = costedButNeverMoved(rows);
@@ -172,62 +193,82 @@ export default async function AdminPage() {
           </p>
         </section>
 
-        {/* ── what the books hold ────────────────────────────────── */}
+        {/* ── coming back ────────────────────────────────────────── */}
         <section className="bo-block">
-          <h2 className="bo-h2">What the books hold</h2>
+          <h2 className="bo-h2">Signing in, and using it</h2>
           {/*
-            * A six-month bar chart of signups is the conventional thing to
-            * draw and the wrong thing here: with one account it is five
-            * zeroes and a one, and stays that way for months. These say
-            * something at any number of accounts, and more as it grows.
+            * The only two things the product records about its own use: a
+            * login, and a visit — one stretch of work, counted once every ten
+            * minutes. Nothing here knows what anybody opened or cooked, and
+            * the counting deliberately cannot be made to.
             */}
           <p className="bo-lede">
-            <b className="figure">{joined}</b>{" "}
-            {joined === 1 ? "kitchen" : "kitchens"} joined in the last six
-            months.
+            The last fortnight. A visit is a stretch of work, counted once every
+            ten minutes, so six visits is about an hour at the book.
           </p>
 
-          <dl className="bo-held">
+          <dl className="bo-use-figs">
             <div>
-              <dt>Dishes costed</dt>
-              <dd className="figure">{held.dishes}</dd>
+              <dt>Logins</dt>
+              <dd className="figure">{span.logins}</dd>
             </div>
             <div>
-              <dt>Ingredients on the shelves</dt>
-              <dd className="figure">{held.ingredients}</dd>
+              <dt>Visits</dt>
+              <dd className="figure">{span.visits}</dd>
             </div>
-            <div>
-              <dt>Most dishes in one book</dt>
-              <dd className="figure">
-                {held.biggest === null ? "—" : held.biggest.dishes}
-              </dd>
-              <dd className="bo-held-who">
-                {held.biggest === null ? "nobody has costed a dish" : held.biggest.name}
-              </dd>
-            </div>
-            <div className={held.empty > 0 ? "is-over" : ""}>
-              <dt>Set up, nothing written</dt>
-              <dd className="figure">{held.empty}</dd>
+            <div className={span.cameBack === 0 && span.kitchens > 0 ? "is-over" : ""}>
+              <dt>Came back on another day</dt>
+              <dd className="figure">{span.cameBack}</dd>
+              <dd className="bo-use-of">of {span.kitchens} that appeared</dd>
             </div>
           </dl>
 
-          <h3 className="bo-h3">When each book last moved a rate</h3>
-          <p className="bo-lede">
-            The question a signup chart cannot answer. A book whose rates last
-            moved in spring is a book whose costs are wrong now, whoever joined
-            this month.
-          </p>
-          <ul className="bo-moved">
-            {moved.map((b) => (
-              <li key={b.key} className={`bo-moved-row is-${b.key}${b.count === 0 ? " is-nil" : ""}`}>
-                <span className="bo-moved-said">{b.said}</span>
-                <span className="bo-moved-bar" aria-hidden="true">
-                  <span style={{ inlineSize: `${String((b.count / busiest) * 100)}%` }} />
-                </span>
-                <span className="figure bo-moved-n">{b.count}</span>
-              </li>
-            ))}
-          </ul>
+          {used.length === 0 ? (
+            <p className="bo-note">
+              Nothing recorded yet. Every sign-in and every stretch of work
+              from here on lands in this table.
+            </p>
+          ) : (
+            <table className="bo-use">
+              <caption className="bo-use-cap">Newest first. A day nobody came is still a day.</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Day</th>
+                  <th scope="col">In</th>
+                  <th scope="col">Visits</th>
+                  <th scope="col">Kitchens</th>
+                  <th scope="col"><span className="bo-use-hide">How busy</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...fortnight].reverse().map((d) => (
+                  <tr
+                    key={d.day}
+                    className={d.visits === 0 && d.logins === 0 ? "is-quiet" : ""}
+                  >
+                    <th scope="row">{dayName(d.day, today)}</th>
+                    <td className="figure">{d.logins}</td>
+                    <td className="figure">{d.visits}</td>
+                    <td className="figure">{d.kitchens}</td>
+                    <td>
+                      <span className="bo-use-bar" aria-hidden="true">
+                        <span
+                          style={{ inlineSize: `${String((d.visits / busiest) * 100)}%` }}
+                        />
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {span.quietDays > 0 && used.length > 0 && (
+            <p className="bo-note">
+              <b className="figure">{span.quietDays}</b> of the 14 days had
+              nobody on them at all.
+            </p>
+          )}
         </section>
       </div>
 
