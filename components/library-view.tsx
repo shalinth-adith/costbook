@@ -40,10 +40,25 @@ export function LibraryView({
   onArchive,
   onCreate,
   creating,
+  only,
+  onlySaid,
 }: {
   data: Library;
   pantry: Pantry;
   target: number;
+  /**
+   * The dishes the dashboard sent us to, by id, or undefined for the whole
+   * book.
+   *
+   * Carried as ids rather than as another filter clause because the piles are
+   * decided by `standingOf`, whose care is the point — an empty recipe costs
+   * 0.00, which is not null, and reading it as a perfect margin put an uncosted
+   * dish at the top of "earning what you wanted". Restating that here as a
+   * predicate over library rows would be a second copy of it, free to drift.
+   */
+  only?: ReadonlySet<string> | undefined;
+  /** What that set is, in the words the tile used. */
+  onlySaid?: string | undefined;
   onDuplicate: (id: string) => Promise<{ message: string; undoable: boolean }>;
   onArchive: (id: string, archived: boolean) => Promise<{ message: string; undoable: boolean }>;
   onCreate: (dish: { name: string; category: string; portions: number }) => Promise<{
@@ -96,7 +111,17 @@ export function LibraryView({
     return dates.size > 1;
   }, [data.dishes, data.batches]);
 
-  const source = tab === 'dishes' ? data.dishes : data.batches;
+  const all = tab === 'dishes' ? data.dishes : data.batches;
+  /*
+   * Arrived from a dashboard tile: show that pile and nothing else, with a way
+   * out. "Not everything should be shown" was the owner's report — a count
+   * that opens the whole list again has answered nothing.
+   */
+  const [narrowed, setNarrowed] = useState(only !== undefined);
+  const source = useMemo(
+    () => (narrowed && only !== undefined ? all.filter((r) => only.has(r.id)) : all),
+    [all, narrowed, only],
+  );
 
   const outcome = useMemo(
     () => search(applyLibraryFilter(source, filter), query, pantry),
@@ -280,6 +305,27 @@ export function LibraryView({
       </div>
       )}
 
+      {/*
+        * Sent here by a count on the dashboard.
+        *
+        * It says which count, because a list that silently holds seven of ten
+        * dishes is indistinguishable from a book that only has seven — and it
+        * carries its own way out, since the next thought after "which ones"
+        * is usually "and how does that compare with the rest".
+        */}
+      {!bare && narrowed && only !== undefined && (
+        <p className="lib-narrowed">
+          <span>
+            Showing the <b className="figure">{only.size}</b>{' '}
+            {only.size === 1 ? 'dish' : 'dishes'}
+            {onlySaid === undefined ? '' : ` ${onlySaid}`}.
+          </span>
+          <button type="button" className="link" onClick={() => setNarrowed(false)}>
+            Show the whole book
+          </button>
+        </p>
+      )}
+
       {!bare && showFilters && (
       <div className="toolbar lib-filters">
         <div className="chips" role="group" aria-label="Filter">
@@ -380,7 +426,6 @@ export function LibraryView({
                         isDish={tab === 'dishes'}
                         money={m}
                         busy={pending}
-                        onDuplicate={() => act(() => onDuplicate(row.id))}
                         onArchive={() => act(() => onArchive(row.id, !row.archived))}
                       />
                     ))}
@@ -417,7 +462,6 @@ function Row({
   isDish,
   money,
   busy,
-  onDuplicate,
   onArchive,
 }: {
   showUpdated: boolean;
@@ -426,7 +470,6 @@ function Row({
   isDish: boolean;
   money: ReturnType<typeof useMoney>;
   busy: boolean;
-  onDuplicate: () => void;
   onArchive: () => void;
 }) {
   return (
@@ -482,15 +525,30 @@ function Row({
 
       {showUpdated ? <span className="lib-dim lib-updated">{when(row.updatedAt, today)}</span> : null}
 
-      {/* Both actions stay visible. A kitchen with six biryanis builds five of
-          them by duplicating the first, and an action that only exists under a
-          mouse pointer does not exist on the tablet this ships to (A16). */}
+      {/*
+        * Two actions, in words a kitchen uses.
+        *
+        * They read "Duplicate" and "Archive", and the owner's report on them
+        * was "I don't know what these mean". Neither is wrong as English; both
+        * are software words for kitchen acts. Edit opens the dish — the same
+        * place the name goes, said as a button, because a name that happens to
+        * be a link is not an obvious control.
+        *
+        * REMOVE, NOT DELETE. Nothing in this product destroys a recipe, on
+        * purpose (A16): a dish can be a sub-recipe inside eight others, and
+        * deleting it would take their costs with it. Remove takes it off the
+        * menu and out of the list and leaves it linkable, which is what the
+        * owner wants when they say delete, and the toast says so in full.
+        *
+        * Both stay visible. An action that only exists under a mouse pointer
+        * does not exist on the tablet this ships to.
+        */}
       <span className="lib-actions">
-        <button type="button" className="btn-row" disabled={busy} onClick={onDuplicate}>
-          Duplicate
-        </button>
+        <Link href={`/recipes/${row.id}`} className="btn-row">
+          Edit
+        </Link>
         <button type="button" className="btn-row" disabled={busy} onClick={onArchive}>
-          {row.archived ? 'Restore' : 'Archive'}
+          {row.archived ? 'Restore' : 'Remove'}
         </button>
       </span>
     </div>

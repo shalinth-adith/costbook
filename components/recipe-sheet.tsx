@@ -20,6 +20,7 @@ import {
 import { ingredientComponent } from '@/core/recipe';
 import { ingredientFromPack } from '@/core/ingredient';
 import { addIngredient } from '@/app/ingredients/actions';
+import { duplicateRecipe } from '@/app/recipes/actions';
 import { suggestPrice } from '@/lib/costing';
 
 import { ComponentCards } from './component-cards';
@@ -479,6 +480,29 @@ export function RecipeSheet({
             </svg>
             Edit dish
           </button>
+
+          {/*
+            * Here rather than in the list.
+            *
+            * A kitchen with six biryanis builds five of them from the first,
+            * so this earns its place (A16) — but as a row action beside every
+            * dish it read as clutter nobody could name. This is where somebody
+            * has the thought: they are looking at the dish they want another
+            * of.
+            */}
+          <button
+            type="button"
+            className="btn"
+            disabled={saving}
+            onClick={() => {
+              setSaving(true);
+              void duplicateRecipe(recipe.id)
+                .then((ack) => { setToast({ ...ack, sticky: false }); })
+                .finally(() => setSaving(false));
+            }}
+          >
+            Make a copy
+          </button>
           <div className="segmented" role="group" aria-label="View">
             <span className="segmented-item is-active">Costing</span>
             <button type="button" className="segmented-item" onClick={() => setView('prep')}>
@@ -626,8 +650,37 @@ export function RecipeSheet({
             </div>
           </section>
 
+          {/*
+            * Under the lines, not in the rail.
+            *
+            * The rail holds the figures — the breakdown, the plate cost, what
+            * to charge — and with this in it too it ran to 1,800px beside a
+            * 600px table, so the left half of the page was empty for most of
+            * its length. Here the two columns end together, and the channels
+            * sit under the lines they are worked out from.
+            */}
+          <ChannelSection
+            comparison={channels}
+            target={model.foodCostTarget}
+            onAddChannel={() => { window.location.href = '/settings'; }}
+            onUseSuggested={(price) => {
+              void commit(() => saveDeliveryPrice(recipe.id, price));
+            }}
+          />
+
         </div>
 
+        {/*
+          * One column, not two grid children.
+          *
+          * `.costing` is a two-column grid and this was its second and third
+          * children, so the third auto-flowed back into column one: the table
+          * and the breakdown sat side by side, and then everything below —
+          * the plate cost, what to charge, the channels — rendered full width
+          * on the left with the whole right half empty. The rail is one
+          * column; its blocks stack inside it.
+          */}
+        <div className="costing-rail">
         <WhereItGoes
           price={dish.sellingPrice ?? suggestion?.rounded ?? null}
           build={build}
@@ -649,16 +702,6 @@ export function RecipeSheet({
             if (suggestion === null) return;
             void commit(() => saveAndPrice(named, dishFields, suggestion.rounded));
           }}
-          below={
-            <ChannelSection
-              comparison={channels}
-              target={model.foodCostTarget}
-              onAddChannel={() => { window.location.href = '/settings'; }}
-              onUseSuggested={(price) => {
-                void commit(() => saveDeliveryPrice(recipe.id, price));
-              }}
-            />
-          }
           actions={
             <div className="rail-actions rail-actions-row">
               <button
@@ -727,6 +770,7 @@ export function RecipeSheet({
           busy={saving}
           isDefault={charges === null}
         />
+        </div>
 
       <FlagSheet
         open={sheet === 'flag'}
