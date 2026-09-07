@@ -1,24 +1,28 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
- * A secondary surface, arriving from the edge nearest the eye.
+ * A secondary surface, over the page rather than beside it.
  *
  * One component, two presentations, decided by width rather than by a prop:
  *
  *   tablet    rises from the bottom edge. A centred dialog puts its close
  *             target in the top corner, which is the furthest point from a
  *             thumb on a tablet held in two hands (A13).
- *   desktop   a right-hand drawer. At 1440 the eye is already at the rail
- *             where the cost sits, so a panel from the bottom would land
- *             700px below where someone is looking (A12).
+ *   desktop   a centred dialog. It was a right-hand drawer taking a third of
+ *             the window, which read as a second page arriving beside the
+ *             first rather than a question asked about it — and a drawer that
+ *             narrow forces every field into one column whatever it holds.
  *
- * The drawer covers the rail, which is why every surface that changes a
- * figure carries that figure — nothing needed is behind the panel.
+ * Every surface that changes a figure carries that figure, so nothing needed
+ * is behind the panel either way.
  *
  * Either way the whole 52px title row closes it, rather than a corner of it.
  */
+
+/** How long the leaving animation runs. Matches `--dur-dismiss`. */
+const EXIT_MS = 150;
 export function Sheet({
   title,
   open,
@@ -48,6 +52,32 @@ export function Sheet({
   const close = useRef(onClose);
   close.current = onClose;
 
+  /*
+   * Kept mounted for the length of the exit.
+   *
+   * `if (!open) return null` unmounted the dialog the instant it was
+   * dismissed, so it could arrive with an animation and never leave with one
+   * — it simply stopped existing, which reads as a glitch rather than as a
+   * panel closing.
+   */
+  const [shown, setShown] = useState(open);
+  const [leaving, setLeaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setShown(true);
+      setLeaving(false);
+      return undefined;
+    }
+    if (!shown) return undefined;
+    setLeaving(true);
+    const t = setTimeout(() => {
+      setShown(false);
+      setLeaving(false);
+    }, EXIT_MS);
+    return () => { clearTimeout(t); };
+  }, [open, shown]);
+
   useEffect(() => {
     if (!open) return undefined;
 
@@ -61,12 +91,18 @@ export function Sheet({
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
-  if (!open) return null;
+  if (!shown) return null;
 
   return (
-    <div className="scrim" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div
+      className={`scrim${leaving ? ' is-leaving' : ''}`}
+      onMouseDown={(e) => {
+        if (leaving) return;
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
-        className="sheet"
+        className={`sheet${leaving ? ' is-leaving' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={title}

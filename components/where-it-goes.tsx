@@ -41,6 +41,20 @@ export function WhereItGoes({
 
   const losing = split.left.amount < 0;
 
+  /*
+   * Rows for what is counted; the note names what is not.
+   *
+   * A new account counts food and nothing else, so this drew one figure and
+   * four rows reading "not counted" — a table of absences, and the note
+   * underneath then named those same four things again. The note is the
+   * better of the two: it says what the gap means and where to close it.
+   * When the costs are entered the rows come back, which is when a breakdown
+   * is worth reading.
+   */
+  const shown = split.complete
+    ? split.slices
+    : split.slices.filter((s) => !s.missing);
+
   return (
     <section className="card wig">
       <div className="label">
@@ -74,7 +88,7 @@ export function WhereItGoes({
       </div>
 
       <dl className="wig-rows">
-        {split.slices.map((s) => (
+        {shown.map((s) => (
           <div
             key={s.kind}
             className={`wig-row${s.missing ? " is-missing" : ""}`}
