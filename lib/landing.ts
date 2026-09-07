@@ -43,6 +43,15 @@ export const PUBLIC_PATHS: readonly string[] = [
   "/sign-up",
   "/privacy",
   "/terms",
+  /*
+   * What this is and why it exists, behind the wordmark on every screen.
+   *
+   * Public because it is the page a stranger reads before deciding whether to
+   * sign up, and because a page reachable from the footer of the sign-in screen
+   * that then demands a sign-in is a closed loop of the same kind as /contact
+   * below. It carries nothing an account would.
+   */
+  "/about",
   // Reached from the sign-in screen by someone who cannot get in. Gating the
   // page that tells them how to ask for help would be a closed loop.
   "/contact",
