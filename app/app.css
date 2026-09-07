@@ -957,22 +957,49 @@
    from that edge rather than 700px below it. Below that width it stays a
    bottom sheet, which is where a thumb reaches on a held tablet. */
 @media (min-width: 1180px) {
-  .scrim { align-items: stretch; justify-content: flex-end; }
+  .scrim { align-items: center; justify-content: center; padding: var(--sp-6); }
 
   .sheet {
-    width: min(460px, 100%);
-    max-height: none;
-    height: 100%;
-    border-radius: 0;
-    border-block: 0;
-    border-inline-end: 0;
-    animation: drawer-in var(--dur-reveal) var(--ease-enter);
+    width: min(560px, 100%);
+    max-height: min(80vh, 760px);
+    height: auto;
+    border-radius: var(--radius-panel);
+    border: 1px solid var(--border-strong);
+    box-shadow: 0 24px 64px rgb(23 27 36 / 0.24);
+    animation: modal-in var(--dur-reveal) var(--ease-enter);
   }
-  @keyframes drawer-in { from { transform: translateX(20px); } to { transform: none; } }
+  @keyframes modal-in {
+    from { opacity: 0; transform: translateY(-10px) scale(0.97); }
+    to { opacity: 1; transform: none; }
+  }
+  .sheet.is-leaving { animation: modal-out var(--dur-dismiss) var(--ease-exit) forwards; }
+  @keyframes modal-out {
+    from { opacity: 1; transform: none; }
+    to { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  }
 
-  .sheet-head { border-radius: 0; }
-  /* The grip is a bottom-sheet affordance; a drawer does not need one. */
+  .sheet-head { border-radius: var(--radius-panel) var(--radius-panel) 0 0; }
+  /* The grip is a bottom-sheet affordance; a dialog does not need one. */
   .sheet-grip { visibility: hidden; }
+}
+
+/* Leaving: the scrim fades and stops taking clicks, and the panel goes back
+   the way it came. Below 1180 that is downwards, the way it rose. */
+.scrim.is-leaving {
+  animation: scrim-out var(--dur-dismiss) var(--ease-exit) forwards;
+  pointer-events: none;
+}
+@keyframes scrim-out { from { opacity: 1; } to { opacity: 0; } }
+/* Guarded, not unconditional: written after the 1180px block it would
+   otherwise beat it at every width and a centred dialog would leave by
+   sliding down. Third time this stylesheet has caught me that way. */
+@media (max-width: 1179px) {
+  .sheet.is-leaving { animation: sheet-out var(--dur-dismiss) var(--ease-exit) forwards; }
+}
+@keyframes sheet-out { from { transform: none; } to { transform: translateY(16px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .scrim, .sheet, .scrim.is-leaving, .sheet.is-leaving { animation: none; }
 }
 
 /* ── batch total ───────────────────────────────────────────────────── */
@@ -1218,7 +1245,9 @@
 .entry-head { display: flex; flex-direction: column; gap: 3px; }
 .entry-hint { font-size: 12px; color: var(--text-tertiary); text-wrap: pretty; }
 .entry-row {
-  display: grid; grid-template-columns: minmax(0, 1fr) 110px 150px 190px auto;
+  /* The unit column is auto, not a fixed 150px: `kg l pc` needs about 90 and
+     the rest was dead space inside a bordered control. */
+  display: grid; grid-template-columns: minmax(0, 1fr) 110px auto 190px auto;
   gap: var(--sp-3); align-items: end;
 }
 .entry-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
@@ -3345,10 +3374,15 @@
 
 .costing {
   max-width: none; margin-inline: auto;
-  grid-template-columns: minmax(0, 1fr) 420px;
   gap: var(--sp-6);
   /* Room for the fixed footer, so the last card is never under it. */
   padding-block-end: 104px;
+}
+/* The rail's width belongs above the width that fits it. Unconditional here,
+   it beat the collapse at 1180px and the page kept a fixed rail down to
+   phone width. */
+@media (min-width: 1181px) {
+  .costing { grid-template-columns: minmax(0, 1fr) 420px; }
 }
 .ctable-head,
 .ctable-row {
@@ -3739,12 +3773,25 @@
 /* Every page fills the screen it is on; the ground is white; panels sit a
    warm shade below it. The owner's monitor is wide and a strip down the
    middle read as empty. */
-.costing, .nd, .set, .dh, .dash-hero, .dash-block, .stats.dash-top, .td, .mc { padding-inline: 40px; }
+.costing, .nd, .set, .dh, .dash-hero, .dash-block, .stats.dash-top, .td, .mc, .tr { padding-inline: 40px; }
 .page-head { padding-inline: 40px; }
 .set { padding-inline: 40px; }
-.costing { grid-template-columns: minmax(0, 1fr) 460px; }
-.set-cols { grid-template-columns: 240px minmax(0, 1fr) 440px; }
-.nd-cols { grid-template-columns: minmax(0, 1fr) 480px; }
+/*
+ * The wide three, above the width they need.
+ *
+ * These sat unconditional and later in the file than the media queries that
+ * collapse them, so they won at every width: at 768 the costing page kept a
+ * fixed 460px rail and squeezed its table into 167px, with the two columns
+ * overlapping. Same shape as the `.mc` gutter — a later rule of equal
+ * specificity beating an earlier `@media`.
+ */
+@media (min-width: 1181px) {
+  .costing { grid-template-columns: minmax(0, 1fr) 460px; }
+  .nd-cols { grid-template-columns: minmax(0, 1fr) 480px; }
+}
+@media (min-width: 1101px) {
+  .set-cols { grid-template-columns: 240px minmax(0, 1fr) 440px; }
+}
 
 /* Panels on a white ground: a warm surface, a hairline, and room. */
 .card, .dc-card, .lib-group, .set-card, .nd-card, .set-more, .price-card, .imp-panel { background: var(--surface-sunken); border: 1px solid var(--border-hairline); }
@@ -4005,7 +4052,9 @@
 
 /* ── Where every hundred goes ───────────────────────────────────────────────
    The one screen that answers whether the trade's 0.2 leaves anything. */
-.wig { display: grid; gap: 14px; margin-block-end: var(--sp-4); }
+/* The card has no padding of its own, so this had none: every figure sat on
+   the border and "not counted" was clipped by it. */
+.wig { display: grid; gap: 14px; padding: 14px 16px; margin-block-end: var(--sp-4); }
 .wig-bar {
   display: flex; block-size: 14px; border-radius: 7px; overflow: hidden;
   background: var(--surface-sunken); border: 1px solid var(--border-hairline);
@@ -4031,9 +4080,14 @@
 .wig-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 9px 0; border-block-start: 1px solid var(--border-hairline); }
 .wig-row:first-child { border-block-start: 0; }
 .wig-row dt { display: flex; align-items: baseline; gap: 0; flex-wrap: wrap; font-size: 14px; }
-.wig-row dd { margin: 0; display: flex; align-items: baseline; gap: 14px; white-space: nowrap; }
+.wig-row dd {
+  margin: 0; display: flex; align-items: baseline; justify-content: flex-end;
+  gap: 12px; white-space: nowrap; flex: none;
+}
 .wig-said { flex-basis: 100%; padding-inline-start: 18px; font-size: 12px; color: var(--text-tertiary); }
-.wig-share { inline-size: 34px; text-align: end; color: var(--text-secondary); }
+/* No fixed width: the "of 100" is drawn by ::after and overflowed the 34px
+   box it was given, so it ran off the edge of the card. */
+.wig-share { text-align: end; color: var(--text-secondary); }
 .wig-share::after { content: ' of 100'; font-size: 10.5px; color: var(--text-tertiary); }
 .wig-row.is-missing dt { color: var(--text-tertiary); }
 .wig-none { font-size: 12.5px; color: var(--text-tertiary); }
@@ -4191,4 +4245,706 @@
   margin: 0 0 var(--sp-5); font-size: 14px; color: var(--text-primary);
   background: var(--surface-sunken); border: 1px solid var(--border-hairline);
   border-radius: var(--radius-field); padding: var(--sp-4) 18px;
+}
+
+/* ── The page, framed ──────────────────────────────────────────────────────
+   Content ran to all four edges of the glass and stopped dead at the bottom:
+   the last line of the dashboard sat on the sill with nothing under it, which
+   reads as a page that was cut rather than one that ended.
+
+   Full width on white still holds. The frame sits a few pixels in and the
+   ground outside it is the same white, so nothing is narrowed — it only draws
+   the edge that was already implied, and puts air under the last line. */
+.page {
+  border: 1px solid var(--border-hairline);
+  border-radius: 10px;
+  margin: 10px 10px var(--sp-10);
+  padding-block: var(--sp-4) var(--sp-10);
+  background: var(--surface-page, #fff);
+  min-inline-size: 0;
+}
+
+/* The account menu, opened by its own name.
+   A circle of initials is not a control anybody recognises, and the name
+   beside it was a plain span — the half that looked clickable was the half
+   that did nothing. */
+.acct-trigger {
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: 4px 6px 4px 10px; border-radius: 999px;
+  cursor: pointer; list-style: none;
+  transition: background var(--dur-micro) var(--ease-enter);
+}
+.acct-trigger::-webkit-details-marker { display: none; }
+.acct-trigger:hover { background: var(--surface-sunken); }
+.acct-caret { color: var(--text-tertiary); flex: none; }
+.acct[open] .acct-caret { transform: rotate(180deg); }
+
+/* The unit picker sized to its own words.
+   Three items reading kg · l · pc need about ninety pixels and sat in a
+   hundred and fifty, so the control ran on past "pc" into nothing. */
+.entry-unit .segmented { inline-size: fit-content; }
+
+/* A line between the settings menu and the setting.
+   Two columns of text with only a gap between them read as one column that
+   had been indented. */
+.set-cols > .set-body {
+  border-inline-start: 1px solid var(--border-hairline);
+  padding-inline-start: var(--sp-8);
+}
+
+/* ── The end of the page, on soot ───────────────────────────────────────
+   Every screen stopped dead at its last line. This is what ends one: a map of
+   the product, where to find a person, and the mark — on the dark floor from
+   The Kitchen Palette, so the eye can tell the page has finished rather than
+   scrolled out from under it. Saffron is the accent here: ember on black goes
+   muddy, saffron reads. */
+.foot {
+  background: var(--soot); color: var(--on-soot);
+  padding: var(--sp-10) 40px var(--sp-6);
+  margin-block-start: auto;
+}
+.foot-top {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: var(--sp-8); flex-wrap: wrap;
+  padding-block-end: var(--sp-6); border-block-end: 1px solid var(--soot-rule);
+}
+.foot-brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 26px; font-weight: 800; letter-spacing: -0.02em;
+  font-variation-settings: "opsz" 60;
+}
+.foot-brand svg { color: var(--saffron); }
+.foot-line {
+  margin: 10px 0 0; font-size: 13.5px; line-height: 1.6;
+  color: var(--on-soot-secondary); max-inline-size: 60ch; text-wrap: pretty;
+}
+.foot-line b { color: var(--saffron); font-weight: 500; }
+.foot-stamp {
+  margin: 0; display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--on-soot-secondary);
+}
+.foot-stamp svg { color: var(--saffron); }
+
+.foot-cols {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-8); padding-block: var(--sp-8);
+}
+.foot-cols h4 {
+  margin: 0 0 10px;
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 15px; font-weight: 600; color: var(--on-soot);
+}
+.foot-cols nav a {
+  display: block; color: var(--on-soot-secondary); text-decoration: none;
+  font-size: 13.5px; line-height: 2;
+  transition: color var(--dur-micro) var(--ease-enter);
+}
+.foot-cols nav a:hover { color: var(--saffron); }
+.foot-help {
+  margin: 0; font-size: 13.5px; line-height: 1.65;
+  color: var(--on-soot-secondary); max-inline-size: 44ch; text-wrap: pretty;
+}
+.foot-help a { color: var(--saffron); text-underline-offset: 3px; }
+
+.foot-bottom {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: var(--sp-5); flex-wrap: wrap;
+  padding-block-start: var(--sp-5); border-block-start: 1px solid var(--soot-rule);
+  font-size: 12.5px; color: var(--on-soot-tertiary);
+}
+.foot-legal { display: flex; gap: var(--sp-5); }
+.foot-legal a { color: var(--on-soot-tertiary); text-decoration: none; }
+.foot-legal a:hover { color: var(--saffron); }
+
+@media (max-width: 900px) {
+  .foot { padding-inline: 20px; }
+  .foot-cols { grid-template-columns: 1fr; gap: var(--sp-6); }
+}
+
+/* The page fills the window even when its content does not, so the footer
+   sits at the bottom of a short screen rather than half way up it. */
+.shell { display: flex; flex-direction: column; }
+.page { flex: 1 0 auto; }
+
+
+
+/* Sent here by a count on the dashboard. */
+.lib-narrowed {
+  display: flex; align-items: center; gap: var(--sp-4); flex-wrap: wrap;
+  margin: 0 0 var(--sp-4); padding: 10px 14px;
+  background: var(--surface-sunken); border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-field);
+  font-size: 13.5px; color: var(--text-secondary);
+}
+.lib-narrowed b { color: var(--text-primary); }
+
+/* ── The top bar, on soot ──────────────────────────────────────────────────
+   The secondary colour held at the top and the bottom of every screen, and
+   nowhere in between: soot above, soot below, the white book bracketed by
+   them. Saffron marks the active tab — ember on soot goes muddy, and ember
+   means "act", which a tab is not. */
+.topbar { background: var(--soot); border-block-end: 1px solid var(--soot-rule); }
+.topbar .wordmark { color: var(--on-soot); }
+.topbar .wordmark:hover { color: var(--saffron); }
+.topbar .nav-item { color: var(--on-soot-secondary); }
+.topbar .nav-item:hover { color: var(--on-soot); }
+.topbar .nav-item[aria-current='page'] {
+  color: var(--on-soot);
+  box-shadow: inset 0 -2px 0 var(--saffron);
+}
+.topbar .nav-item[aria-current='page'] svg { color: var(--saffron); }
+.topbar .topbar-org { color: var(--on-soot-secondary); }
+.topbar .acct-trigger:hover { background: var(--soot-rule); }
+.topbar .acct-trigger:hover .topbar-org { color: var(--on-soot); }
+.topbar .acct-caret { color: var(--on-soot-tertiary); }
+.topbar .avatar { background: var(--saffron); color: var(--soot); }
+.topbar .currency-chip {
+  background: transparent; border-color: var(--soot-rule); color: var(--on-soot-secondary);
+}
+.topbar .currency-chip:hover { background: var(--soot-rule); color: var(--on-soot); }
+/* The frame no longer needs a gap above it: the soot edge is the edge. */
+.page { margin-block-start: 0; border-block-start: 0; border-start-start-radius: 0; border-start-end-radius: 0; }
+
+/* A tile is a link now, and must not read as a paragraph of links. */
+a.dc-card, a.dc-card:hover { text-decoration: none; color: inherit; }
+a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: none; }
+
+/* ── Fewer words ───────────────────────────────────────────────────────────
+   The headline says its figure once; the month, the counts and the sections
+   keep their verdict and drop the sentence that explained it. */
+.dh-line {
+  margin: 6px 0 0; font-size: 12.5px; color: var(--text-tertiary);
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+}
+.dh-line b { color: var(--text-primary); font-weight: 600; }
+.dh-sep { color: var(--border-strong); }
+.dh-caveat {
+  margin: 10px 0 0; padding: 0; background: none; border: 0;
+  font-size: 12.5px; color: var(--near-ink); display: inline-flex; align-items: center; gap: 8px;
+}
+.dh-caveat i { width: 6px; height: 6px; border-radius: 50%; background: var(--near-control); flex: none; }
+
+.mline { margin: 0; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; font-size: 14.5px; }
+.mline + .mline { margin-block-start: 6px; }
+.mline b { font-weight: 600; color: var(--text-primary); }
+.mline-said { font-family: var(--font-mono), ui-monospace, monospace; font-size: 12px; color: var(--text-tertiary); }
+
+/* ── Recording a month's sales ─────────────────────────────────────────────
+   In place under the section that asked for it, using the width the section
+   uses. A header saying which month, two doors side by side because they are
+   alternatives rather than steps, and one line at the foot: what was
+   understood, and the one action. */
+.sales-panel {
+  margin-block-start: var(--sp-4);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-hairline); border-radius: var(--radius-panel);
+  animation: dc-arrive 240ms var(--ease-enter) both;
+}
+.sp-head {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4);
+  padding: var(--sp-3) 18px; border-block-end: 1px solid var(--border-hairline);
+}
+.sp-month { display: flex; align-items: center; gap: 10px; }
+.sp-month-said { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.sp-select {
+  height: 34px; padding-inline: 10px 8px; font: inherit; font-size: 13.5px;
+  background: var(--surface-card); color: var(--text-primary);
+  border: 1px solid var(--border-control); border-radius: var(--radius-field);
+}
+.sp-close { flex: none; }
+
+.sp-doors {
+  display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--sp-5); padding: var(--sp-4) 18px;
+}
+.sp-door { display: grid; gap: 7px; align-content: start; min-inline-size: 0; }
+.sp-label {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.sp-text {
+  inline-size: 100%; min-block-size: 148px; resize: vertical;
+  font-family: var(--font-mono), ui-monospace, monospace; font-size: 13px; line-height: 1.7;
+  padding: 10px 12px; color: var(--text-primary);
+  background: var(--surface-card);
+  border: 1px solid var(--border-control); border-radius: var(--radius-field);
+}
+.sp-text::placeholder { color: var(--text-quiet); }
+
+.sp-drop {
+  display: grid; justify-items: center; align-content: center; gap: 6px;
+  min-block-size: 148px; padding: var(--sp-4);
+  background: var(--surface-card); color: var(--text-secondary);
+  border: 1px dashed var(--border-control); border-radius: var(--radius-field);
+  cursor: pointer; text-align: center;
+  transition: border-color var(--dur-micro) var(--ease-enter), background var(--dur-micro) var(--ease-enter);
+}
+.sp-drop:hover, .sp-drop.is-over { border-color: var(--accent); background: var(--accent-tint); }
+.sp-drop svg { color: var(--text-tertiary); }
+.sp-drop.is-over svg { color: var(--accent); }
+.sp-drop-say { font-size: 13.5px; font-weight: 500; color: var(--text-primary); }
+.sp-drop-formats { font-size: 11.5px; color: var(--text-tertiary); letter-spacing: 0.04em; }
+.sp-file-hint, .sp-file-name, .sp-file-problem {
+  margin: 0; font-size: 12.5px; line-height: 1.55; text-wrap: pretty;
+}
+.sp-file-hint { color: var(--text-tertiary); }
+.sp-file-name { color: var(--text-secondary); }
+.sp-file-name b { color: var(--text-primary); font-weight: 600; }
+.sp-file-problem { color: var(--over-ink); }
+
+.sp-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4); flex-wrap: wrap;
+  padding: var(--sp-3) 18px; border-block-start: 1px solid var(--border-hairline);
+}
+.sp-read { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; min-inline-size: 0; }
+.sp-hint { font-size: 12.5px; color: var(--text-tertiary); }
+.sp-unmatched { font-size: 12.5px; color: var(--text-secondary); }
+.sp-record { flex: none; }
+
+@media (max-width: 900px) {
+  .sp-doors { grid-template-columns: 1fr; }
+  .sp-drop { min-block-size: 110px; }
+}
+
+/* ── Plate costs, month by month ─────────────────────────────────────────
+   Six bars on a baseline, each with its figure sitting directly on top of it
+   and its month directly under. The figure is a figure and stays ink; the
+   current month's bar is the one warm thing. Padding-inline comes from the
+   "Full width, on white" rule above, like every other block on the page. */
+.tr { display: grid; gap: var(--sp-4); padding-block-end: var(--sp-6); max-width: none; }
+.tr-head { display: grid; gap: 6px; }
+.tr-bars {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(6, minmax(0, 88px)); gap: var(--sp-2);
+  align-items: end;
+  border-block-end: 1px solid var(--border-strong);
+}
+.tr-bar {
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  gap: 5px; block-size: 108px;
+}
+.tr-fig { font-size: 11.5px; color: var(--text-tertiary); line-height: 1; }
+.tr-bar.is-now .tr-fig { color: var(--text-primary); font-weight: 600; }
+.tr-col {
+  inline-size: 100%; flex: none; min-block-size: 6px;
+  border-radius: 3px 3px 0 0;
+  background: var(--surface-sunken); border: 1px solid var(--border-hairline); border-block-end: 0;
+}
+.tr-bar.is-now .tr-col { background: linear-gradient(180deg, var(--saffron), var(--accent)); border-color: transparent; }
+.tr-mon {
+  font-family: var(--font-mono), ui-monospace, monospace; font-size: 11px;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--text-tertiary);
+  line-height: 1; padding-block: 6px 5px;
+}
+
+/* The four sales groups, before there are sales. */
+.me-grid.is-empty .me-group { border-style: dashed; }
+.me-grid.is-empty .me-none { color: var(--text-quiet); }
+
+
+/* ── Headline across, then rows ────────────────────────────────────────────
+   Three rows hugged the left of a wide screen: the figure, the six bars, and
+   the two one-liners of what changed. Each now has a partner on the right.
+   Blocks inside a row give up their own gutter; the row supplies it once. */
+.dh-row {
+  display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+  gap: var(--sp-8); align-items: center; padding-inline: 40px;
+}
+.dh-row .dh, .dh-row .tr { padding-inline: 0; }
+.dh-row .tr { padding-block: 0 var(--sp-2); }
+.dh-row .tr-bars { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+
+/* .td-band, not .td-row — .td-row is each job's own row, and a grid on it
+   turned every job into a two-column block with a coloured rectangle. */
+.td-band {
+  display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+  gap: var(--sp-8); align-items: start; padding-inline: 40px;
+}
+.td-band .td, .td-band .mc, .td-band .dash-block { padding-inline: 0; }
+.td-band .td { padding-block-end: var(--sp-4); }
+.td-side { display: grid; gap: var(--sp-4); padding-block-start: 6px; }
+.td-side .mc { padding-block-end: 0; }
+.td-side .dash-block { padding: 0; }
+.td-side .dash-h {
+  margin: 0 0 6px; font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text-tertiary);
+}
+.td-side > * + * { border-block-start: 1px solid var(--border-hairline); padding-block-start: var(--sp-4); }
+
+@media (max-width: 1100px) {
+  .dh-row, .td-band { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) { .dh-row, .td-band { padding-inline: 20px; } }
+
+/* One line each, but only where there is a line's worth of room: in the
+   narrow hero column under 1100px they must wrap or they run off the edge. */
+@media (min-width: 1101px) {
+  .dh-caveat { flex-wrap: nowrap; white-space: nowrap; }
+  .dh-line { white-space: nowrap; }
+}
+@media (max-width: 1100px) {
+  .dh-caveat { flex-wrap: wrap; white-space: normal; }
+}
+
+
+/* The costing rail: one grid column, its blocks stacked.
+   `WhereItGoes` and `CostRail` were separate children of a two-column grid,
+   so the second of them flowed back into column one and the page changed
+   shape half way down — a narrow rail above, full-width blocks below, and an
+   empty right half for the rest of the page. */
+.costing-rail { display: flex; flex-direction: column; gap: 14px; min-inline-size: 0; }
+/* The rail no longer sticks: with the breakdown above it, it is taller than
+   the window, and a sticky element taller than its viewport hides its own
+   foot — which is where the price is. */
+.costing-rail .rail { position: static; }
+
+/* The gap, said once. Room around it, and the sentence it carries is the
+   whole reason the block exists. */
+.wig-note.is-warn {
+  background: var(--near-tint); border: 1px solid var(--near-edge);
+  border-radius: var(--radius-field); padding: 11px 13px; color: var(--near-ink);
+}
+.wig-note.is-warn b { color: var(--near-ink-strong); }
+
+/* ── Capped blocks sit in the middle ───────────────────────────────────────
+   A measure is right for reading — 840px of prep card, 1000px of import
+   result — and pinning it to the left edge of a 1440 window is not: half the
+   page is left empty beside it and the block reads as the start of a layout
+   that never arrived. Every block with a cap of its own centres within the
+   room it has. Nothing is resized; the width each one asked for is kept. */
+.prep,
+.ic,
+.ac,
+.imp-panel,
+.set-limit {
+  margin-inline: auto;
+}
+/* The prep card's own frame is the page here, so it needs the room its
+   sheet of A4 would have around it — and the row above it and the note below
+   it line up with the sheet rather than with the window. */
+.prep-wrap { padding-block-end: var(--sp-10); }
+.prep-actions, .prep-note { max-inline-size: 840px; margin-inline: auto; }
+
+/* ══ About ═════════════════════════════════════════════════════════════════
+   The one page a stranger reads before signing up, at the width of the
+   window. It was a 74ch column with the widest empty margins in the app.
+
+   MOTION: every section is fully visible at rest and the reveal is added only
+   where a scroll timeline exists and the reader has not asked for less. A
+   page whose content waits on a script is a page that can arrive blank. */
+.ab { min-block-size: 100vh; background: var(--surface-page, #fff); color: var(--text-primary); }
+.ab-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--sp-4) 40px; background: var(--soot); color: var(--on-soot);
+}
+.ab-top .wordmark { color: var(--on-soot); }
+.ab-top .wordmark:hover { color: var(--saffron); }
+.ab-back { font-size: 13px; color: var(--on-soot-secondary); text-decoration: none; }
+.ab-back:hover { color: var(--saffron); }
+
+/* ── the thesis ─────────────────────────────────────────────────────────── */
+.ab-hero {
+  background: var(--soot); color: var(--on-soot);
+  padding: var(--sp-10) 40px var(--sp-14);
+  display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: var(--sp-14); align-items: center;
+}
+.ab-eyebrow {
+  margin: 0 0 var(--sp-4); font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--saffron);
+}
+.ab-h1 {
+  margin: 0 0 var(--sp-5);
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(34px, 3.6vw, 54px); font-weight: 800; line-height: 1.06;
+  letter-spacing: -0.03em; font-variation-settings: "opsz" 72; text-wrap: balance;
+}
+.ab-lede {
+  margin: 0; font-size: 16.5px; line-height: 1.65; color: var(--on-soot-secondary);
+  max-inline-size: 54ch; text-wrap: pretty;
+}
+.ab-hero-cta { display: flex; gap: var(--sp-3); flex-wrap: wrap; margin: var(--sp-6) 0 0; }
+.ab-btn {
+  display: inline-flex; align-items: center; height: 42px; padding-inline: 20px;
+  border-radius: var(--radius-field); text-decoration: none;
+  font-size: 14px; font-weight: 600;
+  background: var(--accent); color: var(--accent-ink);
+  transition: transform var(--dur-micro) var(--ease-enter), background var(--dur-micro) var(--ease-enter);
+}
+.ab-btn:hover { transform: translateY(-1px); }
+.ab-btn.is-quiet { background: transparent; color: var(--on-soot); border: 1px solid var(--soot-rule); }
+.ab-btn.is-quiet:hover { border-color: var(--saffron); color: var(--saffron); }
+
+/* The rate change, drawn as the row it happens in. */
+.ab-demo {
+  margin: 0; padding: var(--sp-5) 20px;
+  background: var(--soot-2, #181C25); border: 1px solid var(--soot-rule);
+  border-radius: var(--radius-panel);
+  box-shadow: 0 30px 70px rgb(0 0 0 / 0.34);
+}
+.ab-demo-cap {
+  font-family: var(--font-mono), ui-monospace, monospace; font-size: 11.5px;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--saffron);
+  margin-block-end: var(--sp-4);
+}
+.ab-demo-rows { display: grid; gap: 2px; }
+.ab-demo-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--sp-4);
+  align-items: baseline; padding: 11px 12px; border-radius: 5px;
+  font-size: 14px; color: var(--on-soot-secondary);
+  background: rgb(255 255 255 / 0.03);
+}
+.ab-demo-row.is-rate { background: rgb(245 179 53 / 0.12); color: var(--on-soot); font-weight: 600; }
+.ab-demo-row.is-over { background: rgb(255 106 61 / 0.14); }
+.ab-demo-was {
+  font-family: var(--font-mono), ui-monospace, monospace; font-size: 12.5px;
+  color: var(--on-soot-tertiary); text-decoration: line-through;
+}
+.ab-demo-now {
+  font-family: var(--font-mono), ui-monospace, monospace; font-size: 13.5px;
+  font-variant-numeric: tabular-nums; color: var(--on-soot); min-inline-size: 76px; text-align: end;
+}
+.ab-demo-row.is-rate .ab-demo-now { color: var(--saffron); }
+.ab-demo-row.is-over .ab-demo-now { color: #FF9B78; }
+.ab-demo-arrow { display: grid; gap: 3px; justify-items: center; padding-block: 8px; }
+.ab-demo-arrow span { inline-size: 2px; block-size: 5px; border-radius: 1px; background: var(--soot-rule); }
+.ab-demo-note {
+  margin: var(--sp-4) 0 0; font-size: 12.5px; line-height: 1.6;
+  color: var(--on-soot-tertiary); text-wrap: pretty;
+}
+
+/* ── the workbook, in figures ───────────────────────────────────────────── */
+.ab-band { padding: var(--sp-10) 40px; background: var(--surface-sunken); border-block-end: 1px solid var(--border-hairline); }
+.ab-band-lead {
+  margin: 0 0 var(--sp-6); font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-tertiary);
+}
+.ab-figs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-6); margin: 0; }
+.ab-fig { display: grid; gap: 6px; padding-inline-start: var(--sp-4); border-inline-start: 2px solid var(--border-hairline); }
+.ab-fig.is-mark { border-inline-start-color: var(--accent); }
+.ab-fig dt {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 48px; font-weight: 800; line-height: 1; letter-spacing: -0.03em;
+  font-variation-settings: "opsz" 60;
+}
+.ab-fig.is-mark dt { color: var(--accent); }
+.ab-fig dd { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--text-secondary); text-wrap: pretty; }
+
+/* ── a heading in the margin, the prose beside it ───────────────────────── */
+.ab-two {
+  display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+  gap: var(--sp-14); padding: var(--sp-14) 40px;
+  border-block-end: 1px solid var(--border-hairline);
+}
+.ab-two-side { position: sticky; top: var(--sp-6); align-self: start; }
+.ab-h2 {
+  margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 26px; font-weight: 800; letter-spacing: -0.02em; font-variation-settings: "opsz" 40;
+}
+.ab-side-note { margin: var(--sp-4) 0 0; font-size: 13.5px; line-height: 1.6; color: var(--text-tertiary); text-wrap: pretty; }
+.ab-p { margin: 0 0 var(--sp-5); font-size: 16px; line-height: 1.7; color: var(--text-primary); max-inline-size: 68ch; text-wrap: pretty; }
+.ab-p:last-child { margin-block-end: 0; }
+
+.ab-costs { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); }
+.ab-costs li {
+  padding: var(--sp-4) 18px; background: var(--surface-sunken);
+  border: 1px solid var(--border-hairline); border-radius: var(--radius-panel);
+  font-size: 15px; line-height: 1.6; color: var(--text-secondary); text-wrap: pretty;
+}
+.ab-costs b { color: var(--text-primary); font-weight: 600; }
+
+/* ── what we do ─────────────────────────────────────────────────────────── */
+.ab-do { padding: var(--sp-14) 40px; border-block-end: 1px solid var(--border-hairline); }
+.ab-pull {
+  margin: 0 0 var(--sp-10);
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(24px, 2.6vw, 38px); font-weight: 800; letter-spacing: -0.025em;
+  font-variation-settings: "opsz" 48; line-height: 1.15; max-inline-size: 22ch; text-wrap: balance;
+}
+.ab-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-8); }
+.ab-step { display: grid; gap: 8px; align-content: start; padding-block-start: var(--sp-4); border-block-start: 2px solid var(--text-primary); }
+.ab-step-n { font-size: 12px; letter-spacing: 0.1em; color: var(--accent); }
+.ab-step-h { margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.ab-step-p { margin: 0; font-size: 14.5px; line-height: 1.65; color: var(--text-secondary); text-wrap: pretty; }
+
+/* ── what this is not ───────────────────────────────────────────────────── */
+.ab-not { padding: var(--sp-14) 40px; }
+.ab-not-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-8); margin-block: var(--sp-5) var(--sp-6); }
+.ab-nots { list-style: none; margin: 0; padding: 0; display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.ab-nots li {
+  padding: 7px 13px; border: 1px dashed var(--border-control); border-radius: 999px;
+  font-size: 13px; color: var(--text-tertiary);
+}
+
+/* ── talk to us ─────────────────────────────────────────────────────────── */
+.ab-end {
+  background: var(--soot); color: var(--on-soot); padding: var(--sp-10) 40px;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-10); flex-wrap: wrap;
+}
+.ab-end-h {
+  margin: 0 0 10px; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 26px; font-weight: 800; letter-spacing: -0.02em; font-variation-settings: "opsz" 40;
+}
+.ab-end-p { margin: 0; font-size: 14.5px; line-height: 1.65; color: var(--on-soot-secondary); max-inline-size: 62ch; text-wrap: pretty; }
+.ab-end-p a { color: var(--saffron); text-underline-offset: 3px; }
+.ab-end-links { display: flex; gap: var(--sp-5); flex-wrap: wrap; margin: 0; }
+.ab-end-links a { font-size: 13.5px; color: var(--on-soot-secondary); text-decoration: none; }
+.ab-end-links a:hover { color: var(--saffron); }
+
+/* ── motion ─────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  .ab-hero-say > *, .ab-demo { animation: ab-rise 620ms var(--ease-enter) both; }
+  .ab-eyebrow { animation-delay: 60ms; }
+  .ab-h1 { animation-delay: 130ms; }
+  .ab-lede { animation-delay: 210ms; }
+  .ab-hero-cta { animation-delay: 290ms; }
+  .ab-demo { animation-delay: 240ms; }
+  .ab-demo-row { animation: ab-rise 520ms var(--ease-enter) both; }
+  .ab-demo-row:nth-child(1) { animation-delay: 420ms; }
+  .ab-demo-row:nth-child(3) { animation-delay: 560ms; }
+  .ab-demo-row:nth-child(4) { animation-delay: 640ms; }
+  .ab-demo-row:nth-child(5) { animation-delay: 720ms; }
+}
+@keyframes ab-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+/*
+ * The scroll reveal, as progressive enhancement only.
+ *
+ * Inside @supports, so a browser without a scroll timeline renders every
+ * section at rest rather than at zero opacity waiting for something that will
+ * never run.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .rv {
+      animation: ab-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 46%;
+    }
+  }
+}
+
+@media (max-width: 1100px) {
+  .ab-hero { grid-template-columns: 1fr; gap: var(--sp-8); padding-block: var(--sp-8) var(--sp-10); }
+  .ab-two { grid-template-columns: 1fr; gap: var(--sp-5); padding-block: var(--sp-10); }
+  .ab-two-side { position: static; }
+  .ab-figs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ab-steps, .ab-not-grid { grid-template-columns: 1fr; gap: var(--sp-6); }
+}
+@media (max-width: 900px) {
+  .ab-top, .ab-hero, .ab-band, .ab-two, .ab-do, .ab-not, .ab-end { padding-inline: 20px; }
+}
+
+/* ══ Privacy and Terms ═════════════════════════════════════════════════════
+   One measure down the middle of the window, with half the page empty either
+   side and no way to see what the page covered without reading all of it.
+   Now: a soot header, the facts that matter as figures, a standing contents
+   in the left margin, and the sections beside it. */
+.lg { min-block-size: 100vh; background: var(--surface-page, #fff); color: var(--text-primary); }
+.lg-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--sp-4) 40px; background: var(--soot); color: var(--on-soot);
+}
+.lg-top .wordmark { color: var(--on-soot); }
+.lg-top .wordmark:hover { color: var(--saffron); }
+.lg-back { font-size: 13px; color: var(--on-soot-secondary); text-decoration: none; }
+.lg-back:hover { color: var(--saffron); }
+
+.lg-hero { background: var(--soot); color: var(--on-soot); padding: var(--sp-8) 40px var(--sp-14); }
+.lg-eyebrow {
+  margin: 0 0 var(--sp-3); font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--saffron);
+}
+.lg-h1 {
+  margin: 0 0 var(--sp-5); font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(38px, 4.4vw, 66px); font-weight: 800; line-height: 1.02;
+  letter-spacing: -0.035em; font-variation-settings: "opsz" 88;
+}
+.lg-summary {
+  margin: 0; font-size: 17px; line-height: 1.65; color: var(--on-soot-secondary);
+  max-inline-size: 62ch; text-wrap: pretty;
+}
+.lg-note { margin: var(--sp-3) 0 0; font-size: 13px; color: var(--on-soot-tertiary); }
+
+/* The four things somebody actually came to find out. */
+.lg-facts { padding: var(--sp-8) 40px; background: var(--surface-sunken); border-block-end: 1px solid var(--border-hairline); }
+.lg-facts dl { margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-6); }
+.lg-fact { display: grid; gap: 6px; padding-inline-start: var(--sp-4); border-inline-start: 2px solid var(--border-hairline); }
+.lg-fact:first-child { border-inline-start-color: var(--accent); }
+.lg-fact dt {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 42px; font-weight: 800; line-height: 1; letter-spacing: -0.03em;
+  font-variation-settings: "opsz" 56;
+}
+.lg-fact:first-child dt { color: var(--accent); }
+.lg-fact dd { margin: 0; font-size: 13px; line-height: 1.5; color: var(--text-secondary); text-wrap: pretty; }
+
+.lg-body {
+  display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+  gap: var(--sp-14); padding: var(--sp-14) 40px;
+}
+.lg-toc { position: sticky; top: var(--sp-6); align-self: start; }
+.lg-toc-h {
+  margin: 0 0 var(--sp-3); font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-tertiary);
+}
+.lg-toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.lg-toc a {
+  display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 4px; align-items: baseline;
+  padding: 7px 8px; margin-inline-start: -8px; border-radius: 5px;
+  font-size: 14px; color: var(--text-secondary); text-decoration: none;
+  transition: background var(--dur-micro) var(--ease-enter), color var(--dur-micro) var(--ease-enter);
+}
+.lg-toc a .figure { font-size: 11px; color: var(--text-quiet); }
+.lg-toc a:hover { background: var(--surface-sunken); color: var(--text-primary); }
+
+.lg-sections { display: grid; gap: var(--sp-10); min-inline-size: 0; }
+.lg-section { scroll-margin-block-start: var(--sp-6); display: grid; gap: 8px; }
+.lg-section-n { font-size: 11.5px; letter-spacing: 0.1em; color: var(--accent); }
+.lg-h2 {
+  margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 24px; font-weight: 800; letter-spacing: -0.02em; font-variation-settings: "opsz" 36;
+}
+.lg-p { margin: 0; font-size: 16.5px; line-height: 1.75; color: var(--text-primary); max-inline-size: 72ch; text-wrap: pretty; }
+.lg-p a { color: var(--text-primary); text-underline-offset: 3px; }
+
+.lg-foot {
+  background: var(--soot); color: var(--on-soot); padding: var(--sp-10) 40px;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-10); flex-wrap: wrap;
+}
+.lg-foot-mark {
+  margin: 0 0 8px; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 24px; font-weight: 800; letter-spacing: -0.02em; font-variation-settings: "opsz" 40;
+}
+.lg-foot-said { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--on-soot-secondary); max-inline-size: 56ch; text-wrap: pretty; }
+.lg-foot-links { display: flex; gap: var(--sp-5); flex-wrap: wrap; margin: 0; }
+.lg-foot-links a { font-size: 13.5px; color: var(--on-soot-secondary); text-decoration: none; }
+.lg-foot-links a:first-child { color: var(--saffron); }
+.lg-foot-links a:hover { color: var(--saffron); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .lg-hero > * { animation: ab-rise 620ms var(--ease-enter) both; }
+  .lg-eyebrow { animation-delay: 60ms; }
+  .lg-h1 { animation-delay: 130ms; }
+  .lg-summary { animation-delay: 210ms; }
+  .lg-note { animation-delay: 270ms; }
+  .lg-fact { animation: ab-rise 560ms var(--ease-enter) both; }
+  .lg-fact:nth-child(1) { animation-delay: 300ms; }
+  .lg-fact:nth-child(2) { animation-delay: 370ms; }
+  .lg-fact:nth-child(3) { animation-delay: 440ms; }
+  .lg-fact:nth-child(4) { animation-delay: 510ms; }
+}
+
+@media (max-width: 1100px) {
+  .lg-facts dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lg-body { grid-template-columns: 1fr; gap: var(--sp-8); padding-block: var(--sp-10); }
+  .lg-toc { position: static; }
+}
+@media (max-width: 900px) {
+  .lg-top, .lg-hero, .lg-facts, .lg-body, .lg-foot { padding-inline: 20px; }
 }
