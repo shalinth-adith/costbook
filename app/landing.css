@@ -1,18 +1,30 @@
 /**
- * A29 — the landing page.
+ * The entry screen.
  *
  * Every selector is namespaced under `.lp`. This file is loaded by a page, and
  * a page stylesheet in Next is global whatever it intends — `lib/css-scope.test.ts`
  * holds it to the prefix.
  *
- * Five blocks, evenly spaced at 132px, because the page reads like the cover
- * of a ledger rather than a pitch. Mono appears only inside figures.
+ * Two clocks run on this page and nowhere else in the product.
+ *
+ *   The entrance — once. The words rise, the lines draw, the boxes arrive.
+ *   The cycle — 14s, forever. The rate flips, the pulse runs, the dishes
+ *   reprice, the page holds long enough to read, then settles and goes again.
+ *
+ * Everything below the fold arrives as it is reached and then keeps still.
+ * The static CSS is always the finished state: reduced motion turns every
+ * animation off and gets the page as it looks when it has finished moving.
  */
 
 .lp {
   min-height: 100vh;
   background: var(--surface-page);
   color: var(--text-primary);
+
+  /* Two shades the semantic hues do not have: their on-soot versions. */
+  --lp-up: #F2916E;
+  --lp-ok: #8AD3B4;
+  --lp-cycle: 14s;
 }
 
 /* ── the bar ───────────────────────────────────────────────────────── */
@@ -21,12 +33,11 @@
   position: sticky; inset-block-start: 0; z-index: 10;
   height: 76px; display: flex; align-items: center; justify-content: space-between;
   padding-inline: 72px;
-  background: var(--surface-page);
-  border-block-end: 1px solid transparent;
+  background: transparent;
 }
 .lp-nav-links { display: flex; align-items: center; gap: 22px; }
-.lp-link { font-size: 14px; font-weight: 500; color: var(--text-secondary); text-decoration: none; }
-.lp-link:hover { color: var(--text-primary); }
+.lp-link { font-size: 14px; font-weight: 500; color: var(--on-soot-secondary); text-decoration: none; }
+.lp-link:hover { color: var(--saffron); }
 
 /* Present in the layout at all times, so its arrival shifts nothing beside
    it. Inert, not merely faded: it cannot be tabbed to before it is offered. */
@@ -35,43 +46,217 @@
   transition: opacity var(--dur-micro) var(--ease-enter), visibility var(--dur-micro);
 }
 .lp-nav-cta.is-shown { opacity: 1; visibility: visible; }
+.lp-top .lp-nav-cta { background: var(--saffron); border-color: var(--saffron); color: var(--soot); }
+.lp-top .lp-nav-cta:hover { background: #FFC55A; border-color: #FFC55A; }
 
 .lp-nav-mark { height: 1px; margin-block-start: -1px; }
 
-.lp-btn-lg {
-  block-size: 58px; padding-inline: 30px; border-radius: 6px;
-  font-size: 17px; font-weight: 600; letter-spacing: -0.005em;
-}
+/* ══ 1 · the entry screen, on soot ═════════════════════════════════════ */
 
-/* ── 1 · the sentence ──────────────────────────────────────────────── */
+.lp-top {
+  position: relative; isolation: isolate; overflow: hidden;
+  background: var(--soot); color: var(--on-soot);
+}
+.lp-top .wordmark { color: var(--on-soot); }
+.lp-top .wordmark:hover { color: var(--saffron); }
+
+/* The ground behind everything: a faint grid, a warm glow where the ripple
+   ends. It drifts, slowly enough that nobody watches it — it is the reason
+   the dark is not flat, not a thing to look at. */
+.lp-top-bg {
+  position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(60% 55% at 78% 40%, rgb(245 179 53 / 0.13), transparent 70%),
+    radial-gradient(40% 40% at 12% 90%, rgb(255 106 61 / 0.08), transparent 70%),
+    radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.055) 1px, transparent 1.5px);
+  background-size: 100% 100%, 100% 100%, 28px 28px;
+  mask-image: linear-gradient(to bottom, #000 70%, transparent);
+}
 
 .lp-hero {
-  padding: 112px 72px 0;
-  display: flex; flex-direction: column; gap: 40px; align-items: flex-start;
+  display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 48px; align-items: center;
+  padding: 56px 72px 72px;
+  min-height: calc(100vh - 76px - 60px);
 }
-.lp-hero h1 {
-  margin: 0; font-size: 60px; font-weight: 600; letter-spacing: -0.035em;
-  line-height: 1.1; max-width: 900px; text-wrap: pretty;
+.lp-hero-say { display: flex; flex-direction: column; align-items: flex-start; gap: 26px; }
+
+.lp-eyebrow {
+  margin: 0; font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--saffron);
 }
+.lp-hero-eyebrow { display: flex; align-items: center; gap: 12px; }
+.lp-hero-eyebrow::before {
+  content: ''; inline-size: 28px; block-size: 1px; background: var(--saffron);
+}
+
+.lp-h1 {
+  margin: 0; display: flex; flex-direction: column;
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(42px, 4.5vw, 64px); font-weight: 800; line-height: 1.04;
+  letter-spacing: -0.035em; font-variation-settings: "opsz" 96;
+  color: var(--on-soot); text-wrap: balance;
+}
+.lp-h1-line { display: block; }
+.lp-h1-line.is-lit { color: var(--saffron); }
+
 .lp-lede {
-  margin: 0; font-size: 19px; line-height: 1.6;
-  color: var(--text-secondary); max-width: 660px; text-wrap: pretty;
+  margin: 0; font-size: 18px; line-height: 1.6;
+  color: var(--on-soot-secondary); max-width: 52ch; text-wrap: pretty;
 }
-.lp-act {
-  display: flex; flex-direction: column; gap: 14px; align-items: flex-start;
-  padding-block-start: 6px;
+
+.lp-act { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; padding-block-start: 4px; }
+
+/* The one action, lit. The app's inverse button is invisible on soot. */
+.lp-btn-hero {
+  display: inline-flex; align-items: center; gap: 12px;
+  block-size: 58px; padding-inline: 28px 22px; border-radius: 8px;
+  background: var(--saffron); color: var(--soot); text-decoration: none;
+  font-size: 17px; font-weight: 600; letter-spacing: -0.005em;
+  box-shadow: 0 12px 40px rgb(245 179 53 / 0.28);
+  transition: transform 200ms var(--ease-enter), box-shadow 200ms var(--ease-enter), background 120ms;
 }
-.lp-act-said { font-size: 14px; color: var(--text-tertiary); line-height: 1.5; }
+.lp-btn-hero:hover { background: #FFC55A; transform: translateY(-2px); box-shadow: 0 18px 48px rgb(245 179 53 / 0.36); }
+.lp-btn-hero:focus-visible { outline: 2px solid var(--on-soot); outline-offset: 3px; }
+.lp-btn-hero-arrow { display: inline-block; transition: transform 200ms var(--ease-enter); }
+.lp-btn-hero:hover .lp-btn-hero-arrow { transform: translateX(4px); }
 
-/* ── 2 · the one screen ────────────────────────────────────────────── */
+.lp-act-more {
+  font-size: 15px; font-weight: 500; color: var(--on-soot-secondary);
+  text-decoration: none; padding-block-end: 2px;
+  border-block-end: 1px solid var(--soot-rule);
+  transition: color 120ms, border-color 120ms;
+}
+.lp-act-more:hover { color: var(--on-soot); border-color: var(--on-soot); }
 
-.lp-screen { padding: 132px 72px 0; }
+.lp-proof {
+  list-style: none; margin: 6px 0 0; padding: 0;
+  display: flex; gap: 22px; flex-wrap: wrap;
+  font-size: 13.5px; color: var(--on-soot-tertiary);
+}
+.lp-proof li { display: flex; align-items: center; gap: 8px; }
+.lp-proof li::before {
+  content: ''; inline-size: 6px; block-size: 6px; border-radius: 50%; background: var(--saffron);
+}
+.lp-proof b { color: var(--on-soot-secondary); font-weight: 600; }
+
+/* ── the ripple ─────────────────────────────────────────────────────── */
+
+.lp-ripple { margin: 0; display: grid; gap: 18px; min-width: 0; }
+.lp-rp { inline-size: 100%; block-size: auto; overflow: visible; }
+
+.lp-rp-edge { fill: none; stroke: var(--soot-rule); stroke-width: 1.4; stroke-dasharray: 1; stroke-dashoffset: 0; }
+.lp-rp-comet {
+  fill: none; stroke: var(--saffron); stroke-width: 2.2; stroke-linecap: round;
+  stroke-dasharray: 0.18 1; stroke-dashoffset: -1;
+  filter: drop-shadow(0 0 5px rgb(245 179 53 / 0.9));
+}
+
+.lp-rp-node { opacity: 1; }
+.lp-rp-box { fill: #171B24; stroke: var(--soot-rule); stroke-width: 1; }
+.lp-rp-node.is-root .lp-rp-box { fill: #1B2029; stroke: var(--saffron); stroke-width: 1.2; }
+.lp-rp-dot { fill: var(--soot); stroke: var(--soot-rule); stroke-width: 1.2; }
+.lp-rp-node.is-base .lp-rp-dot { stroke: var(--saffron); }
+
+.lp-rp-label {
+  fill: var(--on-soot); font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 14px; font-weight: 600; letter-spacing: -0.005em;
+}
+.lp-rp-label.is-dish { font-size: 12.5px; font-weight: 500; fill: var(--on-soot-secondary); }
+.lp-rp-unit { fill: var(--on-soot-tertiary); font-family: var(--font-sans), system-ui, sans-serif; font-size: 11px; }
+.lp-rp-fig { font-family: var(--font-mono), ui-monospace, monospace; font-size: 13px; font-weight: 600; fill: var(--on-soot); }
+.lp-rp-node.is-root .lp-rp-fig { font-size: 19px; }
+.lp-rp-node.is-root .lp-rp-now { fill: var(--saffron); }
+.lp-rp-node.is-dish .lp-rp-was { fill: var(--on-soot-secondary); font-weight: 500; }
+.lp-rp-node.is-dish .lp-rp-now { fill: var(--lp-ok); }
+.lp-rp-node.is-crosses .lp-rp-now { fill: var(--lp-up); }
+.lp-rp-ring { fill: none; stroke: var(--lp-up); stroke-width: 1.5; opacity: 0; }
+
+/* Before and after share one place. The static state is "after". */
+.lp-rp-was { opacity: 0; }
+.lp-rp-now { opacity: 1; }
+
+.lp-ripple-said {
+  display: grid; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 24px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2;
+  color: var(--on-soot); padding-inline-start: 16px;
+}
+.lp-ripple-said > span { grid-area: 1 / 1; }
+.lp-ripple-said b { color: var(--saffron); font-weight: 600; }
+
+/* ── the rate strip ─────────────────────────────────────────────────── */
+
+.lp-ticker {
+  display: flex; align-items: stretch;
+  border-block-start: 1px solid var(--soot-rule);
+  background: rgb(0 0 0 / 0.25);
+}
+.lp-ticker-tag {
+  flex: none; display: flex; align-items: center; padding-inline: 72px 22px;
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--saffron);
+  border-inline-end: 1px solid var(--soot-rule);
+}
+.lp-ticker-track { flex: 1; overflow: hidden; min-width: 0; }
+.lp-ticker-run { display: flex; inline-size: max-content; }
+.lp-ticker:hover .lp-ticker-run { animation-play-state: paused; }
+.lp-tick-row { list-style: none; margin: 0; padding: 0; display: flex; }
+.lp-tick {
+  display: flex; align-items: baseline; gap: 10px; padding: 16px 28px;
+  border-inline-end: 1px solid var(--soot-rule); white-space: nowrap;
+}
+.lp-tick-name { font-size: 13px; color: var(--on-soot-secondary); }
+.lp-tick-move { font-size: 13px; color: var(--on-soot); display: inline-flex; gap: 6px; }
+.lp-tick-was { color: var(--on-soot-tertiary); text-decoration: line-through; }
+.lp-tick-arrow { color: var(--on-soot-tertiary); }
+.lp-tick-unit { color: var(--on-soot-tertiary); }
+.lp-tick-share { font-size: 11.5px; font-weight: 600; }
+.lp-tick.is-up .lp-tick-share { color: var(--lp-up); }
+.lp-tick.is-down .lp-tick-share { color: var(--lp-ok); }
+.lp-tick.is-flat .lp-tick-share { color: var(--on-soot-tertiary); }
+
+/* ══ 2 · the screen itself ═════════════════════════════════════════════ */
+
+.lp-screen {
+  display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 72px; align-items: center;
+  padding: 120px 72px;
+  scroll-margin-top: 20px;
+}
+.lp-screen .lp-eyebrow, .lp-lines .lp-eyebrow { color: var(--accent); }
+.lp-screen-say { display: grid; gap: 18px; align-content: start; }
+
+.lp-h2 {
+  margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(30px, 3.2vw, 44px); font-weight: 800; line-height: 1.08;
+  letter-spacing: -0.03em; font-variation-settings: "opsz" 64; text-wrap: balance;
+}
+.lp-h2-quiet { color: var(--text-tertiary); }
+.lp-screen-note { margin: 0; font-size: 16px; line-height: 1.65; color: var(--text-secondary); max-width: 48ch; text-wrap: pretty; }
+.lp-screen-has { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 12px; }
+.lp-screen-has li {
+  position: relative; padding-inline-start: 26px;
+  font-size: 15px; line-height: 1.55; color: var(--text-primary);
+}
+.lp-screen-has li::before {
+  content: ''; position: absolute; inset-inline-start: 0; inset-block-start: 9px;
+  inline-size: 14px; block-size: 2px; background: var(--accent);
+}
+
+.lp-screen-panel { position: relative; }
+/* The one lit object on white: a soft warm halo, not a drop shadow. */
+.lp-screen-panel::before {
+  /* No horizontal bleed: at 768 the 6% ran a pixel past the section. */
+  content: ''; position: absolute; inset: 12% 0 -10% 0; z-index: -1;
+  background: radial-gradient(60% 60% at 50% 60%, rgb(255 106 61 / 0.14), transparent 70%);
+  filter: blur(10px);
+}
 
 .lp-panel {
-  border: 1px solid var(--border-control); border-radius: 8px;
+  border: 1px solid var(--border-control); border-radius: 10px;
   background: var(--surface-card); overflow: hidden;
   padding: 32px 34px;
   display: flex; flex-direction: column; gap: 28px;
+  box-shadow: 0 30px 80px rgb(23 27 36 / 0.14), 0 2px 6px rgb(23 27 36 / 0.06);
 }
 
 .lp-panel-rate { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
@@ -94,7 +279,7 @@
 .lp-panel-rate-now.is-tinted { background: var(--near-tint); color: var(--text-primary); }
 
 .lp-panel-lead {
-  margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.026em;
+  margin: 0; font-size: 30px; font-weight: 600; letter-spacing: -0.026em;
   line-height: 1.22; min-height: 44px; text-wrap: pretty;
 }
 
@@ -139,133 +324,48 @@
   border-block-start: 1px solid var(--border-hairline); padding-block-start: 16px;
 }
 
-/* ── 3 · three lines ───────────────────────────────────────────────── */
+/* ══ 3 · three lines, across ═══════════════════════════════════════════ */
 
-
-/* ── 4 · the price ─────────────────────────────────────────────────── */
-
-
-/* ── 5 · the footer ────────────────────────────────────────────────── */
-
-
-/* ── 768 ───────────────────────────────────────────────────────────── */
-
-@media (max-width: 900px) {
-  .lp-nav { height: 68px; padding-inline: var(--sp-6); }
-  .lp-hero { padding: 72px var(--sp-6) 0; gap: 30px; }
-  .lp-hero h1 { font-size: 40px; letter-spacing: -0.03em; }
-  .lp-lede { font-size: 17px; }
-  .lp-screen, .lp-lines, .lp-price { padding: 88px var(--sp-6) 0; }
-  .lp-panel { padding: 24px 22px; gap: 22px; }
-  .lp-panel-lead { font-size: 26px; }
-  /* The rate and the mark stop competing for one line. */
-  .lp-panel-row { flex-direction: column; align-items: flex-start; gap: 10px; }
-  .lp-panel-row-figures { inline-size: 100%; }
-  .lp-panel-mark { margin-inline-start: auto; }
-}
-
-/* ══ The entry screen, on soot ═════════════════════════════════════════════
-   The nav, the sentence and the one screen sit on the dark ground the app
-   uses top and bottom; the three lines, the price and the footer stay on
-   white. A visitor meets the secondary colour before they meet the product,
-   and the panel — the only thing on the page that moves — is lit against it. */
-
-.lp-top {
-  background: var(--soot); color: var(--on-soot);
-  padding-block-end: 132px;
-}
-.lp-top .lp-nav { background: transparent; }
-.lp-top .lp-nav .wordmark { color: var(--on-soot); }
-.lp-top .lp-nav .wordmark:hover { color: var(--saffron); }
-.lp-top .lp-link { color: var(--on-soot-secondary); }
-.lp-top .lp-link:hover { color: var(--saffron); }
-.lp-top .lp-hero h1 { color: var(--on-soot); }
-.lp-top .lp-lede { color: var(--on-soot-secondary); }
-.lp-top .lp-act-said { color: var(--on-soot-tertiary); }
-.lp-top .lp-screen { padding-block-end: 0; }
-
-/* The panel is the lit object on the dark ground.
-   Its ink is reset: `.lp-top` sets a light colour for the soot around it, and
-   that inherits straight into a white card — every dish name, the rate and
-   the headline rendered white on white. */
-.lp-top .lp-panel {
-  color: var(--text-primary);
-  border-color: var(--soot-rule);
-  box-shadow: 0 40px 90px rgb(0 0 0 / 0.42);
-}
-
-/* ── motion ───────────────────────────────────────────────────────────────
-   One entrance, played once, then the page is still. Nothing loops: a page
-   that keeps moving while you read it is an advertisement. Every figure
-   still cuts to its value — the rule that a figure never animates holds. */
-@media (prefers-reduced-motion: no-preference) {
-  .lp-top .lp-hero h1,
-  .lp-top .lp-lede,
-  .lp-top .lp-act,
-  .lp-top .lp-screen {
-    animation: lp-rise 640ms var(--ease-enter) both;
-  }
-  .lp-top .lp-hero h1 { animation-delay: 80ms; }
-  .lp-top .lp-lede { animation-delay: 200ms; }
-  .lp-top .lp-act { animation-delay: 300ms; }
-  .lp-top .lp-screen { animation-delay: 380ms; animation-duration: 760ms; }
-
-  /* The rows arrive under the rate they follow from, one after another —
-     this is the only stagger on the page, and it is the claim: a rate moves,
-     and these follow it. */
-  .lp-panel-rows > .lp-panel-row { animation: lp-rise 520ms var(--ease-enter) both; }
-  .lp-panel-rows > .lp-panel-row:nth-child(1) { animation-delay: 620ms; }
-  .lp-panel-rows > .lp-panel-row:nth-child(2) { animation-delay: 700ms; }
-  .lp-panel-rows > .lp-panel-row:nth-child(3) { animation-delay: 780ms; }
-  .lp-panel-rows > .lp-panel-row:nth-child(4) { animation-delay: 860ms; }
-
-  /* The three lines and the price arrive as they are reached. Behind
-     @supports, so a browser without a scroll timeline shows them at rest
-     rather than at nothing. */
-  @supports (animation-timeline: view()) {
-    .lp-line-block, .lp-price-said, .lp-price .btn {
-      animation: lp-rise linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 30%;
-    }
-  }
-}
-@keyframes lp-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
-
-@media (max-width: 900px) {
-  .lp-top { padding-block-end: 72px; }
-}
-
-/* ══ Below the fold ════════════════════════════════════════════════════════
-   Three short lines down the left edge of a white page, then a sentence and
-   a button, then a hairline footer: the reader's report was "only white,
-   then snow". Each block now uses the width, and the page alternates ground
-   — soot, white, soot — so it has a rhythm rather than a drift. */
-
-/* ── 3 · three lines, across ──────────────────────────────────────────── */
 .lp-lines {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 56px; padding: 116px 72px;
-  border-block-end: 1px solid var(--border-hairline);
+  padding: 96px 72px 120px;
+  border-block-start: 1px solid var(--border-hairline);
+  display: grid; gap: 56px;
 }
-.lp-line-block { display: grid; gap: 10px; align-content: start; padding-block-start: 20px; border-block-start: 2px solid var(--text-primary); }
+.lp-lines-head { display: grid; gap: 14px; max-width: 60ch; }
+.lp-lines-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
+.lp-line-block {
+  display: grid; gap: 12px; align-content: start;
+  padding: 26px 26px 30px; border-radius: 12px;
+  border: 1px solid var(--border-hairline); background: var(--surface-card);
+  position: relative; overflow: hidden;
+  transition: transform 260ms var(--ease-enter), box-shadow 260ms var(--ease-enter), border-color 260ms;
+}
+.lp-line-block::before {
+  content: ''; position: absolute; inset-inline: 0; inset-block-start: 0;
+  block-size: 3px; background: var(--text-primary);
+  transform: scaleX(0.28); transform-origin: left;
+  transition: transform 320ms var(--ease-enter), background 200ms;
+}
+.lp-line-block:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 24px 50px rgb(23 27 36 / 0.10);
+  border-color: transparent;
+}
+.lp-line-block:hover::before { transform: scaleX(1); background: var(--accent); }
 .lp-line-n { font-size: 12px; letter-spacing: 0.12em; color: var(--accent); }
 .lp-line-h {
   margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
-  font-size: 21px; font-weight: 600; letter-spacing: -0.015em;
+  font-size: 22px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.2;
 }
 .lp-line-block p { margin: 0; font-size: 15px; line-height: 1.65; color: var(--text-secondary); text-wrap: pretty; }
 
-/* ── 4 · the price, on soot ───────────────────────────────────────────── */
+/* ══ 4 · the price, on soot ════════════════════════════════════════════ */
+
 .lp-price {
   background: var(--soot); color: var(--on-soot);
-  padding: 104px 72px;
+  padding: 112px 72px;
   display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   gap: 64px; align-items: start;
-}
-.lp-eyebrow {
-  margin: 0 0 var(--sp-4); font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--saffron);
 }
 .lp-price-h {
   margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
@@ -281,10 +381,13 @@
 .lp-tiers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
 .lp-tier {
   display: grid; gap: 14px; align-content: start;
-  padding: 26px 24px; border-radius: 10px;
+  padding: 26px 24px; border-radius: 12px;
   background: rgb(255 255 255 / 0.04); border: 1px solid var(--soot-rule);
+  transition: transform 260ms var(--ease-enter), border-color 200ms;
 }
+.lp-tier:hover { transform: translateY(-3px); border-color: rgb(255 255 255 / 0.18); }
 .lp-tier.is-paid { background: rgb(245 179 53 / 0.07); border-color: rgb(245 179 53 / 0.34); }
+.lp-tier.is-paid:hover { border-color: rgb(245 179 53 / 0.6); }
 .lp-tier-name {
   margin: 0; font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--on-soot-tertiary);
@@ -306,11 +409,13 @@
   inline-size: 8px; block-size: 8px; border-radius: 2px; background: var(--soot-rule);
 }
 .lp-tier.is-paid .lp-tier-has li::before { background: var(--saffron); }
-.lp-tier-btn { justify-self: start; margin-block-start: 4px; }
+.lp-tier-btn { justify-self: start; margin-block-start: 4px; background: var(--saffron); border-color: var(--saffron); color: var(--soot); }
+.lp-tier-btn:hover { background: #FFC55A; border-color: #FFC55A; }
 .lp-tier-alt { font-size: 13px; line-height: 1.55; color: var(--on-soot-tertiary); }
 .lp-tier-alt a { color: var(--saffron); text-underline-offset: 3px; }
 
-/* ── 5 · the footer ───────────────────────────────────────────────────── */
+/* ══ 5 · the footer ════════════════════════════════════════════════════ */
+
 .lp-foot {
   background: var(--soot); color: var(--on-soot);
   border-block-start: 1px solid var(--soot-rule);
@@ -331,12 +436,151 @@
 .lp-foot-links a { font-size: 13.5px; color: var(--on-soot-secondary); text-decoration: none; }
 .lp-foot-links a:hover { color: var(--saffron); }
 
+/* ══ motion ════════════════════════════════════════════════════════════
+   Under one media query, so turning it off is one line: everything above
+   is the finished state, and nothing here does more than reach back from it. */
+
+@media (prefers-reduced-motion: no-preference) {
+
+  /* ── the entrance, once ──────────────────────────────────────────── */
+  .lp-hero-eyebrow, .lp-h1-line, .lp-lede, .lp-act, .lp-proof {
+    animation: lp-rise 720ms var(--ease-enter) both;
+  }
+  .lp-hero-eyebrow { animation-delay: 60ms; }
+  .lp-h1-line:nth-child(1) { animation-delay: 140ms; }
+  .lp-h1-line:nth-child(2) { animation-delay: 260ms; }
+  .lp-h1-line:nth-child(3) { animation-delay: 380ms; }
+  .lp-lede { animation-delay: 520ms; }
+  .lp-act { animation-delay: 640ms; }
+  .lp-proof { animation-delay: 760ms; }
+  .lp-ticker { animation: lp-fade 900ms var(--ease-enter) 900ms both; }
+
+  .lp-top-bg { animation: lp-drift 60s ease-in-out infinite alternate; }
+
+  /* The lines draw and the boxes arrive, then hand over to the cycle. */
+  .lp-rp-edge.is-a { animation: lp-draw 900ms var(--ease-enter) 500ms both; }
+  .lp-rp-edge.is-b { animation: lp-draw 1000ms var(--ease-enter) 900ms both; }
+  .lp-rp-node.is-root { animation: lp-node 600ms var(--ease-enter) 300ms both; }
+  /* Each box's delay is written inline by the component — after the lines,
+     then staggered down the column. An inline delay replaces this one rather
+     than adding to it, so the whole wait lives there. */
+  .lp-rp-node.is-base, .lp-rp-node.is-dish { animation: lp-node 600ms var(--ease-enter) 1000ms both; }
+
+  /* ── the cycle, forever ──────────────────────────────────────────── */
+  .lp-rp-node.is-root .lp-rp-was,
+  .lp-rp-node.is-root .lp-rp-now,
+  .lp-rp-node.is-root .lp-rp-box {
+    animation-duration: var(--lp-cycle); animation-iteration-count: infinite;
+    animation-timing-function: linear; animation-fill-mode: both;
+  }
+  .lp-rp-node.is-root .lp-rp-was { animation-name: lp-was-root; }
+  .lp-rp-node.is-root .lp-rp-now { animation-name: lp-now-root; }
+  .lp-rp-node.is-root .lp-rp-box { animation-name: lp-flash-root; }
+
+  .lp-rp-comet.is-a { animation: lp-comet-a var(--lp-cycle) linear infinite both; }
+  .lp-rp-comet.is-b { animation: lp-comet-b var(--lp-cycle) linear infinite both; }
+
+  .lp-rp-node.is-dish .lp-rp-was,
+  .lp-ripple-said .lp-rp-was { animation: lp-was-dish var(--lp-cycle) linear infinite both; }
+  .lp-rp-node.is-dish .lp-rp-now,
+  .lp-ripple-said .lp-rp-now { animation: lp-now-dish var(--lp-cycle) linear infinite both; }
+  .lp-rp-node.is-dish .lp-rp-box { animation: lp-flash-dish var(--lp-cycle) linear infinite both; }
+  .lp-rp-ring { animation: lp-ring var(--lp-cycle) linear infinite both; }
+
+  .lp-ticker-run { animation: lp-tick 48s linear infinite; }
+
+  /* ── below the fold, as it is reached ────────────────────────────── */
+  @supports (animation-timeline: view()) {
+    .lp-screen-say, .lp-screen-panel, .lp-lines-head, .lp-line-block,
+    .lp-price-say, .lp-tier {
+      animation: lp-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 32%;
+    }
+    .lp-line-block:nth-child(2) { animation-range: entry 8% entry 40%; }
+    .lp-line-block:nth-child(3) { animation-range: entry 16% entry 48%; }
+    .lp-tier:nth-child(2) { animation-range: entry 8% entry 40%; }
+  }
+}
+
+@keyframes lp-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes lp-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lp-drift {
+  from { background-position: 0 0, 0 0, 0 0; }
+  to   { background-position: -6% 4%, 5% -4%, 14px 14px; }
+}
+@keyframes lp-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes lp-node { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* The root rate: 42.00 until 12%, then 60.00; back again at the end. */
+@keyframes lp-was-root {
+  0%, 22% { opacity: 1; } 23%, 88% { opacity: 0; } 90%, 100% { opacity: 1; }
+}
+@keyframes lp-now-root {
+  0%, 22% { opacity: 0; } 23%, 88% { opacity: 1; } 90%, 100% { opacity: 0; }
+}
+@keyframes lp-flash-root {
+  0%, 21.5% { fill: #1B2029; }
+  22.5% { fill: #3A3220; }
+  26%, 100% { fill: #1B2029; }
+}
+/* A short dash run along the line. Offset 0.18 keeps it just before the
+   start; -1 puts it just past the end. The gap is the path's whole length,
+   so only one dash is ever visible. */
+@keyframes lp-comet-a {
+  0%, 23% { stroke-dashoffset: 0.18; opacity: 1; }
+  30% { stroke-dashoffset: -1; opacity: 1; }
+  30.1%, 100% { stroke-dashoffset: -1; opacity: 0; }
+}
+@keyframes lp-comet-b {
+  0%, 30.5% { stroke-dashoffset: 0.18; opacity: 1; }
+  37.5% { stroke-dashoffset: -1; opacity: 1; }
+  37.6%, 100% { stroke-dashoffset: -1; opacity: 0; }
+}
+/* The dishes reprice as the pulse arrives, and hold for the rest. */
+@keyframes lp-was-dish {
+  0%, 37.5% { opacity: 1; } 39%, 88% { opacity: 0; } 90%, 100% { opacity: 1; }
+}
+@keyframes lp-now-dish {
+  0%, 37.5% { opacity: 0; } 39%, 88% { opacity: 1; } 90%, 100% { opacity: 0; }
+}
+@keyframes lp-flash-dish {
+  0%, 37.5% { fill: #171B24; } 38.5% { fill: #232A38; } 43%, 100% { fill: #171B24; }
+}
+@keyframes lp-ring {
+  0%, 37.5% { r: 4; opacity: 0; }
+  38% { r: 4; opacity: 1; }
+  45% { r: 18; opacity: 0; }
+  100% { r: 18; opacity: 0; }
+}
+@keyframes lp-tick { to { transform: translateX(-50%); } }
+
+/* ══ widths ════════════════════════════════════════════════════════════ */
+
 @media (max-width: 1100px) {
-  .lp-lines { grid-template-columns: 1fr; gap: 40px; padding: 72px 40px; }
+  .lp-hero { grid-template-columns: 1fr; gap: 48px; min-height: 0; padding: 40px 40px 56px; }
+  .lp-screen { grid-template-columns: 1fr; gap: 40px; padding: 80px 40px; }
+  .lp-lines { padding: 72px 40px 88px; }
+  .lp-lines-row { grid-template-columns: 1fr; gap: 16px; }
   .lp-price { grid-template-columns: 1fr; gap: 40px; padding: 72px 40px; }
   .lp-foot { padding-inline: 40px; }
+  .lp-ticker-tag { padding-inline: 40px 20px; }
+}
+@media (max-width: 900px) {
+  .lp-nav { height: 68px; padding-inline: var(--sp-6); }
+  .lp-lede { font-size: 16.5px; }
+  .lp-panel { padding: 24px 22px; gap: 22px; }
+  .lp-panel-lead { font-size: 26px; }
+  /* The rate and the mark stop competing for one line. */
+  .lp-panel-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .lp-panel-row-figures { inline-size: 100%; }
+  .lp-panel-mark { margin-inline-start: auto; }
+  .lp-ripple-said { font-size: 20px; padding-inline-start: 0; }
 }
 @media (max-width: 760px) {
-  .lp-lines, .lp-price, .lp-foot { padding-inline: 20px; }
+  .lp-hero { padding-inline: 20px; }
+  .lp-screen, .lp-lines, .lp-price, .lp-foot { padding-inline: 20px; }
   .lp-tiers { grid-template-columns: 1fr; }
+  .lp-ticker-tag { display: none; }
+  .lp-act { gap: 18px; }
 }
