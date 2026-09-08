@@ -384,7 +384,7 @@
   padding: 120px var(--lp-gutter);
   scroll-margin-top: 76px;
 }
-.lp-screen .lp-eyebrow, .lp-lines .lp-eyebrow { color: var(--accent); }
+.lp-screen .lp-eyebrow, .lp-lines .lp-eyebrow { color: var(--accent-deep); }
 .lp-screen-say { display: grid; gap: 18px; align-content: start; }
 
 .lp-h2 {
@@ -514,7 +514,7 @@
   border-color: transparent;
 }
 .lp-line-block:hover::before { transform: scaleX(1); background: var(--accent); }
-.lp-line-n { font-size: 12px; letter-spacing: 0.12em; color: var(--accent); }
+.lp-line-n { font-size: 12px; letter-spacing: 0.12em; color: var(--accent-deep); }
 .lp-line-h {
   margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
   font-size: 22px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.2;
@@ -582,7 +582,7 @@
   padding: 104px var(--lp-gutter); display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
   gap: 64px; align-items: start; border-block-start: 1px solid var(--border-hairline);
 }
-.lp-faq .lp-eyebrow { color: var(--accent); }
+.lp-faq .lp-eyebrow { color: var(--accent-deep); }
 .lp-faq-head { display: grid; gap: 14px; position: sticky; inset-block-start: 100px; }
 .lp-faq-list { display: grid; }
 .lp-faq-item { border-block-start: 1px solid var(--border-hairline); }

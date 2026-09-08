@@ -4019,7 +4019,7 @@
 .plans-buy { inline-size: 100%; }
 .plans-sandbox { font-size: 12.5px; line-height: 1.5; color: var(--accent); background: var(--accent-tint); padding: 10px 12px; border-radius: 10px; margin: 0; }
 .plans-owner { font-size: 13px; color: var(--text-secondary); margin: 0; }
-.plans-fault { font-size: 13px; color: var(--accent); margin: 0; }
+.plans-fault { font-size: 13px; color: var(--accent-deep); margin: 0; }
 @media (max-width: 1100px) { .plans-body { grid-template-columns: 1fr; gap: 32px; } .plans-live { position: static; } }
 
 /* ── The account menu ───────────────────────────────────────────────────── */
@@ -4881,7 +4881,7 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
   font-size: 42px; font-weight: 800; line-height: 1; letter-spacing: -0.03em;
   font-variation-settings: "opsz" 56;
 }
-.lg-fact:first-child dt { color: var(--accent); }
+.lg-fact:first-child dt { color: var(--accent-deep); }
 .lg-fact dd { margin: 0; font-size: 13px; line-height: 1.5; color: var(--text-secondary); text-wrap: pretty; }
 
 .lg-body {
@@ -4905,7 +4905,7 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 
 .lg-sections { display: grid; gap: var(--sp-10); min-inline-size: 0; }
 .lg-section { scroll-margin-block-start: var(--sp-6); display: grid; gap: 8px; }
-.lg-section-n { font-size: 11.5px; letter-spacing: 0.1em; color: var(--accent); }
+.lg-section-n { font-size: 11.5px; letter-spacing: 0.1em; color: var(--accent-deep); }
 .lg-h2 {
   margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
   font-size: 24px; font-weight: 800; letter-spacing: -0.02em; font-variation-settings: "opsz" 36;
@@ -5296,13 +5296,13 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 .ba-main .bo-step-bar > span { background: var(--border-strong); }
 .ba-main .bo-step.is-watch .bo-step-bar > span { background: var(--accent); }
 .ba-main .bo-step-lost { color: var(--over-ink); }
-.ba-main .bo-branch b { color: var(--accent); }
+.ba-main .bo-branch b { color: var(--accent-deep); }
 
 .ba-main .bo-month-bar { background: var(--surface-sunken); border: 1px solid var(--border-hairline); border-block-end: 0; }
 .ba-main .bo-month.is-now .bo-month-bar { background: linear-gradient(180deg, var(--saffron), var(--accent)); border-color: transparent; }
 
-.ba-main .bo-seg-h b { color: var(--accent); }
-.ba-main .bo-note b { color: var(--accent); }
+.ba-main .bo-seg-h b { color: var(--accent-deep); }
+.ba-main .bo-note b { color: var(--accent-deep); }
 
 /* Rows: hairlines and the light status tints the ledger already uses. */
 .ba-main .bo-table th, .ba-main .bo-table td { border-block-end-color: var(--border-row); }
@@ -5414,7 +5414,7 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
   padding: 12px 14px; border-radius: 8px; background: var(--surface-sunken); border: 1px solid var(--border-hairline);
   font-size: 14px; line-height: 1.55; color: var(--text-secondary); max-inline-size: 72ch;
 }
-.ct-send .figure { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.ct-send .figure { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-deep); }
 .ct-actions { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; padding-block-start: var(--sp-4); }
 .ct-btn {
   display: inline-flex; align-items: center; gap: 12px; block-size: 54px; padding-inline: 26px 20px;
@@ -5470,7 +5470,7 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
   background: #fff; box-shadow: inset 0 0 0 5px var(--accent);
 }
 .plans-term-tag { color: var(--on-ink); }
-.plans-term.is-on .plans-term-tag { color: var(--accent); }
+.plans-term.is-on .plans-term-tag { color: var(--accent-deep); }
 
 /* ══ The back office, made a place to work ═════════════════════════════════
    The console is read by one person forty times a day, and it was a plain
@@ -5509,7 +5509,7 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 .ba-head-say { display: grid; gap: 6px; min-inline-size: 0; }
 .ba-eyebrow {
   margin: 0; font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent);
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-deep);
 }
 .ba-h1 { font-size: 38px; line-height: 1.02; }
 .ba-lede { margin: 2px 0 0; font-size: 14.5px; max-inline-size: 64ch; text-wrap: pretty; }
@@ -5565,7 +5565,7 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 .ba-main .bo-step-bar > span { background: var(--border-control-hover); transform-origin: left center; }
 .ba-main .bo-step.is-watch { background: linear-gradient(90deg, var(--near-tint), transparent 70%); margin-inline: -24px; padding-inline: 24px; border-radius: 8px; }
 .ba-main .bo-step.is-watch .bo-step-bar > span { background: linear-gradient(90deg, var(--saffron), var(--accent)); }
-.ba-main .bo-step.is-watch .bo-step-n { color: var(--accent); }
+.ba-main .bo-step.is-watch .bo-step-n { color: var(--accent-deep); }
 .ba-main .bo-tries { gap: var(--sp-3); }
 .ba-main .bo-tries > div { padding: 12px 14px; border-radius: 10px; background: var(--surface-sunken); border: 1px solid var(--border-hairline); }
 .ba-main .bo-tries > div.is-over { background: var(--over-tint); border-color: var(--over-edge); }
@@ -5635,7 +5635,7 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 .bo-empty-title { margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
 .bo-empty-said { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); max-inline-size: 56ch; text-wrap: pretty; }
 .bo-empty-would { margin: 8px 0 0; display: inline-flex; align-items: baseline; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--surface-card); border: 1px solid var(--border-hairline); font-size: 12.5px; color: var(--text-secondary); }
-.bo-empty-would .figure { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.bo-empty-would .figure { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-deep); }
 
 /* ── one entrance ────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: no-preference) {

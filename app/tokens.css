@@ -14,6 +14,10 @@
   /* The one accent. Primary actions, the live pill, the ring — and nothing
      else, so it always means "act here". */
   --accent: #FF6A3D;
+  /* The same hue, dark enough to be read as text on a light ground: the
+     accent itself is 2.85:1 on white, and WCAG asks 4.5:1 of any text that
+     is not large. Fills, bars and buttons keep --accent; words get this. */
+  --accent-deep: #CC2F00;
   --accent-ink: #FFFFFF;
   --accent-tint: #FFE9E0;
   /* A sky tint for panels that answer the field beside them. */
