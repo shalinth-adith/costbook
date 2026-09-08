@@ -5657,3 +5657,245 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
   .ba-rail-note { display: none; }
   .ba-main .bo-table-wrap { margin-inline: -20px; padding-inline: 20px; }
 }
+
+/* ══ The book, on a phone ══════════════════════════════════════════════════
+   Measured before it was written: at a 390px viewport the document was 789px
+   wide on every screen of the application. Four things caused it, and only
+   four — the five-item top nav (565px), the hero's 96px figure beside its
+   ring (498px), the six-month bar grid, and the two unit toggles in Settings.
+   The public pages and the console already fitted.
+
+   Below 700px the nav moves to a bar at the bottom, where a thumb is, and
+   everything that is not a daily destination goes behind More. Above it,
+   nothing changes: this is one layout with a small mode, not a second site. */
+
+/* Drawn always, shown only on a phone — so the first frame is already right
+   and there is no width to read in JavaScript. */
+.tabbar { display: none; }
+.more-sheet, .more-back { display: none; }
+/*
+ * `hidden` must win, always.
+ *
+ * The sheet is closed with the `hidden` attribute, and `[hidden]`'s
+ * `display: none` is a user-agent rule with almost no specificity — the
+ * `.more-sheet { display: grid }` below beat it, so a closed sheet was still
+ * laid out, at full width, on every screen. Stated here at 0,2,0 so no later
+ * rule can take it back.
+ */
+.more-sheet[hidden] { display: none; }
+
+@media (max-width: 700px) {
+  /* ── the top bar keeps the mark, the currency and the account ───────── */
+  .nav.is-wide { display: none; }
+  .topbar { padding-inline: 16px; gap: var(--sp-3); }
+  .topbar-end { gap: 10px; }
+  .topbar-org { display: none; }
+  /* The app hides the name below 480 to make room for a nav that is no
+     longer there. With the nav on the bottom bar, the mark keeps its word. */
+  .topbar .wordmark > span { display: inline; }
+
+  /* ── the bar itself ─────────────────────────────────────────────────── */
+  .tabbar {
+    position: fixed; inset-inline: 0; inset-block-end: 0; z-index: 40;
+    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+    background: var(--surface-card);
+    border-block-start: 1px solid var(--border-hairline);
+    /* The home indicator sits under the bar on an iPhone; the row is 58px
+       and the inset is whatever the device says it needs. */
+    padding-block-end: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -6px 24px rgb(23 27 36 / 0.06);
+  }
+  .tab {
+    display: grid; justify-items: center; align-content: center; gap: 3px;
+    min-block-size: 58px; padding-block: 8px 7px;
+    font: inherit; font-size: 10.5px; font-weight: 500; letter-spacing: 0.01em;
+    color: var(--text-tertiary); text-decoration: none;
+    background: none; border: 0; cursor: pointer;
+    border-block-start: 2px solid transparent; margin-block-start: -1px;
+  }
+  .tab svg { color: var(--text-tertiary); }
+  /* Weight and a rule, never colour alone — the same rule the wide nav keeps.
+     The rule means "this is the page you are on", so More does not take it
+     when its sheet is open: two rules would name two current pages. */
+  .tab[aria-current='page'] {
+    color: var(--text-primary); font-weight: 600;
+    border-block-start-color: var(--on-ink);
+  }
+  .tab[aria-current='page'] svg { color: var(--on-ink); }
+  .tab.is-on { color: var(--text-primary); font-weight: 600; }
+  .tab.is-on svg { color: var(--text-primary); }
+  .tab:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -3px; }
+
+  /* ── More ───────────────────────────────────────────────────────────── */
+  .more-back {
+    display: block; position: fixed; inset: 0; z-index: 41;
+    background: rgb(15 18 25 / 0.4);
+    animation: more-fade 160ms var(--ease-enter) both;
+  }
+  .more-sheet {
+    display: grid; gap: 2px; position: fixed; z-index: 42;
+    inset-inline: 8px; inset-block-end: calc(58px + env(safe-area-inset-bottom, 0px) + 8px);
+    padding: 10px; border-radius: 14px;
+    background: var(--surface-card); border: 1px solid var(--border-hairline);
+    box-shadow: 0 20px 50px rgb(23 27 36 / 0.22);
+    animation: more-rise 200ms var(--ease-enter) both;
+  }
+  .more-who {
+    margin: 2px 0 6px; padding-inline: 10px;
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary);
+  }
+  .more-item {
+    display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 12px; align-items: center;
+    padding: 11px 10px; border-radius: 8px; text-decoration: none; color: var(--text-primary);
+  }
+  .more-item:active { background: var(--surface-sunken); }
+  .more-item svg { color: var(--text-tertiary); }
+  .more-said { display: grid; gap: 1px; min-inline-size: 0; }
+  .more-said b { font-size: 14.5px; font-weight: 600; }
+  .more-said { font-size: 12px; line-height: 1.4; color: var(--text-tertiary); }
+  .more-out {
+    margin-block-start: 4px; inline-size: 100%; min-block-size: 44px;
+    font: inherit; font-size: 14px; font-weight: 500; color: var(--over-ink-strong);
+    background: none; border: 0; border-block-start: 1px solid var(--border-hairline);
+    cursor: pointer; text-align: start; padding-inline: 10px;
+  }
+
+  /* Nothing hides behind the bar. */
+  .shell { padding-block-end: calc(58px + env(safe-area-inset-bottom, 0px)); }
+
+  /*
+   * The dish page's own sticky foot sits on the bar, not under it.
+   *
+   * Its buttons carry `min-width: 160px` and its link is pushed to the far
+   * end, which is 521px of row — the last screen in the book that did not
+   * fit. The row wraps, the buttons share the width, and the whole strip is
+   * lifted clear of the tab bar so neither covers the other.
+   */
+  .sheet-footer { inset-block-end: calc(58px + env(safe-area-inset-bottom, 0px)); z-index: 39; }
+  .sheet-footer-inner { padding: 10px 16px; }
+  /* Two controls to a line, the link on its own — the labels do not wrap,
+     so shrinking them was never going to work; they need rows. */
+  .sheet-footer .rail-actions-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .sheet-footer .rail-actions-row .btn { inline-size: 100%; min-width: 0; justify-content: center; }
+  .sheet-footer .rail-actions-row .link { grid-column: 1 / -1; margin-inline-start: 0; text-align: center; }
+
+  /*
+   * The components table scrolls inside itself.
+   *
+   * Seven columns of which six are fixed — 442px of track before the name
+   * has any width. Reordering them into a card by nth-child would be a
+   * layout that breaks the first time a column is added; the figures are
+   * the point of this table, and a table of figures that scrolls sideways
+   * *within its own frame* keeps all of them. The document does not move,
+   * which is the thing that was broken.
+   */
+  .ctable { overflow-x: auto; overscroll-behavior-x: contain; }
+  .ctable-head, .ctable-row { min-inline-size: 520px; }
+  /* The breathing shadow on a strip this tight reads as a flicker. */
+  .sheet-footer .btn-primary:not(:disabled) { animation: none; }
+
+  /*
+   * The dish's five figures.
+   *
+   * 34px of "AED 51.66" in a 160px tile is wider than the tile, and the
+   * rule that draws it ends in `text-overflow: ellipsis` — so the screen
+   * showed "AED …", which is the one thing a costing tile must never do.
+   * Smaller type, and the ellipsis removed: a figure either fits or wraps,
+   * it is never abbreviated away.
+   */
+  .dish-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 6px 16px 14px; }
+  .dish-tile { padding: 14px 14px; }
+  .dish-tile-fig { font-size: 24px; white-space: normal; overflow: visible; text-overflow: clip; }
+  .dish-tile-unit { font-size: 12.5px; }
+
+  /* ── the hero: the figure over the ring, not beside it ──────────────── */
+  /* 96px of "AED 71" and a 160px ring on one line is 498px, and no phone is
+     that wide. Stacked, and the figure stays the biggest thing on the page. */
+  .dh-ring-wrap { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .dh-ring-figure { font-size: 56px; }
+  .dh-ring { gap: var(--sp-5); }
+
+  /* ── six months, at whatever width there is ─────────────────────────── */
+  .tr-bars { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
+  .tr-mon { font-size: 9.5px; letter-spacing: 0.02em; }
+  .tr-fig { font-size: 10px; }
+
+  /* ── Settings' two unit toggles, one under the other ────────────────── */
+  /*
+   * The page head, and the actions in it.
+   *
+   * `.page-actions` is `flex: none` — right on a laptop, where the title and
+   * its buttons share a line, and wrong here: two buttons of 282px cannot
+   * shrink, so the head ran to 494px and took the document with it. On a
+   * phone the actions take their own line under the title and fill it.
+   */
+  .page-head { flex-direction: column; align-items: stretch; gap: var(--sp-3); padding-inline: 16px; }
+  .page-actions { flex: 1 1 auto; flex-wrap: wrap; }
+  .page-actions > * { flex: 1 1 auto; justify-content: center; }
+
+  /*
+   * Settings is three columns — a 224px index, the body, and a 400px card.
+   * 624px of fixed track before the body has any width at all, so the whole
+   * screen was 628px wide. One column, in reading order: the index becomes a
+   * row of chips, the body, then the account card under it.
+   */
+  .set-cols { grid-template-columns: minmax(0, 1fr); gap: var(--sp-5); }
+  .set-nav { position: static; flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .set-nav-item { flex: 0 0 auto; }
+  .set-live { position: static; }
+  /*
+   * And every row inside it is a second two-column grid — a 260px label
+   * against the control. On a 358px body that leaves the control 41px, so
+   * the unit toggles sat in a 41px track and hung 187px out of it. The label
+   * goes above what it labels.
+   */
+  .set-row { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .set-row-help { max-inline-size: none; }
+  .set-input { max-inline-size: none; }
+
+  /*
+   * The add-an-ingredient row: five columns, two of them fixed at 110 and
+   * 190. It is the screen on a laptop and it has to stay one gesture on a
+   * phone — name on its own line, then quantity, unit and price across.
+   */
+  .entry-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-3) 10px; align-items: end; }
+  .entry-row > .entry-name { grid-column: 1 / -1; }
+  .entry-row > *:last-child { grid-column: 1 / -1; }
+  .entry-row .btn { inline-size: 100%; }
+
+  /* "g — grams | kg — kilos" beside "ml — millilitres | L — litres" is
+     435px of min-content. A grid of one column cannot be widened by what is
+     in it, which `display: flex` with wrapping could — and did. */
+  .set-units { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-4); }
+  .set-unit-group { min-inline-size: 0; }
+  .set-unit-group .set-seg { display: flex; min-inline-size: 0; }
+  /* `block-size: 40px` and a shrunk track clipped "ml — millilitres" to
+     "ml — millilit". The button grows to its words instead. */
+  .set-unit-group .set-seg-item {
+    flex: 1 1 0; min-inline-size: 0; padding: 8px 6px;
+    block-size: auto; min-block-size: 44px; font-size: 12.5px; line-height: 1.25;
+  }
+
+  /* ── the page's own gutters ─────────────────────────────────────────── */
+  .costing, .nd, .set, .dh, .dash-hero, .dash-block, .stats.dash-top, .td, .mc, .tr { padding-inline: 16px; }
+  .page { margin-inline: 0; border-inline: 0; border-radius: 0; }
+
+  /*
+   * The footer inside the book is one line, not three columns.
+   *
+   * A full marketing footer — a map of the product, a pitch and a stamp —
+   * under every working screen is noise on a laptop and a second screenful
+   * on a phone. Nobody on the dashboard needs "What this is". The public
+   * pages keep theirs; this is the book's.
+   */
+  .shell .foot { padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px)); }
+  .shell .foot-top, .shell .foot-cols { display: none; }
+  .shell .foot-bottom { flex-direction: column; align-items: flex-start; gap: 8px; }
+}
+
+@keyframes more-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes more-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .more-back, .more-sheet { animation: none; }
+}

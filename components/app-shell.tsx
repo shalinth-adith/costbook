@@ -27,6 +27,9 @@ const NAV_ICON: Readonly<Record<string, string>> = {
   Ingredients: 'M4 10h16l-1.5 9h-13zM8 10V7a4 4 0 018 0v3',
   Import: 'M12 4v11M7 10l5 5 5-5M5 20h14',
   Settings: 'M4 7h10M18 7h2M4 17h4M12 17h8M14 4.5v5M8 14.5v5',
+  More: 'M5 12h.01M12 12h.01M19 12h.01',
+  Help: 'M12 17h.01M9.2 9a2.8 2.8 0 115.2 1.4c-.6 1-1.9 1.3-2.2 2.4M4 4h16v16H4z',
+  Plan: 'M4 6h16v12H4zM4 10h16M8 14h4',
 };
 
 const NAV = [
@@ -35,6 +38,31 @@ const NAV = [
   { label: 'Ingredients', href: '/ingredients' },
   { label: 'Import', href: '/import' },
   { label: 'Settings', href: '/settings' },
+] as const;
+
+/**
+ * The bottom bar, on a phone.
+ *
+ * Five items across the top of a 390px screen is 565px of nav, which is why
+ * the whole application scrolled sideways on a phone. Three destinations and
+ * a More, at the bottom where a thumb is — the two that are visited daily,
+ * the one that is visited weekly, and everything else behind one press.
+ *
+ * Import is not on the bar. It is a monthly rhythm, not a daily one, and a
+ * bar of four is the most a thumb reads at a glance.
+ */
+const TABS = [
+  { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Recipes', href: '/recipes' },
+  { label: 'Ingredients', href: '/ingredients' },
+] as const;
+
+/** What More opens. Everything the bar could not hold, and the way out. */
+const MORE = [
+  { label: 'Import', href: '/import', said: 'Bring a supplier sheet in' },
+  { label: 'Settings', href: '/settings', said: 'Your kitchen, and the rules you price by' },
+  { label: 'Plan', href: '/plans', said: 'What you are on, and what it costs' },
+  { label: 'Help', href: '/help', said: 'Ask us — the reply lands on that page' },
 ] as const;
 
 /** The operator's initials, standing in for an account menu. */
@@ -65,6 +93,8 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  /** The phone's More sheet. Never opens on a laptop — the bar is hidden there. */
+  const [more, setMore] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [pending, start] = useTransition();
 
@@ -83,7 +113,7 @@ export function AppShell({
       <header className="topbar">
         <Wordmark mode="app" />
 
-        <nav className="nav" aria-label="Main">
+        <nav className="nav is-wide" aria-label="Main">
           {NAV.map((item) => (
             <Link
               key={item.label}
@@ -166,6 +196,63 @@ export function AppShell({
 
       {/* Where the page ends, and where to find a person. */}
       <AppFooter />
+
+      {/*
+        * The bottom bar and its More sheet. Drawn always, shown only below
+        * 700px: rendering it on a media query rather than on a width read in
+        * JavaScript means it is correct in the first frame, with no flash of
+        * the wrong shell and nothing to measure.
+        */}
+      <nav className="tabbar" aria-label="Main">
+        {TABS.map((item) => (
+          <Link
+            key={item.label}
+            href={item.href}
+            className="tab"
+            aria-current={item.label === current ? 'page' : undefined}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d={NAV_ICON[item.label] ?? NAV_ICON.Dashboard} />
+            </svg>
+            <span>{item.label}</span>
+          </Link>
+        ))}
+        <button
+          type="button"
+          className={`tab${more ? ' is-on' : ''}`}
+          aria-expanded={more}
+          onClick={() => setMore((v) => !v)}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+            <path d={NAV_ICON.More ?? ''} />
+          </svg>
+          <span>More</span>
+        </button>
+      </nav>
+
+      {more && (
+        <div className="more-back" onClick={() => setMore(false)} aria-hidden="true" />
+      )}
+      <div className={`more-sheet${more ? ' is-open' : ''}`} hidden={!more}>
+        <p className="more-who">{orgName}</p>
+        {MORE.map((item) => (
+          <Link key={item.label} href={item.href} className="more-item" onClick={() => setMore(false)}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d={NAV_ICON[item.label] ?? NAV_ICON.Settings} />
+            </svg>
+            <span className="more-said">
+              <b>{item.label}</b>
+              {item.said}
+            </span>
+          </Link>
+        ))}
+        <form action={signOut}>
+          <button type="submit" className="more-out">Sign out</button>
+        </form>
+      </div>
 
       <CurrencySheet
         open={open}
