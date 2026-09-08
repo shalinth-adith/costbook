@@ -5987,10 +5987,10 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
    The one screen somebody opens when something is already wrong was a form
    and the words "Nothing yet." These are the six a kitchen asks, answered
    in the product rather than in a support thread. */
-.hp-empty { display: grid; gap: var(--sp-4); }
+.hp-empty-said { margin: 0; }
 .hp-empty-said { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); text-wrap: pretty; }
 .hp-faq-h {
-  margin: var(--sp-2) 0 0; font-family: var(--font-mono), ui-monospace, monospace;
+  margin: var(--sp-6) 0 var(--sp-2); font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary);
 }
 .hp-faq { display: grid; }

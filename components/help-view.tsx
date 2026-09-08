@@ -138,6 +138,28 @@ export function HelpView({
         {said !== null && (
           <p className={`hp-said${said.ok ? ' is-ok' : ' is-bad'}`} role="status">{said.message}</p>
         )}
+
+        {/*
+          * Six answers, under the form rather than inside the empty state.
+          *
+          * They were drawn only when nothing had been asked, which is the one
+          * moment they are least likely to be needed twice: an operator with
+          * an answered thread from March still has the same six questions in
+          * front of them in June. Read before a question is sent, and the
+          * question that is sent is a better one for it.
+          */}
+        <h3 className="hp-faq-h">Answered already</h3>
+        <div className="hp-faq">
+          {HELP_QUESTIONS.map(([q, a]) => (
+            <details className="hp-faq-item" key={q}>
+              <summary className="hp-faq-q">
+                <span>{q}</span>
+                <span className="hp-faq-mark" aria-hidden="true" />
+              </summary>
+              <p className="hp-faq-a">{a}</p>
+            </details>
+          ))}
+        </div>
       </section>
 
       <section className="hp-threads">
@@ -145,31 +167,10 @@ export function HelpView({
           What you have asked{threads.length > 0 ? ` (${String(threads.length)})` : ''}
         </h2>
         {threads.length === 0 ? (
-          /*
-            * The screen a stuck person opens should not be the plainest one
-            * in the book. Nothing has been asked yet, and the six things most
-            * people would have asked are answered here — the same six the
-            * landing page answers, so the two can never drift — with the
-            * address under them for the seventh.
-            */
-          <div className="hp-empty">
-            <p className="hp-empty-said">
-              Nothing yet. Anything you send lands here, and so does the reply —
-              you need not watch an inbox.
-            </p>
-            <h3 className="hp-faq-h">While you are here</h3>
-            <div className="hp-faq">
-              {HELP_QUESTIONS.map(([q, a]) => (
-                <details className="hp-faq-item" key={q}>
-                  <summary className="hp-faq-q">
-                    <span>{q}</span>
-                    <span className="hp-faq-mark" aria-hidden="true" />
-                  </summary>
-                  <p className="hp-faq-a">{a}</p>
-                </details>
-              ))}
-            </div>
-          </div>
+          <p className="hp-empty-said">
+            Nothing yet. Anything you send lands here, and so does the reply —
+            you need not watch an inbox.
+          </p>
         ) : (
           threads.map((t) => (
             <article key={t.id} className={`hp-thread is-${t.status}`}>
