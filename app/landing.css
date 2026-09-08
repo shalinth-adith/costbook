@@ -77,7 +77,7 @@
   display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
   gap: 48px; align-items: center;
   padding: 56px 72px 72px;
-  min-height: calc(100vh - 76px - 60px);
+  min-height: calc(100vh - 76px - 110px);
 }
 .lp-hero-say { display: flex; flex-direction: column; align-items: flex-start; gap: 26px; }
 
@@ -184,35 +184,47 @@
 .lp-ripple-said > span { grid-area: 1 / 1; }
 .lp-ripple-said b { color: var(--saffron); font-weight: 600; }
 
-/* ── the rate strip ─────────────────────────────────────────────────── */
+/* ── the morning confirm ────────────────────────────────────────────── */
 
-.lp-ticker {
-  display: flex; align-items: stretch;
+.lp-morning {
+  display: grid; grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+  gap: 40px; align-items: center;
+  padding: 26px 72px 30px;
   border-block-start: 1px solid var(--soot-rule);
-  background: rgb(0 0 0 / 0.25);
+  background: rgb(0 0 0 / 0.22);
 }
-.lp-ticker-tag {
-  flex: none; display: flex; align-items: center; padding-inline: 72px 22px;
-  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--saffron);
-  border-inline-end: 1px solid var(--soot-rule);
+.lp-morning-say { display: grid; gap: 6px; }
+.lp-morning-when { margin: 0; display: flex; gap: 12px; align-items: baseline; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--saffron); }
+.lp-morning-time { color: var(--on-soot-secondary); letter-spacing: 0.08em; }
+.lp-morning-line { margin: 0; font-size: 15px; font-weight: 600; color: var(--on-soot); letter-spacing: -0.01em; }
+.lp-morning-line span { font-weight: 400; color: var(--on-soot-tertiary); }
+
+.lp-morning-row { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.lp-stamp-card {
+  position: relative; display: grid; grid-template-columns: 1fr auto; align-items: baseline;
+  column-gap: 10px; row-gap: 2px;
+  padding: 14px 16px 14px; border-radius: 8px;
+  background: #171B24; border: 1px solid var(--soot-rule);
 }
-.lp-ticker-track { flex: 1; overflow: hidden; min-width: 0; }
-.lp-ticker-run { display: flex; inline-size: max-content; }
-.lp-ticker:hover .lp-ticker-run { animation-play-state: paused; }
-.lp-tick-row { list-style: none; margin: 0; padding: 0; display: flex; }
-.lp-tick {
-  display: flex; align-items: baseline; gap: 10px; padding: 16px 28px;
-  border-inline-end: 1px solid var(--soot-rule); white-space: nowrap;
+.lp-stamp-name { font-size: 13.5px; font-weight: 600; color: var(--on-soot); grid-column: 1; }
+.lp-stamp-rate { font-size: 15px; font-weight: 600; color: var(--on-soot); grid-column: 1; }
+.lp-stamp-unit { font-size: 11px; font-weight: 400; color: var(--on-soot-tertiary); margin-inline-start: 2px; }
+.lp-stamp-was { font-size: 11px; color: var(--lp-up); grid-column: 1; }
+.lp-stamp-card.is-held .lp-stamp-was { color: var(--on-soot-tertiary); }
+/* Read by a screen reader; the stamp itself is decoration. */
+.lp-stamp-said { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
+
+/* The mark. Ink, not paint: an outlined word, slightly off square, sitting
+   over the figures the way a stamp sits over a line in a book. */
+.lp-stamp {
+  grid-column: 2; grid-row: 1 / span 3; align-self: center;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--lp-ok); border: 1.5px solid currentColor; border-radius: 3px;
+  padding: 5px 8px 4px; transform: rotate(-5deg); opacity: 1;
+  box-shadow: inset 0 0 0 1px rgb(15 18 25 / 0.6);
+  mask-image: radial-gradient(circle at 30% 40%, #000 0 55%, rgb(0 0 0 / 0.55) 100%);
 }
-.lp-tick-name { font-size: 13px; color: var(--on-soot-secondary); }
-.lp-tick-move { font-size: 13px; color: var(--on-soot); display: inline-flex; gap: 6px; }
-.lp-tick-was { color: var(--on-soot-tertiary); text-decoration: line-through; }
-.lp-tick-arrow { color: var(--on-soot-tertiary); }
-.lp-tick-unit { color: var(--on-soot-tertiary); }
-.lp-tick-share { font-size: 11.5px; font-weight: 600; }
-.lp-tick.is-up .lp-tick-share { color: var(--lp-up); }
-.lp-tick.is-down .lp-tick-share { color: var(--lp-ok); }
-.lp-tick.is-flat .lp-tick-share { color: var(--on-soot-tertiary); }
 
 /* ══ 2 · the screen itself ═════════════════════════════════════════════ */
 
@@ -453,7 +465,11 @@
   .lp-lede { animation-delay: 520ms; }
   .lp-act { animation-delay: 640ms; }
   .lp-proof { animation-delay: 760ms; }
-  .lp-ticker { animation: lp-fade 900ms var(--ease-enter) 900ms both; }
+  .lp-morning { animation: lp-fade 900ms var(--ease-enter) 900ms both; }
+  /* Each stamp lands after the ripple's first reprice, a beat apart:
+     the prices moved, and then somebody looked at them. */
+  .lp-stamp { animation: lp-stamp 260ms cubic-bezier(0.2, 1.4, 0.4, 1) both; animation-delay: calc(6.2s + var(--lp-stamp-i) * 700ms); }
+  .lp-stamp-card { animation: lp-press 260ms var(--ease-enter) both; animation-delay: calc(6.2s + var(--lp-stamp-i) * 700ms); }
 
   .lp-top-bg { animation: lp-drift 60s ease-in-out infinite alternate; }
 
@@ -487,7 +503,6 @@
   .lp-rp-node.is-dish .lp-rp-box { animation: lp-flash-dish var(--lp-cycle) linear infinite both; }
   .lp-rp-ring { animation: lp-ring var(--lp-cycle) linear infinite both; }
 
-  .lp-ticker-run { animation: lp-tick 48s linear infinite; }
 
   /* ── below the fold, as it is reached ────────────────────────────── */
   @supports (animation-timeline: view()) {
@@ -553,7 +568,12 @@
   45% { r: 18; opacity: 0; }
   100% { r: 18; opacity: 0; }
 }
-@keyframes lp-tick { to { transform: translateX(-50%); } }
+@keyframes lp-stamp {
+  from { opacity: 0; transform: rotate(-11deg) scale(1.7); }
+  60% { opacity: 1; transform: rotate(-4deg) scale(0.96); }
+  to { opacity: 1; transform: rotate(-5deg) scale(1); }
+}
+@keyframes lp-press { 55% { transform: translateY(1px); } to { transform: none; } }
 
 /* ══ widths ════════════════════════════════════════════════════════════ */
 
@@ -564,7 +584,7 @@
   .lp-lines-row { grid-template-columns: 1fr; gap: 16px; }
   .lp-price { grid-template-columns: 1fr; gap: 40px; padding: 72px 40px; }
   .lp-foot { padding-inline: 40px; }
-  .lp-ticker-tag { padding-inline: 40px 20px; }
+  .lp-morning { grid-template-columns: 1fr; gap: 18px; padding-inline: 40px; }
 }
 @media (max-width: 900px) {
   .lp-nav { height: 68px; padding-inline: var(--sp-6); }
@@ -581,6 +601,7 @@
   .lp-hero { padding-inline: 20px; }
   .lp-screen, .lp-lines, .lp-price, .lp-foot { padding-inline: 20px; }
   .lp-tiers { grid-template-columns: 1fr; }
-  .lp-ticker-tag { display: none; }
+  .lp-morning { padding-inline: 20px; }
+  .lp-morning-row { grid-template-columns: 1fr; }
   .lp-act { gap: 18px; }
 }

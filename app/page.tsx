@@ -4,7 +4,7 @@ import Link from "next/link";
 import { LandingNav } from "@/components/landing-nav";
 import { LandingRate } from "@/components/landing-rate";
 import { LandingRipple } from "@/components/landing-ripple";
-import { LandingTicker } from "@/components/landing-ticker";
+import { LandingMorning } from "@/components/landing-morning";
 import { FREE_LIMITS, PAID_MONTHLY } from "@/lib/org";
 
 import "./landing.css";
@@ -18,8 +18,8 @@ export const metadata: Metadata = {
 /**
  * The entry screen.
  *
- * Six blocks: the sentence with the ripple beside it · the rate strip · the
- * screen itself · three lines · the price · the footer. The first is the
+ * Six blocks: the sentence with the ripple beside it · the morning confirm ·
+ * the screen itself · three lines · the price · the footer. The first is the
  * only one allowed to be theatre — the owner asked for a page that captures
  * the person who lands on it, and motion at any cost — and everything under
  * it arrives as it is reached and then holds still to be read.
@@ -72,8 +72,8 @@ export default function Landing() {
       {/*
        * The entry screen, on soot.
        *
-       * The words on the left, the ripple on the right, the rate strip along
-       * the foot. The dark ground the app carries top and bottom, met before
+       * The words on the left, the ripple on the right, the morning confirm
+       * along the foot. The dark ground the app carries top and bottom, met before
        * the product is: it gives the page a horizon, and it lights everything
        * that moves.
        */}
@@ -124,7 +124,7 @@ export default function Landing() {
           <LandingRipple />
         </section>
 
-        <LandingTicker />
+        <LandingMorning />
       </div>
 
       {/* 2 — the screen itself, not a picture of it */}
