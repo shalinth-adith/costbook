@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState, useTransition } from 'react';
+import { Fragment, useMemo, useState, useTransition } from 'react';
 
 import {
   type IngredientBoard,
@@ -66,6 +66,18 @@ export function IngredientsView({
   const [toast, setToast] = useState<ToastState | null>(null);
   const [pending, start] = useTransition();
 
+  /*
+   * How the shelf is ordered, and why reach is the default.
+   *
+   * Seventy rows of the same weight, newest price first, answer a question
+   * nobody asks: an operator does not open this screen wondering what they
+   * typed most recently. They open it because a supplier is on the phone
+   * about onions, or because the dashboard said "start with Salt, it is in
+   * ten dishes". Reach puts the ten that matter above the sixty that do not,
+   * and the sixty are still there, under a heading that says what they are.
+   */
+  const [order, setOrder] = useState<'reach' | 'recent'>('reach');
+
   /** Price update mode: every rate is a field, and nothing lands until commit. */
   const [bulk, setBulk] = useState(false);
   const [edits, setEdits] = useState<Readonly<Record<string, string>>>({});
@@ -82,11 +94,36 @@ export function IngredientsView({
        * fortieth makes that sentence useless. Most dishes first, which is the
        * same ranking the worklist used to choose its lead.
        */
-      if (filter !== 'assumed') return kept;
-      return [...kept].sort((a, b) => b.usedIn - a.usedIn || a.name.localeCompare(b.name));
+      if (filter === 'assumed' || order === 'reach') {
+        return [...kept].sort((a, b) => b.usedIn - a.usedIn || a.name.localeCompare(b.name));
+      }
+      return kept;
     },
-    [board.rows, filter, query],
+    [board.rows, filter, query, order],
   );
+
+  /*
+   * The bands, and the rule that nothing is hidden.
+   *
+   * Four headings, drawn only where there is something under them: a heading
+   * over nought is the same fault as a filter chip reading "Stale 0". The
+   * whole shelf is still on the page — this is an order with signposts, not
+   * a filter.
+   */
+  const bands = useMemo(() => {
+    if (order !== 'reach') return null;
+    const of = (r: IngredientRow) =>
+      r.usedIn >= 5 ? 0 : r.usedIn >= 2 ? 1 : r.usedIn === 1 ? 2 : 3;
+    const said = [
+      { h: 'In five dishes or more', why: 'the prices worth arguing over' },
+      { h: 'In two to four', why: 'a rate here moves a handful of plates' },
+      { h: 'In one dish', why: 'one plate follows each of these' },
+      { h: 'Not in a dish yet', why: 'on the shelf, costing nothing until a recipe reaches it' },
+    ] as const;
+    return said
+      .map((b, i) => ({ ...b, rows: rows.filter((r) => of(r) === i) }))
+      .filter((b) => b.rows.length > 0);
+  }, [rows, order]);
 
   /*
    * Two columns that earn their place or disappear (A19).
@@ -217,8 +254,26 @@ export function IngredientsView({
           ))}
         </div>
 
+        <div className="segmented segmented-sm ing-order" role="group" aria-label="Order">
+          <button
+            type="button"
+            className={`segmented-item${order === 'reach' ? ' is-active' : ''}`}
+            aria-pressed={order === 'reach'}
+            onClick={() => setOrder('reach')}
+          >
+            By reach
+          </button>
+          <button
+            type="button"
+            className={`segmented-item${order === 'recent' ? ' is-active' : ''}`}
+            aria-pressed={order === 'recent'}
+            onClick={() => setOrder('recent')}
+          >
+            Recently priced
+          </button>
+        </div>
+
         <span className="toolbar-note">
-          {filter === 'assumed' ? 'Most dishes first' : 'Sorted by most recently priced'} ·{' '}
           <span className="figure">{rows.length}</span> of{' '}
           <span className="figure">{board.counts.all}</span>
         </span>
@@ -281,7 +336,16 @@ export function IngredientsView({
               <span />
             </div>
 
-            {rows.map((row) => (
+            {(bands ?? [{ h: null, why: null, rows }]).map((band) => (
+              <Fragment key={band.h ?? 'all'}>
+                {band.h === null ? null : (
+                  <div className="ing-band">
+                    <span className="ing-band-h">{band.h}</span>
+                    <span className="figure ing-band-n">{band.rows.length}</span>
+                    <span className="ing-band-why">{band.why}</span>
+                  </div>
+                )}
+                {band.rows.map((row) => (
               <Row
                 key={row.id}
                 row={row}
@@ -297,6 +361,8 @@ export function IngredientsView({
                 onSetRate={(p) => proposeRate(row.id, p)}
                 onSetYield={(y) => act(() => onSetYield(row.id, y))}
               />
+                ))}
+              </Fragment>
             ))}
           </div>
         )}
@@ -352,7 +418,11 @@ function Row({
   const [rateDraft, setRateDraft] = useState('');
 
   return (
-    <div className={`ing-block${row.status === 'no_rate' ? ' is-missing' : ''}`}>
+    <div
+      className={`ing-block${row.status === 'no_rate' ? ' is-missing' : ''}${
+        row.status === 'stale' ? ' is-stale' : ''
+      }`}
+    >
       <div className="ing-row">
         <span className="ing-name">
           <button type="button" className="ing-name-btn" onClick={onToggle} aria-expanded={isOpen}>

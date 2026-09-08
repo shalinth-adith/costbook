@@ -5899,3 +5899,119 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 @media (prefers-reduced-motion: reduce) {
   .more-back, .more-sheet { animation: none; }
 }
+
+/* ══ The shelf, ordered by what it reaches ═════════════════════════════════
+   Seventy rows of one weight, newest price first, answer a question nobody
+   asks. Reach puts the ten that matter above the sixty that do not, under
+   headings that say what each band is — an order with signposts, not a
+   filter: every row is still on the page. */
+.ing-order { flex: none; }
+.ing-band {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  padding: 18px 14px 8px; border-block-end: 1px solid var(--border-hairline);
+  background: var(--surface-card);
+}
+.ing-band:first-child { padding-block-start: 12px; }
+.ing-band-h { font-size: 13px; font-weight: 600; letter-spacing: -0.005em; color: var(--text-primary); }
+.ing-band-n {
+  font-family: var(--font-mono), ui-monospace, monospace; font-size: 11px;
+  padding: 2px 7px; border-radius: 999px;
+  background: var(--surface-sunken); color: var(--text-secondary);
+}
+.ing-band-why { font-size: 12px; color: var(--text-tertiary); }
+/* A rate nobody has confirmed in ninety days is the row to look at, so it is
+   marked where the eye runs down — the same left rule the dashboard uses. */
+.ing-block.is-stale { box-shadow: inset 3px 0 0 var(--near-edge); }
+.ing-block.is-missing { box-shadow: inset 3px 0 0 var(--over-ink); }
+
+/* An action in a row is a control, never a paragraph of links: a Link inside
+   a button frame took the global underline and read as two idioms at once. */
+.btn-row, .btn-row:hover { text-decoration: none; }
+
+@media (max-width: 700px) {
+  .ing-band { padding-inline: 16px; }
+  .ing-band-why { display: none; }
+}
+
+/* ══ One bar for every public page ═════════════════════════════════════════
+   About, Contact, Privacy and Terms each carried a mark and a "Back to
+   Costbook" of their own — a second vocabulary for a visitor who has just
+   read the landing page's. Same items, same order, same soot. */
+.pb {
+  position: sticky; inset-block-start: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-5);
+  padding: var(--sp-4) 40px;
+  background: var(--soot); color: var(--on-soot);
+  border-block-end: 1px solid var(--soot-rule);
+}
+.pb .wordmark { color: var(--on-soot); }
+.pb .wordmark:hover { color: var(--saffron); }
+/* Two links and a button fit beside the name at 390; the app hides the word
+   below 480 for a nav this bar does not have, so it keeps it. */
+.pb .wordmark > span { display: inline; }
+.pb-links { display: flex; align-items: center; gap: var(--sp-5); }
+.pb-link {
+  font-size: 14px; font-weight: 500; color: var(--on-soot-secondary);
+  text-decoration: none; white-space: nowrap;
+}
+.pb-link:hover { color: var(--saffron); }
+.pb-cta {
+  display: inline-flex; align-items: center; block-size: 38px; padding-inline: 16px;
+  border-radius: 6px; background: var(--saffron); color: var(--soot);
+  font-size: 13.5px; font-weight: 600; text-decoration: none; white-space: nowrap;
+  transition: background 120ms var(--ease-enter);
+}
+.pb-cta:hover { background: #FFC55A; }
+.pb-link:focus-visible, .pb-cta:focus-visible { outline: 2px solid var(--saffron); outline-offset: 3px; border-radius: 4px; }
+
+@media (max-width: 760px) {
+  .pb { padding-inline: 20px; gap: var(--sp-3); }
+  .pb-links { gap: var(--sp-4); }
+  /* Contact is in the footer of every one of these pages. */
+  .pb-wide { display: none; }
+}
+
+/* ══ The drop zone is a target, not a room ═════════════════════════════════
+   520px tall with the button pushed to its floor by `margin-block-start:
+   auto` — a large dashed rectangle with a small control at the bottom, and
+   most of it empty until a file arrives. A target is centred and only as big
+   as it needs to be to catch a file. */
+.rx-drop {
+  min-block-size: 300px; align-items: center; justify-content: center;
+  text-align: center; padding: var(--sp-8) var(--sp-6); gap: 10px;
+}
+.rx-drop-copy { max-inline-size: 44ch; }
+.rx-drop-btn { margin-block-start: var(--sp-3); }
+
+/* ══ Help, before anybody has asked ════════════════════════════════════════
+   The one screen somebody opens when something is already wrong was a form
+   and the words "Nothing yet." These are the six a kitchen asks, answered
+   in the product rather than in a support thread. */
+.hp-empty { display: grid; gap: var(--sp-4); }
+.hp-empty-said { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); text-wrap: pretty; }
+.hp-faq-h {
+  margin: var(--sp-2) 0 0; font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary);
+}
+.hp-faq { display: grid; }
+.hp-faq-item { border-block-start: 1px solid var(--border-hairline); }
+.hp-faq-item:last-child { border-block-end: 1px solid var(--border-hairline); }
+.hp-faq-q {
+  list-style: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4);
+  padding: 13px 2px; font-size: 14.5px; font-weight: 600; color: var(--text-primary);
+}
+.hp-faq-q::-webkit-details-marker { display: none; }
+.hp-faq-q:hover { color: var(--accent-deep); }
+.hp-faq-q:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 4px; }
+.hp-faq-mark { position: relative; flex: none; inline-size: 16px; block-size: 16px; }
+.hp-faq-mark::before, .hp-faq-mark::after {
+  content: ''; position: absolute; inset-block-start: 7px; inset-inline: 0; block-size: 2px;
+  background: currentColor; border-radius: 1px; transition: transform 200ms var(--ease-enter);
+}
+.hp-faq-mark::after { transform: rotate(90deg); }
+.hp-faq-item[open] .hp-faq-mark::after { transform: rotate(0deg); }
+.hp-faq-a {
+  margin: 0; padding: 0 2px 16px; font-size: 14px; line-height: 1.7;
+  color: var(--text-secondary); max-inline-size: 66ch; text-wrap: pretty;
+}

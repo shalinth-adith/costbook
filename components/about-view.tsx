@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Wordmark } from "./wordmark";
+import { PublicBar } from "./public-bar";
 
 /**
  * What Costbook is, at the width of the window.
@@ -22,12 +22,7 @@ import { Wordmark } from "./wordmark";
 export function AboutView() {
   return (
     <div className="ab">
-      <header className="ab-top">
-        <Wordmark mode="public" />
-        <Link className="ab-back" href="/dashboard">
-          Back to your book
-        </Link>
-      </header>
+      <PublicBar />
 
       {/* ── the thesis, and the moment it is about ──────────────────── */}
       <section className="ab-hero">

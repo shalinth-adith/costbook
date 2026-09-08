@@ -4,6 +4,41 @@ import { useState, useTransition } from 'react';
 
 import type { Ack } from '@/app/help/actions';
 
+/**
+ * The six a kitchen actually asks, answered before they have to ask.
+ *
+ * Every answer is true of the product as built — the same discipline the
+ * landing page's questions keep. Native `<details>`: the browser handles
+ * open, close and the keyboard, and there is no script to load on the one
+ * screen somebody opens when something is already wrong.
+ */
+const HELP_QUESTIONS: readonly (readonly [string, string])[] = [
+  [
+    'A figure looks wrong',
+    'Open it. Every cost on a dish shows its working — the batch total, the portions, the rate on each line. Most of the time the answer is on the screen: a yield entered as 100%, or a rate typed per pack rather than per kilo. If it still looks wrong, write below with the dish name and the figure you expected.',
+  ],
+  [
+    'A sheet would not come in',
+    'Send it. Costbook reads spreadsheets and CSVs as they are and asks once which column is which; a file it cannot read is a bug on our side, not a mistake on yours. Your file is only ever read — nothing in it is altered.',
+  ],
+  [
+    'I changed a rate and nothing moved',
+    'A rate moves the dishes that reach it, and a dish only reaches an ingredient through its own lines or through a sub-recipe. If a plate did not move, it does not carry that ingredient — open the dish and look at its components.',
+  ],
+  [
+    'How do I undo a price list?',
+    'Import, then the sheet you brought in. For seven days it can be rolled back: every rate it changed goes back to what it was, and so does every dish that moved because of it.',
+  ],
+  [
+    'What happens when the free dishes run out?',
+    'Everything you have costed stays costed, readable and printable, for as long as you like. To add another dish, or to bring a sheet in, you buy the book for a stretch of months from Your plan. There is no card kept on file.',
+  ],
+  [
+    'Who can see my recipes?',
+    'Nobody outside your account. Costbook reads across accounts only to count sign-ins and visits — never what you cook or what you pay. The privacy page says exactly what is kept, and what is not.',
+  ],
+];
+
 export interface Message {
   readonly id: string;
   readonly fromAdmin: boolean;
@@ -110,7 +145,31 @@ export function HelpView({
           What you have asked{threads.length > 0 ? ` (${String(threads.length)})` : ''}
         </h2>
         {threads.length === 0 ? (
-          <p className="hp-none">Nothing yet.</p>
+          /*
+            * The screen a stuck person opens should not be the plainest one
+            * in the book. Nothing has been asked yet, and the six things most
+            * people would have asked are answered here — the same six the
+            * landing page answers, so the two can never drift — with the
+            * address under them for the seventh.
+            */
+          <div className="hp-empty">
+            <p className="hp-empty-said">
+              Nothing yet. Anything you send lands here, and so does the reply —
+              you need not watch an inbox.
+            </p>
+            <h3 className="hp-faq-h">While you are here</h3>
+            <div className="hp-faq">
+              {HELP_QUESTIONS.map(([q, a]) => (
+                <details className="hp-faq-item" key={q}>
+                  <summary className="hp-faq-q">
+                    <span>{q}</span>
+                    <span className="hp-faq-mark" aria-hidden="true" />
+                  </summary>
+                  <p className="hp-faq-a">{a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
         ) : (
           threads.map((t) => (
             <article key={t.id} className={`hp-thread is-${t.status}`}>

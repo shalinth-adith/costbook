@@ -668,6 +668,33 @@ export function RecipeSheet({
             }}
           />
 
+          {/*
+            What the operator's own sheet said, kept under their own headings.
+            Costbook has no opinion about any of it and does not cost it — but
+            the sheet is their record of how they cost, and an import that
+            drops a third of it is one they cannot check against what they had
+            (PRD 6).
+
+            It sits in this column, not under both. As a third child of the
+            two-column `.costing` grid it auto-flowed back into column one —
+            the very fault the comment below this one was written about — and
+            left the right half of the screen empty beside it.
+          */}
+          {Object.keys(dish.custom ?? {}).length > 0 && (
+            <section className="from-sheet">
+              <span className="from-sheet-h">Also on your sheet</span>
+              <span className="from-sheet-lede">kept as you wrote them, not costed</span>
+              <dl className="from-sheet-list">
+                {Object.entries(dish.custom ?? {}).map(([k, v]) => (
+                  <div className="from-sheet-row" key={k}>
+                    <dt>{k}</dt>
+                    <dd className="figure">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )}
+
         </div>
 
         {/*
@@ -718,15 +745,26 @@ export function RecipeSheet({
 
               {dish.onMenu ? (
                 <>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    disabled={!dirty || saving}
-                    title={dirty ? undefined : 'Nothing has changed since this was last saved.'}
-                    onClick={() => void commit(() => saveChanges(named, dishFields, version))}
-                  >
-                    {saving ? 'Saving…' : 'Save changes'}
-                  </button>
+                  {/*
+                    * Shown when there is something to save, and not before.
+                    *
+                    * It was drawn always and disabled until something changed,
+                    * which made a grey rectangle the most prominent thing in
+                    * the foot of a screen where nothing was happening — a bar
+                    * asking to be ignored. The header's SAVED chip already
+                    * says the state; this says the action, and only when
+                    * there is one.
+                    */}
+                  {dirty || saving ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={saving}
+                      onClick={() => void commit(() => saveChanges(named, dishFields, version))}
+                    >
+                      {saving ? 'Saving…' : 'Save changes'}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     className="link link-sm"
@@ -793,27 +831,6 @@ export function RecipeSheet({
         steps={steps}
         onSetForThisDish={() => setSheet('charges')}
       />
-
-      {/*
-        What the operator's own sheet said, kept under their own headings.
-        Costbook has no opinion about any of it and does not cost it — but the
-        sheet is their record of how they cost, and an import that drops a
-        third of it is one they cannot check against what they had (PRD 6).
-      */}
-      {Object.keys(dish.custom ?? {}).length > 0 && (
-        <section className="from-sheet">
-          <span className="from-sheet-h">Also on your sheet</span>
-          <span className="from-sheet-lede">kept as you wrote them, not costed</span>
-          <dl className="from-sheet-list">
-            {Object.entries(dish.custom ?? {}).map(([k, v]) => (
-              <div className="from-sheet-row" key={k}>
-                <dt>{k}</dt>
-                <dd className="figure">{v}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-      )}
 
       </div>
 

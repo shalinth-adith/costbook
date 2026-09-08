@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { Wordmark } from "@/components/wordmark";
+import { PublicBar } from "@/components/public-bar";
 
 export const metadata: Metadata = {
   title: "Contact · Costbook",
@@ -105,12 +105,7 @@ const REASONS: readonly { h: string; p: React.ReactNode; send: string }[] = [
 export default function Contact() {
   return (
     <div className="lg">
-      <header className="lg-top">
-        <Wordmark mode="public" />
-        <Link className="lg-back" href="/">
-          Back to Costbook
-        </Link>
-      </header>
+      <PublicBar />
 
       <section className="lg-hero">
         <p className="lg-eyebrow">Contact · a person reads this</p>

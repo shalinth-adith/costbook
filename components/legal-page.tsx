@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Wordmark } from "./wordmark";
+import { PublicBar } from "./public-bar";
 
 /**
  * A legal page (A30).
@@ -46,12 +46,7 @@ export function LegalPage({
 
   return (
     <div className="lg">
-      <header className="lg-top">
-        <Wordmark mode="public" />
-        <Link className="lg-back" href="/">
-          Back to Costbook
-        </Link>
-      </header>
+      <PublicBar />
 
       <section className="lg-hero">
         <p className="lg-eyebrow">Last changed {changed}</p>
