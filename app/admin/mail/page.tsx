@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { AdminHead } from '@/components/admin-head';
 import { MailView } from '@/components/mail-view';
 import { mailConfigured, outbox } from '@/lib/mail';
 
@@ -22,9 +23,16 @@ export default async function AdminMail() {
 
   return (
     <div className="bo">
-      <header className="ba-head">
-        <h1 className="ba-h1">Mail</h1>
-      </header>
+      <AdminHead
+        section="Mail"
+        title="Mail"
+        lede="What has been written, and what has actually gone out. Two dates on every row, on purpose."
+        aside={
+          <span className={`ba-count${letters.some((l) => l.sentAt === null) ? ' is-waiting' : ''}`}>
+            <b className="figure">{letters.filter((l) => l.sentAt === null).length}</b> waiting
+          </span>
+        }
+      />
 
       <section className="bo-block bo-wide">
         <MailView letters={letters} configured={mailConfigured()} onPost={postQueued} />

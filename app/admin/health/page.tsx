@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { AdminEmpty } from '@/components/admin-empty';
+import { AdminHead } from '@/components/admin-head';
 import { recentErrors } from '@/lib/admin';
 
 export const metadata: Metadata = { title: 'Health · Costbook' };
@@ -24,20 +26,26 @@ export default async function AdminHealth() {
 
   return (
     <div className="bo">
-      <header className="ba-head">
-        <h1 className="ba-h1">Health</h1>
-      </header>
+      <AdminHead
+        section="Health"
+        title="Health"
+        lede="What broke. Every row is a fault somebody actually hit — where and what, never a payload."
+        aside={
+          unseen.length > 0 ? (
+            <span className="ba-count is-over">
+              <b className="figure">{unseen.length}</b> not looked at
+            </span>
+          ) : null
+        }
+      />
 
       <section className="bo-block bo-wide">
         {errors.length === 0 ? (
-          <>
-            <p className="bo-quiet">Nothing has been reported.</p>
-            <p className="bo-note">
-              That is either a quiet week or a reporter that is not wired up
-              yet. Faults are written by the error boundary and by the server
-              actions that would otherwise swallow one.
-            </p>
-          </>
+          <AdminEmpty
+            title="Nothing has been reported"
+            said="Either a quiet week, or a reporter that is not wired up. Faults are written by the error boundary and by the server actions that would otherwise swallow one."
+            would="a page or an action fails for somebody."
+          />
         ) : (
           <>
             <p className="bo-lede">

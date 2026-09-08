@@ -20,6 +20,7 @@ import {
   useOver,
 } from "@/lib/metrics";
 import { periodSaid } from "@/lib/engineering";
+import { AdminHead } from "@/components/admin-head";
 
 export const metadata: Metadata = { title: "Back office · Costbook" };
 export const dynamic = "force-dynamic";
@@ -86,10 +87,11 @@ export default async function AdminPage() {
 
   return (
     <div className="bo">
-      <header className="ba-head">
-        <h1 className="ba-h1">Costbook, whole</h1>
-        <p className="ba-lede">How far kitchens get, what they pay, and who is worth a message.</p>
-      </header>
+      <AdminHead
+        section="Metrics"
+        title="Costbook, whole"
+        lede="How far kitchens get, what they pay, and who is worth a message."
+      />
 
       {/* The four figures that answer "how is it going" before any detail. */}
       <section className="bo-figs">

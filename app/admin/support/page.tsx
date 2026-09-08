@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { AdminEmpty } from '@/components/admin-empty';
+import { AdminHead } from '@/components/admin-head';
 import { AdminThread } from '@/components/admin-thread';
 import { accounts, threadsWithMessages } from '@/lib/admin';
 
@@ -35,21 +37,26 @@ export default async function AdminSupport() {
 
   return (
     <div className="bo">
-      <header className="ba-head">
-        <h1 className="ba-h1">Support</h1>
-      </header>
+      <AdminHead
+        section="Support"
+        title="Support"
+        lede="Who is waiting on a reply, longest first. A reply lands on their Help page, and its copy waits in Mail."
+        aside={
+          open.length > 0 ? (
+            <span className="ba-count is-waiting">
+              <b className="figure">{open.length}</b> waiting
+            </span>
+          ) : null
+        }
+      />
 
       <section className="bo-block bo-wide">
         {rows.length === 0 ? (
-          <>
-            <p className="bo-quiet">Nobody is waiting.</p>
-            <p className="bo-note">
-              Threads appear here when an operator writes from inside Costbook.
-              The address on the contact page still reaches you by email and is
-              the only door for somebody who cannot sign in — that is on
-              purpose, and it does not show up here.
-            </p>
-          </>
+          <AdminEmpty
+            title="Nobody is waiting"
+            said="The address on the contact page still reaches you by email, and is the only door for somebody who cannot sign in — on purpose. Mail does not show up here."
+            would="an operator writes from the Help page inside Costbook."
+          />
         ) : (
           <>
             <p className="bo-lede">

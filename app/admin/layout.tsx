@@ -51,6 +51,10 @@ export default async function AdminLayout({
         <AdminNav counts={counts} />
 
         <div className="ba-rail-foot">
+          <p className="ba-rail-note">
+            <span className="ba-rail-dot" aria-hidden="true" />
+            Reads across every kitchen. Nothing here writes to one.
+          </p>
           <Link href="/dashboard" className="ba-out">
             Your own book →
           </Link>

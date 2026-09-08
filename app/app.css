@@ -2312,7 +2312,7 @@
 .fd-rest .btn { margin-block-start: 6px; }
 
 @media (max-width: 900px) {
-  .fd { padding: var(--sp-6) var(--sp-5) var(--sp-8); gap: var(--sp-7); }
+  .fd { padding: var(--sp-6) var(--sp-5) var(--sp-8); gap: var(--sp-6); }
   .fd-h { font-size: 26px; }
   .fd-card-head { flex-direction: column; }
   /* The figures stop competing with the name for one line. */
@@ -5471,3 +5471,189 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 }
 .plans-term-tag { color: var(--on-ink); }
 .plans-term.is-on .plans-term-tag { color: var(--accent); }
+
+/* ══ The back office, made a place to work ═════════════════════════════════
+   The console is read by one person forty times a day, and it was a plain
+   page: flat white, thin type, empty screens that read as failed loads.
+   This layer sits over the rules above — same names, same ink-on-white rule
+   the owner set — and gives it weight: a head that says when it was read,
+   figures with a face, cards with edges, rows that answer a hover, empty
+   states with a shape, and one entrance so a page arrives rather than
+   appears. Soot stays the frame. */
+
+/* ── the rail ────────────────────────────────────────────────────────── */
+.ba { grid-template-columns: 264px minmax(0, 1fr); }
+.ba-rail { padding: var(--sp-6) var(--sp-4) var(--sp-5); gap: var(--sp-6); }
+.ba-mark { position: relative; padding-inline: 12px; }
+.ba-mark-name { font-size: 21px; }
+.ba-item { padding: 10px 12px; border-radius: 8px; }
+.ba-item.is-on { background: rgb(245 179 53 / 0.1); border-inline-start-color: var(--saffron); }
+.ba-item.is-on .ba-item-why { color: var(--on-soot-secondary); }
+.ba-item-n { font-size: 11px; padding: 2px 7px; }
+.ba-rail-foot { display: grid; gap: 12px; padding-inline: 12px; }
+.ba-rail-note { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: start; font-size: 11.5px; line-height: 1.45; color: var(--on-soot-tertiary); text-wrap: pretty; }
+.ba-rail-dot { inline-size: 7px; block-size: 7px; border-radius: 50%; background: #8AD3B4; margin-block-start: 5px; box-shadow: 0 0 0 3px rgb(138 211 180 / 0.18); }
+.ba-out { font-size: 13px; font-weight: 500; color: var(--on-soot-secondary); }
+
+/* ── the main column and its head ────────────────────────────────────── */
+.ba-main {
+  padding: var(--sp-8) 44px var(--sp-14);
+  background: var(--surface-page);
+  background-image: radial-gradient(circle at 1px 1px, rgb(23 27 36 / 0.045) 1px, transparent 1.5px);
+  background-size: 28px 28px;
+}
+.ba-head {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-6); flex-wrap: wrap;
+  margin-block-end: var(--sp-6); padding-block-end: var(--sp-5); border-block-end: 1px solid var(--border-hairline);
+}
+.ba-head-say { display: grid; gap: 6px; min-inline-size: 0; }
+.ba-eyebrow {
+  margin: 0; font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent);
+}
+.ba-h1 { font-size: 38px; line-height: 1.02; }
+.ba-lede { margin: 2px 0 0; font-size: 14.5px; max-inline-size: 64ch; text-wrap: pretty; }
+.ba-head-meta { display: flex; align-items: center; gap: var(--sp-4); flex-wrap: wrap; padding-block-end: 4px; }
+.ba-read { display: inline-flex; align-items: center; gap: 8px; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-tertiary); }
+.ba-read-dot { inline-size: 7px; block-size: 7px; border-radius: 50%; background: var(--on-ink); box-shadow: 0 0 0 3px var(--on-tint); }
+.ba-count {
+  display: inline-flex; align-items: baseline; gap: 6px; padding: 7px 12px; border-radius: 999px;
+  background: var(--surface-sunken); border: 1px solid var(--border-hairline);
+  font-size: 12.5px; color: var(--text-secondary);
+}
+.ba-count b { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.ba-count.is-waiting { background: var(--near-tint); border-color: var(--near-edge); color: var(--near-ink); }
+.ba-count.is-waiting b { color: var(--near-ink-strong); }
+.ba-count.is-over { background: var(--over-tint); border-color: var(--over-edge); color: var(--over-ink); }
+.ba-count.is-over b { color: var(--over-ink-strong); }
+
+/* ── figures with a face ─────────────────────────────────────────────── */
+.ba-main .bo-figs { gap: var(--sp-4); padding-block: 0 var(--sp-6); }
+.ba-main .bo-fig {
+  padding: 20px 22px 18px; border: 1px solid var(--border-hairline); border-inline-start-width: 1px;
+  border-radius: 14px; background: var(--surface-card);
+  box-shadow: 0 1px 2px rgb(23 27 36 / 0.04), 0 10px 30px rgb(23 27 36 / 0.05);
+  position: relative; overflow: hidden;
+}
+.ba-main .bo-fig::before {
+  content: ''; position: absolute; inset-inline-start: 0; inset-block: 14px; inline-size: 3px; border-radius: 0 3px 3px 0;
+  background: var(--border-strong);
+}
+.ba-main .bo-fig.is-good::before { background: var(--on-edge); }
+.ba-main .bo-fig.is-over::before { background: var(--over-edge); }
+.ba-main .bo-fig.is-over { background: linear-gradient(180deg, var(--over-tint), var(--surface-card) 60%); }
+.ba-main .bo-fig > p:first-child { font-size: 44px; margin-block-end: 6px; }
+.ba-main .bo-fig > p:last-child { font-size: 13px; color: var(--text-secondary); }
+.ba-main .bo-fig-was { color: var(--text-quiet); }
+
+/* ── cards ───────────────────────────────────────────────────────────── */
+.ba-main .bo-block {
+  border-radius: 14px; padding: 22px 24px 24px;
+  box-shadow: 0 1px 2px rgb(23 27 36 / 0.04), 0 10px 30px rgb(23 27 36 / 0.05);
+}
+.ba-main .bo-cols { gap: var(--sp-5); margin-block-end: var(--sp-5); }
+.bo-block-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-4); flex-wrap: wrap; margin-block-end: var(--sp-4); }
+.bo-block-head .bo-h2 { margin: 0; }
+.ba-main .bo-h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.bo-h2-meta { font-size: 12px; color: var(--text-tertiary); }
+.ba-main .bo-lede { font-size: 13.5px; }
+.ba-main .bo-note { color: var(--text-tertiary); }
+
+/* ── the funnel: bars with a gradient, the watched step lit ──────────── */
+.ba-main .bo-step { padding-block: 10px; font-size: 13.5px; }
+.ba-main .bo-step-bar { block-size: 8px; border-radius: 4px; background: var(--surface-sunken); }
+.ba-main .bo-step-bar > span { background: var(--border-control-hover); transform-origin: left center; }
+.ba-main .bo-step.is-watch { background: linear-gradient(90deg, var(--near-tint), transparent 70%); margin-inline: -24px; padding-inline: 24px; border-radius: 8px; }
+.ba-main .bo-step.is-watch .bo-step-bar > span { background: linear-gradient(90deg, var(--saffron), var(--accent)); }
+.ba-main .bo-step.is-watch .bo-step-n { color: var(--accent); }
+.ba-main .bo-tries { gap: var(--sp-3); }
+.ba-main .bo-tries > div { padding: 12px 14px; border-radius: 10px; background: var(--surface-sunken); border: 1px solid var(--border-hairline); }
+.ba-main .bo-tries > div.is-over { background: var(--over-tint); border-color: var(--over-edge); }
+.ba-main .bo-tries dd { font-family: var(--font-display), var(--font-sans), system-ui, sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+
+/* ── use: the figures as tiles, today lit ────────────────────────────── */
+.ba-main .bo-use-figs > div { padding: 12px 14px; border-radius: 10px; background: var(--surface-sunken); border: 1px solid var(--border-hairline); }
+.ba-main .bo-use-figs dd { font-family: var(--font-display), var(--font-sans), system-ui, sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+/* The sub-line is a dd too; it must not inherit the figure's face. */
+.ba-main .bo-use-figs .bo-use-of { font-family: inherit; font-size: 12.5px; font-weight: 400; letter-spacing: 0; color: var(--text-secondary); }
+.ba-main .bo-use-figs > div.is-over { background: var(--over-tint); border-color: var(--over-edge); }
+.ba-main .bo-use th, .ba-main .bo-use td { padding-block: 7px; }
+.ba-main .bo-use tbody tr:first-child th, .ba-main .bo-use tbody tr:first-child td { background: var(--near-tint); }
+.ba-main .bo-use tbody tr:first-child th { border-radius: 6px 0 0 6px; padding-inline-start: 8px; }
+.ba-main .bo-use tbody tr:first-child td:last-child { border-radius: 0 6px 6px 0; padding-inline-end: 8px; }
+.ba-main .bo-use-bar { block-size: 7px; }
+.ba-main .bo-use-bar > span { background: linear-gradient(90deg, var(--on-edge), var(--on-ink)); transform-origin: left center; }
+
+/* ── money and the message list ──────────────────────────────────────── */
+.ba-main .bo-terms > div { padding: 12px 14px; border-radius: 10px; background: var(--surface-sunken); border: 1px solid var(--border-hairline); }
+.ba-main .bo-terms > div:first-child { background: var(--near-tint); border-color: var(--near-edge); }
+.ba-main .bo-terms dd { font-family: var(--font-display), var(--font-sans), system-ui, sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.ba-main .bo-seg { padding: 14px 0; }
+.ba-main .bo-seg-h { font-size: 14.5px; font-weight: 600; }
+.ba-main .bo-seg-h b { font-family: var(--font-display), var(--font-sans), system-ui, sans-serif; font-size: 22px; font-weight: 800; margin-inline-end: 4px; }
+
+/* ── tables ──────────────────────────────────────────────────────────── */
+.ba-main .bo-table-wrap { margin-inline: -24px; padding-inline: 24px; }
+.ba-main .bo-table { font-size: 13.5px; }
+.ba-main .bo-table th { padding: 10px 12px; background: var(--surface-sunken); border-block-end: 1px solid var(--border-hairline); position: sticky; top: 0; }
+.ba-main .bo-table th:first-child { border-start-start-radius: 8px; }
+.ba-main .bo-table th:last-child { border-start-end-radius: 8px; }
+.ba-main .bo-table td { padding: 13px 12px; }
+.ba-main .bo-table tbody tr { transition: background var(--dur-micro) var(--ease-enter); }
+.ba-main .bo-table tbody tr:hover { background: var(--surface-sunken); }
+.ba-main .bo-table tbody tr:last-child td { border-block-end: 0; }
+.ba-main .bo-name { font-size: 14px; }
+.ba-main .bo-plan { padding: 3px 9px; border-radius: 999px; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }
+.ba-main .bo-plan.is-paid { background: var(--on-tint); color: var(--on-ink); }
+.ba-main .bo-tag { border-radius: 999px; padding: 2px 8px; }
+
+/* ── lists: threads, letters, faults ────────────────────────────────── */
+.ba-main .bo-thread-item, .ba-main .bo-letter, .ba-main .bo-error {
+  padding: 14px 16px; margin-block: 0 8px; border: 1px solid var(--border-hairline); border-radius: 10px;
+  background: var(--surface-card); transition: border-color var(--dur-micro) var(--ease-enter), box-shadow var(--dur-micro) var(--ease-enter);
+}
+.ba-main .bo-thread-item:hover, .ba-main .bo-letter:hover, .ba-main .bo-error:hover { border-color: var(--border-control); box-shadow: 0 6px 20px rgb(23 27 36 / 0.06); }
+.ba-main .bo-thread { padding-block: 0; border-block-end: 0; }
+.ba-main .bo-thread-item.is-open { border-inline-start: 3px solid var(--near-edge); }
+.ba-main .bo-error:not(.is-seen) { border-inline-start: 3px solid var(--over-edge); }
+.ba-main .bo-error.is-seen { opacity: 0.7; }
+.ba-main .bo-error-where { font-weight: 600; }
+.ba-main .bo-thread-state, .ba-main .bo-letter-state { border-radius: 999px; padding: 3px 9px; letter-spacing: 0.06em; text-transform: uppercase; }
+.ba-main .bo-errors, .ba-main .bo-threads, .ba-main .bo-letters { gap: 0; }
+.ba-main .bo-letter.is-sent { background: var(--surface-sunken); }
+
+/* ── nothing here, with a shape ──────────────────────────────────────── */
+.bo-empty-state {
+  display: grid; justify-items: center; text-align: center; gap: 8px;
+  padding: 44px 24px 40px; border: 1px dashed var(--border-control); border-radius: 12px;
+  background: var(--surface-sunken);
+}
+.bo-empty-mark {
+  display: grid; place-items: center; inline-size: 48px; block-size: 48px; border-radius: 50%;
+  background: var(--surface-card); border: 1px solid var(--border-hairline); color: var(--text-tertiary); margin-block-end: 6px;
+}
+.bo-empty-title { margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.bo-empty-said { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); max-inline-size: 56ch; text-wrap: pretty; }
+.bo-empty-would { margin: 8px 0 0; display: inline-flex; align-items: baseline; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--surface-card); border: 1px solid var(--border-hairline); font-size: 12.5px; color: var(--text-secondary); }
+.bo-empty-would .figure { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+
+/* ── one entrance ────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  .ba-head, .ba-main .bo-fig, .ba-main .bo-block { animation: ba-rise 520ms var(--ease-enter) both; }
+  .ba-main .bo-fig:nth-child(2) { animation-delay: 60ms; }
+  .ba-main .bo-fig:nth-child(3) { animation-delay: 120ms; }
+  .ba-main .bo-fig:nth-child(4) { animation-delay: 180ms; }
+  .ba-main .bo-block { animation-delay: 160ms; }
+  .ba-main .bo-cols + .bo-cols .bo-block { animation-delay: 260ms; }
+  /* Bars grow from nothing to their share; the figure beside them does not. */
+  .ba-main .bo-step-bar > span, .ba-main .bo-use-bar > span { animation: ba-grow 700ms cubic-bezier(0.2, 0.7, 0.2, 1) 300ms both; }
+}
+@keyframes ba-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes ba-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (max-width: 1000px) {
+  .ba { grid-template-columns: 1fr; }
+  .ba-main { padding-inline: 20px; }
+  .ba-rail-note { display: none; }
+  .ba-main .bo-table-wrap { margin-inline: -20px; padding-inline: 20px; }
+}

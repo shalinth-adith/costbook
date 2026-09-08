@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { AdminEmpty } from '@/components/admin-empty';
+import { AdminHead } from '@/components/admin-head';
 import { accounts } from '@/lib/admin';
 
 export const metadata: Metadata = { title: 'Accounts · Costbook' };
@@ -29,22 +31,29 @@ export default async function AdminAccounts() {
 
   return (
     <div className="bo">
-      <header className="ba-head">
-        <h1 className="ba-h1">Accounts</h1>
-      </header>
+      <AdminHead
+        section="Accounts"
+        title="Accounts"
+        lede="Every kitchen, one to a row. What a row shows is the shape of an account, never a figure from inside its book."
+        aside={
+          <span className="ba-count">
+            <b className="figure">{rows.length}</b> {rows.length === 1 ? 'kitchen' : 'kitchens'}
+          </span>
+        }
+      />
 
       <section className="bo-block bo-wide">
-        <p className="bo-lede">
-          <b className="figure">{rows.length}</b>{' '}
-          {rows.length === 1 ? 'kitchen' : 'kitchens'}, newest first. What each row
-          shows is the shape of an account, never a figure from inside its book.
-        </p>
+        <div className="bo-block-head">
+          <h2 className="bo-h2">Newest first</h2>
+          <span className="bo-h2-meta">Recipes include batches: ten dishes and a gravy read 11</span>
+        </div>
 
         {rows.length === 0 ? (
-          <p className="bo-empty">
-            No accounts yet — or migration 25 has not been applied, in which case
-            the database is refusing to answer rather than reporting nothing.
-          </p>
+          <AdminEmpty
+            title="No accounts yet"
+            said="Or migration 25 has not been applied, in which case the database is refusing to answer rather than reporting nothing."
+            would="somebody finishes sign-up."
+          />
         ) : (
           <div className="bo-table-wrap">
             <table className="bo-table">
