@@ -178,9 +178,6 @@ export default function Landing() {
                   →
                 </span>
               </Link>
-              <a href="#screen" className="lp-act-more">
-                See the screen
-              </a>
             </div>
             <ul className="lp-proof">
               <li>No card to start</li>

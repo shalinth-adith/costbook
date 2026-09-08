@@ -17,6 +17,9 @@
  */
 
 .lp {
+  /* On a 2000px monitor a 72px gutter leaves the page pinned to the edges.
+     The gutter grows once the content would pass 1560px. */
+  --lp-gutter: max(72px, calc((100% - 1560px) / 2));
   min-height: 100vh;
   background: var(--surface-page);
   color: var(--text-primary);
@@ -32,7 +35,7 @@
 .lp-nav {
   position: sticky; inset-block-start: 0; z-index: 20;
   height: 76px; display: flex; align-items: center; justify-content: space-between;
-  padding-inline: 72px;
+  padding-inline: var(--lp-gutter);
   /* Over the hero it is glass on soot; past the fold it takes its own ground,
      because the page under it has turned white. */
   background: transparent; color: var(--on-soot);
@@ -106,12 +109,20 @@
 .lp-hero {
   display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
   gap: 48px; align-items: center;
-  padding: 56px 72px 72px;
+  padding: 40px var(--lp-gutter) 48px;
   /* Tall enough to hold the ripple, never taller than a screen needs: on a
      1600px-high monitor a hero that fills it is a page that seems empty. */
-  /* Leaves the whole of the band below it on a 900px screen: the slider
-     is the thing to find at the fold, not the thing under it. */
-  min-height: min(calc(100vh - 76px - 250px), 720px);
+  /* The band under it must be whole on the first screen or wholly below
+     it — never sliced at the fold. So the hero is sized to leave the band
+     room, floored so a short window still reads, and capped so a tall
+     monitor is not an empty dark field. */
+  min-height: clamp(520px, calc(100vh - 76px - 250px), 820px);
+}
+/* A short window cannot hold hero and band together. Then the hero takes
+   the whole first screen and the band begins exactly at the fold — wholly
+   below it, rather than sliced by it. */
+@media (max-height: 899px) {
+  .lp-hero { min-height: calc(100vh - 76px); }
 }
 .lp-hero-say { display: flex; flex-direction: column; align-items: flex-start; gap: 26px; }
 
@@ -184,8 +195,12 @@
 
 /* ── the ripple ─────────────────────────────────────────────────────── */
 
-.lp-ripple { margin: 0; display: grid; gap: 18px; min-width: 0; }
-.lp-rp { inline-size: 100%; block-size: auto; overflow: visible; }
+/* Capped: the graph scales with its column, and on a wide monitor an
+   uncapped one grows tall enough to push the band under the fold. */
+.lp-ripple { margin: 0; display: grid; gap: 12px; min-width: 0; max-inline-size: 760px; justify-self: end; inline-size: 100%; }
+/* Height-capped as well as width-capped: the drawing letterboxes inside
+   its box, and the hero stops growing with the monitor. */
+.lp-rp { inline-size: 100%; block-size: auto; max-block-size: 440px; overflow: visible; }
 
 .lp-rp-edge { fill: none; stroke: var(--soot-rule); stroke-width: 1.4; stroke-dasharray: 1; stroke-dashoffset: 0; }
 .lp-rp-comet, .lp-rp-glow {
@@ -253,7 +268,7 @@
 .lp-try {
   display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) minmax(0, 1fr);
   gap: 40px; align-items: center;
-  padding: 30px 72px 36px;
+  padding: 30px var(--lp-gutter) 36px;
   border-block-start: 1px solid var(--soot-rule);
   background: rgb(0 0 0 / 0.22);
 }
@@ -272,30 +287,41 @@
 .lp-try-rate-fig { font-size: 26px; font-weight: 600; color: var(--saffron); letter-spacing: -0.01em; }
 .lp-try-rate-unit { font-size: 12px; font-weight: 400; color: var(--on-soot-tertiary); margin-inline-start: 3px; }
 
-.lp-try-slider { position: relative; padding-block: 8px 22px; }
-/* The track: what has been dragged is saffron, the rest is rule, and a tick
-   marks today so the visitor always knows where they started. */
+.lp-try-slider { position: relative; padding-block: 0 22px; }
+/* The track: what has been dragged is saffron, the rest is a rule light
+   enough to see on this ground, and a tick marks today so the visitor always
+   knows where they started. Track and thumb are drawn per engine — the
+   input itself is transparent — because that is the one way a range input
+   looks the same in Chrome, Safari and Firefox. */
 .lp-try-input {
-  -webkit-appearance: none; appearance: none; inline-size: 100%; block-size: 6px; margin: 0;
-  border-radius: 3px; cursor: grab; outline: none;
-  background: linear-gradient(to right, var(--saffron) var(--lp-try-pos), var(--soot-rule) var(--lp-try-pos));
+  -webkit-appearance: none; appearance: none; display: block;
+  inline-size: 100%; width: 100%; block-size: 26px; height: 26px; margin: 0;
+  background: transparent; cursor: grab; outline: none;
 }
 .lp-try-input:active { cursor: grabbing; }
+.lp-try-input::-webkit-slider-runnable-track {
+  block-size: 6px; height: 6px; border-radius: 3px;
+  background: linear-gradient(to right, var(--saffron) var(--lp-try-pos), #343B4A var(--lp-try-pos));
+}
 .lp-try-input::-webkit-slider-thumb {
-  -webkit-appearance: none; inline-size: 26px; block-size: 26px; border-radius: 50%;
+  -webkit-appearance: none; appearance: none;
+  inline-size: 26px; width: 26px; block-size: 26px; height: 26px; margin-top: -10px; border-radius: 50%;
   background: var(--saffron); border: 3px solid var(--soot);
   box-shadow: 0 0 0 1px var(--saffron), 0 6px 18px rgb(245 179 53 / 0.45);
   transition: transform 120ms var(--ease-enter);
 }
+.lp-try-input::-moz-range-track { height: 6px; border-radius: 3px; background: #343B4A; }
+.lp-try-input::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--saffron); }
 .lp-try-input::-moz-range-thumb {
-  inline-size: 20px; block-size: 20px; border-radius: 50%;
+  width: 20px; height: 20px; border-radius: 50%;
   background: var(--saffron); border: 3px solid var(--soot);
   box-shadow: 0 0 0 1px var(--saffron), 0 6px 18px rgb(245 179 53 / 0.45);
 }
 .lp-try-input:hover::-webkit-slider-thumb, .lp-try-input:active::-webkit-slider-thumb { transform: scale(1.12); }
-.lp-try-input:focus-visible { box-shadow: 0 0 0 3px rgb(245 179 53 / 0.35); }
+.lp-try-input:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 1px var(--saffron), 0 0 0 5px rgb(245 179 53 / 0.35); }
+.lp-try-input:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 1px var(--saffron), 0 0 0 5px rgb(245 179 53 / 0.35); }
 .lp-try-today {
-  position: absolute; inset-inline-start: var(--lp-try-today); inset-block-start: 22px;
+  position: absolute; inset-inline-start: var(--lp-try-today); inset-block-start: 24px;
   transform: translateX(-50%); display: grid; justify-items: center; gap: 3px; pointer-events: none;
 }
 .lp-try-today::before { content: ''; inline-size: 1px; block-size: 8px; background: var(--on-soot-tertiary); }
@@ -355,7 +381,7 @@
 .lp-screen {
   display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
   gap: 72px; align-items: center;
-  padding: 120px 72px;
+  padding: 120px var(--lp-gutter);
   scroll-margin-top: 76px;
 }
 .lp-screen .lp-eyebrow, .lp-lines .lp-eyebrow { color: var(--accent); }
@@ -463,7 +489,7 @@
 /* ══ 3 · three lines, across ═══════════════════════════════════════════ */
 
 .lp-lines {
-  padding: 96px 72px 120px;
+  padding: 96px var(--lp-gutter) 120px;
   border-block-start: 1px solid var(--border-hairline);
   display: grid; gap: 56px;
 }
@@ -499,7 +525,7 @@
 
 .lp-price {
   background: var(--soot); color: var(--on-soot);
-  padding: 112px 72px; scroll-margin-top: 76px;
+  padding: 112px var(--lp-gutter); scroll-margin-top: 76px;
   display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   gap: 64px; align-items: start;
 }
@@ -553,7 +579,7 @@
 /* ══ 5 · the questions ════════════════════════════════════════════════ */
 
 .lp-faq {
-  padding: 104px 72px; display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  padding: 104px var(--lp-gutter); display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
   gap: 64px; align-items: start; border-block-start: 1px solid var(--border-hairline);
 }
 .lp-faq .lp-eyebrow { color: var(--accent); }
@@ -582,7 +608,7 @@
 /* ══ 6 · one last ask ══════════════════════════════════════════════════ */
 
 .lp-last {
-  padding: 112px 72px 128px; display: grid; gap: 34px; justify-items: center; text-align: center;
+  padding: 112px var(--lp-gutter) 128px; display: grid; gap: 34px; justify-items: center; text-align: center;
   border-block-start: 1px solid var(--border-hairline);
 }
 .lp-last .lp-h2 { max-width: 22ch; }
@@ -593,7 +619,7 @@
 .lp-foot {
   background: var(--soot); color: var(--on-soot);
   border-block-start: 1px solid var(--soot-rule);
-  padding: 44px 72px 36px;
+  padding: 44px var(--lp-gutter) 36px;
 }
 .lp-foot-top {
   display: flex; align-items: flex-start; justify-content: space-between;
