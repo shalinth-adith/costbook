@@ -64,6 +64,9 @@ export const PUBLIC_PATHS: readonly string[] = [
    */
   "/robots.txt",
   "/sitemap.xml",
+  // The social card. A crawler unfurling a link is not signed in, and a
+  // card that answers with a redirect to sign-in is no card at all.
+  "/opengraph-image",
 ];
 
 /** Whether a path is reachable with no session. */

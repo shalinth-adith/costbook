@@ -100,8 +100,8 @@ export function LandingRipple() {
       <svg
         className="lp-rp"
         viewBox={`0 0 ${String(W)} ${String(H)}`}
-        role="img"
         aria-hidden="true"
+        focusable="false"
       >
         {/* ── lines, drawn first so the boxes sit on them ──────────── */}
         <g className="lp-rp-edges">
@@ -111,6 +111,7 @@ export function LandingRipple() {
             return (
               <g key={b.name}>
                 <path className="lp-rp-edge is-a" d={toBase} pathLength={1} />
+                <path className="lp-rp-glow is-a" d={toBase} pathLength={1} />
                 <path className="lp-rp-comet is-a" d={toBase} pathLength={1} />
                 {b.dishes.map((d, k) => {
                   const dy = dishY(
@@ -124,6 +125,11 @@ export function LandingRipple() {
                     <g key={d.name}>
                       <path
                         className="lp-rp-edge is-b"
+                        d={toDish}
+                        pathLength={1}
+                      />
+                      <path
+                        className="lp-rp-glow is-b"
                         d={toDish}
                         pathLength={1}
                       />
@@ -257,14 +263,49 @@ export function LandingRipple() {
         )}
       </svg>
 
-      {/* One caption, replaced rather than retyped, on the same clock. */}
-      <figcaption className="lp-ripple-said" id="lp-ripple-said">
-        <span className="lp-rp-was">
+      {/*
+        * On a phone the graph's labels would render at seven pixels. The
+        * same story as a list instead: the rate, then every dish it reaches
+        * with its base named — on the same clock, so it reprices when the
+        * caption does.
+        */}
+      <ol className="lp-ripple-small" aria-hidden="true">
+        <li className="lp-rps-root">
+          <span className="lp-rps-name">Onion, large</span>
+          <span className="figure lp-rps-fig">
+            <span className="lp-rp-was">42.00</span>
+            <span className="lp-rp-now">60.00</span>
+            <span className="lp-rps-unit">a kilo</span>
+          </span>
+        </li>
+        {BASES.flatMap((b) =>
+          b.dishes.map((d) => (
+            <li key={d.name} className={`lp-rps-dish${d.crosses ? " is-crosses" : ""}`}>
+              <span className="lp-rps-name">
+                {d.name}
+                <span className="lp-rps-via">via {b.name}</span>
+              </span>
+              <span className="figure lp-rps-fig">
+                <span className="lp-rp-was">{d.was}%</span>
+                <span className="lp-rp-now">{d.now}%</span>
+              </span>
+            </li>
+          )),
+        )}
+      </ol>
+
+      {/* One caption, replaced rather than retyped, on the same clock. What
+          a screen reader gets is the finished sentence, once. */}
+      <figcaption
+        className="lp-ripple-said"
+        id="lp-ripple-said"
+        aria-label="Onion moves from 42 to 60 a kilo: 11 dishes move, and 3 cross your target."
+      >
+        <span className="lp-rp-was" aria-hidden="true">
           Onion is in <b className="figure">11</b> of your dishes.
         </span>
-        <span className="lp-rp-now">
-          <b className="figure">11</b> dishes move. <b className="figure">3</b>{" "}
-          cross your target.
+        <span className="lp-rp-now" aria-hidden="true">
+          <b className="figure">11</b> dishes move. <b className="figure">3</b> cross your target.
         </span>
       </figcaption>
     </figure>

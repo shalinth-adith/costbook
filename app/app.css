@@ -5401,3 +5401,6 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
   .bo-use-figs { grid-template-columns: minmax(0, 1fr); gap: var(--sp-3); }
   .bo-use { font-size: 12.5px; }
 }
+
+/* An in-page link scrolls to its target rather than cutting to it. */
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }

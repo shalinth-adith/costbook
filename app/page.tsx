@@ -1,28 +1,56 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { LandingFaq } from "@/components/landing-faq";
+import { LandingMorning } from "@/components/landing-morning";
 import { LandingNav } from "@/components/landing-nav";
 import { LandingRate } from "@/components/landing-rate";
 import { LandingRipple } from "@/components/landing-ripple";
-import { LandingMorning } from "@/components/landing-morning";
 import { FREE_LIMITS, PAID_MONTHLY } from "@/lib/org";
+
+import { siteUrl } from "./robots";
 
 import "./landing.css";
 
+const TITLE = "Costbook — your menu, costed, and still costed when prices move";
+const DESCRIPTION =
+  "Recipe costing for small restaurants. Costbook works out what every dish costs, through its sub-recipes and yields, and keeps it true as your rates change.";
+
+/**
+ * What a link to this page carries with it.
+ *
+ * The title and description are said once, here, and the social card and
+ * the canonical URL are derived from them — a shared link unfurls into the
+ * same sentence the page opens with, not into whatever a crawler found
+ * first. `metadataBase` is set in the layout, so the relative paths resolve.
+ */
 export const metadata: Metadata = {
-  title: "Costbook — your menu, costed, and still costed when prices move",
-  description:
-    "Recipe costing for small restaurants. Costbook works out what every dish costs, through its sub-recipes and yields, and keeps it true as your rates change.",
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "Costbook",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 /**
  * The entry screen.
  *
- * Six blocks: the sentence with the ripple beside it · the morning confirm ·
- * the screen itself · three lines · the price · the footer. The first is the
- * only one allowed to be theatre — the owner asked for a page that captures
- * the person who lands on it, and motion at any cost — and everything under
- * it arrives as it is reached and then holds still to be read.
+ * Eight blocks: the sentence with the ripple beside it · the morning confirm
+ * · the screen itself · three lines · the price · the questions · one last
+ * ask · the footer. The first is the only one allowed to be theatre — the
+ * owner asked for a page that captures the person who lands on it — and
+ * everything under it arrives as it is reached and then holds still to be
+ * read.
  *
  * The import is not the product. Leading with "send us your spreadsheet"
  * taught every visitor that Costbook reads spreadsheets — it reads one, once.
@@ -66,20 +94,63 @@ const PAID_HAS: readonly string[] = [
   "Seven days to undo a price list",
 ];
 
+/**
+ * What a search engine is told this is.
+ *
+ * A software application with two offers — free, and the monthly figure —
+ * read from the same constants the page and Settings read, so the structured
+ * data cannot quote a price the product no longer charges.
+ */
+function structuredData(): string {
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Costbook",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: siteUrl(),
+    description: DESCRIPTION,
+    offers: [
+      {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: PAID_MONTHLY.currency,
+        name: "Free",
+      },
+      {
+        "@type": "Offer",
+        price: String(PAID_MONTHLY.amount),
+        priceCurrency: PAID_MONTHLY.currency,
+        name: "A plan, monthly",
+      },
+    ],
+  });
+}
+
 export default function Landing() {
   return (
     <div className="lp">
+      <script
+        type="application/ld+json"
+        // Built from constants, never from anything a visitor typed.
+        dangerouslySetInnerHTML={{ __html: structuredData() }}
+      />
+
+      {/* Outside the soot block so it can stay with the reader all the way
+          down: a sticky element is pinned by its nearest clipping ancestor,
+          and the hero clips. */}
+      <LandingNav />
+
       {/*
        * The entry screen, on soot.
        *
        * The words on the left, the ripple on the right, the morning confirm
-       * along the foot. The dark ground the app carries top and bottom, met before
-       * the product is: it gives the page a horizon, and it lights everything
-       * that moves.
+       * along the foot. The dark ground the app carries top and bottom, met
+       * before the product is: it gives the page a horizon, and it lights
+       * everything that moves.
        */}
       <div className="lp-top">
         <div className="lp-top-bg" aria-hidden="true" />
-        <LandingNav />
 
         <section className="lp-hero">
           <div className="lp-hero-say">
@@ -125,6 +196,9 @@ export default function Landing() {
         </section>
 
         <LandingMorning />
+        {/* The bar watches this: once it is above the top edge, the bar
+            takes its own ground and offers the action again. */}
+        <div id="lp-fold" className="lp-fold" aria-hidden="true" />
       </div>
 
       {/* 2 — the screen itself, not a picture of it */}
@@ -157,10 +231,12 @@ export default function Landing() {
       </section>
 
       {/* 3 — three lines, across the page rather than down its left edge */}
-      <section className="lp-lines">
+      <section className="lp-lines" aria-labelledby="lp-lines-h">
         <div className="lp-lines-head">
           <p className="lp-eyebrow">Why it is right when the sheet is not</p>
-          <h2 className="lp-h2">Three things a spreadsheet cannot follow.</h2>
+          <h2 className="lp-h2" id="lp-lines-h">
+            Three things a spreadsheet cannot follow.
+          </h2>
         </div>
         <div className="lp-lines-row">
           {LINES.map(([n, name, said]) => (
@@ -174,10 +250,10 @@ export default function Landing() {
       </section>
 
       {/* 4 — the price, on soot: two tiers side by side and the figure said once */}
-      <section className="lp-price">
+      <section className="lp-price" id="price" aria-labelledby="lp-price-h">
         <div className="lp-price-say">
           <p className="lp-eyebrow">What it costs</p>
-          <h2 className="lp-price-h">
+          <h2 className="lp-price-h" id="lp-price-h">
             Free to cost your menu.{" "}
             {/* The figure comes from lib/org so this and Settings cannot drift. */}
             <span className="figure lp-price-figure">
@@ -231,7 +307,31 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* 5 — the footer */}
+      {/* 5 — the questions */}
+      <LandingFaq />
+
+      {/* 6 — one last ask, on white, before the dark floor */}
+      <section className="lp-last" aria-labelledby="lp-last-h">
+        <h2 className="lp-h2" id="lp-last-h">
+          Cost six dishes tonight.{" "}
+          <span className="lp-h2-quiet">
+            See if the numbers match your sheet.
+          </span>
+        </h2>
+        <div className="lp-act">
+          <Link href="/sign-up" className="lp-btn-hero is-ink">
+            Start free
+            <span className="lp-btn-hero-arrow" aria-hidden="true">
+              →
+            </span>
+          </Link>
+          <Link href="/sign-in" className="lp-act-more is-ink">
+            Already have a book? Sign in
+          </Link>
+        </div>
+      </section>
+
+      {/* 7 — the footer */}
       <footer className="lp-foot">
         <div className="lp-foot-top">
           <div>
@@ -247,11 +347,14 @@ export default function Landing() {
         </div>
         <div className="lp-foot-links">
           <Link href="/about">What this is</Link>
+          <a href="#price">Plans</a>
+          <Link href="/contact">Contact</Link>
           <Link href="/sign-in">Sign in</Link>
           <Link href="/sign-up">Start free</Link>
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Terms</Link>
         </div>
+        <p className="lp-foot-legal figure">© 2026 Costbook</p>
       </footer>
     </div>
   );

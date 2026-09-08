@@ -1,51 +1,65 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
-import { Wordmark } from './wordmark';
+import { Wordmark } from "./wordmark";
 
 /**
- * The landing header (A29).
+ * The landing header.
  *
- * "Start free" appears in the bar only after the hero has left the screen, so
- * it is never a second call to action competing with the first. One action,
- * said twice, worded identically.
+ * It stays with the reader the whole way down: on soot over the hero, then
+ * on its own soot ground once the page under it turns white, so the mark and
+ * the action are never lost on a light section.
+ *
+ * "Start free" appears in the bar only after the hero has left the screen,
+ * so it is never a second call to action competing with the first. One
+ * action, said twice, worded identically.
+ *
+ * The bar watches a marker the page puts at the foot of the hero (`#lp-fold`)
+ * rather than a sentinel of its own: the header sits at the top of the page,
+ * and the thing it needs to know about is a long way below it.
  */
 export function LandingNav() {
   const [past, setPast] = useState(false);
-  const sentinel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const mark = sentinel.current;
-    if (mark === null) return;
+    const fold = document.getElementById("lp-fold");
+    if (fold === null) return;
     const watch = new IntersectionObserver(
-      ([entry]) => setPast(entry !== undefined && !entry.isIntersecting),
+      ([entry]) => {
+        if (entry === undefined) return;
+        // Past once the marker is above the top edge — not merely off
+        // screen, which is also true before the page has been scrolled at
+        // all on a short viewport.
+        setPast(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+      },
       { threshold: 0 },
     );
-    watch.observe(mark);
+    watch.observe(fold);
     return () => watch.disconnect();
   }, []);
 
   return (
-    <>
-      <header className="lp-nav">
-        <Wordmark mode="public" />
-        <nav className="lp-nav-links">
-          <Link href="/sign-in" className="lp-link">Sign in</Link>
-          {/* Held in the layout at all times so its arrival moves nothing. */}
-          <Link
-            href="/sign-up"
-            className={`btn btn-primary lp-nav-cta${past ? ' is-shown' : ''}`}
-            tabIndex={past ? undefined : -1}
-            aria-hidden={past ? undefined : true}
-          >
-            Start free
-          </Link>
-        </nav>
-      </header>
-      {/* Sits at the foot of the hero: once this leaves, the bar takes over. */}
-      <div ref={sentinel} className="lp-nav-mark" aria-hidden="true" />
-    </>
+    <header className={`lp-nav${past ? " is-past" : ""}`}>
+      <Wordmark mode="public" />
+      <nav className="lp-nav-links" aria-label="Site">
+        <Link href="/about" className="lp-link">
+          What this is
+        </Link>
+        <Link href="/sign-in" className="lp-link">
+          Sign in
+        </Link>
+        {/* Held in the layout at all times so its arrival moves nothing. */}
+        <Link
+          href="/sign-up"
+          className={`lp-nav-cta${past ? " is-shown" : ""}`}
+          tabIndex={past ? undefined : -1}
+          aria-hidden={past ? undefined : true}
+        >
+          Start free
+        </Link>
+      </nav>
+    </header>
   );
 }

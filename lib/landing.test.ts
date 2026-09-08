@@ -32,6 +32,12 @@ describe("what a signed-out visitor may read", () => {
     expect(isPublic("/sitemap.xml")).toBe(true);
   });
 
+  it("lets a link preview fetch the card", () => {
+    // The image route answered 307 to sign-in, so a shared link unfurled
+    // into nothing. Same closed loop as /about, one route later.
+    expect(isPublic("/opengraph-image")).toBe(true);
+  });
+
   it("does not let them read anything belonging to a book", () => {
     for (const path of [
       "/dashboard",

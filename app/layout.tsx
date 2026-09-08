@@ -1,5 +1,7 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Bricolage_Grotesque, Libre_Franklin, Spline_Sans_Mono } from 'next/font/google';
+
+import { siteUrl } from './robots';
 
 import './tokens.css';
 import './app.css';
@@ -36,8 +38,18 @@ const mono = Spline_Sans_Mono({
 });
 
 export const metadata: Metadata = {
+  // Every relative URL in a page's metadata — the canonical, the social
+  // card — resolves against this. Without it Next warns and guesses.
+  metadataBase: new URL(siteUrl()),
   title: 'Costbook',
   description: 'Know what every plate costs you, and what to charge for it.',
+};
+
+/** The colour a phone paints its own chrome while this is open. */
+export const viewport: Viewport = {
+  themeColor: '#0F1219',
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

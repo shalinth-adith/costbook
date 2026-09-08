@@ -30,35 +30,65 @@
 /* ── the bar ───────────────────────────────────────────────────────── */
 
 .lp-nav {
-  position: sticky; inset-block-start: 0; z-index: 10;
+  position: sticky; inset-block-start: 0; z-index: 20;
   height: 76px; display: flex; align-items: center; justify-content: space-between;
   padding-inline: 72px;
-  background: transparent;
+  /* Over the hero it is glass on soot; past the fold it takes its own ground,
+     because the page under it has turned white. */
+  background: transparent; color: var(--on-soot);
+  border-block-end: 1px solid transparent;
+  transition: background-color 240ms var(--ease-enter), border-color 240ms var(--ease-enter);
 }
-.lp-nav-links { display: flex; align-items: center; gap: 22px; }
-.lp-link { font-size: 14px; font-weight: 500; color: var(--on-soot-secondary); text-decoration: none; }
+.lp-nav.is-past {
+  background: rgb(15 18 25 / 0.9); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border-color: var(--soot-rule);
+}
+.lp-nav .wordmark { color: var(--on-soot); }
+.lp-nav .wordmark:hover { color: var(--saffron); }
+/* The app drops the word below 480 to make room for its nav; this bar has
+   only two links, so the name stays. A mark alone, unnamed, is a puzzle. */
+.lp-nav .wordmark > span { display: inline; }
+.lp-nav-links { display: flex; align-items: center; gap: 24px; }
+.lp-link { font-size: 14px; font-weight: 500; color: var(--on-soot-secondary); text-decoration: none; white-space: nowrap; }
 .lp-link:hover { color: var(--saffron); }
 
 /* Present in the layout at all times, so its arrival shifts nothing beside
    it. Inert, not merely faded: it cannot be tabbed to before it is offered. */
 .lp-nav-cta {
-  opacity: 0; visibility: hidden;
-  transition: opacity var(--dur-micro) var(--ease-enter), visibility var(--dur-micro);
+  display: inline-flex; align-items: center; block-size: 40px; padding-inline: 18px;
+  border-radius: 6px; font-size: 14px; font-weight: 600; text-decoration: none;
+  background: var(--saffron); color: var(--soot);
+  opacity: 0; visibility: hidden; transform: translateY(-4px);
+  transition: opacity 200ms var(--ease-enter), visibility 200ms, transform 200ms var(--ease-enter), background 120ms;
 }
-.lp-nav-cta.is-shown { opacity: 1; visibility: visible; }
-.lp-top .lp-nav-cta { background: var(--saffron); border-color: var(--saffron); color: var(--soot); }
-.lp-top .lp-nav-cta:hover { background: #FFC55A; border-color: #FFC55A; }
+.lp-nav-cta.is-shown { opacity: 1; visibility: visible; transform: none; }
+.lp-nav-cta:hover { background: #FFC55A; }
 
-.lp-nav-mark { height: 1px; margin-block-start: -1px; }
+/* Where the hero ends. The bar watches it. */
+.lp-fold { block-size: 1px; margin-block-start: -1px; }
+
+/* Keyboard focus is drawn on everything that can take it, on both grounds. */
+.lp-link:focus-visible, .lp-nav-cta:focus-visible, .lp-act-more:focus-visible,
+.lp-foot-links a:focus-visible, .lp-foot-mail:focus-visible, .lp-tier-alt a:focus-visible,
+.lp-tier-btn:focus-visible, .lp-faq-q:focus-visible {
+  outline: 2px solid var(--saffron); outline-offset: 3px; border-radius: 3px;
+}
+.lp-screen a:focus-visible, .lp-lines a:focus-visible, .lp-faq-q:focus-visible, .lp-last a:focus-visible {
+  outline-color: var(--accent);
+}
 
 /* ══ 1 · the entry screen, on soot ═════════════════════════════════════ */
 
 .lp-top {
-  position: relative; isolation: isolate; overflow: hidden;
+  /* `clip`, not `hidden`: hidden makes this a scroll container, and a
+     sticky bar inside one never sticks. It is outside now, but the bg
+     still needs clipping and clip is the one that costs nothing. */
+  position: relative; isolation: isolate; overflow: clip;
   background: var(--soot); color: var(--on-soot);
+  /* Up under the bar, which is in flow above it: the bar is glass, and the
+     ground it needs to be glass over is this one. */
+  margin-block-start: -76px; padding-block-start: 76px;
 }
-.lp-top .wordmark { color: var(--on-soot); }
-.lp-top .wordmark:hover { color: var(--saffron); }
 
 /* The ground behind everything: a faint grid, a warm glow where the ripple
    ends. It drifts, slowly enough that nobody watches it — it is the reason
@@ -77,7 +107,9 @@
   display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
   gap: 48px; align-items: center;
   padding: 56px 72px 72px;
-  min-height: calc(100vh - 76px - 110px);
+  /* Tall enough to hold the ripple, never taller than a screen needs: on a
+     1600px-high monitor a hero that fills it is a page that seems empty. */
+  min-height: min(calc(100vh - 76px - 110px), 720px);
 }
 .lp-hero-say { display: flex; flex-direction: column; align-items: flex-start; gap: 26px; }
 
@@ -120,6 +152,12 @@
 .lp-btn-hero:focus-visible { outline: 2px solid var(--on-soot); outline-offset: 3px; }
 .lp-btn-hero-arrow { display: inline-block; transition: transform 200ms var(--ease-enter); }
 .lp-btn-hero:hover .lp-btn-hero-arrow { transform: translateX(4px); }
+.lp-btn-hero.is-ink {
+  background: var(--surface-inverse); color: var(--text-on-inverse);
+  box-shadow: 0 12px 36px rgb(23 27 36 / 0.22);
+}
+.lp-btn-hero.is-ink:hover { background: #2C3444; box-shadow: 0 18px 44px rgb(23 27 36 / 0.28); }
+.lp-btn-hero.is-ink:focus-visible { outline-color: var(--accent); }
 
 .lp-act-more {
   font-size: 15px; font-weight: 500; color: var(--on-soot-secondary);
@@ -128,6 +166,8 @@
   transition: color 120ms, border-color 120ms;
 }
 .lp-act-more:hover { color: var(--on-soot); border-color: var(--on-soot); }
+.lp-act-more.is-ink { color: var(--text-secondary); border-color: var(--border-control); }
+.lp-act-more.is-ink:hover { color: var(--text-primary); border-color: var(--text-primary); }
 
 .lp-proof {
   list-style: none; margin: 6px 0 0; padding: 0;
@@ -146,11 +186,14 @@
 .lp-rp { inline-size: 100%; block-size: auto; overflow: visible; }
 
 .lp-rp-edge { fill: none; stroke: var(--soot-rule); stroke-width: 1.4; stroke-dasharray: 1; stroke-dashoffset: 0; }
-.lp-rp-comet {
-  fill: none; stroke: var(--saffron); stroke-width: 2.2; stroke-linecap: round;
+.lp-rp-comet, .lp-rp-glow {
+  fill: none; stroke: var(--saffron); stroke-linecap: round;
   stroke-dasharray: 0.18 1; stroke-dashoffset: -1;
-  filter: drop-shadow(0 0 5px rgb(245 179 53 / 0.9));
 }
+.lp-rp-comet { stroke-width: 2.2; }
+/* The glow is a wider, fainter twin underneath — not a filter, which would
+   repaint every animated path on every frame. */
+.lp-rp-glow { stroke-width: 8; opacity: 0.28; }
 
 .lp-rp-node { opacity: 1; }
 .lp-rp-box { fill: #171B24; stroke: var(--soot-rule); stroke-width: 1; }
@@ -175,6 +218,25 @@
 /* Before and after share one place. The static state is "after". */
 .lp-rp-was { opacity: 0; }
 .lp-rp-now { opacity: 1; }
+
+/* The phone version of the graph. Hidden until the graph would be unreadable. */
+.lp-ripple-small { display: none; list-style: none; margin: 0; padding: 0; }
+.lp-ripple-small li {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
+  padding: 11px 14px; border-block-start: 1px solid var(--soot-rule);
+}
+.lp-ripple-small li:first-child { border-block-start: 0; }
+.lp-rps-root { background: #1B2029; border: 1px solid var(--saffron); border-radius: 8px; margin-block-end: 6px; }
+.lp-rps-name { display: grid; gap: 2px; font-size: 14px; font-weight: 600; color: var(--on-soot); min-width: 0; }
+.lp-rps-via { font-size: 11.5px; font-weight: 400; color: var(--on-soot-tertiary); }
+.lp-rps-fig { display: grid; font-size: 15px; font-weight: 600; color: var(--on-soot); text-align: end; flex: none; }
+.lp-rps-fig > span { grid-area: 1 / 1; }
+.lp-rps-fig .lp-rps-unit { grid-area: auto; font-size: 11px; font-weight: 400; color: var(--on-soot-tertiary); }
+.lp-rps-root .lp-rps-fig { font-size: 20px; }
+.lp-rps-root .lp-rp-now { color: var(--saffron); }
+.lp-rps-dish .lp-rp-was { color: var(--on-soot-secondary); font-weight: 500; }
+.lp-rps-dish .lp-rp-now { color: var(--lp-ok); }
+.lp-rps-dish.is-crosses .lp-rp-now { color: var(--lp-up); }
 
 .lp-ripple-said {
   display: grid; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
@@ -219,7 +281,7 @@
 .lp-stamp {
   grid-column: 2; grid-row: 1 / span 3; align-self: center;
   font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--lp-ok); border: 1.5px solid currentColor; border-radius: 3px;
   padding: 5px 8px 4px; transform: rotate(-5deg); opacity: 1;
   box-shadow: inset 0 0 0 1px rgb(15 18 25 / 0.6);
@@ -232,7 +294,7 @@
   display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
   gap: 72px; align-items: center;
   padding: 120px 72px;
-  scroll-margin-top: 20px;
+  scroll-margin-top: 76px;
 }
 .lp-screen .lp-eyebrow, .lp-lines .lp-eyebrow { color: var(--accent); }
 .lp-screen-say { display: grid; gap: 18px; align-content: start; }
@@ -375,7 +437,7 @@
 
 .lp-price {
   background: var(--soot); color: var(--on-soot);
-  padding: 112px 72px;
+  padding: 112px 72px; scroll-margin-top: 76px;
   display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   gap: 64px; align-items: start;
 }
@@ -426,7 +488,45 @@
 .lp-tier-alt { font-size: 13px; line-height: 1.55; color: var(--on-soot-tertiary); }
 .lp-tier-alt a { color: var(--saffron); text-underline-offset: 3px; }
 
-/* ══ 5 · the footer ════════════════════════════════════════════════════ */
+/* ══ 5 · the questions ════════════════════════════════════════════════ */
+
+.lp-faq {
+  padding: 104px 72px; display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 64px; align-items: start; border-block-start: 1px solid var(--border-hairline);
+}
+.lp-faq .lp-eyebrow { color: var(--accent); }
+.lp-faq-head { display: grid; gap: 14px; position: sticky; inset-block-start: 100px; }
+.lp-faq-list { display: grid; }
+.lp-faq-item { border-block-start: 1px solid var(--border-hairline); }
+.lp-faq-item:last-child { border-block-end: 1px solid var(--border-hairline); }
+.lp-faq-q {
+  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  padding: 20px 4px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-primary);
+}
+.lp-faq-q::-webkit-details-marker { display: none; }
+.lp-faq-q:hover { color: var(--accent-ink, var(--accent)); }
+.lp-faq-mark { position: relative; flex: none; inline-size: 18px; block-size: 18px; }
+.lp-faq-mark::before, .lp-faq-mark::after {
+  content: ''; position: absolute; inset-block-start: 8px; inset-inline: 0; block-size: 2px;
+  background: currentColor; border-radius: 1px; transition: transform 220ms var(--ease-enter);
+}
+.lp-faq-mark::after { transform: rotate(90deg); }
+.lp-faq-item[open] .lp-faq-mark::after { transform: rotate(0deg); }
+.lp-faq-a {
+  margin: 0; padding: 0 4px 24px; font-size: 15.5px; line-height: 1.65;
+  color: var(--text-secondary); max-width: 62ch; text-wrap: pretty;
+}
+
+/* ══ 6 · one last ask ══════════════════════════════════════════════════ */
+
+.lp-last {
+  padding: 112px 72px 128px; display: grid; gap: 34px; justify-items: center; text-align: center;
+  border-block-start: 1px solid var(--border-hairline);
+}
+.lp-last .lp-h2 { max-width: 22ch; }
+.lp-last .lp-act { justify-content: center; padding: 0; }
+
+/* ══ 7 · the footer ════════════════════════════════════════════════════ */
 
 .lp-foot {
   background: var(--soot); color: var(--on-soot);
@@ -447,6 +547,7 @@
 .lp-foot-links { display: flex; gap: 28px; flex-wrap: wrap; padding-block-start: 24px; }
 .lp-foot-links a { font-size: 13.5px; color: var(--on-soot-secondary); text-decoration: none; }
 .lp-foot-links a:hover { color: var(--saffron); }
+.lp-foot-legal { margin: 28px 0 0; font-size: 12px; color: var(--on-soot-tertiary); }
 
 /* ══ motion ════════════════════════════════════════════════════════════
    Under one media query, so turning it off is one line: everything above
@@ -493,13 +594,15 @@
   .lp-rp-node.is-root .lp-rp-now { animation-name: lp-now-root; }
   .lp-rp-node.is-root .lp-rp-box { animation-name: lp-flash-root; }
 
-  .lp-rp-comet.is-a { animation: lp-comet-a var(--lp-cycle) linear infinite both; }
-  .lp-rp-comet.is-b { animation: lp-comet-b var(--lp-cycle) linear infinite both; }
+  .lp-rp-comet.is-a, .lp-rp-glow.is-a { animation: lp-comet-a var(--lp-cycle) linear infinite both; }
+  .lp-rp-comet.is-b, .lp-rp-glow.is-b { animation: lp-comet-b var(--lp-cycle) linear infinite both; }
 
-  .lp-rp-node.is-dish .lp-rp-was,
+  .lp-rp-node.is-dish .lp-rp-was, .lp-rps-dish .lp-rp-was,
   .lp-ripple-said .lp-rp-was { animation: lp-was-dish var(--lp-cycle) linear infinite both; }
-  .lp-rp-node.is-dish .lp-rp-now,
+  .lp-rp-node.is-dish .lp-rp-now, .lp-rps-dish .lp-rp-now,
   .lp-ripple-said .lp-rp-now { animation: lp-now-dish var(--lp-cycle) linear infinite both; }
+  .lp-rps-root .lp-rp-was { animation: lp-was-root var(--lp-cycle) linear infinite both; }
+  .lp-rps-root .lp-rp-now { animation: lp-now-root var(--lp-cycle) linear infinite both; }
   .lp-rp-node.is-dish .lp-rp-box { animation: lp-flash-dish var(--lp-cycle) linear infinite both; }
   .lp-rp-ring { animation: lp-ring var(--lp-cycle) linear infinite both; }
 
@@ -507,7 +610,7 @@
   /* ── below the fold, as it is reached ────────────────────────────── */
   @supports (animation-timeline: view()) {
     .lp-screen-say, .lp-screen-panel, .lp-lines-head, .lp-line-block,
-    .lp-price-say, .lp-tier {
+    .lp-price-say, .lp-tier, .lp-faq-head, .lp-faq-item, .lp-last > * {
       animation: lp-rise linear both;
       animation-timeline: view();
       animation-range: entry 0% entry 32%;
@@ -579,6 +682,10 @@
 
 @media (max-width: 1100px) {
   .lp-hero { grid-template-columns: 1fr; gap: 48px; min-height: 0; padding: 40px 40px 56px; }
+  .lp-ripple { inline-size: 100%; max-inline-size: 700px; justify-self: center; }
+  .lp-faq { grid-template-columns: 1fr; gap: 32px; padding: 72px 40px; }
+  .lp-faq-head { position: static; }
+  .lp-last { padding: 80px 40px 96px; }
   .lp-screen { grid-template-columns: 1fr; gap: 40px; padding: 80px 40px; }
   .lp-lines { padding: 72px 40px 88px; }
   .lp-lines-row { grid-template-columns: 1fr; gap: 16px; }
@@ -599,9 +706,23 @@
 }
 @media (max-width: 760px) {
   .lp-hero { padding-inline: 20px; }
+  .lp-nav { padding-inline: 20px; }
+  .lp-nav-links { gap: 16px; }
+  /* Two links and a button do not fit beside the name at this width. */
+  .lp-nav-links .lp-link:first-child { display: none; }
+  .lp-faq, .lp-last { padding-inline: 20px; }
   .lp-screen, .lp-lines, .lp-price, .lp-foot { padding-inline: 20px; }
   .lp-tiers { grid-template-columns: 1fr; }
   .lp-morning { padding-inline: 20px; }
   .lp-morning-row { grid-template-columns: 1fr; }
   .lp-act { gap: 18px; }
+}
+
+/* Below this the graph's labels would be seven pixels tall. The list stands
+   in for it, and the caption keeps its place under whichever is shown. */
+@media (max-width: 640px) {
+  .lp-rp { display: none; }
+  .lp-ripple-small { display: block; }
+  .lp-btn-hero { block-size: 54px; font-size: 16px; }
+  .lp-last .lp-act { flex-direction: column; gap: 16px; }
 }
