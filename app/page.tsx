@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { LandingFaq } from "@/components/landing-faq";
-import { LandingMorning } from "@/components/landing-morning";
+import { LandingTry } from "@/components/landing-try";
 import { LandingNav } from "@/components/landing-nav";
 import { LandingRate } from "@/components/landing-rate";
 import { LandingRipple } from "@/components/landing-ripple";
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
 /**
  * The entry screen.
  *
- * Eight blocks: the sentence with the ripple beside it · the morning confirm
+ * Eight blocks: the sentence with the ripple beside it · the thing you try
  * · the screen itself · three lines · the price · the questions · one last
  * ask · the footer. The first is the only one allowed to be theatre — the
  * owner asked for a page that captures the person who lands on it — and
@@ -144,7 +144,7 @@ export default function Landing() {
       {/*
        * The entry screen, on soot.
        *
-       * The words on the left, the ripple on the right, the morning confirm
+       * The words on the left, the ripple on the right, the thing you try
        * along the foot. The dark ground the app carries top and bottom, met
        * before the product is: it gives the page a horizon, and it lights
        * everything that moves.
@@ -195,7 +195,7 @@ export default function Landing() {
           <LandingRipple />
         </section>
 
-        <LandingMorning />
+        <LandingTry />
         {/* The bar watches this: once it is above the top edge, the bar
             takes its own ground and offers the action again. */}
         <div id="lp-fold" className="lp-fold" aria-hidden="true" />

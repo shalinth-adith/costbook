@@ -109,7 +109,9 @@
   padding: 56px 72px 72px;
   /* Tall enough to hold the ripple, never taller than a screen needs: on a
      1600px-high monitor a hero that fills it is a page that seems empty. */
-  min-height: min(calc(100vh - 76px - 110px), 720px);
+  /* Leaves the whole of the band below it on a 900px screen: the slider
+     is the thing to find at the fold, not the thing under it. */
+  min-height: min(calc(100vh - 76px - 250px), 720px);
 }
 .lp-hero-say { display: flex; flex-direction: column; align-items: flex-start; gap: 26px; }
 
@@ -246,47 +248,107 @@
 .lp-ripple-said > span { grid-area: 1 / 1; }
 .lp-ripple-said b { color: var(--saffron); font-weight: 600; }
 
-/* ── the morning confirm ────────────────────────────────────────────── */
+/* ── move a price, watch the plate ─────────────────────────────────── */
 
-.lp-morning {
-  display: grid; grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+.lp-try {
+  display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) minmax(0, 1fr);
   gap: 40px; align-items: center;
-  padding: 26px 72px 30px;
+  padding: 30px 72px 36px;
   border-block-start: 1px solid var(--soot-rule);
   background: rgb(0 0 0 / 0.22);
 }
-.lp-morning-say { display: grid; gap: 6px; }
-.lp-morning-when { margin: 0; display: flex; gap: 12px; align-items: baseline; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--saffron); }
-.lp-morning-time { color: var(--on-soot-secondary); letter-spacing: 0.08em; }
-.lp-morning-line { margin: 0; font-size: 15px; font-weight: 600; color: var(--on-soot); letter-spacing: -0.01em; }
-.lp-morning-line span { font-weight: 400; color: var(--on-soot-tertiary); }
+.lp-try-say { display: grid; gap: 8px; }
+.lp-try-h {
+  margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; color: var(--on-soot);
+}
+.lp-try-h span { color: var(--saffron); }
+.lp-try-note { margin: 0; font-size: 13px; line-height: 1.55; color: var(--on-soot-tertiary); max-width: 34ch; text-wrap: pretty; }
 
-.lp-morning-row { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.lp-stamp-card {
-  position: relative; display: grid; grid-template-columns: 1fr auto; align-items: baseline;
-  column-gap: 10px; row-gap: 2px;
-  padding: 14px 16px 14px; border-radius: 8px;
+/* the rate */
+.lp-try-rate { display: grid; gap: 14px; }
+.lp-try-rate-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.lp-try-rate-name { font-size: 14px; font-weight: 600; color: var(--on-soot); }
+.lp-try-rate-fig { font-size: 26px; font-weight: 600; color: var(--saffron); letter-spacing: -0.01em; }
+.lp-try-rate-unit { font-size: 12px; font-weight: 400; color: var(--on-soot-tertiary); margin-inline-start: 3px; }
+
+.lp-try-slider { position: relative; padding-block: 8px 22px; }
+/* The track: what has been dragged is saffron, the rest is rule, and a tick
+   marks today so the visitor always knows where they started. */
+.lp-try-input {
+  -webkit-appearance: none; appearance: none; inline-size: 100%; block-size: 6px; margin: 0;
+  border-radius: 3px; cursor: grab; outline: none;
+  background: linear-gradient(to right, var(--saffron) var(--lp-try-pos), var(--soot-rule) var(--lp-try-pos));
+}
+.lp-try-input:active { cursor: grabbing; }
+.lp-try-input::-webkit-slider-thumb {
+  -webkit-appearance: none; inline-size: 26px; block-size: 26px; border-radius: 50%;
+  background: var(--saffron); border: 3px solid var(--soot);
+  box-shadow: 0 0 0 1px var(--saffron), 0 6px 18px rgb(245 179 53 / 0.45);
+  transition: transform 120ms var(--ease-enter);
+}
+.lp-try-input::-moz-range-thumb {
+  inline-size: 20px; block-size: 20px; border-radius: 50%;
+  background: var(--saffron); border: 3px solid var(--soot);
+  box-shadow: 0 0 0 1px var(--saffron), 0 6px 18px rgb(245 179 53 / 0.45);
+}
+.lp-try-input:hover::-webkit-slider-thumb, .lp-try-input:active::-webkit-slider-thumb { transform: scale(1.12); }
+.lp-try-input:focus-visible { box-shadow: 0 0 0 3px rgb(245 179 53 / 0.35); }
+.lp-try-today {
+  position: absolute; inset-inline-start: var(--lp-try-today); inset-block-start: 22px;
+  transform: translateX(-50%); display: grid; justify-items: center; gap: 3px; pointer-events: none;
+}
+.lp-try-today::before { content: ''; inline-size: 1px; block-size: 8px; background: var(--on-soot-tertiary); }
+.lp-try-today .figure { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--on-soot-tertiary); white-space: nowrap; }
+
+.lp-try-presets { display: flex; gap: 8px; flex-wrap: wrap; }
+.lp-try-chip {
+  font: inherit; font-size: 12.5px; font-weight: 500; color: var(--on-soot-secondary);
+  background: transparent; border: 1px solid var(--soot-rule); border-radius: 999px;
+  padding: 6px 12px; cursor: pointer;
+  transition: color 120ms, border-color 120ms, background 120ms;
+}
+.lp-try-chip b { font-weight: 600; color: var(--on-soot); }
+.lp-try-chip:hover { color: var(--on-soot); border-color: var(--on-soot-tertiary); background: rgb(255 255 255 / 0.04); }
+.lp-try-chip:focus-visible { outline: 2px solid var(--saffron); outline-offset: 2px; }
+
+/* the plate */
+.lp-try-plate {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: center;
+  padding: 16px 18px; border-radius: 12px;
   background: #171B24; border: 1px solid var(--soot-rule);
+  transition: border-color 200ms var(--ease-enter), box-shadow 200ms var(--ease-enter);
 }
-.lp-stamp-name { font-size: 13.5px; font-weight: 600; color: var(--on-soot); grid-column: 1; }
-.lp-stamp-rate { font-size: 15px; font-weight: 600; color: var(--on-soot); grid-column: 1; }
-.lp-stamp-unit { font-size: 11px; font-weight: 400; color: var(--on-soot-tertiary); margin-inline-start: 2px; }
-.lp-stamp-was { font-size: 11px; color: var(--lp-up); grid-column: 1; }
-.lp-stamp-card.is-held .lp-stamp-was { color: var(--on-soot-tertiary); }
-/* Read by a screen reader; the stamp itself is decoration. */
-.lp-stamp-said { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
+.lp-try-plate.is-over { border-color: rgb(242 145 110 / 0.5); box-shadow: 0 0 0 4px rgb(242 145 110 / 0.08); }
 
-/* The mark. Ink, not paint: an outlined word, slightly off square, sitting
-   over the figures the way a stamp sits over a line in a book. */
-.lp-stamp {
-  grid-column: 2; grid-row: 1 / span 3; align-self: center;
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--lp-ok); border: 1.5px solid currentColor; border-radius: 3px;
-  padding: 5px 8px 4px; transform: rotate(-5deg); opacity: 1;
-  box-shadow: inset 0 0 0 1px rgb(15 18 25 / 0.6);
-  mask-image: radial-gradient(circle at 30% 40%, #000 0 55%, rgb(0 0 0 / 0.55) 100%);
+.lp-try-ring { position: relative; inline-size: 116px; block-size: 116px; }
+.lp-try-ring svg { inline-size: 100%; block-size: 100%; }
+.lp-try-ring-track, .lp-try-ring-fill { fill: none; stroke-width: 9; stroke-linecap: round; }
+.lp-try-ring-track { stroke: var(--soot-rule); }
+.lp-try-ring-fill { stroke: var(--lp-ok); transition: stroke-dasharray 180ms var(--ease-enter), stroke 180ms; }
+.lp-try-plate.is-over .lp-try-ring-fill { stroke: var(--lp-up); }
+.lp-try-ring-target { stroke: var(--on-soot); stroke-width: 2; stroke-linecap: round; }
+.lp-try-ring-in {
+  position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 0;
 }
+.lp-try-share { font-size: 22px; font-weight: 600; color: var(--on-soot); letter-spacing: -0.01em; }
+.lp-try-share-said { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--on-soot-tertiary); }
+
+.lp-try-plate-say { display: grid; gap: 8px; min-width: 0; }
+.lp-try-dish { margin: 0; display: grid; gap: 2px; font-size: 14.5px; font-weight: 600; color: var(--on-soot); }
+.lp-try-dish .figure { font-size: 11.5px; font-weight: 400; color: var(--on-soot-tertiary); }
+.lp-try-badge-row { margin: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lp-try-badge {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  border: 1px solid currentColor; border-radius: 3px; padding: 3px 8px;
+  transition: color 160ms, background 160ms;
+}
+.lp-try-badge.is-under { color: var(--lp-ok); }
+.lp-try-badge.is-over { color: var(--lp-up); background: rgb(242 145 110 / 0.1); }
+.lp-try-delta { font-size: 12px; color: var(--on-soot-tertiary); }
+.lp-try-hold { margin: 0; font-size: 13px; color: var(--on-soot-secondary); }
+.lp-try-hold b { font-size: 16px; font-weight: 600; color: var(--on-soot); margin-inline-start: 2px; }
+.lp-try-hold-up { font-size: 12px; color: var(--lp-up); margin-inline-start: 8px; }
 
 /* ══ 2 · the screen itself ═════════════════════════════════════════════ */
 
@@ -566,11 +628,7 @@
   .lp-lede { animation-delay: 520ms; }
   .lp-act { animation-delay: 640ms; }
   .lp-proof { animation-delay: 760ms; }
-  .lp-morning { animation: lp-fade 900ms var(--ease-enter) 900ms both; }
-  /* Each stamp lands after the ripple's first reprice, a beat apart:
-     the prices moved, and then somebody looked at them. */
-  .lp-stamp { animation: lp-stamp 260ms cubic-bezier(0.2, 1.4, 0.4, 1) both; animation-delay: calc(6.2s + var(--lp-stamp-i) * 700ms); }
-  .lp-stamp-card { animation: lp-press 260ms var(--ease-enter) both; animation-delay: calc(6.2s + var(--lp-stamp-i) * 700ms); }
+  .lp-try { animation: lp-fade 900ms var(--ease-enter) 900ms both; }
 
   .lp-top-bg { animation: lp-drift 60s ease-in-out infinite alternate; }
 
@@ -671,13 +729,7 @@
   45% { r: 18; opacity: 0; }
   100% { r: 18; opacity: 0; }
 }
-@keyframes lp-stamp {
-  from { opacity: 0; transform: rotate(-11deg) scale(1.7); }
-  60% { opacity: 1; transform: rotate(-4deg) scale(0.96); }
-  to { opacity: 1; transform: rotate(-5deg) scale(1); }
-}
-@keyframes lp-press { 55% { transform: translateY(1px); } to { transform: none; } }
-
+ 
 /* ══ widths ════════════════════════════════════════════════════════════ */
 
 @media (max-width: 1100px) {
@@ -691,7 +743,8 @@
   .lp-lines-row { grid-template-columns: 1fr; gap: 16px; }
   .lp-price { grid-template-columns: 1fr; gap: 40px; padding: 72px 40px; }
   .lp-foot { padding-inline: 40px; }
-  .lp-morning { grid-template-columns: 1fr; gap: 18px; padding-inline: 40px; }
+  .lp-try { grid-template-columns: 1fr 1fr; padding-inline: 40px; }
+  .lp-try-say { grid-column: 1 / -1; }
 }
 @media (max-width: 900px) {
   .lp-nav { height: 68px; padding-inline: var(--sp-6); }
@@ -713,8 +766,7 @@
   .lp-faq, .lp-last { padding-inline: 20px; }
   .lp-screen, .lp-lines, .lp-price, .lp-foot { padding-inline: 20px; }
   .lp-tiers { grid-template-columns: 1fr; }
-  .lp-morning { padding-inline: 20px; }
-  .lp-morning-row { grid-template-columns: 1fr; }
+  .lp-try { grid-template-columns: 1fr; padding-inline: 20px; gap: 26px; }
   .lp-act { gap: 18px; }
 }
 
