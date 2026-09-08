@@ -1,126 +1,149 @@
-
-
 /**
- * A10 — the entry screen.
+ * The entry screens — sign in, and create an account.
  *
- * Every selector is scoped under `.gate`, the root this screen renders into.
- * It said "scoped to this route" and was not: a plain .css import in Next is
- * global, only .module.css is scoped. `.entry` here is min-height 100vh and a
- * 600px/1fr split, and the Add-an-ingredient card on Ingredients is also
- * `.entry` — so that card grew to fill the viewport, its head and its fields
- * fell into two columns, and the rows below it were pushed off the screen.
- * `.field`, `.notice`, `.proof`, `.spinner`, `.suggestion`, `.countdown` and
- * `.lock-badge` were leaking the same way.
+ * Every selector is scoped under `.gate`, the root these screens render into.
+ * A plain .css import in Next is global, only .module.css is scoped, and the
+ * first version of this file leaked `.entry`, `.field`, `.proof` and friends
+ * into the application's own forms. `lib/css-scope.test.ts` holds it to the
+ * prefix now.
  *
- * Nothing else in the product is two halves, and the dark half exists only
- * here. Everything asks
- * tokens.css for its colour, including the inverse panel.
+ * Two halves. The left argues, on the same soot the entry page opens with —
+ * the dotted ground, the saffron glow, the display face, one rate moving
+ * and four dishes following it. The right does the work: a white card, 48px
+ * controls, one message per field. A visitor who came from the landing page
+ * should feel they have walked one room further into the same building.
  */
 .gate {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 600px 1fr;
+  grid-template-columns: minmax(460px, 46%) minmax(0, 1fr);
   background: var(--surface-page);
 }
 
-
-
 /* ── the half that argues ──────────────────────────────────────────── */
 .gate .entry-brand {
-  background: var(--surface-inverse);
-  color: var(--text-on-inverse);
-  padding: 44px 48px;
+  position: relative; isolation: isolate; overflow: clip;
+  background: var(--soot); color: var(--on-soot);
+  padding: 36px 56px 40px;
   display: flex; flex-direction: column; justify-content: space-between;
   gap: var(--sp-10);
 }
-.gate .entry-brand-mark {
-  display: flex; align-items: center; gap: 10px;
-  font-size: 16px; font-weight: 600; letter-spacing: -0.01em;
+/* The same ground as the entry page: a faint grid and a warm glow. */
+.gate .entry-brand::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(55% 45% at 80% 30%, rgb(245 179 53 / 0.14), transparent 70%),
+    radial-gradient(40% 40% at 10% 95%, rgb(255 106 61 / 0.08), transparent 70%),
+    radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.05) 1px, transparent 1.5px);
+  background-size: 100% 100%, 100% 100%, 28px 28px;
 }
+.gate .entry-brand-mark { display: flex; align-items: center; }
+.gate .entry-brand-mark .wordmark { color: var(--on-soot); }
+.gate .entry-brand-mark .wordmark:hover { color: var(--saffron); }
+/* The app drops the name under 480 to make room for its nav; this panel has
+   nothing beside the mark, so the name stays. */
+.gate .entry-brand-mark .wordmark > span { display: inline; }
 
-.gate .entry-pitch { display: flex; flex-direction: column; gap: 22px; }
+.gate .entry-pitch { display: flex; flex-direction: column; gap: 22px; max-width: 520px; }
+.gate .entry-eyebrow {
+  margin: 0; display: flex; align-items: center; gap: 12px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--saffron);
+}
+.gate .entry-eyebrow::before { content: ''; inline-size: 28px; block-size: 1px; background: var(--saffron); }
 .gate .entry-headline {
-  font-size: 38px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.1;
-  margin: 0; text-wrap: pretty;
+  margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(34px, 3.1vw, 46px); font-weight: 800; line-height: 1.04;
+  letter-spacing: -0.03em; font-variation-settings: "opsz" 64; color: var(--on-soot);
+  text-wrap: balance;
 }
+.gate .entry-headline .is-lit { color: var(--saffron); }
 .gate .entry-copy {
-  font-size: 15px; line-height: 1.6; margin: 0;
-  color: var(--text-on-inverse-secondary);
-  max-width: 440px; text-wrap: pretty;
+  font-size: 15.5px; line-height: 1.6; margin: 0;
+  color: var(--on-soot-secondary); max-width: 46ch; text-wrap: pretty;
 }
 
-
-/* The argument, costed. Three dishes and two of them over target. */
+/* The argument: one rate moves this morning, and four dishes follow it —
+   three across the line. The same figures as the entry page, so the two
+   never disagree about the same plate. */
 .gate .proof {
-  border: 1px solid var(--border-on-inverse);
-  border-radius: var(--radius-field);
-  overflow: hidden;
-  max-width: 470px;
+  border: 1px solid var(--soot-rule); border-radius: 12px; overflow: hidden;
+  background: rgb(23 27 36 / 0.85); max-width: 480px;
 }
-.gate .proof-head,
+.gate .proof-rate {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  padding: 14px 16px; border-block-end: 1px solid var(--soot-rule);
+  background: rgb(0 0 0 / 0.2);
+}
+.gate .proof-rate-name { font-size: 13.5px; font-weight: 600; color: var(--on-soot); }
+.gate .proof-rate-was { font-size: 13px; color: var(--on-soot-tertiary); text-decoration: line-through; }
+.gate .proof-rate-arrow { font-size: 13px; color: var(--on-soot-tertiary); }
+.gate .proof-rate-now { font-size: 18px; font-weight: 600; color: var(--saffron); }
+.gate .proof-rate-unit { font-size: 11.5px; color: var(--on-soot-tertiary); }
+.gate .proof-rate-when { margin-inline-start: auto; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--on-soot-tertiary); }
+
 .gate .proof-row {
-  display: grid;
-  grid-template-columns: 1fr 78px 62px 26px;
-  gap: 10px; align-items: center;
-}
-.gate .proof-head {
-  padding: var(--sp-2) 13px;
-  background: var(--surface-on-inverse-header);
-  border-block-end: 1px solid var(--border-on-inverse);
-  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-  font-weight: 600; color: var(--text-on-inverse-secondary);
-}
-.gate .proof-head .end { text-align: end; }
-.gate .proof-row {
-  padding: 9px 13px;
-  border-block-end: 1px solid var(--border-on-inverse-row);
-  font-size: 13px;
-  color: var(--text-on-inverse-row);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 14px; align-items: center;
+  padding: 11px 16px; border-block-end: 1px solid rgb(255 255 255 / 0.05);
+  font-size: 13.5px; color: var(--on-soot);
 }
 .gate .proof-row:last-child { border-block-end: 0; }
-.gate .proof-name { min-width: 0; }
-.gate .proof-glyph { display: flex; justify-content: flex-end; }
-
-/* Status is a shape first; the colour only confirms what the shape said. */
-.gate .proof-fc-on { color: var(--on-ink-inverse); }
-.gate .proof-fc-over { color: var(--over-ink-inverse); }
-.gate .proof-fc.proof-fc-over { font-weight: 600; }
+.gate .proof-name { min-width: 0; display: grid; gap: 1px; }
+.gate .proof-via { font-size: 11.5px; color: var(--on-soot-tertiary); }
+.gate .proof-move { display: flex; align-items: baseline; gap: 7px; font-size: 13.5px; }
+.gate .proof-was { color: var(--on-soot-tertiary); text-decoration: line-through; font-size: 12.5px; }
+.gate .proof-now { font-weight: 600; color: #8AD3B4; }
+.gate .proof-row.is-crosses .proof-now { color: #F2916E; }
+/* Status is a word inside a border, never a colour alone. */
+.gate .proof-mark {
+  font-size: 9.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  border: 1px solid currentColor; border-radius: 3px; padding: 3px 6px; min-width: 64px; text-align: center;
+  color: #8AD3B4;
+}
+.gate .proof-row.is-crosses .proof-mark { color: #F2916E; background: rgb(242 145 110 / 0.1); }
+.gate .proof-row.is-over .proof-mark { color: var(--on-soot-tertiary); }
 
 .gate .entry-trust {
-  display: flex; gap: var(--sp-5); align-items: center;
-  font-size: 12.5px; color: var(--text-on-inverse-tertiary);
+  display: flex; gap: var(--sp-5); align-items: center; flex-wrap: wrap;
+  font-size: 12.5px; color: var(--on-soot-tertiary);
 }
-.gate .entry-trust-rule { width: 1px; height: 13px; background: var(--border-on-inverse); }
-
-
+.gate .entry-trust-rule { width: 1px; height: 13px; background: var(--soot-rule); }
 
 /* ── the half that works ───────────────────────────────────────────── */
 .gate .entry-side {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   padding: var(--sp-10); gap: 18px;
+  background: var(--surface-page);
+  background-image: radial-gradient(circle at 1px 1px, rgb(23 27 36 / 0.06) 1px, transparent 1.5px);
+  background-size: 28px 28px;
 }
 
 .gate .entry-card {
-  width: 404px; max-width: 100%;
+  /* Fluid, not fixed: a fixed width is a grid track's minimum, and on a
+     phone it held the whole page 70px wider than the screen. */
+  inline-size: min(420px, 100%);
   background: var(--surface-card);
   border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-panel);
-  padding: 30px 32px;
+  border-radius: 14px;
+  padding: 32px 34px;
   display: flex; flex-direction: column; gap: 18px;
+  box-shadow: 0 24px 60px rgb(23 27 36 / 0.10), 0 2px 6px rgb(23 27 36 / 0.05);
 }
 .gate .entry-head { display: flex; flex-direction: column; gap: 5px; }
-.gate .entry-title { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
-.gate .entry-sub { font-size: 13px; color: var(--text-secondary); }
-
+.gate .entry-title {
+  margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 26px; font-weight: 800; letter-spacing: -0.02em; font-variation-settings: "opsz" 36;
+}
+.gate .entry-sub { font-size: 13.5px; color: var(--text-secondary); }
 
 /* Every control on this card is 48px, not the 44px of the app shell — this is
    the one screen someone meets before they trust it. */
 .gate .entry-action {
   height: 48px; width: 100%;
   justify-content: center;
-  font-size: 14.5px;
-  text-decoration: none;
+  font-size: 14.5px; font-weight: 600;
+  text-decoration: none; border-radius: 8px;
 }
 .gate .entry-row { display: flex; gap: 9px; }
 .gate .entry-row .entry-action { flex: 1; width: auto; }
@@ -133,7 +156,7 @@
 .gate .entry-divider-label { font-size: 11.5px; color: var(--text-tertiary); }
 
 .gate .entry-foot {
-  font-size: 12px; color: var(--text-tertiary);
+  font-size: 12.5px; color: var(--text-tertiary);
   line-height: 1.5; text-align: center;
 }
 .gate .entry-status { font-size: 11.5px; color: var(--text-secondary); text-align: center; }
@@ -142,8 +165,7 @@
 .gate .entry-links { display: flex; gap: var(--sp-4); font-size: 12.5px; }
 .gate .entry-links a { color: var(--text-tertiary); text-underline-offset: 2px; }
 .gate .entry-links a:hover { color: var(--text-primary); }
-
-
+.gate .entry-links a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
 
 /* ── fields ────────────────────────────────────────────────────────── */
 .gate .field { display: flex; flex-direction: column; gap: 6px; }
@@ -157,12 +179,12 @@
   height: 48px;
   display: flex; align-items: center; gap: 10px;
   border: 1px solid var(--border-control);
-  border-radius: var(--radius-field);
+  border-radius: 8px;
   background: var(--surface-card);
   padding-inline: var(--sp-3);
-  transition: border-color var(--dur-micro) var(--ease-enter);
+  transition: border-color var(--dur-micro) var(--ease-enter), box-shadow var(--dur-micro) var(--ease-enter);
 }
-.gate .field-control:focus-within { border-color: var(--border-control-hover); }
+.gate .field-control:focus-within { border-color: var(--text-primary); box-shadow: 0 0 0 3px rgb(23 27 36 / 0.08); }
 
 /* 1.5px, not a second colour: the message beside it does the explaining. */
 .gate .field-control.is-wrong { border: 1.5px solid var(--over-ink); }
@@ -171,7 +193,6 @@
 /* A10 · 08. Fields lock rather than vanish, so nothing shifts under a finger
    already on its way to the button. The surface moves; the ink does not. */
 .gate .field-control.is-locked { background: var(--surface-sunken); }
-
 
 /*
  * `.field` is app.css's name too, and app.css carries `.field input` for the
@@ -187,21 +208,21 @@
 .gate .field .field-input {
   block-size: 48px; padding-inline: var(--sp-3);
   border: 1px solid var(--border-control);
-  border-radius: var(--radius-field);
+  border-radius: 8px;
   background: var(--surface-card);
   flex: 1; min-width: 0; outline: 0;
   font: inherit; font-size: 14.5px;
   color: var(--text-primary);
-  transition: border-color var(--dur-micro) var(--ease-enter);
+  transition: border-color var(--dur-micro) var(--ease-enter), box-shadow var(--dur-micro) var(--ease-enter);
 }
 .gate .field .field-input:hover { border-color: var(--border-control-hover); }
-
+.gate .field .field-input:focus { border-color: var(--text-primary); box-shadow: 0 0 0 3px rgb(23 27 36 / 0.08); }
 
 /* Inside the wrapper the wrapper owns the box. Must come after the rule above:
    same specificity, so source order settles it. */
 .gate .field-control .field-input {
   block-size: auto; padding-inline: 0;
-  border: 0; background: none;
+  border: 0; background: none; box-shadow: none;
 }
 .gate .field-input::placeholder { color: var(--border-control-hover); }
 .gate .field-input:disabled { color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary); }
@@ -222,7 +243,6 @@
 }
 .gate .field-toggle:hover { background: var(--surface-sunken); }
 
-
 /* One message, in plain words, attached to the field that caused it. */
 .gate .field-fault {
   display: flex; gap: 6px; align-items: flex-start;
@@ -238,12 +258,10 @@
   text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
 }
 
-
-
 /* ── notices that replace the form ─────────────────────────────────── */
 .gate .notice {
   display: flex; gap: 11px; align-items: flex-start;
-  border-radius: var(--radius-field);
+  border-radius: 8px;
   padding: 13px;
 }
 .gate .notice > svg { flex: none; margin-block-start: 2px; }
@@ -281,27 +299,59 @@
   color: var(--text-on-inverse); cursor: progress;
 }
 
-/* ── tablet ────────────────────────────────────────────────────────── */
-
-@media (max-width: 1000px) {
-  .gate { grid-template-columns: 1fr; }
-  .gate .entry-brand { padding: var(--sp-8) var(--sp-6); gap: var(--sp-6); }
-  .gate .entry-headline { font-size: 28px; }
-  .gate .entry-side { padding: var(--sp-8) var(--sp-6); }
-}
-
-
-
-/* ── A31 / A32 · the panel's list ────────────────────────────────────────── *//* The wizard is announced before the button is pressed: someone who knows four
-   questions are coming answers them; someone ambushed by one closes the tab. */
+/* ── A31 / A32 · the panel's list ──────────────────────────────────── */
+/* The wizard is announced before the button is pressed: someone who knows
+   three steps are coming takes them; someone ambushed by one closes the tab. */
 .gate .entry-steps {
-  list-style: none; margin: var(--sp-6) 0 0; padding: 0;
-  display: grid; gap: var(--sp-3);
+  list-style: none; margin: var(--sp-2) 0 0; padding: 0;
+  display: grid; gap: 0;
+  border: 1px solid var(--soot-rule); border-radius: 12px; overflow: hidden;
+  background: rgb(23 27 36 / 0.85); max-width: 480px;
 }
 .gate .entry-steps li {
-  display: flex; gap: var(--sp-3); align-items: baseline;
-  font-size: 13px; line-height: 1.55; color: var(--text-on-inverse-secondary);
+  display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: var(--sp-3); align-items: baseline;
+  padding: 13px 16px; border-block-end: 1px solid rgb(255 255 255 / 0.05);
+  font-size: 13.5px; line-height: 1.5; color: var(--on-soot-secondary);
 }
-.gate .entry-steps span { font-size: 11px; color: var(--text-on-inverse-tertiary); }
-.gate .entry-steps.is-plain li::before { content: '·'; color: var(--text-on-inverse-tertiary); }
-.gate .field-label[data-ok='true'] { color: var(--on-ink-inverse); }
+.gate .entry-steps li:last-child { border-block-end: 0; }
+.gate .entry-steps li:first-child { color: var(--on-soot); }
+.gate .entry-steps span { font-size: 11px; letter-spacing: 0.08em; color: var(--saffron); }
+.gate .entry-steps.is-plain li::before { content: '·'; color: var(--on-soot-tertiary); }
+.gate .field-label[data-ok='true'] { color: var(--on-ink); }
+
+/* ── motion ────────────────────────────────────────────────────────── */
+/* One entrance, played once. The rate is already moved when the page opens
+   — the rows arrive under it, in turn, and the figures they carry are the
+   after-state. Nothing counts up; nothing loops. */
+@media (prefers-reduced-motion: no-preference) {
+  .gate .entry-eyebrow, .gate .entry-headline, .gate .entry-copy, .gate .proof, .gate .entry-steps, .gate .entry-trust {
+    animation: gate-rise 640ms var(--ease-enter) both;
+  }
+  .gate .entry-eyebrow { animation-delay: 40ms; }
+  .gate .entry-headline { animation-delay: 120ms; }
+  .gate .entry-copy { animation-delay: 220ms; }
+  .gate .proof, .gate .entry-steps { animation-delay: 320ms; }
+  .gate .entry-trust { animation-delay: 420ms; }
+  .gate .proof-row { animation: gate-rise 480ms var(--ease-enter) both; }
+  .gate .proof-row:nth-child(2) { animation-delay: 520ms; }
+  .gate .proof-row:nth-child(3) { animation-delay: 600ms; }
+  .gate .proof-row:nth-child(4) { animation-delay: 680ms; }
+  .gate .proof-row:nth-child(5) { animation-delay: 760ms; }
+  .gate .entry-card { animation: gate-rise 640ms var(--ease-enter) 160ms both; }
+}
+@keyframes gate-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+/* ── widths ────────────────────────────────────────────────────────── */
+@media (max-width: 1000px) {
+  .gate { grid-template-columns: minmax(0, 1fr); }
+  .gate .entry-brand { padding: var(--sp-6) var(--sp-6) var(--sp-8); gap: var(--sp-6); }
+  .gate .entry-headline { font-size: 30px; }
+  .gate .entry-side { padding: var(--sp-8) var(--sp-6); }
+}
+@media (max-width: 560px) {
+  .gate .entry-brand { padding-inline: 20px; }
+  .gate .entry-side { padding-inline: 20px; }
+  .gate .entry-card { padding: 26px 22px; }
+  .gate .proof-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .gate .proof-mark { display: none; }
+}

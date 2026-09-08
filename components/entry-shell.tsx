@@ -15,7 +15,7 @@ export function EntryShell({
   aside,
   children,
 }: {
-  headline: string;
+  headline: React.ReactNode;
   copy: string;
   aside?: React.ReactNode;
   children: React.ReactNode;
@@ -27,6 +27,7 @@ export function EntryShell({
           <Wordmark mode="public" size={20} />
         </div>
         <div className="entry-pitch">
+          <p className="entry-eyebrow">Recipe costing · one kitchen</p>
           <h2 className="entry-headline">{headline}</h2>
           <p className="entry-copy">{copy}</p>
           {aside}
@@ -43,7 +44,7 @@ export function EntryShell({
         <nav className="entry-links" aria-label="Legal">
           <Link href="/privacy">Privacy policy</Link>
           <Link href="/terms">Terms</Link>
-          <a href="mailto:hello@costbook.in">Contact a human</a>
+          <Link href="/contact">Contact a human</Link>
         </nav>
       </section>
     </main>

@@ -5404,3 +5404,70 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 
 /* An in-page link scrolls to its target rather than cutting to it. */
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+
+/* ══ Contact — on the legal pages' frame, with two things of its own ═══ */
+.ct-mail { font-family: var(--font-mono), ui-monospace, monospace; font-size: 16px; color: var(--saffron); text-underline-offset: 4px; }
+.ct-mail:hover { color: #FFC55A; }
+/* What to put in the mail, so the first reply is the answer. */
+.ct-send {
+  margin: 4px 0 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: baseline;
+  padding: 12px 14px; border-radius: 8px; background: var(--surface-sunken); border: 1px solid var(--border-hairline);
+  font-size: 14px; line-height: 1.55; color: var(--text-secondary); max-inline-size: 72ch;
+}
+.ct-send .figure { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.ct-actions { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; padding-block-start: var(--sp-4); }
+.ct-btn {
+  display: inline-flex; align-items: center; gap: 12px; block-size: 54px; padding-inline: 26px 20px;
+  border-radius: 8px; background: var(--surface-inverse); color: var(--text-on-inverse); text-decoration: none;
+  font-size: 16px; font-weight: 600; box-shadow: 0 12px 36px rgb(23 27 36 / 0.2);
+  transition: transform 200ms var(--ease-enter), box-shadow 200ms var(--ease-enter), background 120ms;
+}
+.ct-btn:hover { background: #2C3444; transform: translateY(-2px); box-shadow: 0 18px 44px rgb(23 27 36 / 0.26); }
+.ct-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.ct-back { font-size: 15px; font-weight: 500; color: var(--text-secondary); text-decoration: none; padding-block-end: 2px; border-block-end: 1px solid var(--border-control); }
+.ct-back:hover { color: var(--text-primary); border-color: var(--text-primary); }
+
+/* ══ Plans — the receipt on soot, the chosen term lit ═════════════════ */
+/* The aside is what you would be buying; drawing it on the dark ground the
+   app carries top and bottom makes it read as the one settled thing on a page
+   of choices. Soot is the frame, so its figures are on-soot, not ink. */
+.plans-live .wiz-live-label { color: var(--on-soot-tertiary); }
+.plans-live { background: var(--soot); color: var(--on-soot); border-radius: 14px; padding: 20px; }
+.plans-live .wiz-card { background: rgb(255 255 255 / 0.04); border-color: var(--soot-rule); }
+.plans-live .wiz-card-head { border-color: var(--soot-rule); }
+.plans-live .wiz-card-name { color: var(--on-soot); }
+.plans-live .wiz-card-sub, .plans-live .wiz-card-money-more { color: var(--on-soot-secondary); }
+.plans-live .wiz-card-money-label { color: var(--on-soot-tertiary); }
+.plans-live .wiz-card-money-fig { color: var(--saffron); }
+.plans-live .wiz-rows { color: var(--on-soot-secondary); background: rgb(255 255 255 / 0.04); border-color: var(--soot-rule); }
+/* The list keeps the app's white card under it unless told otherwise —
+   background does not inherit, colour does, and on-soot text on a white row
+   is the third time this trap has been sprung this week. */
+.plans-live .wiz-row { border-color: var(--soot-rule); }
+.plans-live .wiz-row dt { color: var(--on-soot-tertiary); }
+.plans-live .wiz-row dd, .plans-live .wiz-row b { color: var(--on-soot); }
+.plans-live .plans-sandbox { color: var(--saffron); background: rgb(245 179 53 / 0.1); }
+.plans-live .plans-owner, .plans-live .plans-fault { color: var(--on-soot-secondary); }
+.plans-live .plans-owner .link { color: var(--saffron); }
+.plans-live .plans-buy {
+  background: var(--saffron); border-color: var(--saffron); color: var(--soot);
+  block-size: 54px; font-size: 15.5px; font-weight: 600; border-radius: 8px;
+  box-shadow: 0 12px 36px rgb(245 179 53 / 0.25);
+}
+.plans-live .plans-buy:hover:not(:disabled) { background: #FFC55A; border-color: #FFC55A; }
+.plans-live .plans-buy:disabled { background: var(--soot-rule); border-color: var(--soot-rule); color: var(--on-soot-tertiary); box-shadow: none; }
+/* The chosen term carries a mark, not only a tint: on a printout or a
+   colour-blind eye the tint alone says nothing. */
+.plans-term { position: relative; border-radius: 12px; padding-block-start: 18px; }
+.plans-term::before {
+  content: ''; position: absolute; inset-inline: 0; inset-block-start: 0; block-size: 3px;
+  background: transparent; border-radius: 12px 12px 0 0; transition: background var(--dur-micro) var(--ease-enter);
+}
+.plans-term.is-on::before { background: var(--accent); }
+.plans-term.is-on::after {
+  content: ''; position: absolute; inset-inline-end: 12px; inset-block-start: 12px;
+  inline-size: 18px; block-size: 18px; border-radius: 50%;
+  background: #fff; box-shadow: inset 0 0 0 5px var(--accent);
+}
+.plans-term-tag { color: var(--on-ink); }
+.plans-term.is-on .plans-term-tag { color: var(--accent); }

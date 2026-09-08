@@ -15,7 +15,11 @@ export const metadata: Metadata = { title: 'Create an account · Costbook' };
 export default function SignUp() {
   return (
     <EntryShell
-      headline="Keep your spreadsheet. We'll make it answer questions."
+      headline={
+        <>
+          Keep your spreadsheet. <span className="is-lit">We&rsquo;ll make it answer questions.</span>
+        </>
+      }
       copy="Two things now, a short setup after, and then you can bring your sheet in. Nothing is retyped and your file is only ever read."
       aside={
         <ol className="entry-steps">
