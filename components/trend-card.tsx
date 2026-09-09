@@ -46,7 +46,7 @@ export function TrendCard({ trend }: { trend: Trend }) {
       </div>
 
       <ol className="tr-bars" aria-label="Total plate cost by month">
-        {trend.months.map((t) => {
+        {trend.months.map((t, i) => {
           // Scaled between the six months' own low and high so a small move is
           // visible, with a floor so a flat run still draws a bar rather than a line.
           const span = max - min;
@@ -54,7 +54,11 @@ export function TrendCard({ trend }: { trend: Trend }) {
           const h = span === 0 ? 46 : 22 + ((t.total - min) / span) * 56;
           const isLast = t.period === last.period;
           return (
-            <li key={t.period} className={`tr-bar${isLast ? " is-now" : ""}`}>
+            <li
+              key={t.period}
+              className={`tr-bar${isLast ? " is-now" : ""}`}
+              style={{ "--i": i } as React.CSSProperties}
+            >
               <span className="tr-fig figure">{m.money(t.total)}</span>
               <span
                 className="tr-col"

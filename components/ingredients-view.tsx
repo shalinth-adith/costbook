@@ -345,9 +345,10 @@ export function IngredientsView({
                     <span className="ing-band-why">{band.why}</span>
                   </div>
                 )}
-                {band.rows.map((row) => (
+                {band.rows.map((row, i) => (
               <Row
-                key={row.id}
+                at={i}
+                    key={row.id}
                 row={row}
                 showYield={anyYield}
                 showStatus={anyStatus}
@@ -389,6 +390,7 @@ function packPriceOf(row: IngredientRow): number | null {
 
 function Row({
   row,
+  at,
   showYield,
   showStatus,
   money,
@@ -402,6 +404,8 @@ function Row({
   onSetYield,
 }: {
   row: IngredientRow;
+  /** Its place in the band, for the arrival stagger. */
+  at: number;
   showYield: boolean;
   showStatus: boolean;
   money: ReturnType<typeof useMoney>;
@@ -422,6 +426,7 @@ function Row({
       className={`ing-block${row.status === 'no_rate' ? ' is-missing' : ''}${
         row.status === 'stale' ? ' is-stale' : ''
       }`}
+      style={{ '--i': at } as React.CSSProperties}
     >
       <div className="ing-row">
         <span className="ing-name">

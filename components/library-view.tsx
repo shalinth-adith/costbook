@@ -417,10 +417,11 @@ export function LibraryView({
                       <span />
                     </div>
 
-                    {group.rows.map((row) => (
+                    {group.rows.map((row, i) => (
                       <Row
                         showUpdated={showUpdated}
                         today={today}
+                        at={i}
                         key={row.id}
                         row={row}
                         isDish={tab === 'dishes'}
@@ -457,6 +458,7 @@ export function LibraryView({
 
 function Row({
   row,
+  at,
   showUpdated,
   today,
   isDish,
@@ -467,13 +469,18 @@ function Row({
   showUpdated: boolean;
   today: string;
   row: LibraryRow;
+  /** Its place in the group, for the arrival stagger. */
+  at: number;
   isDish: boolean;
   money: ReturnType<typeof useMoney>;
   busy: boolean;
   onArchive: () => void;
 }) {
   return (
-    <div className={`lib-row${row.archived ? ' is-archived' : ''}`}>
+    <div
+      className={`lib-row${row.archived ? ' is-archived' : ''}`}
+      style={{ '--i': at } as React.CSSProperties}
+    >
       <span className="lib-name">
         {isDish ? null : <span className="figure sub-badge">SUB</span>}
         <span className="lib-name-text">

@@ -6015,3 +6015,56 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
   margin: 0; padding: 0 2px 16px; font-size: 14px; line-height: 1.7;
   color: var(--text-secondary); max-inline-size: 66ch; text-wrap: pretty;
 }
+
+/* ══ Three places where motion says something ══════════════════════════════
+   The product already moves in eighty-five places, so this is not "more
+   animation" — it is the three screens that had none, given the motion the
+   rest of the book already uses. The rules it keeps:
+
+     A figure never animates its value. A cost is a fact somebody is reading,
+     and a number in motion reads as approximate. Bars may grow, because a bar
+     is a share and its arrival is what a share looks like being measured.
+
+     Nothing in the book loops. The entry screen is allowed to be theatre;
+     a screen somebody works in is not.
+
+     Everything is over inside half a second, however many rows there are. */
+
+/* ── the six months, growing from the line they stand on ─────────────────
+   The same grow the components table's share bars and the plans progress bar
+   already use, read left to right so the eye lands on the month that is now. */
+@media (prefers-reduced-motion: no-preference) {
+  .tr-col {
+    transform-origin: bottom center;
+    animation: tr-grow 560ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: calc(160ms + var(--i, 0) * 55ms);
+  }
+  /* The figure above it does not move, and does not count up: it fades in
+     already reading what it reads. `dc-grow` is scaleX — a column needs its
+     own, on the other axis. */
+  .tr-fig { animation: tr-fade 300ms var(--ease-enter) both; animation-delay: calc(300ms + var(--i, 0) * 55ms); }
+
+  /* ── the two lists that arrived with no arrival ──────────────────────
+     Recipes and Ingredients were the only screens where rows simply were
+     there, while the dashboard's cards and the dish's components both
+     arrive. The stagger is capped at twelve steps: seventy ingredients at
+     26ms each would take two seconds, and a list you wait for is worse than
+     one that appears. */
+  .lib-row, .ing-block {
+    animation: row-in 300ms var(--ease-enter) both;
+    animation-delay: calc(min(var(--i, 0), 12) * 22ms);
+  }
+  /* A band heading arrives with the first row under it. */
+  .ing-band { animation: row-in 300ms var(--ease-enter) both; }
+
+  /* ── an answer that opens rather than appears ────────────────────────
+     A <details> snaps its content into place, which on a page of questions
+     reads as a jump. The panel fades and settles; the summary does not move,
+     so the thing under the pointer stays where it was pressed. */
+  .hp-faq-item[open] .hp-faq-a, .lp-faq-item[open] .lp-faq-a {
+    animation: detail-in 220ms var(--ease-enter) both;
+  }
+}
+
+@keyframes tr-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes tr-fade { from { opacity: 0; } to { opacity: 1; } }
