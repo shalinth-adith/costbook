@@ -6233,3 +6233,37 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
   .cards { padding-inline: 16px; }
   .take-menu { inline-size: min(320px, calc(100vw - 40px)); }
 }
+
+/* ══ Which mark the card wears ═════════════════════════════════════════════
+   Two states, and the difference is who has paid.
+
+   Unlocked — a plan, or the one-off pass — the sheet carries a signature in
+   the corner of its footer: the bars, the name, the mark. It is the kitchen's
+   own document and it should look like one.
+
+   Locked, it carries the full mark across the middle, ON SCREEN as well as on
+   paper. A card that only watermarked the printout would be a card anybody
+   could photograph instead — and a photograph of a prep card is the whole of
+   what a prep card is for. */
+.prep-foot-mark { display: inline-flex; align-items: center; gap: 6px; }
+.prep-foot-mark svg { color: var(--accent); }
+.prep-foot-mark b { font-weight: 700; letter-spacing: 0.06em; }
+.prep-foot-mark sup { font-size: 8px; line-height: 1; vertical-align: super; color: var(--text-tertiary); }
+
+/* Heavier than the first version, because it now has a job: this is the state
+   somebody is deciding whether to buy their way out of, and a mark you have
+   to look for does not make that decision for anybody. Still under the
+   figures — a cook must be able to read every quantity straight through it. */
+.prep-mark span { color: rgb(23 27 36 / 0.075); }
+
+/* Said once, at the foot, so the reason is on the sheet rather than only in
+   the interface around it. */
+.prep-mark::after {
+  content: 'FREE TRIAL — Costbook';
+  position: absolute; inset-inline: 0; inset-block-end: 14%;
+  transform: rotate(24deg);
+  text-align: center;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 12px; letter-spacing: 0.24em;
+  color: rgb(23 27 36 / 0.28);
+}

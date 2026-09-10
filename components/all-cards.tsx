@@ -113,6 +113,9 @@ export function AllCards({
             contains={c.contains}
             doNot={c.doNot}
             orgName={orgName}
+            /* This screen is only reachable unlocked, so the sheet wears the
+               signature rather than the full mark. */
+            canTake
           />
         ))}
       </div>

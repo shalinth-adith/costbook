@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 
+import { Mark } from './mark';
+
 import type { BreakdownLine } from '@/lib/breakdown';
 import { totals } from '@/lib/breakdown';
 import type { DishMeta } from '@/lib/data';
@@ -104,6 +106,7 @@ export function PrepCard({
         contains={contains}
         doNot={doNot}
         orgName={orgName}
+        canTake={canTake}
       />
 
       <p className="prep-note no-print">
@@ -144,6 +147,7 @@ export function PrepSheet({
   contains,
   doNot,
   orgName,
+  canTake,
 }: {
   name: string;
   dish: DishMeta;
@@ -154,28 +158,41 @@ export function PrepSheet({
   contains: readonly string[];
   doNot: string | null;
   orgName: string;
+  /**
+   * Which mark the sheet wears.
+   *
+   * Unlocked — a plan, or the pass — it is a maker's signature in the corner
+   * and nothing across the middle: this is the kitchen's own document and it
+   * should look like one. Locked, it carries the full mark, and it carries it
+   * ON SCREEN, because a card that only watermarked what it printed would be
+   * a card anybody could photograph instead.
+   */
+  canTake: boolean;
 }) {
   const shelf = totals(lines);
 
   return (
       <article className="prep">
         {/*
-          * The mark, across the sheet.
+          * The mark, and which one.
           *
-          * This card is taped to a wall in somebody else's kitchen and
-          * photographed by suppliers and staff, which is the only free
-          * advertising a product like this gets. Set light enough to read
-          * straight through — a watermark that fights the quantities would be
-          * costing a cook the thing the sheet is for.
+          * A kitchen that has paid gets a signature: the bars and the name in
+          * the corner of the footer, the way a maker signs a thing rather
+          * than stamps it. A kitchen still on the trial gets the full mark
+          * across the sheet — and gets it on screen, not only on the paper,
+          * because the point is not to spoil a printout. The point is that a
+          * card carried away in a photograph is carried away all the same.
           */}
-        <div className="prep-mark" aria-hidden="true">
-          <span>COSTBOOK</span>
-          <span>COSTBOOK</span>
-          <span>COSTBOOK</span>
-          <span>COSTBOOK</span>
-          <span>COSTBOOK</span>
-          <span>COSTBOOK</span>
-        </div>
+        {canTake ? null : (
+          <div className="prep-mark" aria-hidden="true">
+            <span>COSTBOOK</span>
+            <span>COSTBOOK</span>
+            <span>COSTBOOK</span>
+            <span>COSTBOOK</span>
+            <span>COSTBOOK</span>
+            <span>COSTBOOK</span>
+          </div>
+        )}
 
         <header className="prep-head">
           <div className="prep-kicker">PREP CARD · {dish.category.toUpperCase()}</div>
@@ -280,7 +297,13 @@ export function PrepSheet({
         )}
 
         <footer className="prep-foot">
-          <span>{orgName.toUpperCase()} · COSTED WITH COSTBOOK</span>
+          <span className="prep-foot-mark">
+            {orgName.toUpperCase()} · COSTED WITH
+            <Mark size={11} />
+            <b>COSTBOOK</b>
+            {/* The trademark sign, small, where a maker signs. */}
+            <sup aria-hidden="true">™</sup>
+          </span>
           <span>CHECKED BY ___________</span>
         </footer>
       </article>
