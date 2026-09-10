@@ -6,7 +6,7 @@ import { LandingTry } from "@/components/landing-try";
 import { LandingNav } from "@/components/landing-nav";
 import { LandingRate } from "@/components/landing-rate";
 import { LandingRipple } from "@/components/landing-ripple";
-import { FREE_LIMITS, PAID_MONTHLY } from "@/lib/org";
+import { EXPORT_PASS, FREE_LIMITS, PAID_MONTHLY } from "@/lib/org";
 
 import { siteUrl } from "./robots";
 
@@ -85,7 +85,7 @@ const FREE_HAS: readonly string[] = [
   `${String(FREE_LIMITS.recipes)} dishes, costed properly`,
   "Sub-recipes, yields and the full breakdown",
   "Every figure you can open and read step by step",
-  "Prep cards you can print",
+  "Prep cards on screen, opened down to the shelf",
 ];
 const PAID_HAS: readonly string[] = [
   "Your whole menu, no limit",
@@ -261,7 +261,9 @@ export default function Landing() {
           </h2>
           <p className="lp-price-note">
             No card to start, and nothing you enter is held hostage: everything
-            on the free tier stays costed and printable whatever you decide.
+            on the free tier stays costed and readable whatever you decide. Printing a
+            card or downloading the book is bought once, for {EXPORT_PASS.symbol}
+            {EXPORT_PASS.amount}, and every plan includes it.
           </p>
         </div>
 

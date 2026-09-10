@@ -4,10 +4,13 @@ import { PAID_MONTHLY } from "./org";
 import {
   FREE_SUBSCRIPTION,
   TERMS,
+  type Subscription,
+  canTakeAway,
   daysLeft,
   endOf,
   lapsed,
   perMonth,
+  purchaseOf,
   saving,
   termOf,
   tierOf,
@@ -97,5 +100,59 @@ describe("tierOf", () => {
       ),
     ).toBe(1);
     expect(daysLeft(FREE_SUBSCRIPTION, now)).toBeNull();
+  });
+});
+
+describe('who may take their work out', () => {
+  const free: Subscription = { ...FREE_SUBSCRIPTION };
+  const now = new Date('2026-09-10T00:00:00Z');
+
+  it('does not let a book that has never paid take anything away', () => {
+    expect(canTakeAway(free, now)).toBe(false);
+  });
+
+  it('lets a running plan take it, without a pass being bought', () => {
+    const paid: Subscription = {
+      ...free,
+      plan: 'paid',
+      term: 'monthly',
+      startedAt: '2026-09-01T00:00:00Z',
+      periodEnd: '2026-10-01T00:00:00Z',
+    };
+    expect(canTakeAway(paid, now)).toBe(true);
+  });
+
+  it('keeps it after a stretch ends, which is the whole promise', () => {
+    // "Nothing is taken away when it ends" is on the plans screen and in the
+    // terms. A lapsed subscriber who could no longer print the cards they
+    // paid to make would make a liar of both.
+    const lapsedPayer: Subscription = {
+      ...free,
+      plan: 'paid',
+      term: 'monthly',
+      startedAt: '2026-06-01T00:00:00Z',
+      periodEnd: '2026-07-01T00:00:00Z',
+      exportsUnlockedAt: '2026-06-01T00:00:00Z',
+    };
+    expect(tierOf(lapsedPayer, now)).toBe('free');
+    expect(canTakeAway(lapsedPayer, now)).toBe(true);
+  });
+
+  it('lets a free book that bought the pass take it, and changes nothing else', () => {
+    const passed: Subscription = { ...free, exportsUnlockedAt: '2026-09-09T10:00:00Z' };
+    expect(canTakeAway(passed, now)).toBe(true);
+    // The pass buys carrying the work away and nothing more: still free,
+    // still capped, still no import.
+    expect(tierOf(passed, now)).toBe('free');
+  });
+});
+
+describe('what the account can buy', () => {
+  it('knows the pass and the four stretches, and nothing else', () => {
+    expect(purchaseOf('export')).toBe('export');
+    expect(purchaseOf('monthly')).toBe('monthly');
+    expect(purchaseOf('year')).toBe('year');
+    expect(purchaseOf('forever')).toBeUndefined();
+    expect(purchaseOf(null)).toBeUndefined();
   });
 });

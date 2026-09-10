@@ -1250,10 +1250,11 @@ function BillingTab({
              * when a config value moves is a sentence nobody will remember to
              * check.
              */}
-            Everything you have stays costed, printable and exportable. What
-            stops is adding one more recipe, repeat imports, and rate history
-            beyond the last change. Nothing is deleted and nothing is locked
-            away.
+            Everything you have stays costed and readable on screen. What stops
+            is adding one more recipe, repeat imports, and rate history beyond
+            the last change — and taking the book off the screen, which is
+            bought once and included in every plan. Nothing is deleted and
+            nothing is locked away.
           </p>
           {/*
             * This button read "See what keeping it current costs" and called

@@ -29,7 +29,7 @@ export default function Terms() {
         },
         {
           h: 'Paying and stopping',
-          p: 'The paid tier is monthly and cancels in the product, in the Billing tab, with no email required. Cancel and you keep everything you costed — it stays readable, printable and exportable on the free tier. Nothing is deleted for not paying.',
+          p: 'The paid tier is monthly and cancels in the product, in the Billing tab, with no email required. Cancel and you keep everything you costed — it stays readable, and because you have paid us it also stays printable and exportable. Nothing is deleted for not paying.',
         },
         {
           h: 'Your data, your account',

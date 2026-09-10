@@ -13,7 +13,7 @@
  * so there is no useful smaller unit to fetch.
  */
 
-import { FREE_SUBSCRIPTION, type Subscription, type Term, endOf, termOf, tierOf } from "./plan";
+import { FREE_SUBSCRIPTION, type Purchase, type Subscription, type Term, endOf, purchaseOf, termOf, tierOf } from "./plan";
 import { cache } from "react";
 
 import { currency } from "@/core/currency";
@@ -132,6 +132,7 @@ interface SubscriptionRow {
   readonly started_at?: string | null;
   readonly current_period_end?: string | null;
   readonly provider_reference?: string | null;
+  readonly exports_unlocked_at?: string | null;
 }
 
 /** What a signed-out visitor sees: nothing, and no pretence of anything. */
@@ -227,7 +228,7 @@ export const book = cache(async (): Promise<Book> => {
       .select("id, email, role, expires_at")
       .is("accepted_at", null)
       .gt("expires_at", new Date().toISOString()),
-    supabase.from("subscriptions").select("plan, status, term, started_at, current_period_end, provider_reference").limit(1),
+    supabase.from("subscriptions").select("plan, status, term, started_at, current_period_end, provider_reference, exports_unlocked_at").limit(1),
     /*
      * The last year, not all of it.
      *
@@ -372,13 +373,35 @@ export const book = cache(async (): Promise<Book> => {
   let subRows = subRes.data as SubscriptionRow[] | null;
   if (subRes.error !== null) {
     if (subRes.error.code === "42703" || subRes.error.code === "PGRST204") {
-      console.warn(
-        "subscriptions is missing the term columns; apply migration 18. " +
-          "Reading the plan without them for now.",
-      );
-      const narrow = await supabase.from("subscriptions").select("plan, status, current_period_end").limit(1);
-      if (narrow.error !== null) throw new ReadFailed("your plan", narrow.error.message);
-      subRows = narrow.data as SubscriptionRow[] | null;
+      /*
+       * A missing column, and two of them can be missing independently.
+       *
+       * Give up the newest one first (migration 28's `exports_unlocked_at`)
+       * and ask again: a project one migration behind should lose the pass,
+       * which is locked by default and therefore safe, and NOT its term — the
+       * old fallback dropped term, started_at and provider_reference too, so
+       * a paid account on a database missing one new column read as a plan
+       * with no stretch and no end date.
+       */
+      const withoutPass = await supabase
+        .from("subscriptions")
+        .select("plan, status, term, started_at, current_period_end, provider_reference")
+        .limit(1);
+      if (withoutPass.error === null) {
+        console.warn(
+          "subscriptions has no exports_unlocked_at; apply migration 28. " +
+            "Taking work out stays locked until it is there.",
+        );
+        subRows = withoutPass.data as SubscriptionRow[] | null;
+      } else {
+        console.warn(
+          "subscriptions is missing the term columns; apply migration 18. " +
+            "Reading the plan without them for now.",
+        );
+        const narrow = await supabase.from("subscriptions").select("plan, status, current_period_end").limit(1);
+        if (narrow.error !== null) throw new ReadFailed("your plan", narrow.error.message);
+        subRows = narrow.data as SubscriptionRow[] | null;
+      }
     } else {
       throw new ReadFailed("your plan", subRes.error.message);
     }
@@ -392,6 +415,12 @@ export const book = cache(async (): Promise<Book> => {
     startedAt: subRow.started_at ?? null,
     periodEnd: subRow.current_period_end ?? null,
     reference: subRow.provider_reference ?? null,
+    /*
+     * Absent until migration 28, and absent is the honest answer: an account
+     * on a database that has not been migrated has not bought a pass, and the
+     * fallback read above does not ask for the column at all.
+     */
+    exportsUnlockedAt: subRow.exports_unlocked_at ?? null,
   };
 
   /*
@@ -1182,7 +1211,8 @@ export async function savePlan(next: Plan): Promise<void> {
 
 /** An order opened at the provider, as the server recorded it. */
 export interface RecordedOrder {
-  readonly term: Term;
+  /** A stretch of months, or "export" for the one-off pass. */
+  readonly term: Purchase;
   readonly amount: number;
 }
 
@@ -1194,7 +1224,8 @@ export interface RecordedOrder {
  */
 export async function recordOrder(input: {
   readonly id: string;
-  readonly term: Term;
+  /** A stretch of months, or "export" for the one-off pass. */
+  readonly term: Purchase;
   readonly amount: number;
   readonly currency: string;
 }): Promise<void> {
@@ -1238,9 +1269,10 @@ export async function claimOrder(orderId: string, paymentId: string): Promise<Re
   // the same refusal, said by the database.
   if (res.error !== null) return null;
   const row = (res.data as { term: string; amount: number }[] | null)?.[0];
-  const term = termOf(row?.term);
-  if (row === undefined || term === undefined) return null;
-  return { term: term.id, amount: row.amount };
+  // What the server recorded when the order was opened — a term, or the pass.
+  const bought = purchaseOf(row?.term);
+  if (row === undefined || bought === undefined) return null;
+  return { term: bought, amount: row.amount };
 }
 
 /**
@@ -1266,6 +1298,9 @@ export async function activateSubscription(term: Term, reference: string, now: D
       startedAt: from.toISOString(),
       periodEnd: endOf(from, t.months).toISOString(),
       reference,
+      // Paying for a stretch buys the right to take the work out, and keeps
+      // it after the stretch ends. Same rule as the database path below.
+      exportsUnlockedAt: memory.subscription().exportsUnlockedAt ?? now.toISOString(),
     });
     return;
   }
@@ -1285,7 +1320,46 @@ export async function activateSubscription(term: Term, reference: string, now: D
         started_at: from.toISOString(),
         current_period_end: endOf(from, t.months).toISOString(),
         provider_reference: reference,
+        /*
+         * Paying for a stretch also buys the right to take the work out, and
+         * keeps it once the stretch has ended — the plans screen's own
+         * promise that nothing is taken away. Set once and never cleared, so
+         * a second stretch does not move the date it was first earned.
+         */
+        exports_unlocked_at: b.subscription.exportsUnlockedAt ?? now.toISOString(),
       })
+      .eq("org_id", b.orgId),
+  );
+}
+
+/**
+ * The one-off pass: the right to take the work out, on a free book.
+ *
+ * It touches nothing else. The plan stays free, the six-dish limit stays, the
+ * import stays shut — this buys carrying your own work away and nothing more,
+ * which is exactly what was charged for.
+ */
+export async function unlockExports(reference: string, now: Date = new Date()): Promise<void> {
+  if (!supabaseConfigured()) {
+    const sub = memory.subscription();
+    memory.setSubscription({
+      ...sub,
+      exportsUnlockedAt: sub.exportsUnlockedAt ?? now.toISOString(),
+      reference: sub.reference ?? reference,
+    });
+    return;
+  }
+  const b = await book();
+  if (b.orgId === null) throw new WriteFailed("the pass", "No account is signed in.");
+  // Already bought is not a failure: a second confirmation of the same
+  // payment must not move the date, and must not read as a refusal either.
+  if (b.subscription.exportsUnlockedAt !== null) return;
+  const supabase = await supabaseServer();
+  check(
+    "your pass",
+    await supabase
+      .from("subscriptions")
+      .update({ exports_unlocked_at: now.toISOString() })
       .eq("org_id", b.orgId),
   );
 }

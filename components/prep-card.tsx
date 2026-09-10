@@ -1,9 +1,12 @@
 'use client';
 
-import type { CostedLine } from '@/core/recipe';
+import Link from 'next/link';
 
+import type { BreakdownLine } from '@/lib/breakdown';
+import { totals } from '@/lib/breakdown';
 import type { DishMeta } from '@/lib/data';
-import { lineQty, qty } from '@/lib/format';
+import { lineQty } from '@/lib/format';
+import { EXPORT_PASS } from '@/lib/org';
 import type { MethodLine } from '@/lib/prep';
 
 /**
@@ -26,12 +29,18 @@ export function PrepCard({
   contains,
   doNot,
   orgName,
+  canTake,
   onBack,
 }: {
   name: string;
   dish: DishMeta;
   portions: number | null;
-  lines: readonly CostedLine[];
+  /**
+   * Every line in the dish, all the way down — the sub-recipes as headings
+   * with what they are made of underneath. A cook holding a pan needs the
+   * coffee powder and the water, not "Decoction, 300 ml".
+   */
+  lines: readonly BreakdownLine[];
   /** The method as written, never renumbered. */
   steps: readonly MethodLine[];
   prepTime: string | null;
@@ -40,6 +49,13 @@ export function PrepCard({
   doNot: string | null;
   /** The café's own name. This sheet is taped up in their kitchen. */
   orgName: string;
+  /**
+   * Whether this account may take the card off the screen.
+   *
+   * Reading is free — the card draws in full either way. Printing it is what
+   * is bought, once, on a free book.
+   */
+  canTake: boolean;
   onBack: () => void;
 }) {
   return (
@@ -53,17 +69,114 @@ export function PrepCard({
           Back to costing
         </button>
         <span className="prep-size">A4 at 100%</span>
-        <button type="button" className="btn btn-primary" onClick={() => window.print()}>
-          <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-            strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
-            <path d="M6.2 7V4.4h7.6V7M5 7h10v9.2H5Z" />
-            <path d="M7.6 11.4h4.8" />
-          </svg>
-          Send to the printer
-        </button>
+        {/*
+          * The card is drawn in full whether or not it can be printed. What
+          * is bought is carrying it away — a locked card that showed nothing
+          * would be hiding the thing somebody is deciding whether to buy.
+          */}
+        {canTake ? (
+          <button type="button" className="btn btn-primary" onClick={() => window.print()}>
+            <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+              strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+              <path d="M6.2 7V4.4h7.6V7M5 7h10v9.2H5Z" />
+              <path d="M7.6 11.4h4.8" />
+            </svg>
+            Send to the printer
+          </button>
+        ) : (
+          <Link href="/plans#takeaway" className="btn btn-primary">
+            <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+              strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+              <path d="M6.6 9V6.6a3.4 3.4 0 016.8 0V9M5.4 9h9.2v6.6H5.4Z" />
+            </svg>
+            Print it · {EXPORT_PASS.symbol}{EXPORT_PASS.amount} once
+          </Link>
+        )}
       </div>
 
+      <PrepSheet
+        name={name}
+        dish={dish}
+        portions={portions}
+        lines={lines}
+        steps={steps}
+        prepTime={prepTime}
+        contains={contains}
+        doNot={doNot}
+        orgName={orgName}
+      />
+
+      <p className="prep-note no-print">
+        The same lines as the costing view, opened all the way down, and no money on any of them.
+        Editing a quantity there changes what prints here, which is the point of the two views
+        sharing one set of data. A sheet taped where staff and suppliers can read it is not where
+        margins belong.
+      </p>
+    </div>
+  );
+}
+
+function Fact({ term, value }: { term: string; value: string }) {
+  return (
+    <div className="prep-fact">
+      <dt>{term}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
+}
+
+
+/**
+ * The sheet itself, with no controls around it.
+ *
+ * Split out so one document can be framed two ways: a single card with a
+ * printer button beside it, and a run of every dish for a kitchen that wants
+ * the whole folder at once. A second copy of this markup would be a second
+ * card, and the two would drift the first time a line was added.
+ */
+export function PrepSheet({
+  name,
+  dish,
+  portions,
+  lines,
+  steps,
+  prepTime,
+  contains,
+  doNot,
+  orgName,
+}: {
+  name: string;
+  dish: DishMeta;
+  portions: number | null;
+  lines: readonly BreakdownLine[];
+  steps: readonly MethodLine[];
+  prepTime: string | null;
+  contains: readonly string[];
+  doNot: string | null;
+  orgName: string;
+}) {
+  const shelf = totals(lines);
+
+  return (
       <article className="prep">
+        {/*
+          * The mark, across the sheet.
+          *
+          * This card is taped to a wall in somebody else's kitchen and
+          * photographed by suppliers and staff, which is the only free
+          * advertising a product like this gets. Set light enough to read
+          * straight through — a watermark that fights the quantities would be
+          * costing a cook the thing the sheet is for.
+          */}
+        <div className="prep-mark" aria-hidden="true">
+          <span>COSTBOOK</span>
+          <span>COSTBOOK</span>
+          <span>COSTBOOK</span>
+          <span>COSTBOOK</span>
+          <span>COSTBOOK</span>
+          <span>COSTBOOK</span>
+        </div>
+
         <header className="prep-head">
           <div className="prep-kicker">PREP CARD · {dish.category.toUpperCase()}</div>
           <h1 className="prep-name">{name}</h1>
@@ -79,23 +192,58 @@ export function PrepCard({
           )}
         </dl>
 
+        {/*
+          * Everything in the dish, to the bottom.
+          *
+          * The costing screen is right to show a sub-recipe as one line — the
+          * gravy costs what the gravy costs. A cook is holding a pan, and
+          * "Decoction, 300 ml" is not something you can take off a shelf. So
+          * the sub-recipe stays as a heading, and what it is made of prints
+          * underneath it, in the amount THIS batch needs.
+          */}
         <section className="prep-section">
-          <h2 className="prep-h2">COMPONENTS FOR THE BATCH</h2>
+          <h2 className="prep-h2">EVERYTHING IN ONE BATCH</h2>
           <ul className="prep-lines">
             {lines.map((line, i) => (
-              <li key={`${line.name}-${i}`} className="prep-line">
-                <span className="prep-line-mark">{line.kind === 'recipe' ? 'SUB' : ''}</span>
+              <li
+                key={`${line.name}-${String(i)}`}
+                className={`prep-line${line.kind === 'recipe' ? ' is-sub' : ''}`}
+                style={{ '--d': line.depth } as React.CSSProperties}
+              >
+                <span className="prep-line-mark">{line.kind === 'recipe' ? 'MAKE' : ''}</span>
                 <span className="prep-line-name">{line.name}</span>
                 <span className="prep-line-qty">
                   {line.kind === 'flat' ? '' : `${lineQty(line.qty, line.unit)} ${line.unit}`}
                 </span>
                 <span className="prep-line-note">
-                  {line.scope === 'portion' ? 'one per plate' : ''}
+                  {line.note ?? (line.via.length === 0 ? '' : `for the ${line.via.at(-1) ?? ''}`)}
                 </span>
               </li>
             ))}
           </ul>
         </section>
+
+        {/*
+          * The same batch as a shelf list.
+          *
+          * The tree above says where each thing goes; this says how much to
+          * fetch. Both are true and neither can be read off the other at
+          * speed — powder that appears in two sub-recipes is two lines up
+          * there and one trip to the store down here.
+          */}
+        {shelf.length > 1 && (
+          <section className="prep-section prep-shelf">
+            <h2 className="prep-h2">OFF THE SHELF, IN TOTAL</h2>
+            <ul className="prep-shelf-list">
+              {shelf.map((t) => (
+                <li key={`${t.name}-${t.unit}`}>
+                  <span>{t.name}</span>
+                  <span className="prep-shelf-qty">{lineQty(t.qty, t.unit)} {t.unit}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {/* An absent method is stated, not omitted. This sheet is read at arm's
             length by someone holding a pan, and a missing section reads as a
@@ -132,26 +280,9 @@ export function PrepCard({
         )}
 
         <footer className="prep-foot">
-          <span>{orgName.toUpperCase()} · COSTBOOK</span>
+          <span>{orgName.toUpperCase()} · COSTED WITH COSTBOOK</span>
           <span>CHECKED BY ___________</span>
         </footer>
       </article>
-
-      <p className="prep-note no-print">
-        The same component lines as the costing view, the same quantities, no money. Editing a
-        quantity there changes what prints here, which is the point of the two views sharing one
-        set of data. A sheet taped where staff and suppliers can read it is not where margins
-        belong.
-      </p>
-    </div>
-  );
-}
-
-function Fact({ term, value }: { term: string; value: string }) {
-  return (
-    <div className="prep-fact">
-      <dt>{term}</dt>
-      <dd>{value}</dd>
-    </div>
   );
 }

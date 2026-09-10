@@ -31,7 +31,7 @@ const HELP_QUESTIONS: readonly (readonly [string, string])[] = [
   ],
   [
     'What happens when the free dishes run out?',
-    'Everything you have costed stays costed, readable and printable, for as long as you like. To add another dish, or to bring a sheet in, you buy the book for a stretch of months from Your plan. There is no card kept on file.',
+    'Everything you have costed stays costed and readable, for as long as you like — nothing is deleted and nothing is locked away. To add another dish, or to bring a sheet in, you buy the book for a stretch of months from Your plan. Printing a card or downloading the book is bought once, separately, and every plan already includes it.',
   ],
   [
     'Who can see my recipes?',

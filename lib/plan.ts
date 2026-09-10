@@ -98,6 +98,14 @@ export interface Subscription {
   readonly periodEnd: string | null;
   /** What the payment provider called it, or "sandbox" for a test activation. */
   readonly reference: string | null;
+  /**
+   * When this account bought the right to take its work out, or null.
+   *
+   * Set by any paid order — a stretch of months or the one-off pass — and
+   * never cleared, so a lapsed subscriber can still print the cards and
+   * export the sheet they paid to make.
+   */
+  readonly exportsUnlockedAt: string | null;
 }
 
 export const FREE_SUBSCRIPTION: Subscription = {
@@ -107,6 +115,7 @@ export const FREE_SUBSCRIPTION: Subscription = {
   startedAt: null,
   periodEnd: null,
   reference: null,
+  exportsUnlockedAt: null,
 };
 
 /**
@@ -138,4 +147,31 @@ export function lapsed(sub: Subscription, now: Date = new Date()): boolean {
   return (
     sub.plan === "paid" && sub.periodEnd !== null && tierOf(sub, now) === "free"
   );
+}
+
+/**
+ * Whether this account may carry its work out of the book.
+ *
+ * Two ways in, and the second is the one that matters. A paid stretch says
+ * yes while it runs — but the promise on the plans screen is that nothing is
+ * taken away when a stretch ends, so an account that has ever paid keeps the
+ * unlock afterwards. The timestamp is what remembers that; the tier check
+ * stands beside it for an account arranged by hand in SQL, which has a paid
+ * row and no order behind it.
+ *
+ * What it does NOT gate: reading. Every figure stays open, the prep card
+ * still draws on screen, and the six free dishes stay costed. This is the
+ * line between looking at your work and walking off with it.
+ */
+export function canTakeAway(sub: Subscription, now: Date = new Date()): boolean {
+  return sub.exportsUnlockedAt !== null || tierOf(sub, now) === "paid";
+}
+
+/** Everything an account can buy: a stretch of months, or the one-off pass. */
+export type Purchase = Term | "export";
+
+/** Whether a string from the database is something Costbook sells. */
+export function purchaseOf(id: string | null | undefined): Purchase | undefined {
+  if (id === "export") return "export";
+  return termOf(id)?.id;
 }

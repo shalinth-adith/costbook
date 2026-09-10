@@ -39,6 +39,7 @@ export function LibraryView({
   onDuplicate,
   onArchive,
   onCreate,
+  canTake,
   creating,
   only,
   onlySaid,
@@ -61,6 +62,8 @@ export function LibraryView({
   onlySaid?: string | undefined;
   onDuplicate: (id: string) => Promise<{ message: string; undoable: boolean }>;
   onArchive: (id: string, archived: boolean) => Promise<{ message: string; undoable: boolean }>;
+  /** Whether this account may take its work off the screen (lib/plan.ts). */
+  canTake: boolean;
   onCreate: (dish: { name: string; category: string; portions: number }) => Promise<{
     message: string;
     undoable: boolean;
@@ -214,14 +217,49 @@ export function LibraryView({
               interruption to it — see app/recipes/new/page.tsx. */}
           {/* Every figure on this page, as a spreadsheet. A book you cannot
               take away is not yours — and there was no way to get one out. */}
-          {bare ? null : (
-            <a href="/recipes/export" className="btn" download>
+          {/*
+            * Two files, because they answer two questions. The menu is one
+            * row a dish — what it costs, what it sells at, what it keeps —
+            * and it is what an accountant is sent. The SOP is every dish
+            * opened all the way down to what is actually on the shelf, and it
+            * is what a kitchen runs on.
+            *
+            * Locked, it is one control that goes to the till rather than two
+            * that refuse. The server checks again either way: a link is a
+            * link, and a button hidden in the interface is not a gate.
+            */}
+          {bare ? null : canTake ? (
+            <details className="take">
+              <summary className="btn take-trigger">
+                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                  strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+                  <path d="M6 1.6v6.2M3.4 5.4 6 8l2.6-2.6M2 10h8" />
+                </svg>
+                Export
+              </summary>
+              <div className="take-menu">
+                <a href="/recipes/export?kind=menu" className="take-item" download>
+                  <b>The menu, costed</b>
+                  One row a dish: cost, price, and what it keeps.
+                </a>
+                <a href="/recipes/export?kind=sop" className="take-item" download>
+                  <b>Every dish, opened out</b>
+                  Each line inside each dish, down to the shelf, with its rate.
+                </a>
+                <Link href="/recipes/cards" className="take-item">
+                  <b>Every prep card</b>
+                  One card a dish, ready for the printer.
+                </Link>
+              </div>
+            </details>
+          ) : (
+            <Link href="/plans#takeaway" className="btn">
               <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor"
                 strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
-                <path d="M6 1.6v6.2M3.4 5.4 6 8l2.6-2.6M2 10h8" />
+                <path d="M4 5.4V4a2 2 0 014 0v1.4M3 5.4h6V10H3Z" />
               </svg>
               Export
-            </a>
+            </Link>
           )}
           <Link
             href="/recipes/new"

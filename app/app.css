@@ -6068,3 +6068,168 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 
 @keyframes tr-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @keyframes tr-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ══ The prep card, opened all the way down ════════════════════════════════
+   A sub-recipe is one line on a costing screen and a pot on a stove in a
+   kitchen. The card now prints the sub-recipe as a heading with what it is
+   made of underneath, in the amounts this batch needs — and a shelf list at
+   the foot, because where a thing goes and how much to fetch are two
+   different questions asked at two different moments. */
+
+/* The card is the one thing in the product with a position, so the mark can
+   sit behind it. */
+.prep { position: relative; isolation: isolate; overflow: hidden; }
+
+/*
+ * The mark, across the sheet.
+ *
+ * `print-color-adjust: exact` is the whole trick: a browser drops light
+ * background ink when it prints to save toner, and a watermark is exactly
+ * what it drops first. Stated, it survives the printer — which is the only
+ * place this card matters, since it ends up taped to a wall in somebody
+ * else's kitchen where suppliers and staff read it all day.
+ *
+ * 0.05 alpha and 44 degrees: light enough to read a quantity straight
+ * through, angled so it never runs along a line of figures and competes with
+ * one. A watermark that costs a cook a number is worse than no watermark.
+ */
+.prep-mark {
+  position: absolute; inset: -20%; z-index: 0; pointer-events: none;
+  display: grid; grid-template-columns: repeat(2, 1fr); align-content: space-around;
+  justify-items: center; transform: rotate(-24deg);
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.prep-mark span {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 64px; font-weight: 800; letter-spacing: 0.06em;
+  color: rgb(23 27 36 / 0.05);
+  white-space: nowrap; user-select: none;
+}
+/* Everything the cook actually reads sits above it. */
+.prep-head, .prep-facts, .prep-section, .prep-foot { position: relative; z-index: 1; }
+
+/* One step of indent per level, and a rule down the left of anything nested,
+   so a glance says which lines belong to which pot. */
+.prep-line { padding-inline-start: calc(var(--d, 0) * 22px); }
+.prep-line[style*="--d: 1"], .prep-line[style*="--d: 2"],
+.prep-line[style*="--d: 3"], .prep-line[style*="--d: 4"], .prep-line[style*="--d: 5"] {
+  border-inline-start: 2px solid var(--border-strong);
+  margin-inline-start: 6px;
+}
+/* The heading of a pot: it is a thing to make, not a thing to fetch. */
+.prep-line.is-sub { font-weight: 600; border-block-end-style: solid; }
+.prep-line.is-sub .prep-line-mark { color: var(--text-primary); }
+
+.prep-shelf-list { list-style: none; margin: 0; padding: 0; }
+.prep-shelf-list li {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-4);
+  padding-block: 6px; border-block-end: 1px dotted var(--border-strong); font-size: 14px;
+}
+.prep-shelf-qty { font-weight: 600; white-space: nowrap; }
+
+@media print {
+  /* A wall card is read at arm's length; the shelf list must not be orphaned
+     onto a second page away from the batch it belongs to. */
+  .prep-shelf { break-inside: avoid; }
+  .prep-line { break-inside: avoid; }
+}
+
+/* ══ Taking your work out ══════════════════════════════════════════════════
+   Its own section under the plan, not a fifth term beside the four: a
+   hundred rupees and seven hundred and fifty do not buy the same kind of
+   thing, and a row that put them side by side would invite the comparison. */
+.tk {
+  margin: var(--sp-8) var(--sp-6) 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--sp-8);
+  padding: var(--sp-6) 26px; border-radius: 16px;
+  background: var(--soot); color: var(--on-soot);
+  scroll-margin-top: var(--sp-6);
+}
+.tk .wiz-live-label { color: var(--saffron); margin: 0 0 6px; }
+.tk-h2 {
+  margin: 0 0 10px; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 26px; font-weight: 800; letter-spacing: -0.025em; color: var(--on-soot);
+}
+.tk-copy { margin: 0 0 var(--sp-4); font-size: 14.5px; line-height: 1.65; color: var(--on-soot-secondary); max-inline-size: 64ch; text-wrap: pretty; }
+.tk-has { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.tk-has li {
+  position: relative; padding-inline-start: 20px;
+  font-size: 13.5px; line-height: 1.55; color: var(--on-soot-secondary); text-wrap: pretty;
+}
+.tk-has li::before {
+  content: ''; position: absolute; inset-inline-start: 0; inset-block-start: 8px;
+  inline-size: 8px; block-size: 8px; border-radius: 2px; background: var(--saffron);
+}
+.tk-buy {
+  display: grid; align-content: start; gap: 6px;
+  padding: 20px; border-radius: 12px;
+  background: rgb(255 255 255 / 0.05); border: 1px solid var(--soot-rule);
+}
+.tk-price {
+  margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  font-size: 46px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; color: var(--saffron);
+}
+.tk-once { margin: 0 0 10px; font-size: 12.5px; color: var(--on-soot-tertiary); }
+.tk-state { margin: 0; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: #8AD3B4; }
+.tk-state-said { margin: 4px 0 12px; font-size: 13px; line-height: 1.55; color: var(--on-soot-secondary); }
+.tk-go {
+  inline-size: 100%; justify-content: center;
+  background: var(--saffron); border-color: var(--saffron); color: var(--soot);
+}
+.tk-go:hover:not(:disabled) { background: #FFC55A; border-color: #FFC55A; }
+.tk-go:disabled { background: var(--soot-rule); border-color: var(--soot-rule); color: var(--on-soot-tertiary); }
+.tk-note { margin: 10px 0 0; font-size: 12px; line-height: 1.5; color: var(--on-soot-tertiary); }
+.tk .plans-owner { color: var(--on-soot-secondary); }
+
+@media (max-width: 1100px) { .tk { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .tk { margin-inline: 16px; padding: 20px 18px; } }
+
+/* ══ Every card, one to a page ═════════════════════════════════════════════ */
+.cards { padding: var(--sp-5) var(--sp-6) var(--sp-10); }
+.cards-bar {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: var(--sp-6); flex-wrap: wrap; margin-block-end: var(--sp-6);
+  padding-block-end: var(--sp-5); border-block-end: 1px solid var(--border-hairline);
+}
+.cards-h1 { margin: 6px 0 4px; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -0.025em; }
+.cards-said { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); max-inline-size: 62ch; text-wrap: pretty; }
+.cards-act { display: flex; gap: 10px; flex-wrap: wrap; }
+.cards-run { display: grid; gap: var(--sp-8); justify-items: center; }
+
+/* Locked: what is behind the wall, said plainly, before the price. */
+.cards-locked { max-inline-size: 62ch; padding: var(--sp-8) var(--sp-6); display: grid; gap: 12px; }
+.cards-locked-h { margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif; font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; }
+.cards-locked-h b { color: var(--accent-deep); }
+.cards-locked-copy { margin: 0; font-size: 15px; line-height: 1.7; color: var(--text-secondary); text-wrap: pretty; }
+.cards-locked-act { display: flex; align-items: center; gap: var(--sp-5); flex-wrap: wrap; margin-block-start: 8px; }
+.cards-locked-note { margin: 8px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--text-tertiary); }
+
+/* The Export control, as a small menu of what can be taken. */
+.take { position: relative; }
+.take-trigger { list-style: none; cursor: pointer; }
+.take-trigger::-webkit-details-marker { display: none; }
+.take-menu {
+  position: absolute; z-index: 30; inset-inline-end: 0; inset-block-start: calc(100% + 6px);
+  inline-size: 320px; display: grid; gap: 2px; padding: 8px;
+  background: var(--surface-card); border: 1px solid var(--border-hairline);
+  border-radius: 12px; box-shadow: 0 20px 44px rgb(23 27 36 / 0.16);
+}
+.take-item {
+  display: grid; gap: 2px; padding: 10px 12px; border-radius: 8px;
+  text-decoration: none; font-size: 12.5px; line-height: 1.45; color: var(--text-tertiary);
+}
+.take-item b { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.take-item:hover { background: var(--surface-sunken); }
+
+@media print {
+  /* A folder, not a scroll: a card that runs across a page break is a card a
+     cook reads half of. */
+  .cards { padding: 0; }
+  .cards-run { gap: 0; }
+  .cards-run > .prep { break-after: page; border: 0; max-width: none; }
+  .cards-run > .prep:last-child { break-after: auto; }
+}
+@media (max-width: 700px) {
+  .cards { padding-inline: 16px; }
+  .take-menu { inline-size: min(320px, calc(100vw - 40px)); }
+}

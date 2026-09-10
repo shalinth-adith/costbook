@@ -3,11 +3,13 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 
-import { FREE_LIMITS, PAID_MONTHLY, type Plan, type Role } from "@/lib/org";
+import { EXPORT_PASS, FREE_LIMITS, PAID_MONTHLY, type Plan, type Role } from "@/lib/org";
 import {
   TERMS,
+  type Purchase,
   type Subscription,
   type Term,
+  canTakeAway,
   daysLeft,
   endOf,
   lapsed,
@@ -17,8 +19,10 @@ import {
 } from "@/lib/plan";
 
 import {
+  activateExportPassSandbox,
   activateSandbox,
   beginCheckout,
+  beginExportPass,
   confirmPayment,
 } from "@/app/plans/actions";
 
@@ -76,6 +80,42 @@ export function PlansView({
   const left = daysLeft(subscription, today);
   const lapsedNow = lapsed(subscription, today);
   const atLimit = plan === "free" && recipeCount >= FREE_LIMITS.recipes;
+
+  const canTake = canTakeAway(subscription, today);
+
+  /*
+   * The pass, bought through the same till as a stretch.
+   *
+   * Same three steps, same server-recorded amount, same one-shot claim — the
+   * only difference is what the confirmation switches on, and that decision
+   * is made on the server from what the order said, never from here.
+   */
+  const buyPass = () => {
+    setFault(null);
+    start(async () => {
+      try {
+        const checkout = await beginExportPass();
+        if (checkout.mode === "sandbox") {
+          const refused = await activateExportPassSandbox();
+          if (refused !== undefined) setFault(refused.message);
+          return;
+        }
+        if (checkout.mode === "none") {
+          setFault(
+            "Payments are not connected yet. Write to us and we will switch it on with you.",
+          );
+          return;
+        }
+        await openRazorpay(checkout, "export", setFault);
+      } catch (e) {
+        setFault(
+          e instanceof Error
+            ? e.message
+            : "That did not go through. Nothing has changed on your account.",
+        );
+      }
+    });
+  };
 
   const buy = () => {
     setFault(null);
@@ -379,6 +419,87 @@ export function PlansView({
           )}
         </aside>
       </div>
+
+      {/*
+        * Taking your work out.
+        *
+        * Its own section under the plan rather than a fifth term beside the
+        * four, because it is not a stretch of months and putting it in that
+        * row would make somebody compare a hundred rupees with seven hundred
+        * and fifty as though they bought the same kind of thing.
+        *
+        * Drawn whatever the account is on. Unlocked it says so and stops
+        * asking; that is the difference between a receipt and a nag.
+        */}
+      <section className="tk" id="takeaway">
+        <div className="tk-say">
+          <p className="wiz-live-label">Taking it with you</p>
+          <h2 className="tk-h2">
+            {canTake
+              ? "Your work is yours to take."
+              : "Print the cards, take the sheet."}
+          </h2>
+          <p className="tk-copy">
+            {canTake
+              ? "Prep cards print, and the whole book downloads as a spreadsheet — the menu costed, or every dish opened all the way down to what is actually in it. Bought once and kept, including if a stretch ends."
+              : "Reading is free and stays free: six dishes costed properly, every figure open to its working, the prep card on screen. Carrying it away — a card printed and taped up in a kitchen, a spreadsheet sent to an accountant — is bought once."}
+          </p>
+          <ul className="tk-has">
+            <li>Prep cards to the printer, with everything in a batch opened down to the shelf</li>
+            <li>The menu as a spreadsheet: what each dish costs, sells at, and keeps</li>
+            <li>The whole restaurant as one sheet — every dish, every line inside it, with its rate</li>
+            <li>Kept for good, and included in every paid stretch</li>
+          </ul>
+        </div>
+
+        <div className="tk-buy">
+          {canTake ? (
+            <>
+              <p className="figure tk-state">Unlocked</p>
+              <p className="tk-state-said">
+                {plan === "paid"
+                  ? "Included while you are on a plan — and it stays after a stretch ends."
+                  : "Bought on this account. Nothing further to pay for taking your work out."}
+              </p>
+              <Link href="/recipes" className="btn btn-primary btn-lg tk-go">
+                Go and print one
+              </Link>
+            </>
+          ) : (
+            <>
+              <p className="figure tk-price">
+                {EXPORT_PASS.symbol}
+                {EXPORT_PASS.amount}
+              </p>
+              <p className="tk-once">once, and it stays bought</p>
+              {owner ? (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-lg tk-go"
+                  disabled={pending || mode === "none"}
+                  onClick={buyPass}
+                >
+                  {pending
+                    ? "One moment…"
+                    : mode === "sandbox"
+                      ? "Unlock it in the sandbox"
+                      : mode === "razorpay"
+                        ? `Pay ${EXPORT_PASS.symbol}${String(EXPORT_PASS.amount)}`
+                        : "Payments not connected yet"}
+                </button>
+              ) : (
+                <p className="plans-owner">
+                  Only the owner can buy this. Ask whoever set up the account.
+                </p>
+              )}
+              <p className="tk-note">
+                Or take a plan above — every stretch includes it, and keeps it
+                afterwards.
+              </p>
+            </>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
@@ -392,7 +513,7 @@ async function openRazorpay(
     currency: string;
     name: string;
   },
-  term: Term,
+  bought: Purchase,
   onFault: (message: string) => void,
 ): Promise<void> {
   const w = window as unknown as RazorpayWindow;
@@ -417,7 +538,9 @@ async function openRazorpay(
     amount: checkout.amount,
     currency: checkout.currency,
     name: "Costbook",
-    description: `${checkout.name} · ${termOf(term)?.label ?? term}`,
+    description: `${checkout.name} · ${
+      bought === "export" ? "Take your work out" : (termOf(bought)?.label ?? bought)
+    }`,
     order_id: checkout.orderId,
     /*
      * The order alone. What was bought is on the server, recorded when the

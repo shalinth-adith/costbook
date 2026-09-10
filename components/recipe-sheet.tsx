@@ -24,6 +24,8 @@ import { duplicateRecipe } from '@/app/recipes/actions';
 import { suggestPrice } from '@/lib/costing';
 
 import { ComponentCards } from './component-cards';
+import { breakdown } from '@/lib/breakdown';
+
 import { PrepCard } from './prep-card';
 import { Ticker } from './ticker';
 import { WhereItGoes } from './where-it-goes';
@@ -84,6 +86,7 @@ export function RecipeSheet({
   owner,
   flags,
   orgName,
+  canTake,
   defaultMassUnit,
   defaultVolumeUnit,
 }: {
@@ -104,6 +107,12 @@ export function RecipeSheet({
   flags: readonly Flag[];
   /** The café's own name, which the prep card prints where it is taped up. */
   orgName: string;
+  /**
+   * Whether this account may take its work off the screen — print the card,
+   * download the sheet. Free books buy it once; anyone who has ever paid has
+   * it already (lib/plan.ts `canTakeAway`).
+   */
+  canTake: boolean;
   /** What a number typed with no unit means, from Settings. */
   defaultMassUnit: 'g' | 'kg';
   defaultVolumeUnit: 'ml' | 'l';
@@ -387,7 +396,8 @@ export function RecipeSheet({
         name={fields.name}
         dish={{ ...dish, category: fields.category, station: fields.station, portionSize: fields.portionSize }}
         portions={recipe.portions}
-        lines={cost.lines}
+        lines={breakdown(recipe, pantry)}
+        canTake={canTake}
         steps={methodLines(dish.method)}
         prepTime={fields.prepTime}
         contains={fields.contains.split(',').map((a) => a.trim()).filter((a) => a !== '')}
@@ -731,16 +741,25 @@ export function RecipeSheet({
           }}
           actions={
             <div className="rail-actions rail-actions-row">
+              {/*
+                * Two doors to the same card. Unlocked it goes to the printer;
+                * locked it opens the card on screen, where the offer to
+                * unlock it sits beside what it would print. Nobody is asked
+                * to buy something they have not been shown.
+                */}
               <button
                 type="button"
                 className="btn"
-                onClick={() => { setView('prep'); setTimeout(() => window.print(), 60); }}
+                onClick={() => {
+                  setView('prep');
+                  if (canTake) setTimeout(() => window.print(), 60);
+                }}
               >
                 <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor"
                   strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
                   <path d="M6.2 7V4.4h7.6V7M5 7h10v9.2H5Z" />
                 </svg>
-                Print prep card
+                {canTake ? 'Print prep card' : 'See the prep card'}
               </button>
 
               {dish.onMenu ? (

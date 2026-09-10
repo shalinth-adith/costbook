@@ -5,6 +5,7 @@ import { CurrencyProvider } from '@/components/currency-provider';
 import { RecipeSheet } from '@/components/recipe-sheet';
 
 import { book, orgModel, pantry } from '@/lib/book';
+import { canTakeAway } from '@/lib/plan';
 import { requireSetup } from '@/lib/guard';
 
 /**
@@ -82,6 +83,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           owner={b.members.find((mm) => mm.role === 'owner')?.name ?? 'the owner'}
           flags={b.flags.filter((f) => f.recipeId === id)}
           orgName={b.org.name}
+          canTake={canTakeAway(b.subscription)}
           defaultMassUnit={b.org.defaultMassUnit}
           defaultVolumeUnit={b.org.defaultVolumeUnit}
         />

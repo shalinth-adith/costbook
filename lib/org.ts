@@ -204,6 +204,25 @@ export const PAID_MONTHLY = {
   symbol: '\u20B9',
 } as const;
 
+/**
+ * What it costs to take your work out of a free book.
+ *
+ * Reading is free and stays free — six dishes costed properly, every figure
+ * open to its working, the prep card on screen. This is for carrying it away:
+ * a card printed and taped up in a kitchen, a spreadsheet sent to an
+ * accountant. Bought once, kept for good (migration 28), because the product
+ * promises that nothing entered here is held hostage and a pass that expired
+ * would make a liar of that promise.
+ *
+ * A hundred rupees, in the same currency the plan is billed in, for the same
+ * reason: Costbook does not convert, and this is not a menu price.
+ */
+export const EXPORT_PASS = {
+  amount: 100,
+  currency: 'INR',
+  symbol: '\u20B9',
+} as const;
+
 export function atFreeLimit(recipeCount: number, p: Plan): boolean {
   return p === 'free' && recipeCount >= FREE_LIMITS.recipes;
 }

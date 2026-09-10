@@ -3,12 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { PAID_MONTHLY } from "@/lib/org";
+import { EXPORT_PASS, PAID_MONTHLY } from "@/lib/org";
 import {
   activateSubscription,
   book,
   claimOrder,
   recordOrder,
+  unlockExports,
 } from "@/lib/book";
 import { requireRole } from "@/lib/guard";
 import { termOf, type Term } from "@/lib/plan";
@@ -132,8 +133,18 @@ export async function confirmPayment(input: {
     };
   }
 
-  // The term the server recorded when the order was opened, not the one the
-  // browser sent with the confirmation.
+  /*
+   * What the server recorded when the order was opened, never what the
+   * browser sent with the confirmation. Two things can be bought here and
+   * they are not interchangeable: a stretch of months moves the plan, and the
+   * pass moves nothing except the right to take the work out.
+   */
+  if (claimed.term === "export") {
+    await unlockExports(`razorpay:${input.paymentId}`);
+    revalidatePath("/", "layout");
+    redirect("/plans?took=1");
+  }
+
   await activateSubscription(claimed.term, `razorpay:${input.paymentId}`);
   revalidatePath("/", "layout");
   redirect("/plans?paid=1");
@@ -155,4 +166,61 @@ export async function activateSandbox(termId: Term): Promise<PaymentRefused> {
   await activateSubscription(term.id, "sandbox");
   revalidatePath("/", "layout");
   redirect("/plans?paid=1");
+}
+
+
+/* ── the one-off pass ─────────────────────────────────────────────────────
+ *
+ * The same three steps as a stretch, and deliberately the same code path: an
+ * order opened on the server with its amount recorded, a payment verified
+ * against the provider's signature, and a claim that can only succeed once.
+ * A second checkout written from scratch would be a second place for the
+ * money to be wrong.
+ *
+ * `requireRole("billing")` guards all three. A manager cannot buy a pass for
+ * an account, for the same reason a manager cannot see the bill (A27).
+ */
+
+/** Open an order for the pass. Writes nothing to the account. */
+export async function beginExportPass(): Promise<Checkout> {
+  await requireRole("billing");
+
+  if (razorpayConfigured()) {
+    const b = await book();
+    const amount = EXPORT_PASS.amount * 100;
+    const order = await createOrder({
+      amount,
+      currency: EXPORT_PASS.currency,
+      receipt: `${b.orgId ?? "org"}:export:${Date.now().toString(36)}`,
+      notes: { org: b.orgId ?? "", term: "export" },
+    });
+    await recordOrder({
+      id: order.id,
+      term: "export",
+      amount,
+      currency: EXPORT_PASS.currency,
+    });
+    return {
+      mode: "razorpay",
+      orderId: order.id,
+      keyId: razorpayKeyId(),
+      amount: order.amount,
+      currency: order.currency,
+      name: b.org.name,
+    };
+  }
+
+  if (await sandboxAllowed()) return { mode: "sandbox" };
+  return { mode: "none" };
+}
+
+/** The pass switched on with no payment, in the sandbox only. */
+export async function activateExportPassSandbox(): Promise<PaymentRefused> {
+  await requireRole("billing");
+  if (!(await sandboxAllowed())) {
+    return { ok: false, message: "A pass here is bought, not switched on." };
+  }
+  await unlockExports("sandbox");
+  revalidatePath("/", "layout");
+  redirect("/plans?took=1");
 }
