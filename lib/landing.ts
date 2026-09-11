@@ -59,6 +59,13 @@ export const PUBLIC_PATHS: readonly string[] = [
    * some — the same closed loop as /contact below.
    */
   "/subprocessors",
+  /*
+   * Where closing an account lands. Public because it has to be: by the time
+   * anybody reads it their session is gone and so is the account behind it,
+   * so a gate would answer the one person it was written for with a sign-in
+   * screen for a sign-in that no longer exists.
+   */
+  "/gone",
   // Reached from the sign-in screen by someone who cannot get in. Gating the
   // page that tells them how to ask for help would be a closed loop.
   "/contact",
@@ -74,6 +81,26 @@ export const PUBLIC_PATHS: readonly string[] = [
   // The social card. A crawler unfurling a link is not signed in, and a
   // card that answers with a redirect to sign-in is no card at all.
   "/opengraph-image",
+];
+
+/**
+ * Public, and deliberately not in the sitemap.
+ *
+ * Two kinds of thing live here. Files a crawler fetches directly — robots.txt
+ * listing itself is a small absurdity, and the social card is an image a page
+ * already points at. And pages meaningful to exactly one person for exactly
+ * one minute: /gone is a receipt for somebody who has just closed their
+ * account, and indexing it would put "your account is closed" in a search
+ * result for a product that is open for business.
+ *
+ * Named here rather than in robots.ts and the sitemap separately, because
+ * three hand-kept copies of this list is what put /about in none of them.
+ */
+export const UNLISTED: readonly string[] = [
+  "/robots.txt",
+  "/sitemap.xml",
+  "/opengraph-image",
+  "/gone",
 ];
 
 /** Whether a path is reachable with no session. */

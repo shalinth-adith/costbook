@@ -40,6 +40,7 @@ import { type Subscription, termOf } from "@/lib/plan";
 import type { Impact } from "@/lib/impact";
 import { hintFor, suggestedPlatforms } from "@/lib/world";
 
+import { CloseAccount } from "./close-account";
 import { ImpactTable } from "./impact-table";
 
 const TABS = ["Organisation", "Costing", "Charges", "Team", "Billing"] as const;
@@ -559,6 +560,18 @@ export function SettingsView({
                 </span>
               </span>
             </SettingRow>
+
+            {/*
+              * Closing the account, at the foot of the screen about the place
+              * itself — not under Billing, because this is not a money
+              * decision and putting it there would suggest it can be undone
+              * by paying.
+              *
+              * Owner only. A manager is not shown it at all rather than shown
+              * it disabled: a control that explains why you may not use it is
+              * an invitation to go and find someone who can.
+              */}
+            {data.role === "owner" ? <CloseAccount orgName={data.org.name} /> : null}
           </>
         )}
 

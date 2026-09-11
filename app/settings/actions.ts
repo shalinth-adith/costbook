@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import type { Charge } from "@/core/charges";
 import { PRESETS, type PresetName } from "@/core/rounding";
@@ -10,7 +11,10 @@ import type { Org } from "@/lib/org";
 import { type Impact, impactOf } from "@/lib/impact";
 import type { TaxTreatment } from "@/lib/org";
 import { book, orgModel, saveOrg } from "@/lib/book";
+import { eraseOrg } from "@/lib/erase";
 import { requireRole } from "@/lib/guard";
+import { serviceKeyPresent } from "@/lib/supabase/admin";
+import { signOut } from "@/app/sign-up/actions";
 
 /**
  * Save a costing change.
@@ -177,4 +181,95 @@ export async function previewCosting(next: CostingPatch): Promise<Impact> {
     model,
     nextModel: { ...model, ...next },
   });
+}
+
+/* ── closing the account ──────────────────────────────────────────────────
+ *
+ * The privacy page has promised this since before it could be done. What was
+ * there instead was an address to write to — which is a promise kept by hand,
+ * on somebody's good day, and not at all on a bad one.
+ */
+
+/** What closing the account said when it did not happen. Success navigates. */
+export interface CloseRefused {
+  readonly ok: false;
+  readonly message: string;
+}
+
+/**
+ * Delete the book, everything in it, and the sign-in.
+ *
+ * Guarded three ways, and each guard is a different kind of mistake:
+ *
+ *   `requireRole('team')` — a manager cannot close a place they do not own.
+ *   The typed name — the one thing that cannot be clicked through by accident.
+ *   The service key — without it nothing is written at all, and the action
+ *   says so rather than reporting a success it did not have.
+ *
+ * There is no undo and none is offered. A seven-day grace period would need
+ * something to run on the seventh day, and this product has no scheduler; a
+ * promise to finish later that nothing is scheduled to finish is the kind of
+ * claim the rest of this codebase exists to avoid. It goes now, and the screen
+ * says so before the button is pressed.
+ *
+ * Returns a refusal rather than throwing, because a thrown error in a server
+ * action reaches the browser as a redacted digest in production, and "your
+ * account may or may not have been deleted" is an unacceptable thing to leave
+ * somebody holding.
+ */
+export async function closeAccount(typed: string): Promise<CloseRefused> {
+  await requireRole("team");
+  const b = await book();
+
+  if (b.orgId === null) {
+    return { ok: false, message: "There is no account signed in to close." };
+  }
+  if (!serviceKeyPresent()) {
+    // Loud, because the alternative is telling somebody their account is gone
+    // when every row of it is still there.
+    console.error(
+      "[erase] an owner asked to close their account and no Supabase secret " +
+        "key is set, so nothing was deleted.",
+    );
+    return {
+      ok: false,
+      message:
+        "Costbook cannot close accounts at the moment. Nothing has been " +
+        "deleted. Write to us and we will do it by hand.",
+    };
+  }
+
+  /*
+   * The name, exactly as it is on the board outside. Case and spacing are
+   * forgiven — this is a check against pressing a button by accident, not a
+   * password, and making somebody match trailing whitespace teaches nothing.
+   */
+  const want = b.org.name.trim().toLowerCase();
+  if (typed.trim().toLowerCase() !== want) {
+    return {
+      ok: false,
+      message: `Type ${b.org.name} exactly to confirm. Nothing has been deleted.`,
+    };
+  }
+
+  const erased = await eraseOrg(b.orgId);
+  if (!erased.ok) {
+    console.error(`[erase] ${b.orgId} was not closed: ${erased.message}`);
+    return {
+      ok: false,
+      message:
+        "Costbook could not finish closing the account, so nothing has been " +
+        "deleted and your book is as it was. Try again, and write to us if it " +
+        "keeps refusing.",
+    };
+  }
+
+  /*
+   * Sign out afterwards, not before: the session is what proves who was
+   * allowed to do this, and dropping it first would leave the last two steps
+   * running for nobody.
+   */
+  await signOut();
+  revalidatePath("/", "layout");
+  redirect("/gone");
 }

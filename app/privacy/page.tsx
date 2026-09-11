@@ -19,7 +19,7 @@ export default function Privacy() {
         { n: '30', said: 'days an imported file is kept, so an import can be undone' },
         { n: '3', said: 'companies touch your data: servers, email, card payment' },
         { n: '0', said: 'advertising or analytics companies on that list' },
-        { n: '7', said: 'days to delete an account, backups included' },
+        { n: '0', said: 'days an account waits to be deleted — it is immediate' },
       ]}
       sections={[
         {
@@ -49,7 +49,16 @@ export default function Privacy() {
         },
         {
           h: 'Leaving',
-          p: 'Export everything as a spreadsheet whenever you like, including on the free tier. Ask us to delete the account and it goes within seven days, backups included. We will not keep a copy to tempt you back.',
+          p: (
+            <>
+              Export everything as a spreadsheet whenever you like, including on
+              the free tier. Closing the account is yours to do, in Settings,
+              under your business name — and it happens immediately rather than
+              within seven days, because a delay nothing is scheduled to honour
+              is a worse promise than none. Every dish, rate, and the sign-in
+              itself go with it, and we keep no copy to tempt you back.
+            </>
+          ),
         },
         {
           h: 'Questions',

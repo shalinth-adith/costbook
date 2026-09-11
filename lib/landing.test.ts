@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { PUBLIC_PATHS, gateFor, isPublic } from "./landing";
+import { PUBLIC_PATHS, UNLISTED, gateFor, isPublic } from "./landing";
 
 /**
  * Which pages a stranger may read.
@@ -95,11 +95,13 @@ describe("the sitemap and the gate say the same thing", () => {
    * the one page written to be read BEFORE signing up was the one a crawler
    * was never told about.
    *
-   * Files are not screens. robots.txt, the sitemap itself and the social card
-   * are public because a crawler fetches them, and listing them inside the
-   * sitemap would be a sitemap that points at itself.
+   * Not every public path is a screen to index. `UNLISTED` names the two
+   * kinds that are not — files a crawler fetches directly, and a page written
+   * for one person for one minute — and it is read from lib/landing.ts rather
+   * than repeated here, because repeating it is the exact failure this block
+   * exists to catch.
    */
-  const FILES = ["/robots.txt", "/sitemap.xml", "/opengraph-image"];
+  const FILES = UNLISTED;
 
   it("lists every public screen, and only those", async () => {
     const { default: sitemap } = await import("@/app/sitemap");

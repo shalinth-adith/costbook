@@ -28,6 +28,38 @@
 }
 .topbar-end { margin-inline-start: auto; display: flex; align-items: center; gap: 14px; }
 
+/* ── closing the account ──────────────────────────────────────────────────
+   Set apart by a rule and a colour, not by a red box. This is a section
+   somebody scrolled to and read; shouting at them now would be theatre. The
+   one control that cannot be undone takes the accent, and only once opened. */
+.shut {
+  margin-block-start: var(--sp-9);
+  padding-block-start: var(--sp-6);
+  border-block-start: 1px solid var(--border-hairline);
+  display: grid; gap: var(--sp-4); max-inline-size: 68ch;
+}
+.shut-head { display: grid; gap: 6px; }
+.shut-h { margin: 0; font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.shut-p { margin: 0; font-size: 13.5px; line-height: 1.65; color: var(--text-secondary); }
+.shut-open { align-self: start; }
+.shut-body { display: grid; gap: var(--sp-4); }
+.shut-warn {
+  margin: 0; padding: var(--sp-3) var(--sp-4);
+  background: var(--surface-sunken); border-radius: var(--radius-field);
+  border-inline-start: 3px solid var(--accent-deep);
+  font-size: 13px; line-height: 1.6; color: var(--text-primary);
+}
+.shut-field { display: grid; gap: 6px; font-size: 13px; color: var(--text-secondary); }
+.shut-field b { color: var(--text-primary); }
+.shut-fault { margin: 0; font-size: 13px; line-height: 1.6; color: var(--accent-deep); }
+.shut-act { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
+/* The irreversible one. Plain until it can actually be pressed, so the colour
+   means "this will happen" rather than decorating a disabled control. */
+.shut-go:not(:disabled) {
+  background: var(--accent-deep); border-color: var(--accent-deep); color: #fff;
+}
+.shut-go:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* ── the first run: one step, above the figures ───────────────────────────
    NAMED `begin`, NOT `rail`. `.rail` is the costing sidebar in cost-rail.tsx,
    whose rules sit further down this file — so a block called `.rail` here
