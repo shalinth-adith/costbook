@@ -52,6 +52,13 @@ export const PUBLIC_PATHS: readonly string[] = [
    * below. It carries nothing an account would.
    */
   "/about",
+  /*
+   * The list the privacy policy points at, which a reader deciding whether to
+   * sign up is exactly the person who follows. Behind a sign-in it would be a
+   * page about what we do with your data, readable only once you had given us
+   * some — the same closed loop as /contact below.
+   */
+  "/subprocessors",
   // Reached from the sign-in screen by someone who cannot get in. Gating the
   // page that tells them how to ask for help would be a closed loop.
   "/contact",

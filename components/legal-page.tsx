@@ -36,6 +36,10 @@ export function LegalPage({
   summary: string;
   /** The four things somebody actually wants to know, as figures. */
   facts: readonly { readonly n: string; readonly said: string }[];
+  /**
+   * A heading and a body. The body is anything React can render — usually a
+   * sentence, sometimes a table.
+   */
   sections: readonly { readonly h: string; readonly p: React.ReactNode }[];
 }) {
   const slug = (h: string) =>
@@ -91,7 +95,16 @@ export function LegalPage({
                 {String(i + 1).padStart(2, "0")}
               </span>
               <h2 className="lg-h2">{s.h}</h2>
-              <p className="lg-p">{s.p}</p>
+              {/*
+                A div, not a paragraph, and the difference is not cosmetic. A
+                section body is a React node, and the subprocessor list is a
+                table — which inside a <p> is not nested at all: the parser
+                closes the paragraph before it, hoists the table out, and
+                leaves an empty <p> above a table with none of its styling.
+                Nothing errors. `.lg-p` is a class selector, so the prose
+                sections read exactly as they did.
+              */}
+              <div className="lg-p">{s.p}</div>
             </section>
           ))}
         </div>
@@ -109,6 +122,7 @@ export function LegalPage({
           <a href="mailto:hello@costbook.in">hello@costbook.in</a>
           <Link href="/about">What this is</Link>
           <Link href="/privacy">Privacy</Link>
+          <Link href="/subprocessors">Who else touches it</Link>
           <Link href="/terms">Terms</Link>
         </p>
       </footer>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { gateFor, isPublic } from "./landing";
+import { PUBLIC_PATHS, gateFor, isPublic } from "./landing";
 
 /**
  * Which pages a stranger may read.
@@ -85,5 +85,34 @@ describe("the gate", () => {
     // The mark is in the top bar of every signed-in screen; a redirect here
     // would make it look broken.
     expect(gateFor(done, "/about")).toBeNull();
+  });
+});
+
+describe("the sitemap and the gate say the same thing", () => {
+  /*
+   * Two hand-kept lists of the public pages, and they had already drifted:
+   * /about was reachable without a session and absent from the sitemap, so
+   * the one page written to be read BEFORE signing up was the one a crawler
+   * was never told about.
+   *
+   * Files are not screens. robots.txt, the sitemap itself and the social card
+   * are public because a crawler fetches them, and listing them inside the
+   * sitemap would be a sitemap that points at itself.
+   */
+  const FILES = ["/robots.txt", "/sitemap.xml", "/opengraph-image"];
+
+  it("lists every public screen, and only those", async () => {
+    const { default: sitemap } = await import("@/app/sitemap");
+    const listed = sitemap().map((e) => new URL(e.url).pathname);
+
+    for (const path of PUBLIC_PATHS) {
+      if (FILES.includes(path)) continue;
+      expect(listed, `${path} is reachable signed out but not in the sitemap`)
+        .toContain(path);
+    }
+    for (const path of listed) {
+      expect(isPublic(path), `${path} is in the sitemap but needs a session`)
+        .toBe(true);
+    }
   });
 });

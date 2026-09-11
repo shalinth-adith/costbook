@@ -4904,14 +4904,53 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 .lg-toc a:hover { background: var(--surface-sunken); color: var(--text-primary); }
 
 .lg-sections { display: grid; gap: var(--sp-10); min-inline-size: 0; }
-.lg-section { scroll-margin-block-start: var(--sp-6); display: grid; gap: 8px; }
+/* `min-inline-size: 0` is load-bearing, not tidying. A grid item defaults to
+   min-width:auto and refuses to shrink below its content's minimum, so the
+   subprocessor table's 620px pushed this section — and the whole page — wider
+   than a 375px phone. `.lg-sections` already carried it; the chain broke one
+   level down, here, and the table's own overflow-x never engaged because
+   nothing upstream ever forced it narrow. */
+.lg-section { scroll-margin-block-start: var(--sp-6); display: grid; gap: 8px; min-inline-size: 0; }
 .lg-section-n { font-size: 11.5px; letter-spacing: 0.1em; color: var(--accent-deep); }
 .lg-h2 {
   margin: 0; font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
   font-size: 24px; font-weight: 800; letter-spacing: -0.02em; font-variation-settings: "opsz" 36;
 }
-.lg-p { margin: 0; font-size: 16.5px; line-height: 1.75; color: var(--text-primary); max-inline-size: 72ch; text-wrap: pretty; }
+.lg-p { margin: 0; min-inline-size: 0; font-size: 16.5px; line-height: 1.75; color: var(--text-primary); max-inline-size: 72ch; text-wrap: pretty; }
 .lg-p a { color: var(--text-primary); text-underline-offset: 3px; }
+
+/* The subprocessor table. Four columns of real sentences, so it is wide by
+   nature — it scrolls inside its own box rather than pushing the page
+   sideways, which on a phone is the difference between a table you can read
+   and a layout that is broken. */
+.lg-tablewrap { overflow-x: auto; overscroll-behavior-x: contain; margin-block-start: 4px; min-inline-size: 0; max-inline-size: 100%; }
+.lg-table {
+  inline-size: 100%; min-inline-size: 620px; border-collapse: collapse;
+  font-size: 14.5px; line-height: 1.6; text-align: start;
+}
+.lg-table th, .lg-table td {
+  padding: var(--sp-3) var(--sp-4) var(--sp-3) 0;
+  border-block-end: 1px solid var(--border-hairline);
+  vertical-align: baseline; text-align: start;
+}
+.lg-table thead th {
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-tertiary);
+  border-block-end: 1px solid var(--border-strong, var(--border-hairline));
+}
+.lg-table tbody th { font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+.lg-table td { color: var(--text-secondary); }
+/* Widths set on the header row, so the column that holds a sentence gets the
+   room and the three that hold a phrase do not take it. Left to itself the
+   browser gave "where" as much space as "what it holds", because a nowrap
+   region name is one long unbreakable word. */
+.lg-table th:nth-child(1) { inline-size: 13%; }
+.lg-table th:nth-child(2) { inline-size: 21%; }
+.lg-table th:nth-child(3) { inline-size: 46%; }
+.lg-table th:nth-child(4) { inline-size: 20%; }
+.lg-table .lg-where { color: var(--text-primary); }
+.lg-table tbody tr:last-child th, .lg-table tbody tr:last-child td { border-block-end: 0; }
+
 
 .lg-foot {
   background: var(--soot); color: var(--on-soot); padding: var(--sp-10) 40px;
@@ -5969,6 +6008,22 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
   .pb-links { gap: var(--sp-4); }
   /* Contact is in the footer of every one of these pages. */
   .pb-wide { display: none; }
+}
+
+/*
+ * The last link to go, and only on the narrowest phones.
+ *
+ * The comment above says two links and a button fit beside the name at 390.
+ * At 375 they do not: the name is 115, the three items are 248, and 335 is
+ * all there is — so every public page slid 20px sideways on the commonest
+ * small phone there is. Measured, not guessed.
+ *
+ * What this is goes rather than the name or the one ask, and it goes to the
+ * same place Contact went one breakpoint up: the footer of every one of these
+ * pages carries it. Nothing becomes unreachable.
+ */
+@media (max-width: 420px) {
+  .pb-tight { display: none; }
 }
 
 /* ══ The drop zone is a target, not a room ═════════════════════════════════

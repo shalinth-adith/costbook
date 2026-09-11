@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 import { LegalPage } from '@/components/legal-page';
 
@@ -34,7 +35,16 @@ export default function Privacy() {
         },
         {
           h: 'Who else touches it',
-          p: 'Three companies: where the servers are, who sends our email, and who takes the card payment. They are listed at costbook.in/subprocessors with what each one holds. No advertising or analytics company is on that list.',
+          p: (
+            <>
+              Three companies: where the servers are, who sends our email, and
+              who takes the card payment. Each one, and what it holds, is on{' '}
+              <Link href="/subprocessors">who else touches it</Link> — a link
+              now rather than an address to type, because a policy that names a
+              page should take you to it. No advertising or analytics company
+              is on that list.
+            </>
+          ),
         },
         {
           h: 'Leaving',

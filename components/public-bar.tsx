@@ -22,7 +22,7 @@ export function PublicBar() {
     <header className="pb">
       <Wordmark mode="public" />
       <nav className="pb-links" aria-label="Site">
-        <Link href="/about" className="pb-link">
+        <Link href="/about" className="pb-link pb-tight">
           What this is
         </Link>
         <Link href="/contact" className="pb-link pb-wide">
