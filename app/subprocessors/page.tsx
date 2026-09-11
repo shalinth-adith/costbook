@@ -51,7 +51,7 @@ const PROCESSORS: readonly Processor[] = [
     name: "Resend",
     does: "Sends the mail Costbook writes to you",
     holds:
-      "The address a message goes to and what the message says — a support reply, or a note that a stretch is ending. Nothing about your recipes travels in one.",
+      "The address a message goes to and what the message says. Today that is one thing only: the answer when you write to us for help. Nothing about your recipes, rates or dishes travels in one, and we do not send marketing.",
     where: "United States",
   },
   {
