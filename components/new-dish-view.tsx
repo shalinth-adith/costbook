@@ -259,47 +259,11 @@ export function NewDishView({
   }, [step]);
 
   /*
-   * Only the field being explained is lit. Everything else steps back.
-   *
-   * Opacity cannot do this the obvious way: it multiplies down the tree, so a
-   * faded card can never contain a bright field. And an overlay with the
-   * field raised above it fails here, because the side panel is sticky, and a
-   * sticky element makes its own stacking layer that a raised child cannot
-   * climb out of.
-   *
-   * So this walks up from the field to the top of the page and fades every
-   * SIBLING at each level — never an ancestor. The field and its note stay at
-   * full strength; the other fields, the card's own heading, the other cards,
-   * the step rail and the navigation all recede.
-   *
-   * Re-run after every render rather than once per step, because the screen
-   * rebuilds parts of itself as the paste is typed (the side panel swaps its
-   * empty card for the real one), and a freshly rendered element would
-   * otherwise arrive lit. The cleanup and the re-run land in the same commit,
-   * before any paint, so nothing flickers.
+   * The dimming is done in CSS, by the lit field itself: a near-black shadow
+   * spread far enough to cover the whole screen from wherever the field sits
+   * (see "the first-dish tour" at the foot of app.css). No overlay element and
+   * no walking the page, so nothing here has to run on every render.
    */
-  useEffect(() => {
-    if (step === null) return;
-    const anchor = document.querySelector<HTMLElement>(`[data-tour-anchor="${step.id}"]`);
-    if (anchor === null) return;
-    const keep = [anchor, document.querySelector<HTMLElement>('.tn')].filter(
-      (e): e is HTMLElement => e !== null,
-    );
-    const faded: Element[] = [];
-    let node: HTMLElement = anchor;
-    while (node !== document.body && node.parentElement !== null) {
-      const parent: HTMLElement = node.parentElement;
-      for (const sib of Array.from(parent.children)) {
-        if (sib === node || keep.some((k) => sib === k || sib.contains(k))) continue;
-        sib.setAttribute('data-tour-dim', '');
-        faded.push(sib);
-      }
-      node = parent;
-    }
-    return () => {
-      for (const f of faded) f.removeAttribute('data-tour-dim');
-    };
-  });
 
   // Escape leaves, from anywhere on the screen.
   useEffect(() => {

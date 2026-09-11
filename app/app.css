@@ -6636,6 +6636,10 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
    class names and data attributes, and sitting last means nothing below them
    can quietly win. */
 .tn {
+  /* One above the lit field, so the note sits on the dark rather than under
+     it. On Check the note is inside the lit panel and rises with it. */
+  position: relative;
+  z-index: 1002;
   flex-basis: 100%;
   display: grid; gap: 6px;
   max-inline-size: 60ch;
@@ -6661,30 +6665,55 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 }
 .tn-skip:hover { color: var(--text-primary); }
 
-/* The field being explained. An outline rather than a shadow or a border, so
-   it moves nothing around it. */
-[data-tour-on] {
-  outline: 2px solid var(--accent-deep);
-  outline-offset: 4px;
-  border-radius: var(--radius-field);
-}
-
 /*
- * Everything but the field being explained steps back.
+ * The field being explained, lit — and the rest of the screen dark.
  *
- * Set on siblings by the walk in new-dish-view.tsx, never on an ancestor of
- * the field — which is the only way a single field can stay bright inside a
- * faded page. Still clickable: this is where the eye goes, not a wall.
+ * The darkness is this element's own shadow: a near-black spread of 100vmax,
+ * which from anywhere on screen reaches past every edge of the viewport. A
+ * shadow paints beneath its own element's content, so the field sits on top
+ * of the dark it casts; nothing else needs lifting except the note, below.
  *
- * `!important`, and deliberately. This is a short-lived state the owner asked
- * for, and it has to win over whatever resting opacity an element carries —
- * `.nd-card.is-todo` alone outranks a bare attribute selector, and three times
- * today a rule in this file has lost to one like it without a sound.
+ * It needs no overlay element, which matters here: an overlay needs the field
+ * raised above it, and the side panel is sticky, and a sticky element makes a
+ * stacking layer a raised child cannot climb out of. The shadow has no such
+ * problem because it belongs to the field.
+ *
+ * The first spread, in the card's own colour, is a halo — so the label and
+ * the edge of the input read as one lit tile rather than a box cut out of the
+ * dark. The accent outline sits at the halo's edge.
+ *
+ * z-index 1001: nothing else on the page goes above 50.
  */
-[data-tour-dim] {
-  opacity: 0.22 !important;
-  transition: opacity 220ms var(--ease-enter);
+[data-tour-on] {
+  position: relative;
+  z-index: 1001;
+  border-radius: var(--radius-field);
+  box-shadow:
+    0 0 0 10px var(--surface-card),
+    0 0 0 100vmax rgb(9 11 15 / 0.74);
+  outline: 2px solid var(--accent-deep);
+  outline-offset: 10px;
 }
+/* One solid tile. Without it the halo was white and the inside showed the
+   card's cream through the field's transparent box — two tones, and on a wide
+   row an empty cream block beside the input. The side panel keeps its own
+   tint: it is the thing being explained, not a frame around it. */
+[data-tour-on]:not(.nd-side) { background: var(--surface-card); }
+/* The side panel keeps being sticky where it is sticky; below 1100px it is
+   static, and the relative above is what lets it be lifted at all. */
+@media (min-width: 1101px) {
+  .nd-side[data-tour-on] { position: sticky; }
+}
+/*
+ * The card holding the lit field is never faded.
+ *
+ * An unreached card rests at 0.72, and any faded element forms its own
+ * stacking layer — measured, that trapped the paste and Create fields under
+ * their own card: half-faded, and unable to rise above the dark. Full strength
+ * removes the layer. `!important` because this is a passing state that must
+ * win over whatever resting opacity a card carries.
+ */
+.nd-card:has([data-tour-on]) { opacity: 1 !important; }
 
 .tour-again { font-size: 13px; }
 
@@ -6694,5 +6723,4 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 }
 @media (prefers-reduced-motion: reduce) {
   .tn { animation: none; }
-  [data-tour-dim] { transition: none; }
 }
