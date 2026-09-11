@@ -13,7 +13,7 @@
  * so there is no useful smaller unit to fetch.
  */
 
-import { FREE_SUBSCRIPTION, type Purchase, type Subscription, type Term, endOf, purchaseOf, termOf, tierOf } from "./plan";
+import { FREE_SUBSCRIPTION, type Purchase, type Subscription, type Term, endOf, purchaseOf, startsAt, termOf, tierOf } from "./plan";
 import { cache } from "react";
 
 import { currency } from "@/core/currency";
@@ -1288,9 +1288,7 @@ export async function activateSubscription(term: Term, reference: string, now: D
   if (!supabaseConfigured()) {
     // The same row the database would hold, so the plans screen shows real
     // dates in development rather than a plan with no end.
-    const from = tierOf(memory.subscription(), now) === "paid" && memory.subscription().periodEnd !== null
-      ? new Date(memory.subscription().periodEnd ?? now)
-      : now;
+    const from = startsAt(memory.subscription(), now);
     memory.setSubscription({
       plan: "paid",
       status: "active",
@@ -1306,8 +1304,7 @@ export async function activateSubscription(term: Term, reference: string, now: D
   }
   const b = await book();
   if (b.orgId === null) throw new WriteFailed("anything", "No account is signed in.");
-  const running = b.plan === "paid" && b.subscription.periodEnd !== null ? new Date(b.subscription.periodEnd) : null;
-  const from = running !== null && running > now ? running : now;
+  const from = startsAt(b.subscription, now);
   const supabase = await supabaseServer();
   check(
     "your plan",

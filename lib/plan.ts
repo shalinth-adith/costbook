@@ -119,6 +119,29 @@ export const FREE_SUBSCRIPTION: Subscription = {
 };
 
 /**
+ * When a stretch bought right now actually begins.
+ *
+ * After whatever is already running, so nothing already paid for is lost; now
+ * if nothing is. A stretch whose end date has passed is not running, and the
+ * comparison says so without a second rule.
+ *
+ * Pulled out of `activateSubscription` because a payment can now be applied
+ * from two places — the browser coming back from checkout, and the provider's
+ * webhook arriving on its own — and two copies of this sum would eventually
+ * be two different renewal dates for the same money.
+ */
+export function startsAt(
+  sub: Pick<Subscription, "plan" | "periodEnd">,
+  now: Date = new Date(),
+): Date {
+  const running =
+    sub.plan === "paid" && sub.periodEnd !== null
+      ? new Date(sub.periodEnd)
+      : null;
+  return running !== null && running > now ? running : now;
+}
+
+/**
  * Which tier the account is on right now.
  *
  * Paid while the row says paid and the stretch has not ended. A paid row with
