@@ -84,6 +84,7 @@ export function RecipeSheet({
   orgCharges,
   history,
   owner,
+  canFlag,
   flags,
   orgName,
   canTake,
@@ -103,6 +104,20 @@ export function RecipeSheet({
   history: Readonly<Record<string, readonly RateChange[]>>;
   /** Who a flag goes to, by name. A message to a role is a message to nobody. */
   owner: string;
+  /**
+   * Whether this viewer can send the dish to somebody.
+   *
+   * False for the owner, and the control is removed rather than disabled:
+   * this exists so a manager can put a dish in front of whoever decides
+   * prices, and the owner IS that person. It read "Send this to You" on
+   * their own screen — an offer to hand something to yourself, in a sentence
+   * that used a subject pronoun as an object because `book()` quite correctly
+   * calls the current user "You" everywhere it is the subject.
+   *
+   * The mark below it stays for everybody: "SENT TO YOU" is exactly right on
+   * the screen of the person it was sent to.
+   */
+  canFlag: boolean;
   /** What has already been said about this dish (A40). */
   flags: readonly Flag[];
   /** The café's own name, which the prep card prints where it is taped up. */
@@ -477,11 +492,11 @@ export function RecipeSheet({
               SENT TO {owner.toUpperCase()}
               <em>{whenSent(flags[0]!.sentAt, new Date().toISOString().slice(0, 10))} · {deliveryState(flags[0]!, owner)}</em>
             </span>
-          ) : (
+          ) : canFlag ? (
             <button type="button" className="btn" onClick={() => setSheet('flag')}>
               Send this to {owner}
             </button>
-          )}
+          ) : null}
 
           <button type="button" className="btn" onClick={() => setSheet('dish')}>
             <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor"

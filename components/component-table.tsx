@@ -50,7 +50,11 @@ export function ComponentTable({
       <div className="ctable-head">
         <span />
         <span>Component</span>
-        <span>Share of batch</span>
+        {/* Named so it can be hidden with the bars it heads. Without a
+            class the only handle was :nth-child, and a header that stays
+            when its column goes leaves eight cells laying into seven
+            tracks — the head and the rows misaligned by one column. */}
+        <span className="ctable-share-head">Share of batch</span>
         <span className="end">Qty</span>
         <span>Unit</span>
         <span className="end">Rate / unit</span>

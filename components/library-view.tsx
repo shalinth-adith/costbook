@@ -592,7 +592,14 @@ function Row({
         <Link href={`/recipes/${row.id}`} className="btn-row">
           Edit
         </Link>
-        <button type="button" className="btn-row" disabled={busy} onClick={onArchive}>
+        {/* Quieter than Edit, and still visible — see the note above. Restore
+            is not destructive, so it keeps the ordinary weight. */}
+        <button
+          type="button"
+          className={`btn-row${row.archived ? '' : ' is-quiet'}`}
+          disabled={busy}
+          onClick={onArchive}
+        >
           {row.archived ? 'Restore' : 'Remove'}
         </button>
       </span>

@@ -82,6 +82,9 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           orgCharges={b.org.charges}
           history={b.history}
           owner={b.members.find((mm) => mm.role === 'owner')?.name ?? 'the owner'}
+          /* The owner is who this sends TO, so they are the one person it
+             cannot be offered to. */
+          canFlag={b.role !== 'owner'}
           flags={b.flags.filter((f) => f.recipeId === id)}
           orgName={b.org.name}
           canTake={canTakeAway(b.subscription)}

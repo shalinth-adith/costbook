@@ -389,6 +389,14 @@
 .search-field input {
   flex: 1; border: 0; outline: 0; background: none;
   font: inherit; font-size: 14.5px; color: var(--text-primary);
+  /*
+   * Fills the box it sits in. The field looks like a 40px control and the
+   * input inside it was 22px, so the padding above and below the text was
+   * dead: a tap that landed in the box did nothing, and the only way in was
+   * to hit the line of text itself. Stretching makes the target the shape it
+   * already appears to be.
+   */
+  align-self: stretch;
 }
 .search-field input::placeholder { color: var(--text-tertiary); }
 
@@ -1338,6 +1346,30 @@
   font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
 }
 .btn-row:hover:not(:disabled) { background: var(--surface-sunken); border-color: var(--border-control-hover); }
+
+/*
+ * Remove, quieter than Edit — and still there.
+ *
+ * The comment beside these two in library-view.tsx is right that both must
+ * stay visible: an action that only exists under a mouse pointer does not
+ * exist on the tablet this ships to. So this is not a hover reveal.
+ *
+ * What was wrong was weight. Eleven rows drew twenty-two identical outlined
+ * buttons, so the eye landed on the controls rather than the figures the
+ * screen is for — and the destructive one had exactly the same pull as the
+ * routine one, a row's width of mouse drift apart. Remove loses its border
+ * and its background and keeps its full hit area; it takes an outline back
+ * on hover and focus, where intent has been shown.
+ */
+.btn-row.is-quiet {
+  border-color: transparent; background: transparent; color: var(--text-tertiary);
+}
+.btn-row.is-quiet:hover:not(:disabled),
+.btn-row.is-quiet:focus-visible {
+  border-color: var(--border-control);
+  background: var(--surface-card);
+  color: var(--accent-deep);
+}
 
 .empty { margin-inline: var(--sp-6); }
 .empty-actions { display: flex; gap: 10px; margin-block: var(--sp-3); flex-wrap: wrap; }
@@ -3509,9 +3541,59 @@
 @media (min-width: 1181px) {
   .costing { grid-template-columns: minmax(0, 1fr) 420px; }
 }
-.ctable-head,
-.ctable-row {
-  grid-template-columns: 36px minmax(0, 1.15fr) minmax(120px, 0.7fr) 96px 60px 118px 132px 36px;
+/*
+ * The columns follow the TABLE's width, not the window's.
+ *
+ * This rule used to be unconditional, and the two-pane grid above takes 420
+ * fixed pixels for the rail from 1181px up — so between 1181 and about 1440
+ * the table was handed ~700px and asked to lay out eight columns needing
+ * nine hundred. The name column was the only one with no floor, so the name
+ * column is what gave: 10px at 1280, 96px at 1366. Ingredients rendered as
+ * "S…", "R…", "G…" on the one screen this product exists for, at the two
+ * commonest laptop widths there are.
+ *
+ * A viewport query cannot express this, because the same viewport produces a
+ * wide table or a narrow one depending on whether the rail is beside it. The
+ * table's own width is the only thing that actually decides, so that is what
+ * is asked. `.ctable` renders in exactly one place, inside `.costing-main`,
+ * which is the container declared below.
+ *
+ * And the name now has a floor. When something has to give it must not be
+ * the word a cook reads — the share bar is a decoration on a percentage and
+ * goes first.
+ */
+.costing-main {
+  container-type: inline-size;
+  container-name: costing;
+}
+
+@container costing (min-width: 900px) {
+  .ctable-head,
+  .ctable-row {
+    grid-template-columns:
+      36px minmax(150px, 1.15fr) minmax(72px, 0.7fr)
+      96px 60px 118px 132px 36px;
+  }
+}
+
+@container costing (max-width: 899.98px) {
+  .ctable-head,
+  .ctable-row {
+    grid-template-columns: 32px minmax(140px, 1fr) 92px 56px 100px 128px 34px;
+  }
+  /*
+   * Removed from the grid, not just from sight: seven columns need seven
+   * items, and a hidden-but-present cell pushes the last one into an
+   * implicit eighth.
+   *
+   * Two classes deep on purpose. `.ctable-share { display: block }` is
+   * declared a few lines below this block, and at equal specificity the later
+   * rule wins — so a plain `.ctable-share` here lost silently, and the bar
+   * stayed visible in a grid with no column for it. Measured, not assumed:
+   * it reported `display: block` at 1366 with seven tracks.
+   */
+  .ctable .ctable-share,
+  .ctable .ctable-share-head { display: none; }
 }
 
 /* The share bar: this line's part of the batch cost. Inked by whether the
@@ -3579,8 +3661,10 @@
 .from-sheet-lede { font-size: 12px; color: var(--text-tertiary); margin: 0; }
 
 @media (max-width: 1100px) {
-  .ctable-head, .ctable-row { grid-template-columns: 32px minmax(0, 1fr) 92px 56px 100px 128px 34px; }
-  .ctable-share { display: none; }
+  .ctable-head, .ctable-row { grid-template-columns: 32px minmax(140px, 1fr) 92px 56px 100px 128px 34px; }
+  /* The head too. It was left behind here as well, which is why the header
+     and the rows have been one column apart below 1100 all along. */
+  .ctable-share, .ctable-share-head { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .ctable-row, .ctable-share-fill, .line-detail, .rail > .card { animation: none; }
@@ -3877,7 +3961,19 @@
 .lib-keeps.is-on { background: var(--on-tint); color: var(--on-ink-strong); }
 .lib-keeps.is-near { background: var(--near-tint); color: var(--near-ink-strong); }
 .lib-keeps.is-over { background: var(--over-tint); color: var(--over-ink-strong); }
-.lib-keeps.is-incomplete { background: var(--incomplete-tint); color: var(--incomplete-ink); }
+/*
+ * "no price" is the one state on this screen with something to do about it,
+ * and it was the only one drawn in grey — so eight dishes waiting for the
+ * number this product exists to produce whispered, while the three already
+ * finished spoke up. It takes the accent as an outline: loud enough to
+ * count, quiet enough not to read as an error, because a dish nobody has
+ * priced yet is not a fault.
+ */
+.lib-keeps.is-incomplete {
+  background: transparent;
+  color: var(--accent-deep);
+  box-shadow: inset 0 0 0 1px var(--accent-deep);
+}
 .lib-head { position: sticky; top: 0; background: var(--surface-page); z-index: 2; }
 
 /* Nav with icons. */
@@ -4480,6 +4576,33 @@
   padding-block-start: var(--sp-5); border-block-start: 1px solid var(--soot-rule);
   font-size: 12.5px; color: var(--on-soot-tertiary);
 }
+/*
+ * ── the 24px floor ───────────────────────────────────────────────────────
+ *
+ * WCAG 2.2 §2.5.8 asks for 24×24 CSS pixels, and asks it of every pointer —
+ * not only touch. Measured on a 375px phone, the dashboard had thirteen
+ * controls under it and the recipes list fourteen: row links at 19px, library
+ * links at 22px, the footer's Privacy and Terms at 18px. These are precisely
+ * the places a thumb lands — a name in a table, a link in a footer — and the
+ * miss costs a wrong dish opened or a page nobody meant to leave.
+ *
+ * A minimum height rather than padding, so the text does not move: the line
+ * stays where it was and the box around it grows to meet the hand. The
+ * inline-flex is what lets a min-block-size apply to an inline element at
+ * all; without it the property is simply ignored, which is the quiet kind of
+ * fix that looks done and is not.
+ */
+.me-name,
+.lib-link,
+.foot-legal a,
+.bw-row,
+button.link,
+a.link {
+  min-block-size: 24px;
+  display: inline-flex;
+  align-items: center;
+}
+
 .foot-legal { display: flex; gap: var(--sp-5); }
 .foot-legal a { color: var(--on-soot-tertiary); text-decoration: none; }
 .foot-legal a:hover { color: var(--saffron); }
