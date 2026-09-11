@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
+import { unstable_rethrow } from "next/navigation";
 
 import { attemptSignIn, resendVerification } from "@/app/sign-in/actions";
 import { type FieldName, IDLE, type SignInState, emailFault } from "@/lib/auth";
@@ -33,7 +34,20 @@ async function run(
     const result = (await attemptSignIn(previous, form)) as
       SignInState | undefined;
     return result ?? previous;
-  } catch {
+  } catch (e) {
+    /*
+     * A successful sign-in redirects, and this path does not see that throw:
+     * an action driven by `useActionState` has its redirect handled by the
+     * form machinery, so it resolves without a value while the router is
+     * already navigating — which is what `result ?? previous` above is for.
+     *
+     * The same action awaited plainly inside a transition DOES reject with
+     * NEXT_REDIRECT, and on the plans screen that was caught and printed at a
+     * person. Nothing in the signature says which of the two you are in. So
+     * the framework's signals go back to the framework here as well, and what
+     * reaches the sentence below is a request that really did not come back.
+     */
+    unstable_rethrow(e);
     return { kind: "unreachable" };
   }
 }

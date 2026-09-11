@@ -1256,8 +1256,22 @@ export async function recordOrder(input: {
  * either. Returns what the order was for, so the caller never has to trust
  * the term it was handed.
  */
-export async function claimOrder(orderId: string, paymentId: string): Promise<RecordedOrder | null> {
-  if (!supabaseConfigured()) return null;
+export type Claim =
+  | { readonly ok: true; readonly term: Purchase; readonly amount: number }
+  /*
+   * Two refusals, and telling them apart is the point.
+   *
+   * "taken" is the ordinary one: this order is already settled, or it is not
+   * this account's. "failed" is the database giving way, and it used to be
+   * reported as "taken" — so a statement timeout told somebody who had just
+   * paid that their payment had already been applied. It had not. Nothing
+   * had. The difference is one sentence to a person and one line in a log,
+   * and without it the only fault the product can name is the wrong one.
+   */
+  | { readonly ok: false; readonly why: "taken" | "failed"; readonly said: string | null };
+
+export async function claimOrder(orderId: string, paymentId: string): Promise<Claim> {
+  if (!supabaseConfigured()) return { ok: false, why: "taken", said: null };
   const supabase = await supabaseServer();
   const res = await supabase
     .from("payment_orders")
@@ -1265,14 +1279,61 @@ export async function claimOrder(orderId: string, paymentId: string): Promise<Re
     .eq("id", orderId)
     .eq("status", "open")
     .select("term, amount");
-  // A duplicate payment_id trips the unique index rather than returning rows:
-  // the same refusal, said by the database.
-  if (res.error !== null) return null;
+
+  if (res.error !== null) {
+    /*
+     * 23505 is the unique index on payment_id: this payment has already
+     * claimed an order, which is a redelivery or a second click and not a
+     * fault. Anything else is the database itself, and must not be dressed up
+     * as a refusal the customer caused.
+     */
+    const duplicate = res.error.code === "23505";
+    return {
+      ok: false,
+      why: duplicate ? "taken" : "failed",
+      said: duplicate ? null : res.error.message,
+    };
+  }
+
   const row = (res.data as { term: string; amount: number }[] | null)?.[0];
   // What the server recorded when the order was opened — a term, or the pass.
   const bought = purchaseOf(row?.term);
-  if (row === undefined || bought === undefined) return null;
-  return { term: bought, amount: row.amount };
+  if (row === undefined || bought === undefined) {
+    return { ok: false, why: "taken", said: null };
+  }
+  return { ok: true, term: bought, amount: row.amount };
+}
+
+/**
+ * Put a claimed order back, because what it paid for did not switch on.
+ *
+ * Claiming the order and applying what it bought are two statements with no
+ * transaction between them, so the second can fail after the first has
+ * landed. Left alone that is the worst state this system has: the order says
+ * paid, the account says free, and the webhook will not touch it either
+ * because a settled order is exactly what it refuses to settle twice. Money
+ * taken, nothing given, and nothing left that will ever notice.
+ *
+ * So the claim goes back and the order is open again — which the provider's
+ * own retry, or a second attempt, can then finish properly. Only from 'paid',
+ * so this can never reopen an order that somebody else has since settled.
+ */
+export async function releaseOrder(orderId: string): Promise<void> {
+  if (!supabaseConfigured()) return;
+  const supabase = await supabaseServer();
+  const res = await supabase
+    .from("payment_orders")
+    .update({ status: "open", payment_id: null, paid_at: null })
+    .eq("id", orderId)
+    .eq("status", "paid");
+  if (res.error !== null) {
+    // Nothing left to try. Said loudly, with the order, because it is a
+    // repair by hand from here.
+    console.error(
+      `[payments] order ${orderId} is marked paid and what it bought did not ` +
+        `switch on, and the claim could not be put back: ${res.error.message}`,
+    );
+  }
 }
 
 /**

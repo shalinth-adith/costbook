@@ -96,6 +96,15 @@ export function PlansView({
     start(async () => {
       try {
         const checkout = await beginExportPass();
+        if (checkout.mode === "held") {
+          // Bought already, on a screen that should not have offered it.
+          // Said rather than charged for a second time.
+          setFault(
+            "This account can already take its work out — there is nothing " +
+              "further to pay. Reload the page and the cards will print.",
+          );
+          return;
+        }
         if (checkout.mode === "sandbox") {
           const refused = await activateExportPassSandbox();
           if (refused !== undefined) setFault(refused.message);

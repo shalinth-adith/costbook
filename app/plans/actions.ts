@@ -9,10 +9,11 @@ import {
   book,
   claimOrder,
   recordOrder,
+  releaseOrder,
   unlockExports,
 } from "@/lib/book";
 import { requireRole } from "@/lib/guard";
-import { termOf, type Term } from "@/lib/plan";
+import { canTakeAway, termOf, type Term } from "@/lib/plan";
 import { sandboxAllowed } from "@/lib/sandbox";
 import {
   createOrder,
@@ -32,6 +33,17 @@ export type Checkout =
     }
   | { readonly mode: "sandbox" }
   | { readonly mode: "none" };
+
+/**
+ * What the pass can answer, which is one thing more than a stretch can.
+ *
+ * A stretch is always buyable — another one stacks onto the end of the one
+ * running. The pass is bought once and kept, so "you have this already" is a
+ * real answer and only it can give it. Two types rather than one, so the
+ * screen is made to handle that case by the compiler rather than by anybody
+ * remembering to.
+ */
+export type PassCheckout = Checkout | { readonly mode: "held" };
 
 /** What a payment attempt says when it did not go through. Success navigates instead. */
 export interface PaymentRefused {
@@ -124,7 +136,26 @@ export async function confirmPayment(input: {
   }
 
   const claimed = await claimOrder(input.orderId, input.paymentId);
-  if (claimed === null) {
+  if (!claimed.ok) {
+    if (claimed.why === "failed") {
+      /*
+       * The database, not the customer. Saying "already applied" here was a
+       * lie told to somebody who had just paid — and it read as their
+       * mistake. The provider has the money and the callback will settle it;
+       * this sentence has to be the one that does not send them away.
+       */
+      console.error(
+        `[payments] could not claim ${input.orderId} for ${input.paymentId}: ` +
+          `${claimed.said ?? "no reason given"}`,
+      );
+      return {
+        ok: false,
+        message:
+          "Your payment went through, but Costbook could not finish switching " +
+          "it on just now. Nothing further will be charged. Reload in a moment " +
+          "— it usually settles itself — and write to us if it has not.",
+      };
+    }
     return {
       ok: false,
       message:
@@ -138,16 +169,41 @@ export async function confirmPayment(input: {
    * browser sent with the confirmation. Two things can be bought here and
    * they are not interchangeable: a stretch of months moves the plan, and the
    * pass moves nothing except the right to take the work out.
+   *
+   * THE CLAIM GOES BACK IF THIS FAILS. Claiming and applying are two
+   * statements with no transaction between them, and the gap used to end the
+   * story: an order marked paid, an account still free, and a webhook that
+   * would not touch it because a settled order is what it refuses to settle
+   * twice. Releasing it leaves something that can still be finished.
+   *
+   * `redirect` stays outside the try. It signals by throwing, and Next's own
+   * documentation says so in as many words — caught here it would be read as
+   * a failure to apply, and the order would be released after it had worked.
    */
-  if (claimed.term === "export") {
-    await unlockExports(`razorpay:${input.paymentId}`);
-    revalidatePath("/", "layout");
-    redirect("/plans?took=1");
+  try {
+    if (claimed.term === "export") {
+      await unlockExports(`razorpay:${input.paymentId}`);
+    } else {
+      await activateSubscription(claimed.term, `razorpay:${input.paymentId}`);
+    }
+  } catch (e) {
+    await releaseOrder(input.orderId);
+    console.error(
+      `[payments] ${input.paymentId} paid for ${claimed.term} and it did not ` +
+        `switch on; the order is open again. ` +
+        `${e instanceof Error ? e.message : String(e)}`,
+    );
+    return {
+      ok: false,
+      message:
+        "Your payment went through and Costbook could not switch it on. The " +
+        "payment is recorded and nothing further will be charged — reload in a " +
+        "moment, and write to us if it is still not on.",
+    };
   }
 
-  await activateSubscription(claimed.term, `razorpay:${input.paymentId}`);
   revalidatePath("/", "layout");
-  redirect("/plans?paid=1");
+  redirect(claimed.term === "export" ? "/plans?took=1" : "/plans?paid=1");
 }
 
 /** A stretch switched on with no payment, in the sandbox only. */
@@ -182,8 +238,21 @@ export async function activateSandbox(termId: Term): Promise<PaymentRefused> {
  */
 
 /** Open an order for the pass. Writes nothing to the account. */
-export async function beginExportPass(): Promise<Checkout> {
+export async function beginExportPass(): Promise<PassCheckout> {
   await requireRole("billing");
+
+  /*
+   * Already bought is a refusal, not a second sale.
+   *
+   * The screen stops asking once the pass is held — but the export route two
+   * files away says it plainly: a button hidden in the interface is not a
+   * gate. Without this an account that already had the pass could open an
+   * order for it, pay again, and get nothing, because `unlockExports` quite
+   * correctly refuses to move a date that is already set. Charged twice for
+   * one thing, by the part of the code that was being careful.
+   */
+  const held = await book();
+  if (canTakeAway(held.subscription)) return { mode: "held" };
 
   if (razorpayConfigured()) {
     const b = await book();
