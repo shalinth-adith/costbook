@@ -1,6 +1,9 @@
 {
   "name": "costbook",
   "version": "0.0.0",
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "private": true,
   "type": "module",
   "description": "Recipe costing for small restaurants — the costing engine",
