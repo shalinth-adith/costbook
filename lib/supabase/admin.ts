@@ -40,22 +40,45 @@ import { supabaseEnv } from "./env";
 export class MissingServiceKey extends Error {
   constructor() {
     super(
-      "SUPABASE_SERVICE_ROLE_KEY is not set, so the payment callback cannot " +
-        "settle an order. Take it from Project Settings → API Keys → " +
-        "service_role, put it in .env.local, and restart — env is read at " +
-        "boot, not per request.",
+      "No Supabase secret key is set, so the payment callback cannot settle " +
+        "an order. Project Settings → API Keys → Secret keys → reveal and copy " +
+        "sb_secret_... into SUPABASE_SECRET_KEY (or the legacy service_role " +
+        "into SUPABASE_SERVICE_ROLE_KEY — either is read). Restart afterwards: " +
+        "env is read at boot, not per request.",
     );
     this.name = "MissingServiceKey";
   }
 }
 
+/**
+ * The privileged key, under either of the names Supabase gives it.
+ *
+ * Supabase renamed these in 2025: `anon` became "publishable" and
+ * `service_role` became "secret" (`sb_secret_...`), with the old pair kept
+ * under a "Legacy" tab. Both still work, and which one an owner copies
+ * depends entirely on which tab the dashboard happened to open on.
+ *
+ * So both names are read. Getting this wrong does not fail loudly — it fails
+ * as MissingServiceKey on a webhook nobody is watching, which is the same
+ * quiet shape as everything else this route was built to prevent. The newer
+ * key is the better one to hold: it can be revoked on its own, where the
+ * legacy JWT cannot be rotated without invalidating every signed-in session.
+ */
+function secretKey(): string {
+  return (
+    process.env["SUPABASE_SECRET_KEY"] ??
+    process.env["SUPABASE_SERVICE_ROLE_KEY"] ??
+    ""
+  ).trim();
+}
+
 export function serviceKeyPresent(): boolean {
-  return (process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? "") !== "";
+  return secretKey() !== "";
 }
 
 export function supabaseAdmin() {
   const { url } = supabaseEnv();
-  const key = process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? "";
+  const key = secretKey();
   if (key === "") throw new MissingServiceKey();
 
   /*
