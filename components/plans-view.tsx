@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { unstable_rethrow } from "next/navigation";
 
 import { EXPORT_PASS, FREE_LIMITS, PAID_MONTHLY, type Plan, type Role } from "@/lib/org";
 import {
@@ -108,6 +109,21 @@ export function PlansView({
         }
         await openRazorpay(checkout, "export", setFault);
       } catch (e) {
+        /*
+         * Next says "it worked" by throwing, and this used to catch it.
+         *
+         * Every one of these actions ends in `redirect()`, which throws a
+         * NEXT_REDIRECT that the framework is meant to catch and turn into a
+         * navigation. Caught here instead, it did two things at once: printed
+         * the word NEXT_REDIRECT on the page as though it were a refusal, and
+         * swallowed the navigation, so a plan that HAD just been switched on
+         * looked to the owner like a payment that failed.
+         *
+         * `unstable_rethrow` goes first, before anything is read off the
+         * error, and hands the framework's own signals back to it. What is
+         * left in this block is a real fault worth showing.
+         */
+        unstable_rethrow(e);
         setFault(
           e instanceof Error
             ? e.message
@@ -135,6 +151,21 @@ export function PlansView({
         }
         await openRazorpay(checkout, term.id, setFault);
       } catch (e) {
+        /*
+         * Next says "it worked" by throwing, and this used to catch it.
+         *
+         * Every one of these actions ends in `redirect()`, which throws a
+         * NEXT_REDIRECT that the framework is meant to catch and turn into a
+         * navigation. Caught here instead, it did two things at once: printed
+         * the word NEXT_REDIRECT on the page as though it were a refusal, and
+         * swallowed the navigation, so a plan that HAD just been switched on
+         * looked to the owner like a payment that failed.
+         *
+         * `unstable_rethrow` goes first, before anything is read off the
+         * error, and hands the framework's own signals back to it. What is
+         * left in this block is a real fault worth showing.
+         */
+        unstable_rethrow(e);
         setFault(
           e instanceof Error
             ? e.message
@@ -564,7 +595,18 @@ async function openRazorpay(
         .then((refused) => {
           if (refused !== undefined) onFault(refused.message);
         })
-        .catch(() => {
+        .catch((e: unknown) => {
+          /*
+           * The worst version of the same bug, and the reason it is worth a
+           * comment in three places.
+           *
+           * `confirmPayment` ends in `redirect()` when it WORKS. Caught here,
+           * a payment that went through, verified and switched the plan on
+           * told the customer it had not — and told them to write in if they
+           * had been charged. They had. The framework's signal goes back to
+           * the framework first, and only a real failure reaches the sentence.
+           */
+          unstable_rethrow(e);
           onFault(
             "Costbook could not confirm that payment. Nothing has changed on " +
               "your account — reload the page, and write to us if you were charged.",
