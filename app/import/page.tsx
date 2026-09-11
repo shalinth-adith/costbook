@@ -39,6 +39,7 @@ export default async function ImportPage() {
         currencyCode={code}
         currencySettable={b.recipes.length === 0}
         dishCount={b.recipes.length}
+        plan={b.plan}
       >
         <div className="set">
           <div className="set-head">
@@ -75,6 +76,7 @@ export default async function ImportPage() {
       currencyCode={code}
       currencySettable={b.recipes.length === 0}
       dishCount={b.recipes.length}
+      plan={b.plan}
     >
       <CurrencyProvider code={code}>
         {/*

@@ -65,6 +65,7 @@ export default async function SettingsPage({
       currencyCode={code}
       currencySettable={recipes.length === 0}
       dishCount={recipes.length}
+      plan={b.plan}
     >
       <CurrencyProvider code={code}>
         <SettingsView

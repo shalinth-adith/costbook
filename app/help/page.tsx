@@ -58,6 +58,7 @@ export default async function HelpPage() {
       currencyCode={b.org.currency}
       currencySettable={b.recipes.length === 0}
       dishCount={b.recipes.length}
+      plan={b.plan}
     >
       <div className="set">
         <div className="set-head">

@@ -87,6 +87,7 @@ export default async function RecipesPage({
       currencyCode={b.org.currency}
       currencySettable={b.recipes.length === 0}
       dishCount={b.recipes.length}
+      plan={b.plan}
     >
       <CurrencyProvider code={b.org.currency}>
         <LibraryView

@@ -24,8 +24,20 @@ const SCREENS = [
   { no: 3, label: 'Review' },
 ] as const;
 
-/** The keep shares offered as chips; anything between the bounds can be typed. */
-const KEEP_CHIPS = [60, 65, 70, 75, 80] as const;
+/*
+ * Offered as FOOD COST, which is how a kitchen says it.
+ *
+ * This screen used to lead with the keep — 60, 65, 70 — and put the supplier
+ * share underneath. Both numbers are the same fact and the owner has to do
+ * the subtraction either way, so the only question is which one they already
+ * have in their head. It is the food cost: "my food cost is 30" is the
+ * sentence people actually say, and every trade figure they will ever read is
+ * quoted that way too.
+ *
+ * The keep is still what the input holds and still what the arithmetic runs
+ * on — only the framing changed, so nothing downstream had to.
+ */
+const FOOD_COST_CHIPS = [25, 30, 35, 40] as const;
 const STALE_CHIPS = [30, 60, 90, 180] as const;
 const PRESET_NAMES = Object.keys(PRESETS) as readonly PresetName[];
 /** A plate cost to show the rules working on. Marked as an example wherever it appears. */
@@ -66,7 +78,16 @@ export function SetupWizard({ initialCurrency, defaults, preview = false }: {
   const [codeChosen, setCodeChosen] = useState(false);
   const [teamSize, setTeamSize] = useState<TeamSize | null>(null);
 
-  // Screen 2. Held as "keep of every hundred", which is how the owner thinks
+  /*
+   * Screen 2. Held as the keep, ASKED as the food cost.
+   *
+   * The arithmetic below — the example price, the bounds, what is saved — all
+   * runs on the keep, and `finishSetup` stores its inverse. The screen puts
+   * the food cost in front of the owner because that is the sentence a
+   * kitchen says out loud ("my food cost is 30") and the way every trade
+   * figure they will read is quoted. Same number, and nobody does the
+   * subtraction.
+   */
   // of it; the org stores the other side, the supplier share.
   const [keep, setKeep] = useState(100 - defaults.foodCostTarget);
   const [rounding, setRounding] = useState<PresetName>(defaults.rounding);
@@ -97,7 +118,7 @@ export function SetupWizard({ initialCurrency, defaults, preview = false }: {
     teamSize === null ? 'the kitchen' : null,
   ].filter((m): m is string => m !== null);
   const missing2 = [
-    keepOk ? null : `a keep between ${100 - TARGET_MAX} and ${100 - TARGET_MIN}`,
+    keepOk ? null : `a food cost between ${TARGET_MIN} and ${TARGET_MAX}`,
     staleOk ? null : 'a number of days up to 365',
   ].filter((m): m is string => m !== null);
   const ready = step === 1 ? missing1.length === 0 : step === 2 ? missing2.length === 0 : true;
@@ -284,34 +305,36 @@ export function SetupWizard({ initialCurrency, defaults, preview = false }: {
               <section className="wiz-sec">
                 <div className="wiz-sec-head">
                   <span className="wiz-sec-no figure">05</span>
-                  <h2 className="wiz-sec-h">What you keep</h2>
+                  <h2 className="wiz-sec-h">Your food cost</h2>
                   <p className="wiz-sec-p">
-                    Of every {said(100)} a guest pays, how much stays with you after the
-                    ingredients. The rest is what you are willing to spend on suppliers.
+                    Of every {said(100)} a guest pays, how much goes on ingredients.
+                    The rest stays with you, before rent, wages and the rest of it.
                   </p>
                 </div>
                 <div className="wiz-sec-body">
-                  <div className="wiz-sizes" role="radiogroup" aria-label="Keep of every hundred">
-                    {KEEP_CHIPS.map((k) => (
+                  <div className="wiz-sizes" role="radiogroup" aria-label="Food cost, of every hundred">
+                    {FOOD_COST_CHIPS.map((fc) => (
                       <button
-                        key={k}
+                        key={fc}
                         type="button"
-                        className={`wiz-size${keep === k ? ' is-on' : ''}`}
-                        aria-pressed={keep === k}
-                        onClick={() => setKeep(k)}
+                        className={`wiz-size${keep === 100 - fc ? ' is-on' : ''}`}
+                        aria-pressed={keep === 100 - fc}
+                        onClick={() => setKeep(100 - fc)}
                       >
-                        <span className="wiz-size-label figure">{said(k)}</span>
-                        <span className="wiz-size-said">{said(100 - k)} to suppliers</span>
+                        <span className="wiz-size-label figure">{said(fc)}</span>
+                        <span className="wiz-size-said">{said(100 - fc)} stays with you</span>
                       </button>
                     ))}
                   </div>
                   <label className="wiz-typed">
-                    <span>Or type another, between {100 - TARGET_MAX} and {100 - TARGET_MIN}</span>
+                    <span>Or type another, between {TARGET_MIN} and {TARGET_MAX}</span>
                     <input
                       className="wiz-input wiz-input-sm figure"
                       inputMode="decimal"
-                      value={Number.isFinite(keep) ? String(keep) : ''}
-                      onChange={(e) => setKeep(e.target.value === '' ? Number.NaN : Number(e.target.value))}
+                      value={Number.isFinite(keep) ? String(100 - keep) : ''}
+                      onChange={(e) =>
+                        setKeep(e.target.value === '' ? Number.NaN : 100 - Number(e.target.value))
+                      }
                       aria-invalid={!keepOk}
                     />
                   </label>
@@ -511,7 +534,7 @@ export function SetupWizard({ initialCurrency, defaults, preview = false }: {
               </dl>
               <p className="wiz-live-label">Next</p>
               <ol className="wiz-then">
-                <li><b>Your rules.</b> What you keep of every {said(100)}, how a price rounds, when a rate is old. You set them; nothing is decided for you.</li>
+                <li><b>Your rules.</b> Your food cost out of every {said(100)}, how a price rounds, when a rate is old. You set them; nothing is decided for you.</li>
                 <li><b>Review.</b> Every answer in one place, then one save.</li>
               </ol>
             </>

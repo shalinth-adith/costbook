@@ -3,10 +3,13 @@ import { CurrencyProvider } from "@/components/currency-provider";
 import { DashboardView, type StaleRate } from "@/components/dashboard-view";
 import { PlanNotice } from '@/components/plan-notice';
 import { KitchenCard } from "@/components/kitchen-card";
+import { StartRail } from "@/components/start-rail";
 
 import { book, orgModel, pantry } from "@/lib/book";
 import { dashboard } from "@/lib/dashboard";
 import { firstDish } from "@/lib/first-dish";
+import { library } from "@/lib/library";
+import { startOf } from "@/lib/start";
 import { requireSetup } from "@/lib/guard";
 import { STALE_AFTER_DAYS } from "@/core/ingredient";
 import { recent } from "@/lib/recent";
@@ -134,6 +137,25 @@ export default async function DashboardPage() {
   });
 
   /*
+   * The one thing to do next, while the book is still new.
+   *
+   * `firstDish` above answers a narrower question — it goes quiet at two
+   * costed dishes, because from there the ordinary dashboard has a sort order
+   * worth reading. This one runs for the whole trial, which is the stretch
+   * where "six dishes, free" was being said everywhere except inside the
+   * product. Null for a paid account.
+   *
+   * Built off `library()` rather than `dashboard()` because a batch is not a
+   * dish, and "price the decoction" is not a next step somebody plates.
+   */
+  const start = startOf({
+    rows: library({ ids: b.recipes.map((r) => r.id), pantry: shelf, meta: b.meta, model }).dishes,
+    recipeCount: b.recipes.length,
+    plan: b.plan,
+    target: model.foodCostTarget,
+  });
+
+  /*
    * Menu engineering, once there is a month of sales to engineer with. Every
    * dish judged by what it sold and what it left; a dish with no figure for
    * the month is left out rather than placed by a guess.
@@ -180,11 +202,21 @@ export default async function DashboardPage() {
       currencyCode={b.org.currency}
       currencySettable={b.recipes.length === 0}
       dishCount={b.recipes.length}
+      plan={b.plan}
     >
       <CurrencyProvider code={b.org.currency}>
         {/* Above the numbers, where the owner already is (A40). The only thing
             on this page that came from another person. */}
         <PlanNotice plan={b.plan} subscription={b.subscription} />
+        {/* Above the figures, because until there are figures worth reading
+            this IS the screen. Gone the moment the book is paid for. */}
+        {start !== null ? (
+          <StartRail
+            start={start}
+            used={b.recipes.length}
+            target={model.foodCostTarget}
+          />
+        ) : null}
         <KitchenCard flags={b.flags} today={today} />
         <DashboardView
           orgName={b.org.name}

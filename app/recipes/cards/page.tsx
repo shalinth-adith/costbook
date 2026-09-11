@@ -75,6 +75,7 @@ export default async function CardsPage() {
       currencyCode={b.org.currency}
       currencySettable={b.recipes.length === 0}
       dishCount={b.recipes.length}
+      plan={b.plan}
     >
       {canTake ? (
         <AllCards cards={cards} orgName={b.org.name} />

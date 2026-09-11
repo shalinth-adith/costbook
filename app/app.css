@@ -27,6 +27,99 @@
   box-shadow: inset 0 -2px 0 var(--on-ink);
 }
 .topbar-end { margin-inline-start: auto; display: flex; align-items: center; gap: 14px; }
+
+/* ── the first run: one step, above the figures ───────────────────────────
+   NAMED `begin`, NOT `rail`. `.rail` is the costing sidebar in cost-rail.tsx,
+   whose rules sit further down this file — so a block called `.rail` here
+   took its `position: sticky` and `flex-direction: column`, and handed the
+   sidebar this block's background, border and padding in return. Two
+   components quietly restyling each other, in a file long enough that
+   nobody would have looked.
+   Not a card among cards. It is wider, quieter and carries one action, so a
+   new owner's eye lands on the single next thing rather than on a dashboard
+   of empty frames. It leaves when the book is paid for. */
+.begin {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-6);
+  align-items: start;
+  padding: var(--sp-6) var(--sp-6);
+  margin-block-end: var(--sp-5);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+}
+.begin-main { min-inline-size: 0; display: grid; gap: 6px; }
+.begin-step {
+  margin: 0; font-size: 11.5px; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--accent-deep);
+}
+.begin-h {
+  margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.015em;
+  color: var(--text-primary); text-wrap: balance;
+}
+.begin-h .figure { font-weight: 700; }
+.begin-p {
+  margin: 0; font-size: 14.5px; line-height: 1.6;
+  color: var(--text-secondary); max-inline-size: 68ch; text-wrap: pretty;
+}
+.begin-act {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: var(--sp-3); margin-block-start: var(--sp-3);
+}
+.begin-left { font-size: 12.5px; color: var(--text-tertiary); }
+.begin-left .figure { color: var(--text-primary); font-weight: 600; }
+
+/* The dish is over target. One border, no red wash — a figure that needs a
+   minute of attention is not an emergency. */
+.begin[data-tone="over"] { border-inline-start: 3px solid var(--accent-deep); }
+.begin[data-tone="under"] { border-inline-start: 3px solid var(--good, var(--border-hairline)); }
+
+/* What is bought, said once and only at the limit. */
+.begin-buy {
+  inline-size: 260px; min-inline-size: 0;
+  padding: var(--sp-4); border-radius: var(--radius-field);
+  background: var(--surface); border: 1px solid var(--border-hairline);
+}
+.begin-buy-h {
+  margin: 0 0 4px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-tertiary);
+}
+.begin-buy-p { margin: 0 0 8px; font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
+
+@media (max-width: 760px) {
+  .begin { grid-template-columns: 1fr; padding: var(--sp-5); }
+  .begin-h { font-size: 19px; }
+  .begin-buy { inline-size: auto; }
+}
+
+/* ── the trial, counted where it cannot be missed ─────────────────────────
+   Six pips and a figure, beside the name on every screen. Quiet by default —
+   this is a fact, not an advertisement — and it takes the accent only when
+   the six are spent, which is the one moment it has something to say. */
+.trial {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 10px; border-radius: 999px;
+  border: 1px solid var(--soot-rule); text-decoration: none;
+  color: var(--on-soot-secondary); font-size: 12.5px; white-space: nowrap;
+  transition: border-color 120ms var(--ease-enter), color 120ms var(--ease-enter);
+}
+.trial:hover { color: var(--on-soot); border-color: var(--on-soot-secondary); }
+.trial-pips { display: inline-flex; gap: 3px; }
+.trial-pips > span {
+  inline-size: 5px; block-size: 5px; border-radius: 50%;
+  background: var(--on-soot-secondary); opacity: 0.35;
+}
+.trial-pips > span[data-on] { opacity: 1; background: var(--saffron); }
+.trial .figure { color: var(--on-soot); }
+/* Spent. The only state that raises its voice, and it raises it once. */
+.trial[data-full] { border-color: var(--saffron); color: var(--saffron); }
+.trial[data-full] .figure { color: var(--saffron); }
+.trial[data-full] .trial-pips > span { background: var(--saffron); opacity: 1; }
+
+/* On a phone the bar is the name and the menu. The count keeps its pips and
+   drops its sentence rather than wrapping the header onto two lines. */
+@media (max-width: 760px) { .trial-said { display: none; } }
+@media (max-width: 420px) { .trial { display: none; } }
+
 .topbar-currency { font-size: 12.5px; color: var(--text-secondary); }
 .topbar-currency .figure { color: var(--text-primary); }
 .topbar-org { font-size: 13px; color: var(--text-secondary); }

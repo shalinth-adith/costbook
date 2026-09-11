@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useState, useTransition } from 'react';
 
 import { currency } from '@/core/currency';
+import { FREE_LIMITS, type Plan } from '@/lib/org';
 
 import { chooseCurrency } from '@/app/actions';
 
@@ -81,6 +82,7 @@ export function AppShell({
   currencyCode,
   currencySettable,
   dishCount,
+  plan,
   children,
 }: {
   current: string;
@@ -90,6 +92,8 @@ export function AppShell({
   /** False once anything has been priced, which settles the currency. */
   currencySettable: boolean;
   dishCount: number;
+  /** Free or paid. The trial counter is drawn only while there is a trial. */
+  plan: Plan;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -131,6 +135,44 @@ export function AppShell({
         </nav>
 
         <div className="topbar-end">
+          {/*
+            * How much of the trial is left, on every screen.
+            *
+            * "Six dishes, free" was said on the landing page, on the sign-in
+            * screen and on the plans page — and nowhere at all inside the
+            * product. Somebody who signed up learned the limit by reaching
+            * it, which is the worst possible moment to hear about it.
+            *
+            * A counter and not a banner, deliberately. A banner is dismissed
+            * and then gone; a figure sitting beside the name is a fact, and
+            * at six it becomes the prompt without ever having been a nag.
+            * Gone entirely once the book is paid for: there is nothing left
+            * to count, and a spent meter is just a reminder of a wall.
+            */}
+          {plan === 'free' ? (
+            <Link
+              href="/plans"
+              className="trial"
+              data-full={dishCount >= FREE_LIMITS.recipes ? '' : undefined}
+              title={
+                dishCount >= FREE_LIMITS.recipes
+                  ? 'The six free dishes are costed. See what a plan opens.'
+                  : `${String(FREE_LIMITS.recipes - dishCount)} of your ${String(FREE_LIMITS.recipes)} free dishes left`
+              }
+            >
+              <span className="trial-pips" aria-hidden="true">
+                {Array.from({ length: FREE_LIMITS.recipes }, (_, i) => (
+                  <span key={i} data-on={i < dishCount ? '' : undefined} />
+                ))}
+              </span>
+              <span className="trial-said">
+                <b className="figure">{Math.min(dishCount, FREE_LIMITS.recipes)}</b>
+                {' of '}
+                <b className="figure">{FREE_LIMITS.recipes}</b>
+                {' costed'}
+              </span>
+            </Link>
+          ) : null}
           {/*
             * Offered only while it can still be answered.
             *

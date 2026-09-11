@@ -35,6 +35,7 @@ export default async function PlansPage({
       currencyCode={b.org.currency}
       currencySettable={b.recipes.length === 0}
       dishCount={b.recipes.length}
+      plan={b.plan}
     >
       <PlansView
         plan={b.plan}

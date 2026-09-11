@@ -46,6 +46,7 @@ export default async function IngredientsPage({
       currencyCode={code}
       currencySettable={b.recipes.length === 0}
       dishCount={b.recipes.length}
+      plan={b.plan}
     >
       <CurrencyProvider code={code}>
         <IngredientsView
