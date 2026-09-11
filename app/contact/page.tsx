@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PublicBar } from "@/components/public-bar";
+import { SUPPORT_EMAIL } from "@/lib/org";
 
 export const metadata: Metadata = {
   title: "Contact · Costbook",
@@ -32,7 +33,7 @@ export const metadata: Metadata = {
  * and it is a slower one.
  */
 
-const MAIL = "hello@costbook.in";
+const MAIL = SUPPORT_EMAIL;
 
 const FACTS: readonly { n: string; said: string }[] = [
   {

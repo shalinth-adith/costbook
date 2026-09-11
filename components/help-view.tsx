@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 
 import type { Ack } from '@/app/help/actions';
+import { SUPPORT_EMAIL } from "@/lib/org";
 
 /**
  * The six a kitchen actually asks, answered before they have to ask.
@@ -132,7 +133,7 @@ export function HelpView({
             {busy ? 'Sending…' : 'Send it'}
           </button>
           <span className="hp-or">
-            or write to <a href="mailto:hello@costbook.in">hello@costbook.in</a>
+            or write to <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
           </span>
         </div>
         {said !== null && (

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { LegalPage } from '@/components/legal-page';
 
 import '../legal.css';
+import { SUPPORT_EMAIL } from "@/lib/org";
 
 export const metadata: Metadata = { title: 'Privacy · Costbook' };
 
@@ -52,7 +53,7 @@ export default function Privacy() {
         },
         {
           h: 'Questions',
-          p: <>Anything here that reads like it&rsquo;s hiding something: <a href="mailto:hello@costbook.in">hello@costbook.in</a>.</>,
+          p: <>Anything here that reads like it&rsquo;s hiding something: <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.</>,
         },
       ]}
     />

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { PublicBar } from "./public-bar";
+import { SUPPORT_EMAIL } from "@/lib/org";
 
 /**
  * A legal page (A30).
@@ -119,7 +120,7 @@ export function LegalPage({
           </p>
         </div>
         <p className="lg-foot-links">
-          <a href="mailto:hello@costbook.in">hello@costbook.in</a>
+          <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
           <Link href="/about">What this is</Link>
           <Link href="/privacy">Privacy</Link>
           <Link href="/subprocessors">Who else touches it</Link>

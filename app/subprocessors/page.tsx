@@ -4,6 +4,7 @@ import Link from "next/link";
 import { LegalPage } from "@/components/legal-page";
 
 import "../legal.css";
+import { SUPPORT_EMAIL } from "@/lib/org";
 
 export const metadata: Metadata = {
   title: "Who else touches it · Costbook",
@@ -140,7 +141,7 @@ export default function Subprocessors() {
           p: (
             <>
               If a row here reads like it is hiding something, ask and we will
-              rewrite it: <a href="mailto:hello@costbook.in">hello@costbook.in</a>.
+              rewrite it: <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
               The rest of what we hold and why is on the{" "}
               <Link href="/privacy">privacy page</Link>.
             </>

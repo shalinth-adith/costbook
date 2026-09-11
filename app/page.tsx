@@ -6,7 +6,7 @@ import { LandingTry } from "@/components/landing-try";
 import { LandingNav } from "@/components/landing-nav";
 import { LandingRate } from "@/components/landing-rate";
 import { LandingRipple } from "@/components/landing-ripple";
-import { EXPORT_PASS, FREE_LIMITS, PAID_MONTHLY } from "@/lib/org";
+import { EXPORT_PASS, FREE_LIMITS, PAID_MONTHLY, SUPPORT_EMAIL } from "@/lib/org";
 
 import { siteUrl } from "./robots";
 
@@ -298,7 +298,7 @@ export default function Landing() {
                 it does not scale and it framed the product as a service. */}
             <span className="lp-tier-alt">
               Rather we did it?{" "}
-              <a href="mailto:hello@costbook.in">
+              <a href={`mailto:${SUPPORT_EMAIL}`}>
                 Send your sheet and we&rsquo;ll cost it for you.
               </a>
             </span>
@@ -340,8 +340,8 @@ export default function Landing() {
               priced once.
             </p>
           </div>
-          <a className="figure lp-foot-mail" href="mailto:hello@costbook.in">
-            hello@costbook.in
+          <a className="figure lp-foot-mail" href={`mailto:${SUPPORT_EMAIL}`}>
+            {SUPPORT_EMAIL}
           </a>
         </div>
         <div className="lp-foot-links">

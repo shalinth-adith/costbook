@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { PublicBar } from "./public-bar";
+import { SUPPORT_EMAIL } from "@/lib/org";
 
 /**
  * What Costbook is, at the width of the window.
@@ -42,7 +43,7 @@ export function AboutView() {
             <Link className="ab-btn" href="/dashboard">
               Open your book
             </Link>
-            <a className="ab-btn is-quiet" href="mailto:hello@costbook.in">
+            <a className="ab-btn is-quiet" href={`mailto:${SUPPORT_EMAIL}`}>
               Talk to us
             </a>
           </p>
@@ -236,7 +237,7 @@ export function AboutView() {
         <div>
           <h2 className="ab-end-h">Costbook is built by a small team.</h2>
           <p className="ab-end-p">
-            <a href="mailto:hello@costbook.in">hello@costbook.in</a> reaches us
+            <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> reaches us
             rather than a help desk, and we usually reply within a day. If your
             sheet will not import, send it — a file we cannot read is a bug on
             our side, not a mistake on yours.

@@ -6,6 +6,7 @@ import { Wordmark } from '@/components/wordmark';
 import { reportFault } from '@/lib/report';
 
 import './legal.css';
+import { SUPPORT_EMAIL } from "@/lib/org";
 
 /**
  * A30 · the error page.
@@ -67,7 +68,7 @@ export default function ErrorPage({
           >
             {copied ? 'Reference copied' : 'Copy the reference'}
           </button>
-          <a className="btn" href={`mailto:hello@costbook.in?subject=Costbook%20error%20${ref}`}>
+          <a className="btn" href={`mailto:${SUPPORT_EMAIL}?subject=Costbook%20error%20${ref}`}>
             Tell us what you were doing
           </a>
         </div>

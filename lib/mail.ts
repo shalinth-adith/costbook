@@ -1,3 +1,4 @@
+import { MAIL_SENDER } from "./org";
 import { supabaseConfigured } from "./supabase/env";
 import { supabaseServer } from "./supabase/server";
 
@@ -29,7 +30,7 @@ function providerKey(): string | null {
 function fromAddress(): string {
   const from = process.env.MAIL_FROM;
   return from === undefined || from.trim() === ""
-    ? "Costbook <hello@costbook.in>"
+    ? MAIL_SENDER
     : from.trim();
 }
 

@@ -94,6 +94,30 @@ export const BLANK_ORG: Org = {
   setupDone: false,
 };
 
+/**
+ * The address a person writes to, everywhere a person can see one.
+ *
+ * It was written out thirteen times across twelve files — the landing page,
+ * the footer of the app, the error screen, four legal pages, help, about,
+ * contact, and the fallback in lib/mail.ts. Changing the mailbox meant
+ * finding all thirteen, and the day one was missed a customer would write to
+ * an address that bounced and conclude nobody was there. The same shape as
+ * the sitemap and robots lists this codebase has already had to reconcile:
+ * one fact, many copies, and no way to tell when they stop agreeing.
+ *
+ * One now. The screens read it; nothing spells it out.
+ */
+export const SUPPORT_EMAIL = "support@costbook.in";
+
+/**
+ * How mail goes out, when a provider is connected.
+ *
+ * The same address it is answered at, deliberately. A reply that arrives from
+ * one address and asks to be answered at another is how a thread gets lost.
+ * Overridden by MAIL_FROM; this is what stands when it is unset.
+ */
+export const MAIL_SENDER = `Costbook <${SUPPORT_EMAIL}>`;
+
 export const TARGET_MIN = 15;
 export const TARGET_MAX = 45;
 

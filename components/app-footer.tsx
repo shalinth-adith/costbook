@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Mark } from "./mark";
+import { SUPPORT_EMAIL } from "@/lib/org";
 
 /**
  * The end of the page, on soot.
@@ -53,7 +54,7 @@ export function AppFooter() {
           <p className="foot-help">
             <Link href="/help">Ask us from inside Costbook</Link> and the reply
             appears on that page, so you need not watch an inbox. Or write to{" "}
-            <a href="mailto:hello@costbook.in">hello@costbook.in</a> — either
+            <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> — either
             reaches the people who build this, not a help desk. If a sheet will
             not import, send it: a file we cannot read is a bug on our side.
           </p>
