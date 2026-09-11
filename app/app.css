@@ -3763,7 +3763,13 @@
 .nd-cols { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: var(--sp-6); align-items: start; }
 .nd-main { min-width: 0; }
 .nd-side { position: sticky; top: var(--sp-4); min-width: 0; }
-.nd-side .nd-card { margin-block-end: 0; animation: dc-arrive 420ms var(--ease-enter) both; }
+/* `backwards`, not `both`. A finished animation that keeps holding its last
+   frame overrides every ordinary rule on the element — so with `both` this
+   card could never be dimmed by anything: not its own `.is-todo` (which has
+   never once applied to it) and not the first-dish tour, which asked for 0.45
+   and got 1. The entrance only needs its starting frame held; once it has
+   arrived, the card should answer to the cascade like every other. */
+.nd-side .nd-card { margin-block-end: 0; animation: dc-arrive 420ms var(--ease-enter) backwards; }
 /* Narrower rows: the verdict wraps under the name instead of a third column. */
 .nd-side .nd-row { grid-template-columns: 80px minmax(0, 1fr); }
 .nd-side .nd-verdict { grid-column: 1 / -1; justify-content: flex-start; }
@@ -6618,4 +6624,63 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 12px; letter-spacing: 0.24em;
   color: rgb(23 27 36 / 0.28);
+}
+
+/* ── the first-dish tour ────────────────────────────────────────────────────
+   A note under the field it is about, and a ring on that field. No overlay,
+   no modal: the page stays usable, and the other cards only step back so the
+   eye lands on the one being answered.
+
+   Appended at the end of the file deliberately. Three times today a new rule
+   here lost to an older one further down at equal specificity; these use new
+   class names and data attributes, and sitting last means nothing below them
+   can quietly win. */
+.tn {
+  flex-basis: 100%;
+  display: grid; gap: 6px;
+  max-inline-size: 60ch;
+  margin-block: 4px 6px;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface-card);
+  border: 1px solid var(--accent-deep);
+  border-radius: var(--radius-field);
+  animation: tn-in 180ms var(--ease-enter);
+}
+.tn-count {
+  margin: 0; font-size: 11.5px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-deep);
+}
+.tn-h { margin: 0; font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.tn-p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); text-wrap: pretty; }
+.tn-err { margin: 0; font-size: 13px; font-weight: 500; color: var(--accent-deep); }
+.tn-act { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); margin-block-start: 4px; }
+.tn-skip {
+  background: none; border: 0; padding: 0 4px; min-block-size: 24px;
+  font: inherit; font-size: 12.5px; color: var(--text-tertiary); cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.tn-skip:hover { color: var(--text-primary); }
+
+/* The field being explained. An outline rather than a shadow or a border, so
+   it moves nothing around it. */
+[data-tour-on] {
+  outline: 2px solid var(--accent-deep);
+  outline-offset: 4px;
+  border-radius: var(--radius-field);
+}
+
+/* The other cards step back. Not hidden, not blocked — still usable. */
+.nd[data-touring] .nd-card { transition: opacity 180ms var(--ease-enter); }
+.nd[data-touring] .nd-card:not([data-tour-host]) { opacity: 0.45; }
+.nd[data-touring] .nd-card[data-tour-host] { opacity: 1; }
+
+.tour-again { font-size: 13px; }
+
+@keyframes tn-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tn { animation: none; }
+  .nd[data-touring] .nd-card { transition: none; }
 }

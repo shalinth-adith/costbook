@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, useRef, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 
 import type { Ingredient } from '@/core/ingredient';
 import type { Recipe } from '@/core/recipe';
@@ -10,6 +10,17 @@ import { looseNumber } from '@/core/loose';
 import { isKnownUnit, normaliseUnit } from '@/core/units';
 
 import { type Draft, draftFrom } from '@/lib/draft';
+import {
+  TOUR,
+  TOUR_SKIPPED_KEY,
+  type TourStepId,
+  checkWords,
+  nextLabel,
+  shouldTour,
+  tourRefusal,
+} from '@/lib/tour';
+
+import { TourNote } from './tour-note';
 
 /**
  * New dish — a guided flow, not a form.
@@ -108,6 +119,7 @@ export function NewDishView({
   shelf,
   recipes,
   onCreate,
+  tourForced = false,
 }: {
   shelf: readonly Ingredient[];
   recipes: readonly Recipe[];
@@ -119,6 +131,8 @@ export function NewDishView({
     method: string;
     batchKg: number | null;
   }) => Promise<{ readonly message: string; readonly id: string | null; readonly limit?: boolean }>;
+  /** `?tour=1`: run the first-dish tour whatever the book holds. */
+  tourForced?: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -155,6 +169,123 @@ export function NewDishView({
     return n < at ? 'done' : n === at ? 'current' : 'todo';
   };
 
+  /* ── the first-dish tour ─────────────────────────────────────────────
+   *
+   * Each step points at one real field on this screen and waits until it has
+   * been answered — see lib/tour.ts for why the tour is the entry and not a
+   * lecture about it. Nothing here changes what the four steps do; with the
+   * tour off, or skipped, this screen is exactly what it was.
+   */
+
+  /** Which step is showing, or null when there is no tour. */
+  const [at, setAt] = useState<number | null>(null);
+  const [refusal, setRefusal] = useState<string | null>(null);
+
+  /** Lines naming an ingredient nobody has priced yet — what Check teaches about. */
+  const unpriced = draft.lines.filter(
+    ({ line, match }) =>
+      line.rate === null &&
+      (match.kind === 'new' ||
+        (match.kind === 'ingredient' && match.ingredient.purchasePrice === null)),
+  ).length;
+  const tourState = { name, portions, counted, unpriced };
+  const step = at === null ? null : (TOUR[at] ?? null);
+
+  const endTour = () => {
+    setAt(null);
+    setRefusal(null);
+    // Seen, whether finished or skipped: either way it has done its job, and
+    // an owner who cancels without creating is not shown it all over again.
+    try {
+      window.localStorage.setItem(TOUR_SKIPPED_KEY, '1');
+    } catch {
+      // Storage refused. The book's own state still stops it once a dish exists.
+    }
+  };
+
+  const nextStep = () => {
+    if (step === null || at === null) return;
+    const why = tourRefusal(step.id, tourState);
+    if (why !== null) {
+      setRefusal(why);
+      return;
+    }
+    if (at >= TOUR.length - 1) {
+      endTour();
+      // Left on the real button. The tour never presses Create for anybody:
+      // a tour control that quietly wrote a dish would be a side effect
+      // nobody agreed to.
+      document.querySelector<HTMLElement>('.nd-actions .btn-primary')?.focus();
+      return;
+    }
+    setRefusal(null);
+    setAt(at + 1);
+  };
+
+  /*
+   * Decided after mount, because whether it was skipped lives in this browser.
+   * Starting at null means somebody who skipped it never sees it flash in and
+   * out; somebody new sees it one frame later.
+   */
+  useEffect(() => {
+    let skipped = false;
+    try {
+      skipped = window.localStorage.getItem(TOUR_SKIPPED_KEY) === '1';
+    } catch {
+      // Storage refused — no memory of a skip is the safe reading.
+    }
+    setAt(shouldTour({ recipeCount: recipes.length, forced: tourForced, skipped }) ? 0 : null);
+  }, [tourForced, recipes.length]);
+
+  // The refusal is about what was missing. Once the owner types, it is stale.
+  useEffect(() => {
+    setRefusal(null);
+  }, [name, portions, counted]);
+
+  // Bring the field into view and put the cursor where the step wants it.
+  useEffect(() => {
+    if (step === null) return;
+    const anchor = document.querySelector<HTMLElement>(`[data-tour-anchor="${step.id}"]`);
+    if (anchor === null) return;
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    anchor.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+    const typing = step.id === 'name' || step.id === 'portions' || step.id === 'section' || step.id === 'paste';
+    const target = typing
+      ? anchor.matches('input, select, textarea')
+        ? anchor
+        : anchor.querySelector<HTMLElement>('input, select, textarea')
+      : document.querySelector<HTMLElement>('.tn-next');
+    target?.focus({ preventScroll: true });
+  }, [step]);
+
+  // Escape leaves, from anywhere on the screen.
+  useEffect(() => {
+    if (step === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') endTour();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
+  /** The note for a step, under the field it is about, or nothing. */
+  const note = (id: TourStepId) =>
+    step !== null && at !== null && step.id === id ? (
+      <TourNote
+        step={step}
+        index={at}
+        total={TOUR.length}
+        body={id === 'check' ? checkWords(tourState) : step.p}
+        refusal={refusal}
+        next={nextLabel(id, tourState)}
+        onNext={nextStep}
+        onSkip={endTour}
+        id="first-dish-tour"
+      />
+    ) : null;
+  const on = (id: TourStepId) => (step?.id === id ? '' : undefined);
+  const host = (card: number) => (step?.card === card ? '' : undefined);
+
   const submit = () => {
     if (!named || pending) return;
     setFault(null);
@@ -184,10 +315,22 @@ export function NewDishView({
             understood, create. You will land on its cost sheet with everything
             already worked out.
           </p>
+          {step === null ? (
+            <button
+              type="button"
+              className="link tour-again"
+              onClick={() => {
+                setRefusal(null);
+                setAt(0);
+              }}
+            >
+              Show me how this works
+            </button>
+          ) : null}
         </div>
       </div>
 
-      <div className="nd">
+      <div className="nd" data-touring={step !== null ? '' : undefined}>
         <ol className="nd-steps" aria-label="Progress">
           <Step n={1} title="Name it" state={stepState(1)} />
           <Step n={2} title="What goes in it" state={stepState(2)} />
@@ -206,7 +349,7 @@ export function NewDishView({
 
         {/* ── 1 ─────────────────────────────────────────────────────── */}
 
-        <section className={`nd-card is-${stepState(1)}`}>
+        <section className={`nd-card is-${stepState(1)}`} data-tour-host={host(1)}>
           <div className="nd-card-head">
             <span className="nd-card-n figure">1</span>
             <div>
@@ -219,7 +362,7 @@ export function NewDishView({
             </div>
           </div>
           <div className="nd-fields">
-            <label className="nd-field nd-field-name">
+            <label className="nd-field nd-field-name" data-tour-anchor="name" data-tour-on={on('name')}>
               <span className="nd-label">Dish name</span>
               <input
                 className="set-input"
@@ -231,12 +374,15 @@ export function NewDishView({
                   // Enter moves on. A form would submit; this is not a form.
                   if (e.key === 'Enter') {
                     e.preventDefault();
-                    pasteRef.current?.focus();
+                    // During the tour Enter is its Next; otherwise it moves on to the paste.
+                    if (step?.id === 'name') nextStep();
+                    else pasteRef.current?.focus();
                   }
                 }}
               />
             </label>
-            <label className="nd-field">
+            {note('name')}
+            <label className="nd-field" data-tour-anchor="portions" data-tour-on={on('portions')}>
               <span className="nd-label">One batch makes</span>
               <div className="nd-portions">
                 <input
@@ -265,7 +411,8 @@ export function NewDishView({
                 The weight is optional: give it for a batter or a gravy that other dishes use by the kilo.
               </span>
             </label>
-            <label className="nd-field">
+            {note('portions')}
+            <label className="nd-field" data-tour-anchor="section" data-tour-on={on('section')}>
               <span className="nd-label">Section</span>
               <select
                 className="set-input"
@@ -279,12 +426,13 @@ export function NewDishView({
                 ))}
               </select>
             </label>
+            {note('section')}
           </div>
         </section>
 
         {/* ── 2 ─────────────────────────────────────────────────────── */}
 
-        <section className={`nd-card is-${stepState(2)}`}>
+        <section className={`nd-card is-${stepState(2)}`} data-tour-host={host(2)}>
           <div className="nd-card-head">
             <span className="nd-card-n figure">2</span>
             <div>
@@ -348,6 +496,8 @@ export function NewDishView({
 
           <textarea
             ref={pasteRef}
+            data-tour-anchor="paste"
+            data-tour-on={on('paste')}
             className="nd-paste"
             value={text}
             rows={9}
@@ -366,6 +516,7 @@ export function NewDishView({
               }
             }}
           />
+          {note('paste')}
           <p className="nd-hint">
             {counted === 0
               ? 'Nothing read yet. Paste, or type a line and press Enter for the next.'
@@ -399,7 +550,7 @@ export function NewDishView({
 
         {/* ── 4 ─────────────────────────────────────────────────────── */}
 
-        <section className={`nd-card is-${stepState(4)} nd-card-last`}>
+        <section className={`nd-card is-${stepState(4)} nd-card-last`} data-tour-host={host(4)}>
           <div className="nd-card-head">
             <span className="nd-card-n figure">4</span>
             <div>
@@ -437,7 +588,7 @@ export function NewDishView({
             </div>
           )}
 
-          <div className="nd-actions">
+          <div className="nd-actions" data-tour-anchor="create" data-tour-on={on('create')}>
             <button
               type="button"
               className="btn btn-primary btn-lg"
@@ -454,6 +605,7 @@ export function NewDishView({
               Cancel
             </Link>
           </div>
+          {note('create')}
           <p className="nd-then">
             <b>Then:</b> you land on {named ? <>{name.trim()}&rsquo;s</> : 'its'} cost sheet. Set a
             selling price there and Costbook tells you what the plate costs, what it keeps, and
@@ -462,11 +614,17 @@ export function NewDishView({
         </section>
         </div>
 
-        <aside className="nd-side" aria-label="What Costbook understood">
+        <aside
+          className="nd-side"
+          aria-label="What Costbook understood"
+          data-tour-anchor="check"
+          data-tour-on={on('check')}
+        >
+        {note('check')}
         {/* ── 3 ─────────────────────────────────────────────────────── */}
 
         {counted > 0 ? (
-          <section className={`nd-card is-${stepState(3)}`}>
+          <section className={`nd-card is-${stepState(3)}`} data-tour-host={host(3)}>
             <div className="nd-card-head">
               <span className="nd-card-n figure">3</span>
               <div>
@@ -595,7 +753,7 @@ export function NewDishView({
             </div>
           </section>
         ) : (
-          <section className="nd-card is-todo nd-side-rest">
+          <section className="nd-card is-todo nd-side-rest" data-tour-host={host(3)}>
             <div className="nd-card-head">
               <span className="nd-card-n figure">3</span>
               <div>

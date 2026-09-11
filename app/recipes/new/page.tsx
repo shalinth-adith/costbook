@@ -27,8 +27,15 @@ export const dynamic = "force-dynamic";
  * alternative is a round trip per keystroke on the screen that most needs to
  * feel immediate.
  */
-export default async function NewDishPage() {
+export default async function NewDishPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tour?: string }>;
+}) {
   await requireSetup();
+  // `?tour=1` runs the first-dish tour on any book: the way back in for
+  // somebody who skipped it, and how it is shown to anyone who asks.
+  const { tour } = await searchParams;
 
   const b = await book();
 
@@ -46,6 +53,7 @@ export default async function NewDishPage() {
           shelf={b.ingredients}
           recipes={b.recipes}
           onCreate={createDishFromPaste}
+          tourForced={tour === "1"}
         />
       </CurrencyProvider>
     </AppShell>
