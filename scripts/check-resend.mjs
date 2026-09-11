@@ -138,10 +138,22 @@ if (match === undefined) {
 
 if (match.status !== 'verified') {
   say('✗', `${sending} is "${match.status}", not verified. Sends will be refused.`);
+  /*
+   * The two are not the same problem and they do not have the same fix.
+   * "not_started" means the provider has never gone and looked — the records
+   * may be perfect and nobody has pressed the button. "pending" means it
+   * looked and did not find everything. Telling an owner to go hunting for a
+   * missing record when the truth is that nothing has been checked yet costs
+   * an afternoon.
+   */
   console.log(
-    '\n   The DNS records are not all in place, or not seen yet. Resend →\n' +
-      '   Domains → costbook.in shows which record is missing. DNS can take a\n' +
-      '   few hours; nothing is lost meanwhile, the queue simply waits.\n',
+    match.status === 'not_started'
+      ? `\n   Nothing has been checked yet — that is what "not_started" means.\n` +
+          `   Add the three records at your DNS provider, then press Verify in\n` +
+          `   Resend → Domains → ${sending}. It moves to "pending" while it looks.\n`
+      : '\n   Checked, and something is missing. Resend → Domains → ' +
+          `${sending}\n   marks which record it could not find. DNS can take a few hours;\n` +
+          '   nothing is lost meanwhile, the queue simply waits.\n',
   );
   process.exit(1);
 }
