@@ -52,7 +52,14 @@ const PROCESSORS: readonly Processor[] = [
     does: "Sends the mail Costbook writes to you",
     holds:
       "The address a message goes to and what the message says. Today that is one thing only: the answer when you write to us for help. Nothing about your recipes, rates or dishes travels in one, and we do not send marketing.",
-    where: "United States",
+    /*
+     * The sending region chosen when the domain was added, not the company's
+     * address. What a reader of this page wants to know is where their mail
+     * is actually processed — Resend is a US company and this traffic is not.
+     * `node scripts/check-resend.mjs` prints the region the provider reports,
+     * so this line can be checked rather than believed.
+     */
+    where: "Tokyo, Japan (ap-northeast-1)",
   },
   {
     name: "Razorpay",
