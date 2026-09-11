@@ -258,6 +258,49 @@ export function NewDishView({
     target?.focus({ preventScroll: true });
   }, [step]);
 
+  /*
+   * Only the field being explained is lit. Everything else steps back.
+   *
+   * Opacity cannot do this the obvious way: it multiplies down the tree, so a
+   * faded card can never contain a bright field. And an overlay with the
+   * field raised above it fails here, because the side panel is sticky, and a
+   * sticky element makes its own stacking layer that a raised child cannot
+   * climb out of.
+   *
+   * So this walks up from the field to the top of the page and fades every
+   * SIBLING at each level — never an ancestor. The field and its note stay at
+   * full strength; the other fields, the card's own heading, the other cards,
+   * the step rail and the navigation all recede.
+   *
+   * Re-run after every render rather than once per step, because the screen
+   * rebuilds parts of itself as the paste is typed (the side panel swaps its
+   * empty card for the real one), and a freshly rendered element would
+   * otherwise arrive lit. The cleanup and the re-run land in the same commit,
+   * before any paint, so nothing flickers.
+   */
+  useEffect(() => {
+    if (step === null) return;
+    const anchor = document.querySelector<HTMLElement>(`[data-tour-anchor="${step.id}"]`);
+    if (anchor === null) return;
+    const keep = [anchor, document.querySelector<HTMLElement>('.tn')].filter(
+      (e): e is HTMLElement => e !== null,
+    );
+    const faded: Element[] = [];
+    let node: HTMLElement = anchor;
+    while (node !== document.body && node.parentElement !== null) {
+      const parent: HTMLElement = node.parentElement;
+      for (const sib of Array.from(parent.children)) {
+        if (sib === node || keep.some((k) => sib === k || sib.contains(k))) continue;
+        sib.setAttribute('data-tour-dim', '');
+        faded.push(sib);
+      }
+      node = parent;
+    }
+    return () => {
+      for (const f of faded) f.removeAttribute('data-tour-dim');
+    };
+  });
+
   // Escape leaves, from anywhere on the screen.
   useEffect(() => {
     if (step === null) return;
@@ -284,7 +327,6 @@ export function NewDishView({
       />
     ) : null;
   const on = (id: TourStepId) => (step?.id === id ? '' : undefined);
-  const host = (card: number) => (step?.card === card ? '' : undefined);
 
   const submit = () => {
     if (!named || pending) return;
@@ -349,7 +391,7 @@ export function NewDishView({
 
         {/* ── 1 ─────────────────────────────────────────────────────── */}
 
-        <section className={`nd-card is-${stepState(1)}`} data-tour-host={host(1)}>
+        <section className={`nd-card is-${stepState(1)}`}>
           <div className="nd-card-head">
             <span className="nd-card-n figure">1</span>
             <div>
@@ -432,7 +474,7 @@ export function NewDishView({
 
         {/* ── 2 ─────────────────────────────────────────────────────── */}
 
-        <section className={`nd-card is-${stepState(2)}`} data-tour-host={host(2)}>
+        <section className={`nd-card is-${stepState(2)}`}>
           <div className="nd-card-head">
             <span className="nd-card-n figure">2</span>
             <div>
@@ -550,7 +592,7 @@ export function NewDishView({
 
         {/* ── 4 ─────────────────────────────────────────────────────── */}
 
-        <section className={`nd-card is-${stepState(4)} nd-card-last`} data-tour-host={host(4)}>
+        <section className={`nd-card is-${stepState(4)} nd-card-last`}>
           <div className="nd-card-head">
             <span className="nd-card-n figure">4</span>
             <div>
@@ -624,7 +666,7 @@ export function NewDishView({
         {/* ── 3 ─────────────────────────────────────────────────────── */}
 
         {counted > 0 ? (
-          <section className={`nd-card is-${stepState(3)}`} data-tour-host={host(3)}>
+          <section className={`nd-card is-${stepState(3)}`}>
             <div className="nd-card-head">
               <span className="nd-card-n figure">3</span>
               <div>
@@ -753,7 +795,7 @@ export function NewDishView({
             </div>
           </section>
         ) : (
-          <section className="nd-card is-todo nd-side-rest" data-tour-host={host(3)}>
+          <section className="nd-card is-todo nd-side-rest">
             <div className="nd-card-head">
               <span className="nd-card-n figure">3</span>
               <div>

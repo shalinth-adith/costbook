@@ -6669,10 +6669,22 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
   border-radius: var(--radius-field);
 }
 
-/* The other cards step back. Not hidden, not blocked — still usable. */
-.nd[data-touring] .nd-card { transition: opacity 180ms var(--ease-enter); }
-.nd[data-touring] .nd-card:not([data-tour-host]) { opacity: 0.45; }
-.nd[data-touring] .nd-card[data-tour-host] { opacity: 1; }
+/*
+ * Everything but the field being explained steps back.
+ *
+ * Set on siblings by the walk in new-dish-view.tsx, never on an ancestor of
+ * the field — which is the only way a single field can stay bright inside a
+ * faded page. Still clickable: this is where the eye goes, not a wall.
+ *
+ * `!important`, and deliberately. This is a short-lived state the owner asked
+ * for, and it has to win over whatever resting opacity an element carries —
+ * `.nd-card.is-todo` alone outranks a bare attribute selector, and three times
+ * today a rule in this file has lost to one like it without a sound.
+ */
+[data-tour-dim] {
+  opacity: 0.22 !important;
+  transition: opacity 220ms var(--ease-enter);
+}
 
 .tour-again { font-size: 13px; }
 
@@ -6682,5 +6694,5 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 }
 @media (prefers-reduced-motion: reduce) {
   .tn { animation: none; }
-  .nd[data-touring] .nd-card { transition: none; }
+  [data-tour-dim] { transition: none; }
 }
