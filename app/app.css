@@ -1407,6 +1407,18 @@
   display: flex; flex-direction: column; gap: var(--sp-3);
 }
 .entry.is-compact { border: 0; padding: 0; }
+/*
+ * Compact is the entry row inside a pop-up — Add its price on a new dish, the
+ * picker on a cost sheet — about 540px across, not the full screen. The five
+ * columns above left the name 26px there, its label run into the next one
+ * ("NAMEPACK QTY"). So the name takes its own line and the pack sits under
+ * it. Above the phone width only: below it the phone rule, which already
+ * stacks, applies.
+ */
+@media (min-width: 701px) {
+  .entry.is-compact .entry-row { grid-template-columns: 110px auto minmax(0, 1fr) auto; }
+  .entry.is-compact .entry-row > .entry-name { grid-column: 1 / -1; }
+}
 .entry-head { display: flex; flex-direction: column; gap: 3px; }
 .entry-hint { font-size: 12px; color: var(--text-tertiary); text-wrap: pretty; }
 .entry-row {
@@ -6635,21 +6647,26 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
    here lost to an older one further down at equal specificity; these use new
    class names and data attributes, and sitting last means nothing below them
    can quietly win. */
+/* A full line of whatever the note sits in — a row of fields or a card — so
+   the note inside can be lined up with the tile above it by measurement. The
+   top margin clears the tile's 12px ring. */
+.tn-row { flex-basis: 100%; min-inline-size: 0; margin-block: 18px 4px; }
 .tn {
   /* One above the lit field, so the note sits on the dark rather than under
      it. On Check the note is inside the lit panel and rises with it. */
   position: relative;
   z-index: 1002;
-  flex-basis: 100%;
+  box-sizing: border-box;
   display: grid; gap: 6px;
-  max-inline-size: 60ch;
-  margin-block: 4px 6px;
   padding: var(--sp-3) var(--sp-4);
   background: var(--surface-card);
   border: 1px solid var(--accent-deep);
   border-radius: var(--radius-field);
   animation: tn-in 180ms var(--ease-enter);
 }
+/* Inside the lit side panel there is nothing to line up with; the note just
+   takes the panel's width. */
+.nd-side .tn-row { margin-block: 0 12px; }
 .tn-count {
   margin: 0; font-size: 11.5px; font-weight: 600;
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-deep);
@@ -6724,3 +6741,24 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 @media (prefers-reduced-motion: reduce) {
   .tn { animation: none; }
 }
+
+/* ── the tile hugs the field ────────────────────────────────────────────────
+   The tour lights these wrappers rather than the labels around them: a label
+   stretches across its row, so lighting it lit an empty white block beside
+   the input. Each wrapper is exactly the field and its caption. */
+.nd-core { display: flex; flex-direction: column; gap: 5px; }
+.nd-core-fit { inline-size: fit-content; }
+/* The name field is 420px — a second `.set-input` rule caps it there — inside
+   a label that stretches to 632. The tile stops where the field stops. */
+.nd-core-name { max-inline-size: 420px; }
+.nd-core-act { display: inline-flex; align-items: center; gap: var(--sp-3); }
+
+/* ── a new ingredient, priced where it is met ─────────────────────────────── */
+.nd-add {
+  border: 0; background: none; padding: 0 2px; min-block-size: 24px;
+  font: inherit; font-size: 12.5px; font-weight: 600; color: var(--accent-deep);
+  text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
+}
+.nd-add:hover { color: var(--text-primary); }
+.nd-add-lede { margin: 0 0 var(--sp-3); font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); }
+.nd-add-fault { margin: 0 0 var(--sp-3); font-size: 13px; font-weight: 500; color: var(--accent-deep); }

@@ -1,109 +1,83 @@
 import { describe, expect, it } from "vitest";
 
-import { TOUR, checkWords, nextLabel, shouldTour, tourRefusal } from "./tour";
+import { TOUR, checkWords, nextLabel, shouldTour } from "./tour";
 
 /**
  * The first-dish tour.
  *
- * What is worth proving here is not that six strings exist. It is that the
- * tour refuses to move past a field that has not been answered — which is the
- * whole difference between teaching somebody by doing and making them click
- * Next four times — and that it runs on exactly the books it should.
+ * It shows and does not force: Next always moves on, and the last step hands
+ * the screen back to be filled in. What is worth proving is that nothing in
+ * it can stop an owner from clicking through, that Check says the right thing
+ * for what is actually pasted, and that the word "shelf" never reaches them.
  */
 
-const state = (over: Partial<Parameters<typeof tourRefusal>[1]> = {}) => ({
-  name: "",
-  portions: 4,
-  counted: 0,
-  unpriced: 0,
-  ...over,
-});
-
-describe("it waits for the field it is pointing at", () => {
-  it("will not leave the name until there is one", () => {
-    expect(tourRefusal("name", state())).toMatch(/name/);
-    expect(tourRefusal("name", state({ name: "   " }))).not.toBeNull();
-    expect(tourRefusal("name", state({ name: "Chicken Biryani" }))).toBeNull();
+describe("it never forces anybody", () => {
+  it("says Next on every step but the last", () => {
+    for (const s of TOUR.slice(0, -1)) expect(nextLabel(s.id)).toBe("Next");
   });
 
-  it("will not leave the paste until a line has been read", () => {
-    // "200 g onion" in the refusal is the point: it says how little is
-    // needed, rather than that something is.
-    expect(tourRefusal("paste", state())).toMatch(/200 g onion/);
-    expect(tourRefusal("paste", state({ counted: 1 }))).toBeNull();
-  });
-
-  it("refuses a portion count that could divide nothing", () => {
-    expect(tourRefusal("portions", state({ portions: 0 }))).not.toBeNull();
-    expect(
-      tourRefusal("portions", state({ portions: Number.NaN })),
-    ).not.toBeNull();
-    expect(tourRefusal("portions", state({ portions: 40 }))).toBeNull();
-  });
-
-  it("does not block the steps that are only information", () => {
-    for (const id of ["section", "check", "create"] as const) {
-      expect(tourRefusal(id, state())).toBeNull();
-    }
+  it("ends by handing the screen back", () => {
+    expect(nextLabel("create")).toBe("Start typing");
   });
 });
 
-describe("the portions step makes the owner read the number back", () => {
-  it("names the figure on the button instead of saying Next", () => {
-    /*
-     * The field arrives holding a default. A default waved through is exactly
-     * the mistake this step exists to stop, so the button repeats it — and
-     * still lets a default that happens to be right straight through.
-     */
-    expect(nextLabel("portions", state({ portions: 40 }))).toBe(
-      "Yes, 40 plates",
-    );
-    expect(nextLabel("portions", state({ portions: 1 }))).toBe("Yes, 1 plate");
-    expect(nextLabel("name", state())).toBe("Next");
-    expect(nextLabel("create", state())).toBe("Got it");
+describe("Check says what is on the screen", () => {
+  it("explains the three tags when nothing has been pasted", () => {
+    // The usual case in a tour clicked straight through.
+    const words = checkWords({ counted: 0, unpriced: 0 });
+    expect(words).toMatch(/in your ingredients/);
+    expect(words).toMatch(/your batch/);
+    expect(words).toMatch(/Add its price/);
   });
-});
 
-describe("pack price is taught where it bites", () => {
   it("says nothing about pricing when every line already has a price", () => {
-    expect(checkWords(state({ counted: 3 }))).not.toMatch(/pack/);
+    expect(checkWords({ counted: 3, unpriced: 0 })).not.toMatch(/pack/);
   });
 
-  it("explains pack against rate the moment an unpriced line is on screen", () => {
-    const words = checkWords(state({ counted: 3, unpriced: 2 }));
+  it("teaches pack price, and points at the button, when a line has none", () => {
+    const words = checkWords({ counted: 3, unpriced: 2 });
     expect(words).toMatch(/^2 lines have no price/);
     expect(words).toMatch(/pack/);
+    expect(words).toMatch(/Add its price/);
   });
 
   it("counts one line as one line", () => {
-    expect(checkWords(state({ unpriced: 1 }))).toMatch(/^One line has/);
+    expect(checkWords({ counted: 1, unpriced: 1 })).toMatch(/^One line has/);
+  });
+});
+
+describe("the words the owner reads", () => {
+  it("never says shelf", () => {
+    /*
+     * "On your shelf" was a word from inside the code that leaked onto the
+     * screen, and the owner did not know what it meant. The product has an
+     * ingredients list; every word here uses that.
+     */
+    const all = [
+      ...TOUR.map((s) => `${s.h} ${s.p}`),
+      checkWords({ counted: 0, unpriced: 0 }),
+      checkWords({ counted: 2, unpriced: 0 }),
+      checkWords({ counted: 2, unpriced: 1 }),
+    ].join(" ");
+    expect(all).not.toMatch(/shelf/i);
   });
 });
 
 describe("which books it runs on", () => {
   it("runs on an empty book", () => {
-    expect(shouldTour({ recipeCount: 0, forced: false, skipped: false })).toBe(
-      true,
-    );
+    expect(shouldTour({ recipeCount: 0, forced: false, skipped: false })).toBe(true);
   });
 
   it("stops the moment the book has a dish, with no flag to keep in sync", () => {
-    expect(shouldTour({ recipeCount: 1, forced: false, skipped: false })).toBe(
-      false,
-    );
+    expect(shouldTour({ recipeCount: 1, forced: false, skipped: false })).toBe(false);
   });
 
   it("respects a skip, so it does not nag on every visit", () => {
-    expect(shouldTour({ recipeCount: 0, forced: false, skipped: true })).toBe(
-      false,
-    );
+    expect(shouldTour({ recipeCount: 0, forced: false, skipped: true })).toBe(false);
   });
 
   it("runs when asked for by name, whatever the book holds", () => {
-    // The way back in for someone who skipped it, and how it is recorded.
-    expect(shouldTour({ recipeCount: 40, forced: true, skipped: true })).toBe(
-      true,
-    );
+    expect(shouldTour({ recipeCount: 40, forced: true, skipped: true })).toBe(true);
   });
 });
 

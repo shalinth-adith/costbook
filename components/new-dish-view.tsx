@@ -2,14 +2,15 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from 'react';
 
 import type { Ingredient } from '@/core/ingredient';
 import type { Recipe } from '@/core/recipe';
 import { looseNumber } from '@/core/loose';
 import { isKnownUnit, normaliseUnit } from '@/core/units';
 
-import { type Draft, draftFrom } from '@/lib/draft';
+import { addIngredient } from '@/app/ingredients/actions';
+import { type Draft, draftFrom, matchKey } from '@/lib/draft';
 import {
   TOUR,
   TOUR_SKIPPED_KEY,
@@ -17,9 +18,10 @@ import {
   checkWords,
   nextLabel,
   shouldTour,
-  tourRefusal,
 } from '@/lib/tour';
 
+import { IngredientEntry, type NewIngredient } from './ingredient-entry';
+import { Sheet } from './sheet';
 import { TourNote } from './tour-note';
 
 /**
@@ -96,6 +98,31 @@ function withFixes(text: string, draft: Draft, fixes: Readonly<Record<number, Fi
   return out.join('\n');
 }
 
+/**
+ * Point one pasted line at the name an ingredient was saved under.
+ *
+ * The pop-up lets the owner correct a name — "basmati" to "Basmati rice" — and
+ * without this the pasted line would go on reading as new and Create would
+ * make a second ingredient beside the one just saved. The name is replaced in
+ * place, so the amount, the unit and a "per plate" on the same line survive;
+ * a line where the old name cannot be found is left exactly as it was.
+ */
+function renameLine(text: string, index: number, oldName: string, newName: string): string {
+  const lines = text.split(/\r?\n/);
+  const rawIndexes: number[] = [];
+  lines.forEach((l, i) => {
+    const t = l.trim();
+    if (t !== '' && !/:$/.test(t)) rawIndexes.push(i);
+  });
+  const at = rawIndexes[index];
+  if (at === undefined) return text;
+  const line = lines[at] ?? '';
+  const pos = line.toLowerCase().indexOf(oldName.toLowerCase());
+  if (pos === -1 || oldName === '') return text;
+  lines[at] = line.slice(0, pos) + newName + line.slice(pos + oldName.length);
+  return lines.join('\n');
+}
+
 function Step({
   n,
   title,
@@ -169,6 +196,45 @@ export function NewDishView({
     return n < at ? 'done' : n === at ? 'current' : 'todo';
   };
 
+  /* ── a new ingredient, priced where it is met ─────────────────────────
+   *
+   * A pasted line naming something that is not in the ingredients list used
+   * to be created at Create time with no price, to be dealt with later —
+   * which meant a first dish that costed nothing and a promise to come back.
+   * Now the line offers a pop-up: the same four fields the Ingredients screen
+   * asks, the name already filled, and a price required. Saved, it joins the
+   * ingredients list at once, and the line re-reads against it.
+   */
+  const [adding, setAdding] = useState<{ readonly index: number; readonly name: string } | null>(null);
+  const [savingIngredient, setSavingIngredient] = useState(false);
+  const [addFault, setAddFault] = useState<string | null>(null);
+  /** Bumped to re-seed the form after a refusal, since it clears on commit. */
+  const [entryKey, setEntryKey] = useState(0);
+
+  const saveNewIngredient = (input: NewIngredient) => {
+    if (adding === null || savingIngredient) return;
+    const target = adding;
+    setSavingIngredient(true);
+    setAddFault(null);
+    void (async () => {
+      const ack = await addIngredient(input);
+      setSavingIngredient(false);
+      if (ack.id === null) {
+        setAddFault(ack.message);
+        setEntryKey((k) => k + 1);
+        return;
+      }
+      if (matchKey(input.name) !== matchKey(target.name)) {
+        setText((t) => renameLine(t, target.index, target.name, input.name));
+      }
+      setAdding(null);
+      // The ingredients list arrives from the server with the page. The save
+      // revalidates /recipes but not /recipes/new, so the page is re-read here
+      // — the paste, the name and everything else typed are kept.
+      router.refresh();
+    })();
+  };
+
   /* ── the first-dish tour ─────────────────────────────────────────────
    *
    * Each step points at one real field on this screen and waits until it has
@@ -179,7 +245,6 @@ export function NewDishView({
 
   /** Which step is showing, or null when there is no tour. */
   const [at, setAt] = useState<number | null>(null);
-  const [refusal, setRefusal] = useState<string | null>(null);
 
   /** Lines naming an ingredient nobody has priced yet — what Check teaches about. */
   const unpriced = draft.lines.filter(
@@ -188,12 +253,11 @@ export function NewDishView({
       (match.kind === 'new' ||
         (match.kind === 'ingredient' && match.ingredient.purchasePrice === null)),
   ).length;
-  const tourState = { name, portions, counted, unpriced };
+  const tourState = { counted, unpriced };
   const step = at === null ? null : (TOUR[at] ?? null);
 
   const endTour = () => {
     setAt(null);
-    setRefusal(null);
     // Seen, whether finished or skipped: either way it has done its job, and
     // an owner who cancels without creating is not shown it all over again.
     try {
@@ -203,22 +267,22 @@ export function NewDishView({
     }
   };
 
+  /*
+   * Next always moves on. The tour shows; it does not make anybody type, and
+   * "Start typing" at the end hands the screen back at the top — the cursor in
+   * the dish name, the page scrolled to it — so filling it in starts where
+   * the screen starts. The tour never presses Create for anybody.
+   */
   const nextStep = () => {
     if (step === null || at === null) return;
-    const why = tourRefusal(step.id, tourState);
-    if (why !== null) {
-      setRefusal(why);
-      return;
-    }
     if (at >= TOUR.length - 1) {
       endTour();
-      // Left on the real button. The tour never presses Create for anybody:
-      // a tour control that quietly wrote a dish would be a side effect
-      // nobody agreed to.
-      document.querySelector<HTMLElement>('.nd-actions .btn-primary')?.focus();
+      const first = document.querySelector<HTMLElement>('[data-tour-anchor="name"] input');
+      const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      first?.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+      first?.focus({ preventScroll: true });
       return;
     }
-    setRefusal(null);
     setAt(at + 1);
   };
 
@@ -237,11 +301,6 @@ export function NewDishView({
     setAt(shouldTour({ recipeCount: recipes.length, forced: tourForced, skipped }) ? 0 : null);
   }, [tourForced, recipes.length]);
 
-  // The refusal is about what was missing. Once the owner types, it is stale.
-  useEffect(() => {
-    setRefusal(null);
-  }, [name, portions, counted]);
-
   // Bring the field into view and put the cursor where the step wants it.
   useEffect(() => {
     if (step === null) return;
@@ -249,13 +308,45 @@ export function NewDishView({
     if (anchor === null) return;
     const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     anchor.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
-    const typing = step.id === 'name' || step.id === 'portions' || step.id === 'section' || step.id === 'paste';
-    const target = typing
-      ? anchor.matches('input, select, textarea')
-        ? anchor
-        : anchor.querySelector<HTMLElement>('input, select, textarea')
-      : document.querySelector<HTMLElement>('.tn-next');
-    target?.focus({ preventScroll: true });
+    // On the note's button, so Enter moves on without hunting for it. The
+    // field is not focused: nobody is being asked to type yet.
+    document.querySelector<HTMLElement>('.tn-next')?.focus({ preventScroll: true });
+  }, [step]);
+
+  /*
+   * The note lines up with the lit tile above it.
+   *
+   * The tile is the field plus a 10px halo and a 2px outline, so its outer
+   * edge sits 12px outside the field on every side. The note is at least as
+   * wide as the tile — never narrower than a comfortable reading width — and
+   * shares one of its edges: the left, normally; the right, when starting at
+   * the left would run past the card, which is what happens to a narrow field
+   * at the end of a row. (Pulling it left to the card's edge instead left it
+   * lined up with nothing: measured, 124px left of a 160px Section tile.)
+   * Measured after layout and again on resize, because only the browser
+   * knows how wide the field ended up.
+   */
+  useLayoutEffect(() => {
+    if (step === null || step.id === 'check') return;
+    const anchor = document.querySelector<HTMLElement>(`[data-tour-anchor="${step.id}"]`);
+    const note = document.querySelector<HTMLElement>('.tn');
+    const row = note?.parentElement ?? null;
+    if (anchor === null || note === null || row === null) return;
+    const RING = 12;
+    const place = () => {
+      const a = anchor.getBoundingClientRect();
+      const r = row.getBoundingClientRect();
+      const width = Math.min(r.width + RING * 2, Math.max(a.width + RING * 2, 320));
+      let left = a.left - r.left - RING;
+      // Would run past the card: share the tile's right edge instead.
+      if (left + width > r.width + RING) left = a.right - r.left + RING - width;
+      left = Math.max(left, -RING);
+      note.style.marginInlineStart = `${String(Math.round(left))}px`;
+      note.style.inlineSize = `${String(Math.round(width))}px`;
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
   }, [step]);
 
   /*
@@ -283,8 +374,7 @@ export function NewDishView({
         index={at}
         total={TOUR.length}
         body={id === 'check' ? checkWords(tourState) : step.p}
-        refusal={refusal}
-        next={nextLabel(id, tourState)}
+        next={nextLabel(id)}
         onNext={nextStep}
         onSkip={endTour}
         id="first-dish-tour"
@@ -325,10 +415,7 @@ export function NewDishView({
             <button
               type="button"
               className="link tour-again"
-              onClick={() => {
-                setRefusal(null);
-                setAt(0);
-              }}
+              onClick={() => setAt(0)}
             >
               Show me how this works
             </button>
@@ -368,7 +455,10 @@ export function NewDishView({
             </div>
           </div>
           <div className="nd-fields">
-            <label className="nd-field nd-field-name" data-tour-anchor="name" data-tour-on={on('name')}>
+            <label className="nd-field nd-field-name">
+              {/* The tour lights this, not the label: the label stretches
+                  across the row, the field does not. */}
+              <span className="nd-core nd-core-name" data-tour-anchor="name" data-tour-on={on('name')}>
               <span className="nd-label">Dish name</span>
               <input
                 className="set-input"
@@ -386,9 +476,11 @@ export function NewDishView({
                   }
                 }}
               />
+              </span>
             </label>
             {note('name')}
-            <label className="nd-field" data-tour-anchor="portions" data-tour-on={on('portions')}>
+            <label className="nd-field">
+              <span className="nd-core nd-core-fit" data-tour-anchor="portions" data-tour-on={on('portions')}>
               <span className="nd-label">One batch makes</span>
               <div className="nd-portions">
                 <input
@@ -413,12 +505,14 @@ export function NewDishView({
                 />
                 <span className="nd-suffix">kg</span>
               </div>
+              </span>
               <span className="nd-help">
                 The weight is optional: give it for a batter or a gravy that other dishes use by the kilo.
               </span>
             </label>
             {note('portions')}
-            <label className="nd-field" data-tour-anchor="section" data-tour-on={on('section')}>
+            <label className="nd-field">
+              <span className="nd-core" data-tour-anchor="section" data-tour-on={on('section')}>
               <span className="nd-label">Section</span>
               <select
                 className="set-input"
@@ -431,6 +525,7 @@ export function NewDishView({
                   </option>
                 ))}
               </select>
+              </span>
             </label>
             {note('section')}
           </div>
@@ -472,11 +567,11 @@ export function NewDishView({
                 <ul className="nd-example-out">
                   <li>
                     <span className="figure">200 g</span> Onion at <span className="figure">5.08/kg</span> —{' '}
-                    <span className="nd-tag is-known">on your shelf</span>, this line at the rate you wrote
+                    <span className="nd-tag is-known">in your ingredients</span>, this line at the rate you wrote
                   </li>
                   <li>
                     <span className="figure">10 ml</span> Sesame oil —{' '}
-                    <span className="nd-tag is-known">on your shelf</span>
+                    <span className="nd-tag is-known">in your ingredients</span>
                   </li>
                   <li>
                     <span className="figure">0.5 kg</span> Rice —{' '}
@@ -594,7 +689,8 @@ export function NewDishView({
             </div>
           )}
 
-          <div className="nd-actions" data-tour-anchor="create" data-tour-on={on('create')}>
+          <div className="nd-actions">
+            <span className="nd-core-act" data-tour-anchor="create" data-tour-on={on('create')}>
             <button
               type="button"
               className="btn btn-primary btn-lg"
@@ -610,6 +706,7 @@ export function NewDishView({
             <Link href="/recipes" className="btn">
               Cancel
             </Link>
+            </span>
           </div>
           {note('create')}
           <p className="nd-then">
@@ -662,8 +759,8 @@ export function NewDishView({
               )}
               {draft.created.length > 0 && (
                 <span className="nd-chip is-new">
-                  <b className="figure">{draft.created.length}</b> new ingredient
-                  {draft.created.length === 1 ? '' : 's'} (no price yet)
+                  <b className="figure">{draft.created.length}</b> new —{' '}
+                  {draft.created.length === 1 ? 'goes' : 'go'} into your ingredients
                 </span>
               )}
               {draft.needing > 0 && (
@@ -693,18 +790,33 @@ export function NewDishView({
                         <span className="nd-tag is-linked">your {match.recipe.name}</span>
                       )}
                       {match.kind === 'ingredient' && (match.ingredient.purchasePrice !== null || line.rate !== null) && (
-                        <span className="nd-tag is-known">{line.rate !== null ? 'on your shelf, this line at your rate' : 'on your shelf'}</span>
+                        <span className="nd-tag is-known">{line.rate !== null ? "in your ingredients, at this line's rate" : 'in your ingredients'}</span>
                       )}
                       {match.kind === 'ingredient' && match.ingredient.purchasePrice === null && line.rate === null && (
-                        <span className="nd-tag is-open">on your shelf, no price yet</span>
+                        <span className="nd-tag is-open">in your ingredients, no price yet</span>
                       )}
                       {match.kind === 'new' && line.unit === null && line.rate !== null && (
                         <span className="nd-tag is-known">a cost, {String(line.qty ?? 0)} × {String(line.rate)}</span>
                       )}
                       {match.kind === 'new' && !(line.unit === null && line.rate !== null) && (
                         <span className={`nd-tag ${line.rate !== null ? 'is-known' : 'is-new'}`}>
-                          {line.rate !== null ? 'new, at the rate you wrote' : 'new ingredient'}
+                          {line.rate !== null
+                            ? 'new — added to your ingredients at this rate'
+                            : 'new — not in your ingredients yet'}
                         </span>
+                      )}
+                      {/* Priced here, now, rather than promised for later. */}
+                      {match.kind === 'new' && line.rate === null && (
+                        <button
+                          type="button"
+                          className="nd-add"
+                          onClick={() => {
+                            setAddFault(null);
+                            setAdding({ index: i, name: line.name === '' ? line.raw : line.name });
+                          }}
+                        >
+                          Add its price
+                        </button>
                       )}
                     </span>
 
@@ -771,15 +883,41 @@ export function NewDishView({
               </div>
             </div>
             <ul className="nd-legend">
-              <li><span className="nd-tag is-known">on your shelf</span> An ingredient you already buy. Its rate is known, so the line is costed.</li>
+              <li><span className="nd-tag is-known">in your ingredients</span> Already in your ingredients list with its price, so the line is costed straight away.</li>
               <li><span className="nd-tag is-linked">your batch</span> Something you make — a sambar, a masala. Its own sheet carries the cost.</li>
-              <li><span className="nd-tag is-new">new</span> Not seen before. It is added to the shelf without a rate, and you are asked for one later.</li>
+              <li><span className="nd-tag is-new">new</span> Not in your ingredients list yet. Press <b>Add its price</b> on the line to save it to the list with its pack and price — or leave it, and it is added without a price for later.</li>
             </ul>
           </section>
         )}
         </aside>
         </div>
       </div>
+
+      <Sheet
+        title={adding === null ? 'Add an ingredient' : `Add ${adding.name} to your ingredients`}
+        open={adding !== null}
+        onClose={() => setAdding(null)}
+      >
+        <p className="nd-add-lede">
+          It is not in your ingredients list yet. Give the pack you buy and what the pack
+          costs — a 5 kg bag at 200 — and it is saved to the list, so this dish and every
+          dish that uses it later is costed from it.
+        </p>
+        {addFault !== null ? (
+          <p className="nd-add-fault" role="alert">
+            {addFault}
+          </p>
+        ) : null}
+        <IngredientEntry
+          key={`${String(adding?.index ?? -1)}-${String(entryKey)}`}
+          rows={[]}
+          compact
+          requirePrice
+          busy={savingIngredient}
+          seedName={adding?.name ?? ''}
+          onAdd={saveNewIngredient}
+        />
+      </Sheet>
     </>
   );
 }

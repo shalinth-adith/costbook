@@ -1,25 +1,33 @@
 /**
- * The first dish, taught by entering it.
+ * The first dish, shown before it is entered.
  *
- * Not a tour of the screen. The usual version — a row of "Next → Next → Got
- * it" bubbles over an empty form — is the most-skipped pattern in software:
- * people click through to reach what they came for and remember nothing,
- * because they were reading about a field they were not yet using.
+ * Six steps, each lighting one real field on the screen and saying what it is
+ * for. Next always moves on: the tour shows where everything is, and filling
+ * it in is the owner's, at their own pace — the last button is "Start
+ * typing", which ends the tour and puts the cursor at the top.
  *
- * So each step points at one real field and waits until that field has been
- * answered. When the last step is done the owner has a real dish in front of
- * them, entered by their own hand, and every figure on it is theirs.
+ * An earlier version waited for each field to be answered before it would
+ * move on. The owner's call was that a tour must not force anybody — show,
+ * then let them do it — and that is the rule now.
  *
  * THE WORDS ARE SPENT UNEVENLY, ON PURPOSE. "Dish name" needs one line.
  * Portions needs the most care, because every cost per plate is divided by it
  * and a pot that serves forty typed as one makes every plate look forty times
- * dearer. Pack price is the other trap — the dashboard has already caught a
- * rate twenty-seven times every other ingredient's — and it is taught where it
- * bites, at the step that shows what has no price yet.
+ * dearer. Pack price is taught where it bites, at the step that shows which
+ * lines have no price yet.
+ *
+ * NO "SHELF". The owner reads the product as having an ingredients list,
+ * and so does every other screen; "on your shelf" was a word from inside the
+ * code that leaked onto this one.
  */
 
 export type TourStepId =
-  "name" | "portions" | "section" | "paste" | "check" | "create";
+  | "name"
+  | "portions"
+  | "section"
+  | "paste"
+  | "check"
+  | "create";
 
 export interface TourStep {
   readonly id: TourStepId;
@@ -59,20 +67,18 @@ export const TOUR: readonly TourStep[] = [
     card: 3,
     h: "Check what it read",
     // Replaced at runtime by `checkWords` — this is the fallback.
-    p: "Each line shows the amount, the unit and the name Costbook read, and where it came from.",
+    p: "Each line shows the amount, the unit and the name Costbook read, and whether it is already in your ingredients.",
   },
   {
     id: "create",
     card: 4,
     h: "Create it",
-    p: "That is everything. Press create and you land on its cost sheet — give it a selling price there, and Costbook tells you what each plate keeps.",
+    p: "When the fields are filled in, this creates the dish and takes you to its cost sheet — give it a selling price there and Costbook tells you what each plate keeps.",
   },
 ];
 
-/** What the screen knows, as far as the tour needs to. */
-export interface TourState {
-  readonly name: string;
-  readonly portions: number;
+/** What Check needs to know about the paste. */
+export interface CheckState {
   /** Lines Costbook has read out of the paste. */
   readonly counted: number;
   /** Lines naming an ingredient with no price yet. */
@@ -80,59 +86,26 @@ export interface TourState {
 }
 
 /**
- * Why this step cannot move on yet, or null if it can.
- *
- * A sentence rather than a disabled button. A greyed-out Next says nothing;
- * this says what is missing and how little is needed to supply it.
- */
-export function tourRefusal(id: TourStepId, s: TourState): string | null {
-  switch (id) {
-    case "name":
-      return s.name.trim() === "" ? "Type the dish's name first." : null;
-    case "portions":
-      return Number.isFinite(s.portions) && s.portions >= 1
-        ? null
-        : "Enter how many plates one batch makes.";
-    case "paste":
-      return s.counted === 0
-        ? "Paste or type at least one line — “200 g onion” is enough."
-        : null;
-    default:
-      return null;
-  }
-}
-
-/**
  * The words for Check, chosen by what is actually on the screen.
  *
- * Pack price is taught here and only here, because this is the first moment
- * an ingredient with no price is in front of the owner. Taught up front it is
- * a rule about a field they have not met; taught now it is about the line
- * they are looking at.
+ * With nothing pasted — the usual case in a click-through tour — it explains
+ * the three tags the lines will carry. With lines that have no price, it
+ * teaches pack price and points at the button that fixes it.
  */
-export function checkWords(s: TourState): string {
-  if (s.unpriced === 0) {
-    return "Every line is clear. The tag on each one says where it came from — something on your shelf, or a batch you already make.";
+export function checkWords(s: CheckState): string {
+  if (s.counted === 0) {
+    return "Every line you paste appears here with a tag: in your ingredients (already priced, so it is costed), your batch (a recipe you make), or new — not in your ingredients yet, with an Add its price button that saves it to the list with its pack and price.";
   }
-  const which =
-    s.unpriced === 1 ? "One line has" : `${String(s.unpriced)} lines have`;
-  return `${which} no price yet, and that is fine — it is added later. When you price it, give the pack you buy and what the pack costs: a 5 kg bag at 200. Costbook works out the rate. Typing a rate where it asks for a pack is how one ingredient ends up costing twenty-seven times the rest.`;
+  if (s.unpriced === 0) {
+    return "Every line is matched. The tag on each says where it comes from — already in your ingredients, or a batch you make.";
+  }
+  const which = s.unpriced === 1 ? "One line has" : `${String(s.unpriced)} lines have`;
+  return `${which} no price yet. On a new one, press Add its price: give the pack you buy and what the pack costs — a 5 kg bag at 200 — and it is saved to your ingredients list. Typing a rate where it asks for a pack is how one ingredient ends up costing twenty-seven times the rest.`;
 }
 
-/**
- * What the Next button says.
- *
- * On portions it names the figure being accepted. The field arrives holding a
- * default, and a default waved through is exactly the mistake that step
- * exists to stop — so the button makes the owner read the number back before
- * it lets them past, without refusing a default that happens to be right.
- */
-export function nextLabel(id: TourStepId, s: TourState): string {
-  if (id === "portions") {
-    return `Yes, ${String(s.portions)} ${s.portions === 1 ? "plate" : "plates"}`;
-  }
-  if (id === "create") return "Got it";
-  return "Next";
+/** What the button says. The last one hands the screen back. */
+export function nextLabel(id: TourStepId): string {
+  return id === "create" ? "Start typing" : "Next";
 }
 
 /**

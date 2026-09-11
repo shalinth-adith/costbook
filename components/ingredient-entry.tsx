@@ -37,6 +37,7 @@ export function IngredientEntry({
   seedName,
   onAdd,
   onOpenExisting,
+  requirePrice = false,
 }: {
   rows: readonly IngredientRow[];
   /** Inside a recipe there is less room, and no heading (A20). */
@@ -46,6 +47,12 @@ export function IngredientEntry({
   seedName?: string;
   onAdd: (ingredient: NewIngredient) => void;
   onOpenExisting?: (id: string) => void;
+  /**
+   * The Add button waits for a price. True where the ingredient is being added
+   * precisely so a dish can be costed — there, one saved without a price is
+   * the thing the owner was trying to avoid.
+   */
+  requirePrice?: boolean;
 }) {
   const m = useMoney();
   const nameField = useRef<HTMLInputElement>(null);
@@ -59,7 +66,8 @@ export function IngredientEntry({
   const packPrice = price.trim() === '' ? null : Number(price);
   const validQty = qty.trim() !== '' && Number.isFinite(packQty) && packQty > 0;
   const validPrice = packPrice === null || (Number.isFinite(packPrice) && packPrice >= 0);
-  const canCommit = name.trim() !== '' && validQty && validPrice;
+  const canCommit =
+    name.trim() !== '' && validQty && validPrice && (!requirePrice || packPrice !== null);
 
   const near = nearMatches(rows, name);
   const derived = deriveRate(validQty ? packQty : 0, unit, validPrice ? packPrice : null);
