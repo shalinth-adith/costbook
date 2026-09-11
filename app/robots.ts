@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+import { PUBLIC_PATHS } from "@/lib/landing";
+
 /**
  * What a crawler may look at.
  *
@@ -11,11 +13,27 @@ import type { MetadataRoute } from "next";
  * the landing page could not be crawled, because the file saying so was
  * behind a login.
  */
+/*
+ * Files, not screens. A crawler fetches these directly and there is nothing
+ * to allow or index about them — robots.txt listing itself is a small
+ * absurdity, and the social card is an image a page already points at.
+ */
+const FILES: readonly string[] = ["/robots.txt", "/sitemap.xml", "/opengraph-image"];
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: ["/", "/sign-in", "/sign-up", "/privacy", "/terms", "/contact"],
+      /*
+       * Taken from the gate rather than written out again.
+       *
+       * This was a third hand-kept copy of the same list, and like the sitemap
+       * it had already drifted: /about and /subprocessors were reachable
+       * signed out and absent from here. Three lists of one fact is three
+       * chances to forget. There is one now, in lib/landing.ts, and adding a
+       * page to it is the whole job.
+       */
+      allow: PUBLIC_PATHS.filter((p) => !FILES.includes(p)),
       disallow: [
         "/dashboard",
         "/recipes",

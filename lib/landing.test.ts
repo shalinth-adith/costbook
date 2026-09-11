@@ -115,4 +115,26 @@ describe("the sitemap and the gate say the same thing", () => {
         .toBe(true);
     }
   });
+
+  it("never tells a crawler it may read a page behind the gate", async () => {
+    /*
+     * robots.txt was a third copy of this list and had drifted the same way.
+     * It derives from PUBLIC_PATHS now, so what this guards is the direction
+     * that would actually hurt: a screen needing a session appearing under
+     * allow, which invites a crawler to index a redirect to sign-in.
+     */
+    const { default: robots } = await import("@/app/robots");
+    const rules = robots().rules as {
+      allow?: string[];
+      disallow?: string[];
+    };
+    for (const path of rules.allow ?? []) {
+      expect(isPublic(path), `robots.txt allows ${path}, which needs a session`)
+        .toBe(true);
+    }
+    for (const path of rules.disallow ?? []) {
+      expect(isPublic(path), `robots.txt disallows ${path}, which is public`)
+        .toBe(false);
+    }
+  });
 });
