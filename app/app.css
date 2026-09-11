@@ -1305,7 +1305,15 @@
 .lib-head, .lib-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 100px 116px 112px 92px 132px 100px 152px;
-  align-items: center; gap: 10px; padding-inline: 14px;
+  /*
+   * 16, not 10. A right-aligned column followed by a left-aligned one has
+   * nothing between its header and the next but this gap — every other
+   * boundary here has 18 to 64px of slack because the labels do not fill
+   * their columns, but that pair sits flush. At 10px the two ran together
+   * and read as one label: "FOOD COST STATUS", then "KEEPS UPDATED". The
+   * Dish column has four hundred pixels of slack to pay for it.
+   */
+  align-items: center; gap: 16px; padding-inline: 14px;
 }
 .lib-table.is-batches .lib-head,
 .lib-table.is-batches .lib-row {
@@ -2266,15 +2274,50 @@
 /* The confirm and result steps get the page's measure rather than a card's. */
 .ic, .ac { margin-inline: auto; }
 .wizard-body > .ic, .wizard-body > .ac { max-inline-size: none; }
-/* The Updated column narrows out with its own content (A19's rule). */
-.lib-table[data-updated='false'] .lib-head,
-.lib-table[data-updated='false'] .lib-row {
-  grid-template-columns: minmax(0, 1fr) 100px 116px 112px 92px 132px 152px;
+/*
+ * ── columns that narrow out with their content (A19) ─────────────────────
+ *
+ * INSIDE a min-width guard, and that is the whole point of this comment.
+ *
+ * Below 1180px the row stops being a grid of columns and becomes a card —
+ * `grid-template-columns: minmax(0, 1fr) auto` at line 1385. These rules are
+ * more specific than that one and sit below it, so unguarded they won every
+ * phone and laid a card out on seven desktop tracks: the dish name vanished
+ * and forty-seven elements ran off the side.
+ *
+ * The `[data-updated='false']` pair had the same fault and had simply never
+ * fired — it needs every dish to share a timestamp, which is true straight
+ * after an import and false on the book this was looked at on. Both are
+ * guarded now.
+ */
+@media (min-width: 1181px) {
+  /* Status narrows out the same way. An empty column with a header is width
+     spent on nothing, and its label ran into the one before it.
+
+     `:not(.is-batches)` is not tidiness. A batch table has no status column at
+     all, and these rules sit below the .is-batches grid at equal specificity —
+     so without it they would win on the batches tab and lay six cells into
+     seven tracks. */
+  .lib-table:not(.is-batches)[data-status='false'] .lib-head,
+  .lib-table:not(.is-batches)[data-status='false'] .lib-row {
+    grid-template-columns: minmax(0, 1fr) 100px 116px 112px 92px 100px 152px;
+  }
+  .lib-table:not(.is-batches)[data-status='false'][data-updated='false'] .lib-head,
+  .lib-table:not(.is-batches)[data-status='false'][data-updated='false'] .lib-row {
+    grid-template-columns: minmax(0, 1fr) 100px 116px 112px 92px 152px;
+  }
+
+  /* The Updated column narrows out with its own content (A19's rule). */
+  .lib-table[data-updated='false'] .lib-head,
+  .lib-table[data-updated='false'] .lib-row {
+    grid-template-columns: minmax(0, 1fr) 100px 116px 112px 92px 132px 152px;
+  }
+  .lib-table.is-batches[data-updated='false'] .lib-head,
+  .lib-table.is-batches[data-updated='false'] .lib-row {
+    grid-template-columns: minmax(0, 1fr) 100px 140px 132px 152px;
+  }
 }
-.lib-table.is-batches[data-updated='false'] .lib-head,
-.lib-table.is-batches[data-updated='false'] .lib-row {
-  grid-template-columns: minmax(0, 1fr) 100px 140px 132px 152px;
-}
+
 /* Never let a figure wrap. A date broken across two lines reads as damage. */
 .lib-updated, .lib-row .figure { white-space: nowrap; }
 
@@ -3962,13 +4005,19 @@
 .lib-keeps.is-near { background: var(--near-tint); color: var(--near-ink-strong); }
 .lib-keeps.is-over { background: var(--over-tint); color: var(--over-ink-strong); }
 /*
- * "no price" is the one state on this screen with something to do about it,
- * and it was the only one drawn in grey — so eight dishes waiting for the
- * number this product exists to produce whispered, while the three already
- * finished spoke up. It takes the accent as an outline: loud enough to
- * count, quiet enough not to read as an error, because a dish nobody has
- * priced yet is not a fault.
+ * The one state on this screen with something to do about it, and it used to
+ * be the only one drawn in grey — so the dishes still waiting for the number
+ * this product exists to produce whispered, while the finished ones spoke up.
+ *
+ * It sits under Menu price now, which is the column actually missing an
+ * answer. Accent text rather than a chip: a column of figures with one pill
+ * in it reads as a badge on a row, and this is a value, not a label.
  */
+.lib-ask {
+  color: var(--accent-deep);
+  font-weight: 600;
+  font-variant-numeric: normal;
+}
 .lib-keeps.is-incomplete {
   background: transparent;
   color: var(--accent-deep);

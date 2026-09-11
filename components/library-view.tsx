@@ -114,6 +114,21 @@ export function LibraryView({
     return dates.size > 1;
   }, [data.dishes, data.batches]);
 
+  /*
+   * A19's rule again, for the column beside Keeps.
+   *
+   * Status holds ARCHIVED or INCOMPLETE, and on a book where neither is true
+   * it is an empty column with a header — which read as "KEEPS STATUS", two
+   * labels running together with nothing underneath to separate them. Its
+   * content is also said elsewhere when it exists: an incomplete dish already
+   * shows a dash under Keeps, because a cost that is a floor gives no food
+   * cost to draw from.
+   */
+  const showStatus = useMemo(
+    () => data.dishes.some((r) => r.archived || !r.complete),
+    [data.dishes],
+  );
+
   const all = tab === 'dishes' ? data.dishes : data.batches;
   /*
    * Arrived from a dashboard tile: show that pile and nothing else, with a way
@@ -440,14 +455,24 @@ export function LibraryView({
                 </button>
 
                 {open ? (
-                  <div className={tab === 'dishes' ? 'lib-table' : 'lib-table is-batches'} data-updated={showUpdated}>
+                  <div className={tab === 'dishes' ? 'lib-table' : 'lib-table is-batches'} data-updated={showUpdated} data-status={showStatus}>
                     <div className="lib-head">
                       <span>{tab === 'dishes' ? 'Dish' : 'Batch'}</span>
                       <span className="end">Components</span>
                       <span className="end">{tab === 'dishes' ? 'Cost / portion' : 'Cost per unit made'}</span>
                       {tab === 'dishes' ? <span className="end">Menu price</span> : null}
-                      {tab === 'dishes' ? <span className="end">Food cost</span> : <span className="end">Used in</span>}
-                      {tab === 'dishes' ? <span>Status</span> : null}
+                      {/* "Food cost" over a chip reading "keeps AED 71" — the
+                          header named one figure and the column showed its
+                          inverse, so a reader doing the arithmetic in their
+                          head did it backwards.
+
+                          One word, because the column is the third of three
+                          money columns — what it costs, what a guest pays,
+                          what is left — and "Keeps of 100" wrapped onto two
+                          lines beside single-line neighbours. The dish screen
+                          says the long form in full over the same figure. */}
+                      {tab === 'dishes' ? <span className="end">Keeps</span> : <span className="end">Used in</span>}
+                      {tab === 'dishes' && showStatus ? <span>Status</span> : null}
                       {/* A19's rule: a column where every row says the same
                           thing teaches nothing. Right after an import, every
                           dish carries the same timestamp. */}
@@ -458,6 +483,7 @@ export function LibraryView({
                     {group.rows.map((row, i) => (
                       <Row
                         showUpdated={showUpdated}
+                        showStatus={showStatus}
                         today={today}
                         at={i}
                         key={row.id}
@@ -498,6 +524,7 @@ function Row({
   row,
   at,
   showUpdated,
+  showStatus,
   today,
   isDish,
   money,
@@ -505,6 +532,8 @@ function Row({
   onArchive,
 }: {
   showUpdated: boolean;
+  /** False when no dish on this book is archived or incomplete. */
+  showStatus: boolean;
   today: string;
   row: LibraryRow;
   /** Its place in the group, for the arrival stagger. */
@@ -537,15 +566,41 @@ function Row({
           : `${money.money(row.costPerUnit)} / ${row.outputUnit}`}
       </span>
 
-      {isDish ? <span className="figure end lib-dim">{money.money(row.sellingPrice)}</span> : null}
+      {/*
+        * The missing thing is said HERE, not two columns along.
+        *
+        * A dish with no selling price used to print a dash under Menu price
+        * and "no price" under Keeps — the same absence twice, and the louder
+        * of the two in the column that merely could not be computed rather
+        * than the one actually waiting for an answer. The input is the menu
+        * price, so that is where it asks.
+        */}
+      {isDish ? (
+        <span className="figure end lib-dim">
+          {row.sellingPrice === null ? (
+            <span className="lib-ask">no price</span>
+          ) : (
+            money.money(row.sellingPrice)
+          )}
+        </span>
+      ) : null}
 
       {isDish ? (
         <span className="end">
           {row.foodCostPercent === null ? (
-            <span className="lib-keeps is-incomplete">no price</span>
+            /* Derived, with nothing to derive from. A dash is the honest
+               answer; the reason is already said under Menu price, or by the
+               INCOMPLETE chip when it is the cost that is missing. */
+            <span className="figure lib-dim">{DASH}</span>
           ) : (
+            /* The figure alone. The chip said "keeps" under a header that
+               said "Food cost", which was the chip correcting the header;
+               now the header says it and the column can be read straight
+               down as numbers. The colour still carries on / near / over. */
             <span className={`lib-keeps is-${row.status}`}>
-              keeps <span className="figure">{money.symbol} {Math.round(100 - row.foodCostPercent)}</span>
+              <span className="figure">
+                {money.symbol} {Math.round(100 - row.foodCostPercent)}
+              </span>
             </span>
           )}
         </span>
@@ -555,7 +610,7 @@ function Row({
         </span>
       )}
 
-      {isDish ? (
+      {isDish && showStatus ? (
         <span className="lib-status">
           {row.archived ? (
             <span className="chip chip-incomplete">ARCHIVED</span>
