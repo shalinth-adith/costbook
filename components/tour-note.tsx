@@ -1,7 +1,5 @@
 "use client";
 
-import type { TourStep } from "@/lib/tour";
-
 /**
  * One step of the first-dish tour, sitting under the field it is about.
  *
@@ -22,13 +20,17 @@ export function TourNote({
   onNext,
   onSkip,
   id,
+  label,
 }: {
-  step: TourStep;
+  /** Any tour's step — this reads its heading and nothing else. */
+  step: { readonly h: string };
   index: number;
   total: number;
   /** The explanation, which for Check depends on what is on screen. */
   body: string;
   next: string;
+  /** What this tour is called, above the count. */
+  label: string;
   onNext: () => void;
   onSkip: () => void;
   id: string;
@@ -43,7 +45,7 @@ export function TourNote({
         aria-live="polite"
       >
         <p className="tn-count">
-          Your first dish · {index + 1} of {total}
+          {label} · {index + 1} of {total}
         </p>
         <p className="tn-h" id={`${id}-h`}>
           {step.h}

@@ -48,7 +48,21 @@ export const HOME_OF: Record<Exclude<WordmarkMode, 'inert'>, string> = {
   public: '/',
 };
 
-export function Wordmark({ mode = 'app', size = 18 }: { mode?: WordmarkMode; size?: number }) {
+export function Wordmark({
+  mode = 'app',
+  size = 18,
+  home: override,
+}: {
+  mode?: WordmarkMode;
+  size?: number;
+  /**
+   * Where home is, when the caller knows better than the mode does. A public
+   * page reached from inside the product sets this to the book: a signed-in
+   * reader pressing the mark on About wants their dishes, not the sales page
+   * they have already bought from.
+   */
+  home?: string | undefined;
+}) {
   const here = usePathname();
 
   if (mode === 'inert') {
@@ -60,7 +74,7 @@ export function Wordmark({ mode = 'app', size = 18 }: { mode?: WordmarkMode; siz
     );
   }
 
-  const home = HOME_OF[mode];
+  const home = override ?? HOME_OF[mode];
 
   // Already home: scroll to the top rather than reloading the page underneath
   // someone. Still a button, so it keeps the hit area, the focus ring and the

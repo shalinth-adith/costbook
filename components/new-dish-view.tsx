@@ -378,6 +378,7 @@ export function NewDishView({
         onNext={nextStep}
         onSkip={endTour}
         id="first-dish-tour"
+        label="Your first dish"
       />
     ) : null;
   const on = (id: TourStepId) => (step?.id === id ? '' : undefined);

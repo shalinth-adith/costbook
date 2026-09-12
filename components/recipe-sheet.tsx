@@ -528,6 +528,30 @@ export function RecipeSheet({
           >
             Make a copy
           </button>
+          {/*
+            * This dish, as a spreadsheet.
+            *
+            * Export from a cost sheet meant the prep card — a page for the
+            * wall — and the owner's report was exactly that: "for export they
+            * are taking the prep card, right?" A card is for cooking. The
+            * figures belong in a sheet somebody can sort, sum and send, and
+            * standing on the dish is where that is wanted. Same rows as the
+            * whole-book file, for one recipe, built on the server so there is
+            * never a second arithmetic to disagree with the screen.
+            */}
+          {canTake ? (
+            <a
+              className="btn"
+              href={`/recipes/export?kind=dish&id=${encodeURIComponent(recipe.id)}`}
+              download
+            >
+              <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+                <path d="M6 1.6v6.2M3.4 5.4 6 8l2.6-2.6M2 10h8" />
+              </svg>
+              Spreadsheet
+            </a>
+          ) : null}
           <div className="segmented" role="group" aria-label="View">
             <span className="segmented-item is-active">Costing</span>
             <button type="button" className="segmented-item" onClick={() => setView('prep')}>

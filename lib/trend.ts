@@ -4,7 +4,7 @@ import { type Recipe, pantryOf } from "@/core/recipe";
 import type { CostingModel } from "./costing";
 import { dashboard } from "./dashboard";
 import type { DishMeta } from "./data";
-import { monthBefore, shelfAtEndOf } from "./month";
+import { monthAfter, monthBefore, shelfAtEndOf } from "./month";
 import type { RateChange } from "./org";
 
 /**
@@ -33,6 +33,19 @@ export interface Trend {
   readonly dishes: number;
   /** Points of movement from the first month to the last. Null when flat or empty. */
   readonly percent: number | null;
+  /**
+   * Ingredients whose rate actually moved inside the window.
+   *
+   * Without this the card cannot tell two different situations apart, and it
+   * drew both the same way: six identical bars. One is "your suppliers held
+   * all half-year", which is a real and good answer. The other — the usual
+   * one on a young book — is "nothing has moved because no rate has ever
+   * been changed here, so all six months are today's rates copied across",
+   * which is not a measurement of anything. The owner's question about this
+   * card was "what does that mean?", and the honest answer needed this
+   * number.
+   */
+  readonly moved: number;
 }
 
 export interface TrendInput {
@@ -83,6 +96,20 @@ export function trendOf(input: TrendInput): Trend {
     ),
   }));
 
+  /*
+   * Rates that moved inside the window, counted from the history itself.
+   *
+   * A first rate is not a move: it is somebody finishing their costing, and
+   * `shelfAtEndOf` deliberately leaves it in place in every month rather than
+   * reporting a menu that rose from nothing. So `from !== null` here, exactly
+   * as the month card counts it.
+   */
+  const from = `${periods[0] ?? input.until}-01`;
+  const to = monthAfter(input.until);
+  const moved = Object.values(input.history).filter((changes) =>
+    changes.some((c) => c.from !== null && c.on >= from && c.on < to),
+  ).length;
+
   const first = months[0]?.total ?? 0;
   const last = months[months.length - 1]?.total ?? 0;
   const percent =
@@ -90,7 +117,7 @@ export function trendOf(input: TrendInput): Trend {
       ? null
       : round(((last - first) / first) * 100);
 
-  return { months, dishes: counted.length, percent };
+  return { months, dishes: counted.length, percent, moved };
 }
 
 const round = (n: number): number => Math.round(n * 100) / 100;

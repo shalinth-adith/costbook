@@ -26,6 +26,52 @@ export function TrendCard({ trend }: { trend: Trend }) {
   const last = trend.months[trend.months.length - 1];
   if (first === undefined || last === undefined) return null;
 
+  /*
+   * What the figure actually is, said on the card.
+   *
+   * It is one plate of each dish, added together — not the cost of a plate,
+   * and not the cost of a month's cooking. The card printed it bare six
+   * times and the owner's question was the right one: "15.94, 15.94, 15.94 —
+   * what does that mean?" A figure nobody can name is not a figure.
+   */
+  const together = `one plate of each of ${String(trend.dishes)} ${
+    trend.dishes === 1 ? "dish" : "dishes"
+  }, added together`;
+
+  /*
+   * Nothing has moved, so there is nothing to chart.
+   *
+   * Six identical bars are not a picture of stability; they are a picture of
+   * an arithmetic that had no input. Every month here was priced from today's
+   * shelf because no rate on it has ever been changed, and saying that is
+   * both shorter and true. It becomes a chart the day a rate moves.
+   */
+  if (trend.moved === 0) {
+    return (
+      <section className="tr">
+        <div className="tr-head">
+          <p className="mc-label">
+            {periodSaid(first.period)} to {periodSaid(last.period)}
+          </p>
+          <p className="mline">
+            <b>No rate has moved since {periodSaid(first.period)}</b>
+            <span className="mline-said">
+              so all six months are priced at today&rsquo;s rates
+            </span>
+          </p>
+        </div>
+        <p className="tr-flat">
+          <span className="figure tr-flat-fig">{m.money(last.total)}</span>
+          <span className="tr-flat-said">
+            is {together}. This becomes a half-year&rsquo;s shape the first
+            time one of your rates changes — it is drawn from the rate history,
+            so it will fill in behind you without anything to set up.
+          </span>
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section className="tr">
       <div className="tr-head">
@@ -39,8 +85,7 @@ export function TrendCard({ trend }: { trend: Trend }) {
               : `Plate costs ${trend.percent > 0 ? "up" : "down"} ${Math.abs(trend.percent).toFixed(1)}%`}
           </b>
           <span className="mline-said">
-            over {trend.dishes} {trend.dishes === 1 ? "dish" : "dishes"}{" "}
-            costable all six months
+            {together}, at each month&rsquo;s rates
           </span>
         </p>
       </div>

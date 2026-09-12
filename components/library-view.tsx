@@ -43,6 +43,7 @@ export function LibraryView({
   creating,
   only,
   onlySaid,
+  asked = '',
 }: {
   data: Library;
   pantry: Pantry;
@@ -71,11 +72,22 @@ export function LibraryView({
   }>;
   /** Whether `?new=1` is on the URL. The sheet has no opinion of its own. */
   creating: boolean;
+  /**
+   * A search this screen was sent here with, from `?q=`.
+   *
+   * The ingredients screen has always offered "See the recipes" under a rate,
+   * linking here with the ingredient's name on the URL. Nothing read it, so
+   * the link arrived at the unfiltered book and the operator retyped the word
+   * they had just pressed. It seeds the search box rather than locking it:
+   * the box is visibly filled, with its own Clear, so nobody is left holding
+   * a filtered list they cannot name.
+   */
+  asked?: string;
 }) {
   const m = useMoney();
   const [tab, setTab] = useState<'dishes' | 'batches'>('dishes');
   const [filter, setFilter] = useState<LibraryFilter>('all');
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(asked);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const [toast, setToast] = useState<ToastState | null>(null);
   /*

@@ -184,6 +184,26 @@ function fromMemory(): Book {
  * for the book and one query answers them all. It does not survive the
  * request, so an edit is never served from a stale copy.
  */
+/**
+ * Whether anyone is signed in, without loading their book.
+ *
+ * The public pages — About, Contact, the legal pages — are reachable from
+ * inside the product, because the wordmark leads to About. They offered
+ * "Sign in" and "Start free" to a person who was already signed in, which
+ * reads as having been thrown out: the owner's report was that pressing the
+ * logo meant signing in again. So they ask this, and offer the way back to
+ * the book instead.
+ *
+ * Its own call rather than `book()`, because these pages need one bit and
+ * not a café's whole shelf. `cache` keeps it to one round trip per request.
+ */
+export const signedIn = cache(async (): Promise<boolean> => {
+  if (!supabaseConfigured()) return false;
+  const supabase = await supabaseServer();
+  const { data } = await supabase.auth.getUser();
+  return data.user !== null;
+});
+
 export const book = cache(async (): Promise<Book> => {
   if (!supabaseConfigured()) return fromMemory();
 

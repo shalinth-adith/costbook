@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { signedIn } from "@/lib/book";
+
 import { Wordmark } from "./wordmark";
 
 /**
@@ -17,10 +19,24 @@ import { Wordmark } from "./wordmark";
  * hero carries one already and two at once is a competition; these pages
  * have no hero, so the one ask is offered from the first line.
  */
-export function PublicBar() {
+export async function PublicBar() {
+  /*
+   * These pages are reached from inside the product as well as from outside
+   * it: the wordmark in the application leads to About. A person who is
+   * already signed in was then offered "Sign in" and "Start free", which does
+   * not read as an invitation — it reads as having been signed out. The
+   * owner's report was exactly that: pressing the logo meant signing in
+   * again.
+   *
+   * So the bar asks. Signed in, the only ways out of the product stay the
+   * ones the product owns — the account menu's Sign out — and this offers the
+   * way back to the book instead.
+   */
+  const inside = await signedIn();
+
   return (
     <header className="pb">
-      <Wordmark mode="public" />
+      <Wordmark mode="public" home={inside ? "/dashboard" : undefined} />
       <nav className="pb-links" aria-label="Site">
         <Link href="/about" className="pb-link pb-tight">
           What this is
@@ -28,12 +44,20 @@ export function PublicBar() {
         <Link href="/contact" className="pb-link pb-wide">
           Contact
         </Link>
-        <Link href="/sign-in" className="pb-link">
-          Sign in
-        </Link>
-        <Link href="/sign-up" className="pb-cta">
-          Start free
-        </Link>
+        {inside ? (
+          <Link href="/dashboard" className="pb-cta">
+            Back to your book
+          </Link>
+        ) : (
+          <>
+            <Link href="/sign-in" className="pb-link">
+              Sign in
+            </Link>
+            <Link href="/sign-up" className="pb-cta">
+              Start free
+            </Link>
+          </>
+        )}
       </nav>
     </header>
   );

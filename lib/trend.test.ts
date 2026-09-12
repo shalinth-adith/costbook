@@ -127,3 +127,62 @@ describe("plate costs, month by month", () => {
     expect(out.percent).toBeNull();
   });
 });
+
+describe("whether anything actually moved", () => {
+  it("counts a rate that moved inside the window", () => {
+    const out = trendOf({
+      recipes: [dish("a", ["rice"])],
+      ingredients: [ing("rice", 40)],
+      meta: meta(["a"]),
+      model: DEFAULT_MODEL,
+      history: { rice: [change(30, 40, "2026-07-12")] },
+      until: "2026-08",
+      months: 3,
+    });
+    expect(out.moved).toBe(1);
+  });
+
+  it("does not count a first rate as a move", () => {
+    /*
+     * Somebody finishing their costing is not a supplier raising a price.
+     * The card reads this to decide whether it has a half-year to draw or
+     * only today's rates copied across six months.
+     */
+    const out = trendOf({
+      recipes: [dish("a", ["rice"])],
+      ingredients: [ing("rice", 40)],
+      meta: meta(["a"]),
+      model: DEFAULT_MODEL,
+      history: { rice: [change(null, 40, "2026-07-12")] },
+      until: "2026-08",
+      months: 3,
+    });
+    expect(out.moved).toBe(0);
+  });
+
+  it("does not count a move that happened before the window", () => {
+    const out = trendOf({
+      recipes: [dish("a", ["rice"])],
+      ingredients: [ing("rice", 40)],
+      meta: meta(["a"]),
+      model: DEFAULT_MODEL,
+      history: { rice: [change(30, 40, "2026-01-09")] },
+      until: "2026-08",
+      months: 3,
+    });
+    expect(out.moved).toBe(0);
+  });
+
+  it("is nought on a book whose rates have never been touched", () => {
+    const out = trendOf({
+      recipes: [dish("a", ["rice"])],
+      ingredients: [ing("rice", 40)],
+      meta: meta(["a"]),
+      model: DEFAULT_MODEL,
+      history: {},
+      until: "2026-08",
+      months: 3,
+    });
+    expect(out.moved).toBe(0);
+  });
+});

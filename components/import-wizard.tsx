@@ -1,7 +1,7 @@
 'use client';
 
 import { perItemRowsFrom } from '@/core/formula-hints';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import type { Ingredient } from '@/core/ingredient';
@@ -28,6 +28,14 @@ import { qty } from '@/lib/format';
 import { Sheet } from './sheet';
 import { ImpactTable } from './impact-table';
 import { useMoney } from './currency-provider';
+import { TourNote } from './tour-note';
+import {
+  IMPORT_TOUR,
+  IMPORT_TOUR_SKIPPED_KEY,
+  type ImportStepId,
+  importNextLabel,
+  shouldImportTour,
+} from '@/lib/import-tour';
 
 /*
  * A37 inverts the default path. Everything comes in, then one question a chef
@@ -105,6 +113,8 @@ export function ImportWizard({
   returning = false,
   onUndo,
   onBegin,
+  hasImported = false,
+  tourForced = false,
 }: {
   existing: readonly Ingredient[];
   /** Dishes already in the book. Named on the sheet, they are linked to, never re-imported. */
@@ -154,12 +164,79 @@ export function ImportWizard({
    * nothing at all.
    */
   onBegin?: ((filename: string, mapping: RememberedMap) => Promise<{ importId: string | null }>) | undefined;
+  /** Whether this account has ever brought a sheet in. Decides the tour. */
+  hasImported?: boolean | undefined;
+  /** `?tour=1`: run it whatever the account has done. */
+  tourForced?: boolean | undefined;
 }) {
   const m = useMoney();
   const router = useRouter();
   const fileField = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState<Step>('upload');
+
+  /* ── the import tour ──────────────────────────────────────────────────
+   *
+   * Four steps over the screen as it stands, before a file is chosen. The
+   * questions somebody has with their own price list in front of them are
+   * not about this interface, they are about their file — so the tour lights
+   * the four answers already on this page and says them in order. Next always
+   * moves on; nothing here uploads anything. See lib/import-tour.ts.
+   */
+  const [at, setAt] = useState<number | null>(null);
+  const tourStep = at === null ? null : (IMPORT_TOUR[at] ?? null);
+
+  const endTour = () => {
+    setAt(null);
+    try {
+      window.localStorage.setItem(IMPORT_TOUR_SKIPPED_KEY, '1');
+    } catch {
+      // A browser refusing storage is not a reason to trap anybody in a tour.
+    }
+  };
+
+  /** Next always moves on. The last step hands the screen back, unpressed. */
+  const nextTourStep = () => {
+    if (at === null) return;
+    if (at >= IMPORT_TOUR.length - 1) {
+      endTour();
+      // The way in is offered, never taken: uploading is theirs to decide.
+      window.setTimeout(() => fileField.current?.focus(), 0);
+      return;
+    }
+    setAt(at + 1);
+  };
+
+  useEffect(() => {
+    let skipped = false;
+    try {
+      skipped = window.localStorage.getItem(IMPORT_TOUR_SKIPPED_KEY) === '1';
+    } catch {
+      skipped = false;
+    }
+    setAt(shouldImportTour({ hasImported, forced: tourForced, skipped }) ? 0 : null);
+  }, [hasImported, tourForced]);
+
+  // The tour only describes the screen before a file is read. Reading one ends it.
+  useEffect(() => {
+    if (step !== 'upload') setAt(null);
+  }, [step]);
+
+  const on = (id: ImportStepId) => (tourStep?.id === id ? '' : undefined);
+  const note = (id: ImportStepId) =>
+    tourStep === null || tourStep.id !== id || at === null ? null : (
+      <TourNote
+        step={tourStep}
+        index={at}
+        total={IMPORT_TOUR.length}
+        body={tourStep.p}
+        next={importNextLabel(tourStep.id)}
+        onNext={nextTourStep}
+        onSkip={endTour}
+        id="import-tour"
+        label="Bringing in your sheet"
+      />
+    );
   const [fileName, setFileName] = useState('');
   const [sheetName, setSheetName] = useState('');
   const [rows, setRows] = useState<readonly (readonly string[])[]>([]);
@@ -471,6 +548,11 @@ export function ImportWizard({
               ? 'Bring in the sheet you already keep. Costbook reads it and never alters it.'
               : `${fileName} · sheet ${sheetName} · ${rows.length} rows`}
           </p>
+          {step === 'upload' && at === null ? (
+            <button type="button" className="link tour-again" onClick={() => setAt(0)}>
+              Show me how this works
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -610,6 +692,8 @@ export function ImportWizard({
 
             <div className="rx-empty-grid">
               <label
+                data-tour-anchor="file"
+                data-tour-on={on('file')}
                 className={`rx-drop is-target${dragging ? ' is-over' : ''}`}
                 onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
                 onDragLeave={() => setDragging(false)}
@@ -648,6 +732,7 @@ export function ImportWizard({
                 <span className="rx-drop-formats figure">.xlsx · .xls · .csv</span>
                 <span className="rx-drop-trust">Your file is read, never altered</span>
               </label>
+              {note('file')}
 
               <div className="rx-empty-side">
                 {/* A sheet that won't parse. Not a mistake on their part. */}
@@ -669,7 +754,7 @@ export function ImportWizard({
                   </p>
                 </section>
 
-                <section className="rx-panel">
+                <section className="rx-panel" data-tour-anchor="read" data-tour-on={on('read')}>
                   <h2 className="rx-panel-h">Then one question</h2>
                   <p className="rx-panel-copy">
                     We read one of your own rows back as a sentence. If it reads right, everything
@@ -677,14 +762,28 @@ export function ImportWizard({
                     minute.
                   </p>
                 </section>
+                {note('read')}
 
-                <section className="rx-panel">
+                <section className="rx-panel" data-tour-anchor="land" data-tour-on={on('land')}>
                   <h2 className="rx-panel-h">Nothing lands until you say so</h2>
                   <p className="rx-panel-copy">
-                    You see what would arrive before any of it does, and the whole import can be put
-                    back for seven days afterwards.
+                    You see what would arrive before any of it does: how many ingredients are new,
+                    how many you already have, and every rate that would change.
                   </p>
                 </section>
+                {note('land')}
+
+                {/* The promise that removes the fear, said on its own rather
+                    than as a clause at the end of another sentence. It is the
+                    reason somebody is willing to try this at all. */}
+                <section className="rx-panel" data-tour-anchor="undo" data-tour-on={on('undo')}>
+                  <h2 className="rx-panel-h">And it can be put back</h2>
+                  <p className="rx-panel-copy">
+                    For seven days the whole import can be undone in one press, rates included.
+                    Nothing you have already costed is lost by trying it.
+                  </p>
+                </section>
+                {note('undo')}
               </div>
             </div>
           </div>

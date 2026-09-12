@@ -13,8 +13,15 @@ export const dynamic = 'force-dynamic';
  * A6 and A7. The wedge: upload the sheet you already keep and see your menu
  * costed, rather than retyping forty recipes (PRD 3).
  */
-export default async function ImportPage() {
+export default async function ImportPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tour?: string }>;
+}) {
   await requireSetup();
+  // `?tour=1` runs the import tour on any account: the way back in for
+  // somebody who skipped it, and how it is shown to anyone who asks.
+  const { tour } = (await searchParams) ?? {};
 
   const b = await book();
   const code = b.org.currency;
@@ -103,6 +110,8 @@ export default async function ImportPage() {
           returning={b.ingredients.length > 0}
           onUndo={undoLastImport}
           onBegin={beginImport}
+          hasImported={last !== null}
+          tourForced={tour === '1'}
         />
       </CurrencyProvider>
     </AppShell>

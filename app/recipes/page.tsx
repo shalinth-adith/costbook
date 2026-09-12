@@ -46,6 +46,8 @@ export default async function RecipesPage({
   const q = (await searchParams) ?? {};
   const creating = q['new'] === '1';
   const show = typeof q['show'] === 'string' ? q['show'] : null;
+  // What the ingredients screen sends under "See the recipes".
+  const asked = typeof q['q'] === 'string' ? q['q'] : '';
 
   const b = await book();
   const model = await orgModel();
@@ -91,6 +93,7 @@ export default async function RecipesPage({
     >
       <CurrencyProvider code={b.org.currency}>
         <LibraryView
+          asked={asked}
           data={data}
           pantry={p}
           target={model.foodCostTarget}

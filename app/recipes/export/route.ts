@@ -88,24 +88,63 @@ export async function GET(request: Request): Promise<Response> {
     );
   }
 
+  const asked = new URL(request.url).searchParams;
+  /*
+   * Three kinds, and the third is one dish.
+   *
+   * The two files above are the whole book, which is what an accountant or a
+   * new head chef is sent. Standing on one cost sheet and wanting that dish
+   * in a spreadsheet is a different and more common moment — the owner's
+   * words were that export meant the prep card, because from a dish there was
+   * nothing else. It is the SOP rows for a single recipe, so the file a
+   * kitchen gets for one dish is the same file it gets for all of them.
+   */
   const kind =
-    new URL(request.url).searchParams.get("kind") === "sop" ? "sop" : "menu";
+    asked.get("kind") === "sop"
+      ? "sop"
+      : asked.get("kind") === "dish"
+        ? "dish"
+        : "menu";
+  const dishId = asked.get("id");
+  const only =
+    kind === "dish" ? b.recipes.find((r) => r.id === dishId) : undefined;
+  if (kind === "dish" && only === undefined) {
+    return new Response("No such dish in your book.\n", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
   const shelf = await pantry();
   const model = await orgModel();
 
   const rows: readonly string[][] =
-    kind === "sop" ? sopRows(b, shelf) : menuRows(b, shelf, model);
+    kind === "dish"
+      ? sopRows({ ...b, recipes: only === undefined ? [] : [only] }, shelf)
+      : kind === "sop"
+        ? sopRows(b, shelf)
+        : menuRows(b, shelf, model);
 
   const today = new Date().toISOString().slice(0, 10);
   const stem =
     b.org.name.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") ||
     "costbook";
-  const name = `${stem}-${kind === "sop" ? "sop" : "menu"}-${today}.csv`;
+  const dishStem =
+    only === undefined
+      ? ""
+      : only.name.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const name =
+    kind === "dish"
+      ? `${dishStem || "dish"}-${today}.csv`
+      : `${stem}-${kind === "sop" ? "sop" : "menu"}-${today}.csv`;
 
   // The currency is named in the preamble rather than printed against every
   // figure: a spreadsheet sums a number and not "AED 12.40".
   const preamble = `${b.org.name} — ${
-    kind === "sop" ? "every dish, opened all the way down" : "the menu, costed"
+    kind === "dish"
+      ? `${only?.name ?? "one dish"}, opened all the way down`
+      : kind === "sop"
+        ? "every dish, opened all the way down"
+        : "the menu, costed"
   } — every figure in ${b.org.currency}\n`;
 
   /*
