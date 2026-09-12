@@ -3207,39 +3207,6 @@
   .dh-ring { grid-template-columns: 1fr; justify-items: start; }
 }
 
-/* ── signals ───────────────────────────────────────────────────────── */
-
-.sig {
-  list-style: none; margin: 0 0 var(--sp-5); padding: 0 var(--sp-6);
-  display: flex; flex-wrap: wrap; gap: 8px; max-width: none;
-}
-.sig-item {
-  display: inline-flex; align-items: center; gap: 8px;
-  font-size: 12.5px; font-weight: 500;
-  background: var(--surface-card);
-  border: 1px solid var(--border-hairline);
-  border-radius: 999px; padding: 6px 12px 6px 9px;
-  color: var(--text-primary);
-  animation: dc-arrive 420ms var(--ease-enter) both;
-}
-.sig-dot { width: 8px; height: 8px; border-radius: 50%; position: relative; flex: none; }
-.sig-item.ink-on .sig-dot { background: var(--on-ink); }
-.sig-item.ink-near .sig-dot { background: var(--near-ink); }
-.sig-item.ink-over .sig-dot { background: var(--over-ink); }
-.sig-item.ink-quiet .sig-dot { background: var(--border-control); }
-.sig-item.ink-over { border-color: var(--over-edge); background: var(--over-tint); }
-.sig-item.ink-near.is-alert { border-color: var(--near-edge); background: var(--near-tint); }
-
-/* Breathing, for a signal that needs somebody. Slower than the live dot, so
-   the two do not beat against each other, and a halo rather than a flash. */
-.sig-item.is-alert .sig-dot::after {
-  content: ""; position: absolute; inset: -3px; border-radius: 50%;
-  border: 2px solid currentColor; opacity: 0;
-  animation: live-breathe 2.8s var(--ease-enter) infinite;
-}
-.sig-item.ink-near.is-alert .sig-dot { color: var(--near-ink); }
-.sig-item.ink-over.is-alert .sig-dot { color: var(--over-ink); }
-
 /* ── cards, alive ──────────────────────────────────────────────────── */
 
 .dc-card { position: relative; padding-block-start: var(--sp-4); }
@@ -4659,10 +4626,20 @@
  * all; without it the property is simply ignored, which is the quiet kind of
  * fix that looks done and is not.
  */
+/*
+ * A row with two ends, not an inline control.
+ *
+ * `.bw-row` is `display: flex` with `justify-content: space-between`, and it
+ * was in the list below — which sets `display: inline-flex` and, being later,
+ * won. Two rows then sat on one line with the space-between gone, printing
+ * "Upma keeps AED 75Coconut Chutney keeps AED 71" on the dashboard. It takes
+ * the hit area from its own rule and keeps its own display.
+ */
+.bw-row { min-block-size: 24px; }
+
 .me-name,
 .lib-link,
 .foot-legal a,
-.bw-row,
 button.link,
 a.link {
   min-block-size: 24px;
@@ -4901,6 +4878,11 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
   font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text-tertiary);
 }
 .td-side > * + * { border-block-start: 1px solid var(--border-hairline); padding-block-start: var(--sp-4); }
+
+/* Nothing moved this month, so the side carries one short block. A narrow
+   column holding two lines beside a tall list of actions reads as a gap where
+   something failed to load; it goes under the actions instead. */
+.td-band.is-thin { grid-template-columns: minmax(0, 1fr); gap: var(--sp-5); }
 
 @media (max-width: 1100px) {
   .dh-row, .td-band { grid-template-columns: 1fr; }

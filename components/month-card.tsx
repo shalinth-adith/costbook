@@ -25,19 +25,15 @@ export function MonthCard({ month }: { month: MonthCompare }) {
   const said = periodSaid(month.period);
   const against = periodSaid(month.against);
 
-  if (month.rateMoves === 0) {
-    return (
-      <section className="mc">
-        <p className="mc-label">
-          {said}, against {against}
-        </p>
-        <p className="mline">
-          <b>No supplier price moved.</b>
-          <span className="mline-said">plate costs held · every rate current</span>
-        </p>
-      </section>
-    );
-  }
+  /*
+   * Nothing moved, so this card has nothing the page does not already say.
+   *
+   * "No supplier price moved" was on the dashboard four times over: here, in
+   * the trend card, in the signals strip and under What changed lately. That
+   * is where it lives now — one fact, one place — and this card comes back
+   * the month something actually happens.
+   */
+  if (month.rateMoves === 0) return null;
 
   if (
     month.percent === null ||

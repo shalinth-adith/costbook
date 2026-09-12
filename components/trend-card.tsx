@@ -39,38 +39,16 @@ export function TrendCard({ trend }: { trend: Trend }) {
   }, added together`;
 
   /*
-   * Nothing has moved, so there is nothing to chart.
+   * Nothing has moved, so there is nothing to show.
    *
-   * Six identical bars are not a picture of stability; they are a picture of
-   * an arithmetic that had no input. Every month here was priced from today's
-   * shelf because no rate on it has ever been changed, and saying that is
-   * both shorter and true. It becomes a chart the day a rate moves.
+   * This used to draw six identical bars, then — after the owner asked what
+   * they meant — sixty-five words explaining that they meant nothing yet.
+   * Both were wrong. A book where no rate has ever been changed has no
+   * half-year to chart, and the dashboard already says "no supplier price
+   * moved" under What changed lately. The card appears the day a rate moves,
+   * which is the day it has something to say.
    */
-  if (trend.moved === 0) {
-    return (
-      <section className="tr">
-        <div className="tr-head">
-          <p className="mc-label">
-            {periodSaid(first.period)} to {periodSaid(last.period)}
-          </p>
-          <p className="mline">
-            <b>No rate has moved since {periodSaid(first.period)}</b>
-            <span className="mline-said">
-              so all six months are priced at today&rsquo;s rates
-            </span>
-          </p>
-        </div>
-        <p className="tr-flat">
-          <span className="figure tr-flat-fig">{m.money(last.total)}</span>
-          <span className="tr-flat-said">
-            is {together}. This becomes a half-year&rsquo;s shape the first
-            time one of your rates changes — it is drawn from the rate history,
-            so it will fill in behind you without anything to set up.
-          </span>
-        </p>
-      </section>
-    );
-  }
+  if (trend.moved === 0) return null;
 
   return (
     <section className="tr">

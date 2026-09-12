@@ -428,59 +428,15 @@ export function DashboardView({
           : "over";
 
   /*
-   * The signals strip. Each is one true thing that is either fine or needs
-   * somebody, and the ones that need somebody breathe. This is the part of
-   * the page that reads as a till rather than a report.
+   * THE SIGNALS STRIP IS GONE, AND IT IS NOT COMING BACK AS A STRIP.
+   *
+   * Five chips: "No dish is sold at a loss", "1 under your target", "8
+   * waiting for a price", "No supplier price moved in 30 days", "Every price
+   * checked recently". The first three are the count cards below, restated in
+   * words — and the cards are doors, which the chips were not. The last two
+   * are What changed lately. So the strip said nothing of its own; it only
+   * made the page longer before the part that names something to do.
    */
-  const signals: readonly {
-    readonly key: string;
-    readonly said: string;
-    readonly ink: "on" | "near" | "over" | "quiet";
-    readonly alert: boolean;
-  }[] = [
-    {
-      key: "losing",
-      said:
-        piles.losing.length === 0
-          ? "No dish is sold at a loss"
-          : `${String(piles.losing.length)} sold at a loss`,
-      ink: piles.losing.length === 0 ? "on" : "over",
-      alert: piles.losing.length > 0,
-    },
-    {
-      key: "thin",
-      said:
-        piles.thin.length === 0
-          ? "Every costed dish hits your target"
-          : `${String(piles.thin.length)} under your target`,
-      ink: piles.thin.length === 0 ? "on" : "near",
-      alert: piles.thin.length > 0,
-    },
-    {
-      key: "unpriced",
-      said: `${String(piles.unpriced.length)} waiting for a price`,
-      ink: piles.unpriced.length === 0 ? "on" : "quiet",
-      alert: false,
-    },
-    {
-      key: "moved",
-      said:
-        moved.moves.length === 0
-          ? `No supplier price moved in ${String(moved.days)} days`
-          : `${String(moved.moves.length)} supplier prices moved`,
-      ink: moved.moves.length === 0 ? "on" : "near",
-      alert: moved.impact.crossCount > 0,
-    },
-    {
-      key: "stale",
-      said:
-        stale.length === 0
-          ? "Every price checked recently"
-          : `${String(stale.length)} prices not checked in ${String(staleAfterDays)}+ days`,
-      ink: stale.length === 0 ? "on" : "quiet",
-      alert: false,
-    },
-  ];
 
   return (
     <>
@@ -568,23 +524,10 @@ export function DashboardView({
       <TrendCard trend={trend} />
       </div>
 
-      <ul className="sig" aria-label="Signals">
-        {signals.map((s, i) => (
-          <li
-            key={s.key}
-            className={`sig-item ink-${s.ink}${s.alert ? " is-alert" : ""}`}
-            style={{ animationDelay: `${String(240 + i * 70)}ms` }}
-          >
-            <span className="sig-dot" aria-hidden="true" />
-            {s.said}
-          </li>
-        ))}
-      </ul>
-
       {/* ── do this today ─────────────────────────────────────────── */}
 
       {/* What to do, and beside it what has been happening. */}
-      <div className="td-band">
+      <div className={`td-band${month.rateMoves === 0 ? ' is-thin' : ''}`}>
       <section className="td">
         <div className="td-head">
           <h2 className="dash-h">Do this today</h2>
@@ -797,26 +740,21 @@ export function DashboardView({
         <h2 className="dash-h">Your menu, by what sells</h2>
         {engineered === null ? (
           <>
-            <p className="dash-lede">
-              Paste {periodSaid(salesPeriod)}&rsquo;s sales and each dish lands in one of these.
-            </p>
             {/*
-              * The four groups, empty, before any sales exist.
+              * One sentence, not four empty cards.
               *
               * A button on its own answered "what happens if I paste?" with
-              * nothing. The groups are what happens: every dish is sorted by
-              * how often it sells against what a plate leaves, and each group
-              * carries the one thing to do about it.
+              * nothing, so the four groups were drawn empty, each repeating
+              * "Fills in from your sales" — sixty words to say there is
+              * nothing here yet. Naming the four groups in the sentence
+              * answers the same question in one line, and the cards arrive
+              * full the moment there are sales to fill them.
               */}
-            <div className="me-grid is-empty" aria-label="What the sales will show">
-              {(["push", "sells_leaves_little", "leaves_sells_poorly", "neither"] as const).map((g) => (
-                <div key={g} className={`me-group is-${g}`}>
-                  <h3 className="me-h">{GROUP_SAID[g].title}</h3>
-                  <p className="me-do">{GROUP_SAID[g].doThis}</p>
-                  <p className="me-none">Fills in from your sales.</p>
-                </div>
-              ))}
-            </div>
+            <p className="dash-lede">
+              Paste {periodSaid(salesPeriod)}&rsquo;s sales and every dish lands in one of four
+              groups: {GROUP_SAID.push.title.toLowerCase()}, {GROUP_SAID.sells_leaves_little.title.toLowerCase()},{" "}
+              {GROUP_SAID.leaves_sells_poorly.title.toLowerCase()}, and {GROUP_SAID.neither.title.toLowerCase()}.
+            </p>
             {!salesOpen && (
               <button type="button" className="btn" onClick={() => setSalesOpen(true)}>
                 Add {periodSaid(salesPeriod)}&rsquo;s sales
@@ -828,9 +766,7 @@ export function DashboardView({
             <p className="dash-lede">
               In {periodSaid(engineered.period)} the menu left{" "}
               <b className="figure">{m.withSymbol(Math.round(engineered.leftTotal))}</b> after plate
-              costs, across {engineered.dishes.length} dishes with a figure. The lines are the
-              menu&rsquo;s own averages: {Math.round(engineered.meanSold)} sold and{" "}
-              {m.withSymbol(engineered.meanLeaves)} left a plate.{" "}
+              costs, across {engineered.dishes.length} dishes with a figure.{" "}
               <button type="button" className="link" onClick={() => setSalesOpen(true)}>
                 Paste another month
               </button>
