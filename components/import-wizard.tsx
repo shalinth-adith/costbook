@@ -222,6 +222,25 @@ export function ImportWizard({
     if (step !== 'upload') setAt(null);
   }, [step]);
 
+  /*
+   * Bring the step to the reader.
+   *
+   * The panels run down the side of a tall screen, so the note for the last
+   * one rendered below the fold: the panel lit, and the words explaining it
+   * were somewhere further down the page. Focusing Next scrolls it into view
+   * and puts the keyboard on the control that moves on — the same thing the
+   * first-dish tour does, for the same reason.
+   */
+  useEffect(() => {
+    if (at === null) return;
+    const id = window.setTimeout(() => {
+      const next = document.querySelector<HTMLButtonElement>('.tn .tn-next');
+      next?.focus({ preventScroll: true });
+      next?.closest('.tn')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 40);
+    return () => { window.clearTimeout(id); };
+  }, [at]);
+
   const on = (id: ImportStepId) => (tourStep?.id === id ? '' : undefined);
   const note = (id: ImportStepId) =>
     tourStep === null || tourStep.id !== id || at === null ? null : (

@@ -4857,6 +4857,17 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
   line-height: 1; padding-block: 6px 5px;
 }
 
+/* The card with no chart in it: a book whose rates have never moved.
+   The figure and the sentence are separate lines, not a run of inline spans —
+   written as one line they printed "15.94is one plate of each", and the
+   paragraph, having no measure of its own, ran out over the column beside it. */
+.tr-flat { margin: 0; display: grid; gap: 4px; min-inline-size: 0; }
+.tr-flat-fig { font-size: 21px; font-weight: 600; color: var(--text-primary); line-height: 1.2; }
+.tr-flat-said {
+  font-size: 12.5px; color: var(--text-secondary); line-height: 1.55;
+  text-wrap: pretty; overflow-wrap: anywhere;
+}
+
 /* The four sales groups, before there are sales. */
 .me-grid.is-empty .me-group { border-style: dashed; }
 .me-grid.is-empty .me-none { color: var(--text-quiet); }
