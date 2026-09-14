@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { MIN_PASSWORD } from '@/components/entry-shell';
 import { afterSignIn } from '@/lib/after-auth';
 import { emailFault } from '@/lib/auth';
+import { CODE_REFUSED, codeFault, digitsOf } from '@/lib/verify';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { supabaseServer } from '@/lib/supabase/server';
 
@@ -85,6 +86,44 @@ export async function createAccount(email: string, password: string): Promise<Si
    * provider configured, so the link the next screen describes is real.
    */
   return { kind: 'sent', email };
+}
+
+/**
+ * Prove the address with the code from the mail.
+ *
+ * `verifyOtp` is the same call the link handler makes — a link and a code are
+ * two spellings of one token — but nothing fetches a code on the reader's
+ * behalf, which is the whole point of preferring it (see lib/verify.ts).
+ *
+ * A success writes the session, so this ends where sign-in ends: inside,
+ * rather than back at a form asking them to type the password they chose two
+ * minutes ago.
+ */
+export async function confirmSignUp(
+  email: string,
+  code: string,
+): Promise<{ readonly kind: 'fields'; readonly message: string }> {
+  const fault = codeFault(code);
+  if (fault !== null) return { kind: 'fields', message: fault };
+
+  if (!supabaseConfigured()) redirect(await afterSignIn(null));
+
+  const supabase = await supabaseServer();
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token: digitsOf(code),
+    type: 'signup',
+  });
+
+  /*
+   * One sentence for every refusal. Expired, mistyped and already-spent are
+   * the same situation to the person holding the code, and the provider does
+   * not reliably say which — a guess dressed as a diagnosis is worse than the
+   * one instruction that always applies.
+   */
+  if (error !== null) return { kind: 'fields', message: CODE_REFUSED };
+
+  redirect(await afterSignIn(null));
 }
 
 /**

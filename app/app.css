@@ -6936,3 +6936,13 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
   .rc { padding: 0; background: #FFFFFF; min-block-size: 0; }
   .rc-sheet { border: 0; border-radius: 0; padding: 0; max-inline-size: none; }
 }
+
+
+/* The six digits out of the mail. Wide tracking so a transposed pair is
+   visible while typing, and a size that survives being read off a phone held
+   in the other hand. */
+.code-input {
+  font-size: 24px; letter-spacing: 0.32em; font-weight: 600;
+  text-align: center; font-variant-numeric: tabular-nums;
+}
+.code-input::placeholder { letter-spacing: 0.32em; font-weight: 400; opacity: 0.35; }

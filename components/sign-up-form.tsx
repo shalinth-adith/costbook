@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
 
-import { createAccount, resendSignUp } from '@/app/sign-up/actions';
+import { confirmSignUp, createAccount, resendSignUp } from '@/app/sign-up/actions';
+import { CODE_LENGTH, codeFault as faultOf, digitsOf } from '@/lib/verify';
 
 import { MIN_PASSWORD, PASSWORD_RULE } from './entry-shell';
+import { unstable_rethrow } from 'next/navigation';
 
 /**
  * Sign up (A31).
@@ -23,6 +25,8 @@ export function SignUpForm() {
   const [tooEarly, setTooEarly] = useState(false);
   const [sent, setSent] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
+  const [code, setCode] = useState('');
+  const [codeFault, setCodeFault] = useState<string | null>(null);
 
   const longEnough = password.length >= MIN_PASSWORD;
   const short = MIN_PASSWORD - password.length;
@@ -45,6 +49,23 @@ export function SignUpForm() {
     });
   };
 
+  const confirm = () => {
+    const fault = faultOf(code);
+    if (fault !== null) { setCodeFault(fault); return; }
+    setCodeFault(null);
+    start(async () => {
+      try {
+        // A correct code redirects on the server; anything returned is a fault.
+        const out = await confirmSignUp(sent ?? email, code);
+        setCodeFault(out.message);
+      } catch (error) {
+        // The redirect that means success is thrown. It goes back to Next.
+        unstable_rethrow(error);
+        setCodeFault('That did not go through. Try again in a moment.');
+      }
+    });
+  };
+
   const resend = () => {
     setCooldown(45);
     // Actually send one. The countdown used to be the whole of this function.
@@ -62,19 +83,72 @@ export function SignUpForm() {
 
   if (sent !== null) {
     return (
-      <div className="entry-card">
+      <form
+        className="entry-card"
+        onSubmit={(e) => {
+          e.preventDefault();
+          confirm();
+        }}
+      >
         {/* The heading is "your account exists", not "check your email" — the
             anxiety at this moment is that closing the tab loses the work. */}
-        <h1 className="entry-title">Your account exists. Now open the email.</h1>
+        <h1 className="entry-title">Your account exists. Now prove the address.</h1>
         <p className="entry-sub">
-          We&rsquo;ve sent a link to <b>{sent}</b>. Open it on any device and you&rsquo;ll go
+          We&rsquo;ve sent a six-digit code to <b>{sent}</b>. Type it here and you&rsquo;ll go
           straight to setting up your book.
         </p>
+
+        <div className="field">
+          <div className="field-label-row">
+            <label className="field-label" htmlFor="code">
+              The code from the email
+            </label>
+          </div>
+          <div className={`field-control${codeFault !== null ? ' is-wrong' : ''}${pending ? ' is-locked' : ''}`}>
+            <input
+              id="code"
+              name="code"
+              className="field-input code-input figure"
+              /*
+               * `one-time-code` is what lets a phone offer the code from the
+               * notification without opening the mail at all, and inputMode
+               * brings up the number pad. Type stays text: a number input
+               * strips a leading zero and offers a spinner nobody wants.
+               */
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              placeholder="123456"
+              maxLength={12}
+              autoFocus
+              disabled={pending}
+              value={code}
+              aria-invalid={codeFault !== null}
+              aria-describedby={codeFault ? 'code-fault' : undefined}
+              onChange={(e) => {
+                setCode(digitsOf(e.target.value));
+                setCodeFault(null);
+              }}
+            />
+          </div>
+          {codeFault !== null && (
+            <span id="code-fault" className="fault">
+              {codeFault}
+            </span>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          className="btn btn-primary entry-action"
+          disabled={pending || digitsOf(code).length < CODE_LENGTH}
+        >
+          {pending ? 'Checking…' : 'Confirm and continue'}
+        </button>
 
         <div className="notice notice-flat">
           <p className="notice-title">You can close this tab.</p>
           <p className="notice-text">
-            Nothing is lost and nothing is half-made. The link works for 24 hours, and if it lapses
+            Nothing is lost and nothing is half-made. The code works for an hour, and if it lapses
             we&rsquo;ll send another the next time you try to sign in.
           </p>
         </div>
@@ -82,10 +156,10 @@ export function SignUpForm() {
         <button
           type="button"
           className="btn entry-action"
-          disabled={cooldown > 0}
+          disabled={cooldown > 0 || pending}
           onClick={resend}
         >
-          {cooldown > 0 ? `Sent — try again in ${cooldown}s` : 'Send it again'}
+          {cooldown > 0 ? `Sent — try again in ${cooldown}s` : 'Send another code'}
         </button>
         {cooldown > 0 && (
           <p className="entry-foot">
@@ -102,14 +176,13 @@ export function SignUpForm() {
           and we&rsquo;ll send again — the account moves with it, nothing is created twice.
         </p>
         {/*
-          * No "continue to setup" button.
+          * A code rather than a link, and no link beside it.
           *
-          * It pushed /setup, and this screen is only ever shown to somebody
-          * who has no session yet — so the proxy sent them to /sign-in, which
-          * reads as the account having failed to be made. The link in the mail
-          * is what carries a session, and it is the only thing that can.
+          * Both are spellings of one token, so a mail scanner that fetches the
+          * link spends the code with it — which is exactly what happened to
+          * this product's first real confirmation mail. See lib/verify.ts.
           */}
-      </div>
+      </form>
     );
   }
 
