@@ -23,6 +23,24 @@ const nextConfig = {
    * have it back somewhere else.
    */
   devIndicators: false,
+
+  /*
+   * Server function calls are not logged, because the log printed a password.
+   *
+   * Next logs every server action in development as `ƒ name(args) in Nms` —
+   * name, ARGUMENTS and duration (see this version's own docs,
+   * node_modules/next/dist/docs, logging.md). `createAccount(email, password)`
+   * therefore printed a real person's real password into the terminal and
+   * into .next/dev/logs/next-development.log, where it sat on disk.
+   *
+   * There is no way to redact one argument, so the whole line goes. What it
+   * costs is a genuinely useful timing — it is how the setup save was
+   * measured at 923ms — and that is worth losing: a timing can be recovered
+   * with a stopwatch, a leaked password cannot be unleaked. Turn it back on
+   * deliberately, for a session, when measuring something that takes no
+   * secrets.
+   */
+  logging: { serverFunctions: false },
 };
 
 export default nextConfig;

@@ -571,21 +571,85 @@ export async function orgModel(): Promise<CostingModel> {
 }
 
 export async function currencyIsSettable(): Promise<boolean> {
-  const b = await book();
-  return b.recipes.length === 0;
+  if (!supabaseConfigured()) return memory.currencyIsSettable();
+
+  /*
+   * One count, not the whole book.
+   *
+   * This asks a single question — is anything costed yet — and it used to
+   * answer it by loading every recipe, every line inside them, every
+   * ingredient, the whole rate history, the flags and the sales.
+   *
+   * HOW MUCH THAT COSTS, HONESTLY: on a small warm book those nine queries
+   * run in about 73ms, so this is not where the setup save spends its time
+   * (measured: 923ms in the action, and the round trip to verify the session
+   * is the larger share). It is changed because reading a library to count a
+   * shelf is wrong at any speed, and because the cost grows with the book
+   * while the question never does — a café with 250 ingredients and a year of
+   * rate history pays all of it to learn a number that is 0 or not 0.
+   *
+   * On doubt it says no. A failed count must not be read as "nothing is
+   * costed yet", because that is the branch that lets the currency move under
+   * rates already typed in it.
+   */
+  const supabase = await supabaseServer();
+  const { count, error } = await supabase
+    .from("recipes")
+    .select("id", { count: "exact", head: true });
+  if (error !== null) return false;
+  return (count ?? 0) === 0;
 }
+
+/**
+ * The caller's own org and role, without the book around them.
+ *
+ * The same single indexed lookup `proxy.ts` makes, for the same reason: two
+ * facts are wanted and a whole café's shelf is not. `cache` keeps it to one
+ * round trip per request however many callers ask.
+ */
+export const whoAmI = cache(
+  async (): Promise<{ readonly orgId: string | null; readonly role: Role | null }> => {
+    if (!supabaseConfigured()) {
+      const b = await book();
+      return { orgId: b.orgId, role: b.role };
+    }
+    const supabase = await supabaseServer();
+    const { data: auth } = await supabase.auth.getUser();
+    if (auth.user === null) return { orgId: null, role: null };
+
+    const { data } = await supabase
+      .from("memberships")
+      .select("org_id, role")
+      .eq("user_id", auth.user.id)
+      .limit(1)
+      .maybeSingle();
+    const row = data as { org_id: string; role: string } | null;
+    if (row === null) return { orgId: null, role: null };
+    return { orgId: row.org_id, role: row.role === "owner" ? "owner" : "manager" };
+  },
+);
 
 /* ── writes ───────────────────────────────────────────────────────────────── */
 
-export async function saveOrg(patch: Partial<Org>): Promise<void> {
+export async function saveOrg(
+  patch: Partial<Org>,
+  /**
+   * The org to write to, when the caller already knows it.
+   *
+   * Without it this loads the entire book to read one id. That is free on a
+   * screen that has loaded it anyway — every settings page has — and it is
+   * the dominant cost on the setup save, which has loaded nothing.
+   */
+  knownOrgId?: string,
+): Promise<void> {
   if (!supabaseConfigured()) {
     memory.setOrg(patch);
     return;
   }
-  const b = await book();
+  const orgId = knownOrgId ?? (await book()).orgId;
   // Loud, not silent. A write that quietly does nothing is worse than one that
   // fails: nothing prompts the operator to look.
-  if (b.orgId === null)
+  if (orgId === null)
     throw new WriteFailed("anything", "No account is signed in.");
   const supabase = await supabaseServer();
   check(
@@ -593,7 +657,7 @@ export async function saveOrg(patch: Partial<Org>): Promise<void> {
     await supabase
       .from("organizations")
       .update(fromOrg(patch))
-      .eq("id", b.orgId),
+      .eq("id", orgId),
   );
 }
 

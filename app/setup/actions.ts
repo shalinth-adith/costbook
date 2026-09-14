@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { PRESETS, type PresetName } from '@/core/rounding';
-import { book, currencyIsSettable, saveOrg } from '@/lib/book';
+import { currencyIsSettable, saveOrg, whoAmI } from '@/lib/book';
 import { landingFor } from '@/lib/landing';
 import { TARGET_MAX, TARGET_MIN } from '@/lib/org';
 
@@ -38,20 +38,36 @@ export async function finishSetup(answers: {
 
   // Currency only moves while nothing is costed in it. Once a rate has been
   // typed, changing the label would leave every figure under the wrong symbol.
-  const settable = await currencyIsSettable();
+  /*
+   * Three small questions, asked together, instead of a whole book.
+   *
+   * This action used to load every recipe, line, ingredient and rate in the
+   * account — twice over in principle, once in practice — to learn an org id,
+   * a role, and whether anything was costed yet.
+   *
+   * IT IS NOT THE WHOLE OF THE WAIT, and the comment that said so was wrong.
+   * Measured: the action takes 923ms of a 1.6s round trip, and those nine
+   * queries are about 73ms of it — verifying the session costs more than
+   * reading the book does. This is changed because the work is pointless, not
+   * because it is slow.
+   */
+  const [me, settable] = await Promise.all([whoAmI(), currencyIsSettable()]);
 
-  await saveOrg({
-    ...(settable ? { currency: answers.currency.toUpperCase() } : {}),
-    name: answers.name.trim(),
-    country: answers.country,
-    teamSize: answers.teamSize,
-    foodCostTarget: answers.foodCostTarget,
-    rounding: answers.rounding as PresetName,
-    staleAfterDays: answers.staleAfterDays,
-    setupDone: true,
-  });
+  await saveOrg(
+    {
+      ...(settable ? { currency: answers.currency.toUpperCase() } : {}),
+      name: answers.name.trim(),
+      country: answers.country,
+      teamSize: answers.teamSize,
+      foodCostTarget: answers.foodCostTarget,
+      rounding: answers.rounding as PresetName,
+      staleAfterDays: answers.staleAfterDays,
+      setupDone: true,
+    },
+    me.orgId ?? undefined,
+  );
 
-  const { role } = await book();
+  const role = me.role;
   revalidatePath('/', 'layout');
   redirect(landingFor(role ?? 'manager'));
 }
