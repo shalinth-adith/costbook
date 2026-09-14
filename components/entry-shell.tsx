@@ -2,6 +2,8 @@ import Link from 'next/link';
 
 import { Wordmark } from './wordmark';
 
+import { MIN_PASSWORD, PASSWORD_RULE } from '@/lib/password';
+
 /**
  * The A10 entry shell, unchanged, reused by sign-up (A31), invitation (A32)
  * and password reset (A33).
@@ -51,6 +53,9 @@ export function EntryShell({
   );
 }
 
-/** The rule, stated once, in the two places a password is chosen. */
-export const PASSWORD_RULE = '8 characters or more. Nothing else — no symbol you’ll forget by Tuesday.';
-export const MIN_PASSWORD = 8;
+/*
+ * The rule, stated once — in lib/password.ts, because the server enforces it
+ * too and a rule that lives in a component is a rule only the screen knows.
+ * Re-exported here so every existing import keeps working.
+ */
+export { MIN_PASSWORD, PASSWORD_RULE };

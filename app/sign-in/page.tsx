@@ -43,6 +43,8 @@ export default async function SignInPage({
   // useSearchParams, which would need a Suspense boundary around the form.
   const raw = (await searchParams)?.['next'];
   const next = typeof raw === 'string' ? raw : null;
+  // /auth/confirm sends them here when a link is expired or already used.
+  const linkSpent = (await searchParams)?.['link'] === 'spent';
 
   return (
     <main className="gate">
@@ -95,7 +97,7 @@ export default async function SignInPage({
       </section>
 
       <section className="entry-side">
-        <SignInForm next={next} />
+        <SignInForm next={next} linkSpent={linkSpent} />
         <nav className="entry-links" aria-label="Legal">
           <Link href="/privacy">Privacy policy</Link>
           <Link href="/terms">Terms</Link>

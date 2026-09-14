@@ -81,6 +81,22 @@ export const PUBLIC_PATHS: readonly string[] = [
   // The social card. A crawler unfurling a link is not signed in, and a
   // card that answers with a redirect to sign-in is no card at all.
   "/opengraph-image",
+  /*
+   * Getting back in, and proving an address is yours. Both built now that
+   * there is a domain and a mail provider behind it.
+   *
+   * Public because the person following either link has, by definition, no
+   * session: /reset is asked for by somebody locked out, and /auth/confirm is
+   * opened from an inbox. A gate on them would answer the one person each was
+   * written for with a sign-in screen they cannot get past.
+   *
+   * They are also reachable WITH a session, which matters more than it looks.
+   * `isPublic` is checked before the setup rule, so an operator who signed up,
+   * never finished the wizard and then forgot their password is not bounced to
+   * /setup by a gate that cannot know why they are here.
+   */
+  "/reset",
+  "/auth",
 ];
 
 /**
@@ -101,6 +117,14 @@ export const UNLISTED: readonly string[] = [
   "/sitemap.xml",
   "/opengraph-image",
   "/gone",
+  /*
+   * Public and pointedly not indexed. /reset is meaningful to one person for
+   * one minute, and a search result reading "forgotten your password?" is not
+   * how a product should introduce itself. /auth/confirm is not a page at all
+   * — it is a handler that spends a one-time credential.
+   */
+  "/reset",
+  "/auth",
 ];
 
 /** Whether a path is reachable with no session. */

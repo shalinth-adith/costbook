@@ -140,3 +140,38 @@ describe("the sitemap and the gate say the same thing", () => {
     }
   });
 });
+
+describe("the way back in, for somebody who cannot get in", () => {
+  /*
+   * Both of these are reached by a person with no session — one locked out,
+   * one opening a link from their inbox. A gate on either would answer the
+   * only person it was written for with a sign-in screen.
+   */
+  it("lets a stranger reach the reset screens", () => {
+    expect(isPublic("/reset")).toBe(true);
+    expect(isPublic("/reset/new")).toBe(true);
+  });
+
+  it("lets a link from an inbox reach the handler that spends it", () => {
+    expect(isPublic("/auth/confirm")).toBe(true);
+  });
+
+  it("does not bounce an unfinished account away from choosing a password", () => {
+    /*
+     * Signed up, never finished the wizard, and now cannot remember the
+     * password. The setup rule would send them to /setup — which they cannot
+     * pass, because the account they are trying to recover is the one asking.
+     * `isPublic` is checked first, and this is why.
+     */
+    const halfway = { signedIn: true, setupDone: false, role: "owner" as const };
+    expect(gateFor(halfway, "/reset/new")).toBeNull();
+    expect(gateFor(halfway, "/reset")).toBeNull();
+    // And the rule it is an exception to still holds everywhere else.
+    expect(gateFor(halfway, "/recipes")).toBe("/setup");
+  });
+
+  it("keeps both out of the sitemap", () => {
+    expect(UNLISTED).toContain("/reset");
+    expect(UNLISTED).toContain("/auth");
+  });
+});

@@ -7,6 +7,7 @@ import { unstable_rethrow } from "next/navigation";
 import { attemptSignIn, resendVerification } from "@/app/sign-in/actions";
 import { type FieldName, IDLE, type SignInState, emailFault } from "@/lib/auth";
 import { FREE_LIMITS } from "@/lib/org";
+import { LINK_FAILED } from "@/lib/recover";
 
 import { StatusGlyph } from "./status-chip";
 
@@ -112,7 +113,20 @@ function Spinner() {
   return <span className="spinner" aria-hidden="true" />;
 }
 
-export function SignInForm({ next }: { next: string | null }) {
+export function SignInForm({
+  next,
+  linkSpent = false,
+}: {
+  next: string | null;
+  /**
+   * They followed a link from their mail and it did not work.
+   *
+   * Said here rather than on a page of its own: the thing to do about an
+   * expired link is sign in or ask for another, and both are on this screen.
+   * A dead end that only explains itself is one more screen to leave.
+   */
+  linkSpent?: boolean;
+}) {
   const [state, formAction, pending] = useActionState(run, IDLE);
 
   const [email, setEmail] = useState("");
@@ -317,6 +331,24 @@ export function SignInForm({ next }: { next: string | null }) {
         <span className="entry-sub">Back to your menu.</span>
       </div>
 
+      {/* A link from their mail that no longer works. Both answers to it —
+          sign in, or ask for another — are on this screen already. */}
+      {linkSpent && (
+        <div className="notice notice-near">
+          <StatusGlyph status="near" size={14} />
+          <div className="notice-text">
+            <span className="notice-title">That link has been spent</span>
+            <span className="notice-copy">
+              {LINK_FAILED}{" "}
+              <Link className="link" href="/reset">
+                Send another
+              </Link>
+              .
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="field">
         <label className="field-label" htmlFor="email">
           Email
@@ -384,7 +416,12 @@ export function SignInForm({ next }: { next: string | null }) {
           <label className="field-label" htmlFor="password">
             Password
           </label>
-          <Link className="link link-sm" href="/contact">
+          {/*
+            * A real door now. This pointed at /contact for as long as there
+            * was no mail provider — the honest answer then, since the only
+            * way back in was a human. There is a link to send now.
+            */}
+          <Link className="link link-sm" href="/reset">
             Forgot it?
           </Link>
         </div>

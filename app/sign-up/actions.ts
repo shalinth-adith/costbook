@@ -8,6 +8,8 @@ import { emailFault } from '@/lib/auth';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { supabaseServer } from '@/lib/supabase/server';
 
+import { siteUrl } from '../robots';
+
 export type SignUpState =
   | { readonly kind: 'idle' }
   | { readonly kind: 'fields'; readonly message: string; readonly field: 'email' | 'password' }
@@ -50,7 +52,19 @@ export async function createAccount(email: string, password: string): Promise<Si
   if (!supabaseConfigured()) redirect(await afterSignIn(null));
 
   const supabase = await supabaseServer();
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  /*
+   * Where the confirmation link comes back to.
+   *
+   * Without this the link lands on Supabase's own site URL, which is fine for
+   * a project whose site URL is this application and wrong the moment it is
+   * not — and it carries a one-time credential that only our handler knows
+   * what to do with. Named here rather than assumed there.
+   */
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: `${siteUrl()}/auth/confirm` },
+  });
 
   if (error !== null) {
     const message = error.message.toLowerCase();
@@ -87,7 +101,11 @@ export async function resendSignUp(
 ): Promise<{ readonly ok: boolean; readonly message?: string }> {
   if (!supabaseConfigured()) return { ok: false, message: 'No mail is configured.' };
   const supabase = await supabaseServer();
-  const { error } = await supabase.auth.resend({ type: 'signup', email });
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: { emailRedirectTo: `${siteUrl()}/auth/confirm` },
+  });
   if (error !== null) return { ok: false, message: error.message };
   return { ok: true };
 }
