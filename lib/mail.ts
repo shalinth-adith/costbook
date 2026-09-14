@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { MAIL_SENDER } from "./org";
 import { supabaseConfigured } from "./supabase/env";
 import { supabaseServer } from "./supabase/server";
@@ -135,18 +137,29 @@ export async function outbox(limit = 60): Promise<readonly Queued[]> {
  * `sent_at` is written only after the provider has accepted the message. A
  * row that fails keeps its null and its reason, and will be tried again.
  */
-export async function sendQueued(
-  limit = 25,
-): Promise<{
+export interface Drained {
   readonly sent: number;
   readonly failed: number;
   readonly skipped: boolean;
-}> {
+}
+
+/**
+ * Post what is waiting, using whichever client the caller has.
+ *
+ * Two callers, two credentials, one loop. The console drains with the admin's
+ * own session; the nightly job has no session at all and drains with the
+ * service key (see lib/post.ts). The difference is the client and nothing
+ * else — a second copy of this loop would be a second set of retry rules to
+ * keep in step.
+ */
+export async function drainWith(
+  supabase: SupabaseClient,
+  limit = 25,
+): Promise<Drained> {
   const key = providerKey();
   if (key === null) return { sent: 0, failed: 0, skipped: true };
   if (!supabaseConfigured()) return { sent: 0, failed: 0, skipped: true };
 
-  const supabase = await supabaseServer();
   const { data, error } = await supabase
     .from("mail_outbox")
     .select("id, to_email, subject, body, attempts")
@@ -204,4 +217,10 @@ export async function sendQueued(
   }
 
   return { sent, failed, skipped: false };
+}
+
+/** The console's drain: the admin's own session, and their own policies. */
+export async function sendQueued(limit = 25): Promise<Drained> {
+  if (!supabaseConfigured()) return { sent: 0, failed: 0, skipped: true };
+  return drainWith(await supabaseServer(), limit);
 }

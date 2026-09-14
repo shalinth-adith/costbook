@@ -19,6 +19,8 @@ interface OrderRow {
   status: string;
   payment_id: string | null;
   paid_at: string | null;
+  /** When somebody was told this order needs a human. Null until they were. */
+  notified_at?: string | null;
 }
 
 interface SubRow {
@@ -53,6 +55,11 @@ class Chain implements PromiseLike<{ data: unknown; error: { message: string } |
     this.filters.push([column, value]);
     return this;
   }
+  /** `is(column, null)` — how "and nobody has claimed this yet" is written. */
+  is(column: string, value: unknown): this {
+    this.filters.push([column, value ?? undefined]);
+    return this;
+  }
   select(): this {
     return this;
   }
@@ -76,7 +83,10 @@ class Chain implements PromiseLike<{ data: unknown; error: { message: string } |
         ? [...db.orders.values()]
         : [...db.subs.values()];
     const hit = rows.filter((r) =>
-      this.filters.every(([c, v]) => (r as unknown as Record<string, unknown>)[c] === v),
+      this.filters.every(([c, v]) => {
+        const held = (r as unknown as Record<string, unknown>)[c];
+        return v === undefined ? held === undefined || held === null : held === v;
+      }),
     );
 
     if (this.op === "select") return { data: hit, error: null };
@@ -263,6 +273,26 @@ describe("what it will not touch", () => {
     });
     expect(db.orders.get("order_1")?.status).toBe("open");
     expect(db.subs.get("org-a")?.plan).toBe("free");
+  });
+
+  it("tells somebody about a wrong amount once, however often it is redelivered", async () => {
+    /*
+     * The order stays open, so the provider keeps retrying — and every retry
+     * arrives at the same mismatch. Without the claim, a café that paid the
+     * wrong amount would hear from us every few minutes, which turns one bad
+     * moment into a product that looks like it is panicking.
+     */
+    db.orders.set("order_1", order({ amount: 720_000 }));
+    db.subs.set("org-a", sub());
+
+    await settleOrder(pay({ amount: 10_000 }), NOW);
+    const told = db.orders.get("order_1")?.notified_at;
+    expect(told).toBe(NOW.toISOString());
+
+    const later = new Date("2026-09-11T10:05:00.000Z");
+    await settleOrder(pay({ amount: 10_000 }), later);
+    // Still the first stamp: the second delivery matched no row to claim.
+    expect(db.orders.get("order_1")?.notified_at).toBe(told);
   });
 
   it("refuses a payment in another currency", async () => {

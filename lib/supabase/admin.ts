@@ -22,8 +22,10 @@ import { supabaseEnv } from "./env";
  *
  * WHAT KEEPS IT NARROW:
  *
- *   - One importer. `lib/settle.ts`, which is imported by one route handler.
- *     Nothing rendered for a person ever reaches this file.
+ *   - Three importers, all of them sessionless by nature: `lib/settle.ts`
+ *     (the payment webhook), `lib/post.ts` (writing a letter into an outbox
+ *     no session may read), and the scheduled job that sends the plan
+ *     reminders. Nothing rendered for a person ever reaches this file.
  *   - No fallback. A missing key throws rather than quietly degrading to the
  *     anon client, because degrading here means "writes nothing, says fine",
  *     which is the exact bug being fixed.

@@ -1,4 +1,6 @@
+import { boughtLetter, moneySaid, stuckAlert, stuckLetter } from "./letters";
 import { type Purchase, endOf, purchaseOf, startsAt, termOf } from "./plan";
+import { postToOwner, postToSupport } from "./post";
 import { supabaseAdmin } from "./supabase/admin";
 
 /**
@@ -78,6 +80,23 @@ export async function settleOrder(
    * so where somebody will read it.
    */
   if (order.amount !== input.amount) {
+    /*
+     * Somebody has paid, and not what was asked. Nothing is switched on and
+     * nothing is refunded from here — both need a person, and a person cannot
+     * act on a line in a log nobody reads.
+     */
+    if (await claimTheTelling(supabase, input.orderId, now)) {
+      await postToSupport(
+        stuckAlert({
+          orderId: input.orderId,
+          paymentId: input.paymentId,
+          amountMinor: input.amount,
+          currency: input.currency || order.currency,
+          orgId: order.org_id,
+          said: `amount does not match: asked ${moneySaid(order.amount, order.currency)}, paid ${moneySaid(input.amount, input.currency || order.currency)}`,
+        }),
+      );
+    }
     return { outcome: "mismatch", asked: order.amount, paid: input.amount };
   }
   if (input.currency !== "" && order.currency !== input.currency) {
@@ -119,7 +138,7 @@ export async function settleOrder(
   if ((claim.data ?? []).length === 0) return { outcome: "already" };
 
   const applied = await apply(supabase, order.org_id, bought, input.paymentId, now);
-  if (applied !== null) {
+  if (applied.said !== null) {
     /*
      * Two statements, no transaction between them.
      *
@@ -142,8 +161,58 @@ export async function settleOrder(
           `not switch on, and the claim could not be undone. Payment ` +
           `${input.paymentId}. This needs fixing by hand. ${undo.error.message}`,
       );
+      /*
+       * Money taken, nothing given, and it will not heal itself — the order
+       * is stuck at paid, so the provider's retry will find it settled and
+       * move on. This is the one state where somebody must be told, and it is
+       * told twice: the café, so it knows and does not pay again, and support,
+       * with the ids to repair it.
+       */
+      if (await claimTheTelling(supabase, input.orderId, now)) {
+        await postToOwner(order.org_id, (orgName) =>
+          stuckLetter({
+            amountMinor: input.amount,
+            currency: input.currency || order.currency,
+            orgName,
+          }),
+        );
+        await postToSupport(
+          stuckAlert({
+            orderId: input.orderId,
+            paymentId: input.paymentId,
+            amountMinor: input.amount,
+            currency: input.currency || order.currency,
+            orgId: order.org_id,
+            said: `${applied.said} — and the claim could not be undone: ${undo.error.message}`,
+          }),
+        );
+      }
     }
-    return { outcome: "failed", said: applied };
+    return { outcome: "failed", said: applied.said };
+  }
+
+  /*
+   * The receipt.
+   *
+   * The provider sends its own, which proves money moved. Only this one can
+   * say the date the book is paid up to, which is the fact they will come
+   * back looking for. Queued, never sent from here — if the mailbox is broken
+   * the plan is still on, which is the right way round.
+   */
+  if (bought !== "export" && applied.until !== null) {
+    const until = applied.until;
+    const t = termOf(bought);
+    if (t !== undefined) {
+      await postToOwner(order.org_id, (orgName) =>
+        boughtLetter({
+          term: t.id,
+          amountMinor: order.amount,
+          currency: order.currency,
+          until,
+          orgName,
+        }),
+      );
+    }
   }
 
   return bought === "export"
@@ -159,26 +228,33 @@ export async function settleOrder(
  * browser path uses through `activateSubscription`, not a second copy. A
  * stretch bought while one is running still starts when that one ends.
  */
+interface Applied {
+  /** What the database said when it refused, or null when it worked. */
+  readonly said: string | null;
+  /** The date the stretch now runs to. Null for the pass, which buys no time. */
+  readonly until: string | null;
+}
+
 async function apply(
   supabase: ReturnType<typeof supabaseAdmin>,
   orgId: string,
   bought: Purchase,
   paymentId: string,
   now: Date,
-): Promise<string | null> {
+): Promise<Applied> {
   const current = await supabase
     .from("subscriptions")
     .select("plan, current_period_end, exports_unlocked_at")
     .eq("org_id", orgId)
     .maybeSingle();
-  if (current.error !== null) return current.error.message;
+  if (current.error !== null) return { said: current.error.message, until: null };
 
   const sub = current.data as {
     plan: string;
     current_period_end: string | null;
     exports_unlocked_at: string | null;
   } | null;
-  if (sub === null) return `no subscription row for org ${orgId}`;
+  if (sub === null) return { said: `no subscription row for org ${orgId}`, until: null };
 
   // Never moved once set: a second payment must not reset the date the right
   // to take the work out was first earned.
@@ -187,20 +263,21 @@ async function apply(
   if (bought === "export") {
     // The pass buys carrying the work away and nothing else — the plan stays
     // free, the six-dish limit stays, the import stays shut.
-    if (sub.exports_unlocked_at !== null) return null;
+    if (sub.exports_unlocked_at !== null) return { said: null, until: null };
     const res = await supabase
       .from("subscriptions")
       .update({ exports_unlocked_at: unlocked })
       .eq("org_id", orgId);
-    return res.error?.message ?? null;
+    return { said: res.error?.message ?? null, until: null };
   }
 
   const t = termOf(bought);
-  if (t === undefined) return `not a term Costbook sells: ${bought}`;
+  if (t === undefined) return { said: `not a term Costbook sells: ${bought}`, until: null };
   const from = startsAt(
     { plan: sub.plan === "paid" ? "paid" : "free", periodEnd: sub.current_period_end },
     now,
   );
+  const until = endOf(from, t.months).toISOString();
   const res = await supabase
     .from("subscriptions")
     .update({
@@ -208,10 +285,41 @@ async function apply(
       status: "active",
       term: t.id,
       started_at: from.toISOString(),
-      current_period_end: endOf(from, t.months).toISOString(),
+      current_period_end: until,
       provider_reference: `razorpay:${paymentId}`,
       exports_unlocked_at: unlocked,
+      /*
+       * A fresh stretch has not been reminded about.
+       *
+       * Without this, a café that renews after its "your months are ending"
+       * letter would never get another one — the stamp from the old stretch
+       * would silence the new one all the way to its own expiry.
+       */
+      ending_notice_at: null,
+      ended_notice_at: null,
     })
     .eq("org_id", orgId);
-  return res.error?.message ?? null;
+  return { said: res.error?.message ?? null, until };
+}
+
+/**
+ * Claim the right to tell somebody about this order, once.
+ *
+ * The provider redelivers a webhook it considers unanswered, several times.
+ * Without this, a café whose payment is stuck gets the same apology every few
+ * minutes — which turns one bad moment into a product that appears to be
+ * panicking. One conditional update; whoever lands second matches no row.
+ */
+async function claimTheTelling(
+  supabase: ReturnType<typeof supabaseAdmin>,
+  orderId: string,
+  now: Date,
+): Promise<boolean> {
+  const res = await supabase
+    .from("payment_orders")
+    .update({ notified_at: now.toISOString() })
+    .eq("id", orderId)
+    .is("notified_at", null)
+    .select("id");
+  return res.error === null && (res.data ?? []).length > 0;
 }
