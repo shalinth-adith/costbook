@@ -55,6 +55,7 @@ export function PlansView({
   role,
   mode,
   justPaid,
+  payments = [],
 }: {
   plan: Plan;
   subscription: Subscription;
@@ -62,6 +63,21 @@ export function PlansView({
   role: Role | null;
   mode: "razorpay" | "sandbox" | "none";
   justPaid: boolean;
+  /**
+   * What this book has paid for, newest first.
+   *
+   * A receipt is a document somebody files, and "check your email" is not a
+   * document — this is where it is found six months later when an accountant
+   * asks. Empty for a manager, because the policy on the table gives them no
+   * rows (A27).
+   */
+  payments?: readonly {
+    readonly id: string;
+    readonly term: string;
+    readonly amount: number;
+    readonly currency: string;
+    readonly paid_at: string | null;
+  }[];
 }) {
   const [termId, setTermId] = useState<Term>("quarter");
   const [fault, setFault] = useState<string | null>(null);
@@ -540,6 +556,40 @@ export function PlansView({
           )}
         </div>
       </section>
+
+      {/*
+        * What has been paid, and the document for each.
+        *
+        * A receipt that exists only in an inbox is a receipt that is gone the
+        * day somebody changes jobs. This is where an accountant's question
+        * gets answered six months later, and it is the owner's alone — the
+        * policy on payment_orders returns nothing at all to a manager, so
+        * this section is simply empty for them.
+        */}
+      {payments.length > 0 && (
+        <section className="pay">
+          <h2 className="pay-h">What you have paid</h2>
+          <ul className="pay-list">
+            {payments.map((p) => (
+              <li key={p.id} className="pay-row">
+                <span className="pay-what">
+                  {termOf(p.term)?.label ?? "A payment"}
+                  {p.paid_at === null ? null : (
+                    <span className="pay-when figure"> · {onDay(new Date(p.paid_at))}</span>
+                  )}
+                </span>
+                <span className="figure pay-amount">
+                  {p.currency === "INR" ? "₹" : `${p.currency} `}
+                  {(p.amount / 100).toLocaleString("en-IN")}
+                </span>
+                <Link className="link link-sm" href={`/plans/receipt/${p.id}`}>
+                  Receipt
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

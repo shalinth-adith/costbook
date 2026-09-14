@@ -71,7 +71,9 @@ export function boughtLetter(input: {
       `Nothing renews by itself and no card is kept on file. When the months ` +
       `run out the book goes back to the free tier — everything you have ` +
       `costed stays exactly where it is — and you decide then whether to buy ` +
-      `another stretch.` +
+      `another stretch.\n\n` +
+      `A receipt for this payment is in the app under Your plan, where it ` +
+      `stays — this message is a note, not the document.` +
       SIGN_OFF,
   };
 }

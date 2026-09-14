@@ -111,6 +111,17 @@
   /* Spacing — 4px base */
   --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
   --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-14: 56px;
+  /*
+   * The two that were missing, and were being asked for.
+   *
+   * `var(--sp-7)` and `var(--sp-9)` appeared in app.css against nothing at
+   * all — and an undefined custom property does not fall back, it makes the
+   * whole declaration invalid, so `padding: var(--sp-7) var(--sp-6)` applied
+   * NO padding rather than some. That is the quiet kind: no error anywhere,
+   * and a receipt whose text sat against the edge of its own card. Named
+   * here on the same 4px scale as the rest.
+   */
+  --sp-7: 28px; --sp-9: 36px;
 
   /* Radius. Nothing is a pill except a status chip: soft corners read
      consumer, and a ledger has edges. */

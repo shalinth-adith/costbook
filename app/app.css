@@ -6860,3 +6860,79 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
   .sk-page { padding-inline: 20px; }
   .sk-ring { display: none; }
 }
+
+
+/* ── what you have paid, and the receipt for each ───────────────────────── */
+
+/* Room above it: the panel before this one is a dark full-width block, and a
+   heading sitting on its edge reads as part of it. */
+.pay { padding: var(--sp-8) 40px var(--sp-10); max-width: none; }
+.pay-h {
+  margin: 0 0 var(--sp-3); font-size: 13px; font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase; color: var(--text-tertiary);
+}
+.pay-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.pay-row {
+  display: flex; align-items: baseline; gap: var(--sp-4);
+  padding: 12px 0; border-block-end: 1px solid var(--border-row);
+}
+.pay-row:last-child { border-block-end: 0; }
+.pay-what { flex: 1; min-inline-size: 0; }
+.pay-when { color: var(--text-tertiary); font-size: 12.5px; }
+.pay-amount { font-weight: 600; }
+
+/* ── a receipt, on its own page ─────────────────────────────────────────────
+   Printed rather than generated: every browser turns this into a PDF, and a
+   PDF library in the bundle for a document somebody opens twice a year is a
+   bad trade. What that costs is the page furniture, which the print block at
+   the end of this file takes away. */
+
+.rc { min-block-size: 100vh; background: var(--surface-page); padding: var(--sp-6) 20px var(--sp-8); }
+.rc-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4); max-inline-size: 720px; margin: 0 auto var(--sp-5);
+}
+.rc-sheet {
+  max-inline-size: 720px; margin: 0 auto; background: var(--surface-card);
+  border: 1px solid var(--border-hairline); border-radius: var(--radius-panel);
+  padding: var(--sp-7) var(--sp-6); display: grid; gap: var(--sp-6);
+}
+.rc-head { display: flex; justify-content: space-between; gap: var(--sp-6); flex-wrap: wrap; }
+.rc-kicker {
+  margin: 0 0 4px; font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-tertiary);
+}
+.rc-title { margin: 0 0 6px; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.rc-said { margin: 0; font-size: 13px; color: var(--text-secondary); line-height: 1.55; }
+.rc-strong { margin: 0; font-size: 15px; font-weight: 600; }
+.rc-label {
+  margin: 0 0 4px; font-size: 11px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--text-tertiary);
+}
+.rc-meta { display: grid; grid-template-columns: auto auto; gap: 4px var(--sp-4); margin: 0; align-content: start; }
+.rc-meta dt { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-tertiary); }
+.rc-meta dd {
+  margin: 0; font-size: 13px; text-align: end;
+  /* An order id is 20-odd monospaced characters and cannot be shortened
+     without making it useless to quote. It wraps rather than running off
+     the edge of the page it is printed on. */
+  overflow-wrap: anywhere; min-inline-size: 0;
+}
+.rc-table { inline-size: 100%; border-collapse: collapse; }
+.rc-table th {
+  text-align: start; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-tertiary); font-weight: 500; padding-block-end: 8px;
+  border-block-end: 1px solid var(--border-strong);
+}
+.rc-table td { padding-block: 14px; border-block-end: 1px solid var(--border-row); font-size: 14.5px; }
+.rc-table tfoot td { border-block-end: 0; border-block-start: 1px solid var(--border-strong); }
+.rc-right { text-align: end; }
+.rc-total { font-size: 19px; font-weight: 700; }
+.rc-foot { display: grid; gap: 6px; padding-block-start: var(--sp-4); border-block-start: 1px solid var(--border-hairline); }
+
+@media print {
+  /* The controls are not part of the document. */
+  .rc-bar { display: none; }
+  .rc { padding: 0; background: #FFFFFF; min-block-size: 0; }
+  .rc-sheet { border: 0; border-radius: 0; padding: 0; max-inline-size: none; }
+}

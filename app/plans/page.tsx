@@ -2,6 +2,8 @@ import { AppShell } from "@/components/app-shell";
 import { PlansView } from "@/components/plans-view";
 
 import { book } from "@/lib/book";
+import { supabaseConfigured } from "@/lib/supabase/env";
+import { supabaseServer } from "@/lib/supabase/server";
 import { razorpayConfigured } from "@/lib/razorpay";
 import { sandboxAllowed } from "@/lib/sandbox";
 import { endsSoon } from '@/lib/plan';
@@ -24,6 +26,32 @@ export default async function PlansPage({
 }) {
   const b = await book();
   const { paid } = await searchParams;
+
+  /*
+   * Every payment this book has made, newest first.
+   *
+   * Read with the operator's own session: `payment_orders` is scoped to the
+   * owner by row security, so a manager opening this page sees the plan and
+   * no bills — which is A27, enforced by the policy rather than by a check
+   * here that could disagree with it.
+   */
+  const payments = await (async () => {
+    if (!supabaseConfigured()) return [];
+    const supabase = await supabaseServer();
+    const { data } = await supabase
+      .from("payment_orders")
+      .select("id, term, amount, currency, paid_at")
+      .eq("status", "paid")
+      .order("paid_at", { ascending: false })
+      .limit(24);
+    return (data ?? []) as {
+      id: string;
+      term: string;
+      amount: number;
+      currency: string;
+      paid_at: string | null;
+    }[];
+  })();
   const mode = razorpayConfigured()
     ? "razorpay"
     : (await sandboxAllowed())
@@ -46,6 +74,7 @@ export default async function PlansPage({
         role={b.role}
         mode={mode}
         justPaid={paid === "1"}
+        payments={payments}
       />
     </AppShell>
   );

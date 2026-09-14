@@ -118,6 +118,34 @@ export const SUPPORT_EMAIL = "support@costbook.in";
  */
 export const MAIL_SENDER = `Costbook <${SUPPORT_EMAIL}>`;
 
+/**
+ * Who the money is paid to, as it appears on a receipt.
+ *
+ * NO ADDRESS IS INVENTED HERE. A receipt is a document somebody files, and a
+ * plausible-looking address that belongs to nobody is worse than none at all —
+ * it is the exact failure this product exists to remove from a costing sheet,
+ * in a document about money. Set the two environment variables when the legal
+ * name and address are settled, and the receipt prints them; until then it
+ * prints the name and the address people already use to reach us.
+ *
+ * NOT REGISTERED FOR GST. Nothing here charges or shows tax, and the receipt
+ * says so plainly, because a buyer's accountant needs to know why there is no
+ * tax line rather than assume one was forgotten. When registration happens
+ * this becomes a tax invoice — GSTIN, a sequential number, place of supply and
+ * the CGST/SGST or IGST split — and that is a deliberate change, not a
+ * configuration tweak.
+ */
+export const SELLER = {
+  name: process.env["NEXT_PUBLIC_SELLER_NAME"] ?? "Costbook",
+  /** The registered address, once there is one to print. */
+  address: process.env["NEXT_PUBLIC_SELLER_ADDRESS"] ?? null,
+  email: SUPPORT_EMAIL,
+} as const;
+
+/** Said on every receipt, so nobody has to wonder where the tax line went. */
+export const NO_GST_SAID =
+  "No GST has been charged on this payment: the seller is not registered for GST.";
+
 export const TARGET_MIN = 15;
 export const TARGET_MAX = 45;
 
