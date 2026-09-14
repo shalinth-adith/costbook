@@ -15,6 +15,8 @@ import { afterSignIn } from '@/lib/after-auth';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { supabaseServer } from '@/lib/supabase/server';
 
+import { siteUrl } from '../robots';
+
 /**
  * The password is compared here and nowhere else.
  *
@@ -52,12 +54,35 @@ export async function attemptSignIn(_previous: SignInState, form: FormData): Pro
 }
 
 /**
- * A10 · 06, "Send it again". Real against the fixture: it moves the timestamp
- * so the card stops saying "four days ago". The mail itself waits for the
- * backend — nothing here claims to have sent one.
+ * A10 · 06, "Send it again" — and now it does.
+ *
+ * This moved a timestamp on the in-memory fixture and sent nothing, which was
+ * honest while there was no mail provider: the comment said so, and the screen
+ * offering it was unreachable against a real project because confirmation was
+ * switched off. Both of those changed. Confirmation is on, so an operator can
+ * now arrive at this button for real — and a button on the one screen a
+ * locked-out person can reach must not be a decoration.
+ *
+ * It is deliberately quiet about whether the address has an account, the same
+ * way /reset is: this screen is reachable by anybody.
  */
 export async function resendVerification(email: string): Promise<{ readonly sentAt: number }> {
-  markVerificationSent(email);
+  if (!supabaseConfigured()) {
+    markVerificationSent(email);
+    return { sentAt: Date.now() };
+  }
+
+  const supabase = await supabaseServer();
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: { emailRedirectTo: `${siteUrl()}/auth/confirm` },
+  });
+  if (error !== null) {
+    // Said in the log, not to the screen: the screen must not become a way to
+    // learn which addresses have unconfirmed accounts.
+    console.warn(`[auth] could not resend the confirmation: ${error.message}`);
+  }
   return { sentAt: Date.now() };
 }
 
