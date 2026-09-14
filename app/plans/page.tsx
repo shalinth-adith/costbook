@@ -4,6 +4,7 @@ import { PlansView } from "@/components/plans-view";
 import { book } from "@/lib/book";
 import { razorpayConfigured } from "@/lib/razorpay";
 import { sandboxAllowed } from "@/lib/sandbox";
+import { endsSoon } from '@/lib/plan';
 
 /**
  * Six dishes free, then a stretch of months bought here.
@@ -36,6 +37,7 @@ export default async function PlansPage({
       currencySettable={b.recipes.length === 0}
       dishCount={b.recipes.length}
       plan={b.plan}
+      planEndsIn={endsSoon(b.subscription)}
     >
       <PlansView
         plan={b.plan}

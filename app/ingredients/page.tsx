@@ -7,6 +7,7 @@ import { book, pantry } from '@/lib/book';
 
 import { addIngredient, previewRate, setRate, setRateAndRaise, setRates, setYield } from './actions';
 import { requireSetup } from '@/lib/guard';
+import { endsSoon } from '@/lib/plan';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +48,7 @@ export default async function IngredientsPage({
       currencySettable={b.recipes.length === 0}
       dishCount={b.recipes.length}
       plan={b.plan}
+      planEndsIn={endsSoon(b.subscription)}
     >
       <CurrencyProvider code={code}>
         <IngredientsView

@@ -21,6 +21,7 @@ import { compareMonth } from '@/lib/month';
 import { trendOf } from '@/lib/trend';
 import { saveMonthSales } from './actions';
 import { usageOf } from "@/lib/usage";
+import { endsSoon } from '@/lib/plan';
 
 /**
  * Home. What moved, and what it moved.
@@ -203,6 +204,7 @@ export default async function DashboardPage() {
       currencySettable={b.recipes.length === 0}
       dishCount={b.recipes.length}
       plan={b.plan}
+      planEndsIn={endsSoon(b.subscription)}
     >
       <CurrencyProvider code={b.org.currency}>
         {/* Above the numbers, where the owner already is (A40). The only thing

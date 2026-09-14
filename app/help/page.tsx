@@ -8,6 +8,7 @@ import { supabaseConfigured } from '@/lib/supabase/env';
 import { supabaseServer } from '@/lib/supabase/server';
 
 import { askForHelp, replyFromKitchen } from './actions';
+import { endsSoon } from '@/lib/plan';
 
 export const metadata: Metadata = { title: 'Help · Costbook' };
 export const dynamic = 'force-dynamic';
@@ -59,6 +60,7 @@ export default async function HelpPage() {
       currencySettable={b.recipes.length === 0}
       dishCount={b.recipes.length}
       plan={b.plan}
+      planEndsIn={endsSoon(b.subscription)}
     >
       <div className="set">
         <div className="set-head">

@@ -157,7 +157,7 @@ export function tierOf(sub: Subscription, now: Date = new Date()): Plan {
 
 /** Whole days until the stretch ends; null when there is no stretch. Negative once it has. */
 export function daysLeft(
-  sub: Subscription,
+  sub: Pick<Subscription, "periodEnd">,
   now: Date = new Date(),
 ): number | null {
   if (sub.periodEnd === null) return null;
@@ -166,6 +166,29 @@ export function daysLeft(
 }
 
 /** Whether the row records a stretch that has run out. */
+/**
+ * When the top bar starts counting down.
+ *
+ * A month. The dashboard's banner waits until the last week and is loud about
+ * it; this is the quiet half of the same promise — a figure sitting beside
+ * the account name, the way the free tier's "2 of 6 costed" sits there. Thirty
+ * days is long enough that nobody is surprised and short enough that it is not
+ * on screen for eleven months of a year-long stretch, which is how a counter
+ * becomes furniture.
+ */
+export const COUNTDOWN_WITHIN_DAYS = 30;
+
+/** The days to show in the bar, or null when it should show nothing. */
+export function endsSoon(
+  sub: Pick<Subscription, "plan" | "periodEnd">,
+  now: Date = new Date(),
+): number | null {
+  if (sub.plan !== "paid") return null;
+  const left = daysLeft(sub, now);
+  if (left === null || left < 0) return null;
+  return left <= COUNTDOWN_WITHIN_DAYS ? left : null;
+}
+
 export function lapsed(sub: Subscription, now: Date = new Date()): boolean {
   return (
     sub.plan === "paid" && sub.periodEnd !== null && tierOf(sub, now) === "free"

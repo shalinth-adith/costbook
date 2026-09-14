@@ -6,6 +6,7 @@ import { ImportUndo } from '@/components/import-undo';
 
 import { adoptCurrency, adoptTarget, beginImport, commitImport, undoLastImport } from './actions';
 import { importAllowed, requireSetup } from '@/lib/guard';
+import { endsSoon } from '@/lib/plan';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +48,7 @@ export default async function ImportPage({
         currencySettable={b.recipes.length === 0}
         dishCount={b.recipes.length}
         plan={b.plan}
+        planEndsIn={endsSoon(b.subscription)}
       >
         <div className="set">
           <div className="set-head">
@@ -84,6 +86,7 @@ export default async function ImportPage({
       currencySettable={b.recipes.length === 0}
       dishCount={b.recipes.length}
       plan={b.plan}
+      planEndsIn={endsSoon(b.subscription)}
     >
       <CurrencyProvider code={code}>
         {/*

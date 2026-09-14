@@ -8,6 +8,7 @@ import { book, orgModel } from '@/lib/book';
 import { tryRecipeCost } from '@/lib/costing';
 import { pantryWith } from '@/lib/edit';
 import { requireSetup } from '@/lib/guard';
+import { endsSoon } from '@/lib/plan';
 
 /**
  * Settings — the ninth screen, and where `core/charges.ts` finally reaches a
@@ -66,6 +67,7 @@ export default async function SettingsPage({
       currencySettable={recipes.length === 0}
       dishCount={recipes.length}
       plan={b.plan}
+      planEndsIn={endsSoon(b.subscription)}
     >
       <CurrencyProvider code={code}>
         <SettingsView

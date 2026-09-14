@@ -4,16 +4,17 @@ import { PAID_MONTHLY } from "./org";
 import {
   FREE_SUBSCRIPTION,
   TERMS,
-  type Subscription,
   canTakeAway,
   daysLeft,
   endOf,
+  endsSoon,
   lapsed,
   perMonth,
   purchaseOf,
   saving,
   termOf,
   tierOf,
+  type Subscription,
 } from "./plan";
 
 describe("terms", () => {
@@ -154,5 +155,37 @@ describe('what the account can buy', () => {
     expect(purchaseOf('year')).toBe('year');
     expect(purchaseOf('forever')).toBeUndefined();
     expect(purchaseOf(null)).toBeUndefined();
+  });
+});
+
+describe("the countdown in the top bar", () => {
+  const at = (iso: string) => new Date(iso);
+  const paid = (end: string) => ({ plan: "paid" as const, periodEnd: end });
+
+  it("says nothing for most of a year-long stretch", () => {
+    expect(endsSoon(paid("2027-11-04T00:00:00Z"), at("2026-09-14T00:00:00Z"))).toBeNull();
+  });
+
+  it("starts a month out", () => {
+    expect(endsSoon(paid("2026-10-14T00:00:00Z"), at("2026-09-14T00:00:00Z"))).toBe(30);
+  });
+
+  it("counts down to the last day, rounding up", () => {
+    /*
+     * `daysLeft` rounds up, so any part of a day left reads as a whole one:
+     * twelve hours before the end is "1 day", not "0". That is the right way
+     * round for a countdown somebody acts on — being told "0 days" while the
+     * book still works would send them to buy something they already have.
+     */
+    expect(endsSoon(paid("2026-09-15T00:00:00Z"), at("2026-09-14T00:00:00Z"))).toBe(1);
+    expect(endsSoon(paid("2026-09-14T12:00:00Z"), at("2026-09-14T00:00:00Z"))).toBe(1);
+  });
+
+  it("stops once it has run out, where the ended notice takes over", () => {
+    expect(endsSoon(paid("2026-09-13T00:00:00Z"), at("2026-09-14T00:00:00Z"))).toBeNull();
+  });
+
+  it("has nothing to count on a free account", () => {
+    expect(endsSoon({ plan: "free", periodEnd: null }, at("2026-09-14T00:00:00Z"))).toBeNull();
   });
 });

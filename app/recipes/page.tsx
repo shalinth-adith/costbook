@@ -6,7 +6,7 @@ import { book, orgModel, pantry } from '@/lib/book';
 import { dashboard } from '@/lib/dashboard';
 import { requireSetup } from '@/lib/guard';
 import { library } from '@/lib/library';
-import { canTakeAway } from '@/lib/plan';
+import { canTakeAway, endsSoon } from '@/lib/plan';
 import { type Pile, pilesOf } from '@/lib/profit';
 
 import { archiveRecipe, createDish, duplicateRecipe } from './actions';
@@ -90,6 +90,7 @@ export default async function RecipesPage({
       currencySettable={b.recipes.length === 0}
       dishCount={b.recipes.length}
       plan={b.plan}
+      planEndsIn={endsSoon(b.subscription)}
     >
       <CurrencyProvider code={b.org.currency}>
         <LibraryView

@@ -9,7 +9,7 @@ import { breakdown } from "@/lib/breakdown";
 
 import { requireSetup } from "@/lib/guard";
 import { EXPORT_PASS } from "@/lib/org";
-import { canTakeAway } from "@/lib/plan";
+import { canTakeAway, endsSoon } from "@/lib/plan";
 import { allergensFrom, doNotFrom, methodLines, prepTimeFrom } from "@/lib/prep";
 
 export const metadata: Metadata = { title: "Every prep card · Costbook" };
@@ -76,6 +76,7 @@ export default async function CardsPage() {
       currencySettable={b.recipes.length === 0}
       dishCount={b.recipes.length}
       plan={b.plan}
+      planEndsIn={endsSoon(b.subscription)}
     >
       {canTake ? (
         <AllCards cards={cards} orgName={b.org.name} />

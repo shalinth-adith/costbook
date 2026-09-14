@@ -5,7 +5,7 @@ import { CurrencyProvider } from '@/components/currency-provider';
 import { RecipeSheet } from '@/components/recipe-sheet';
 
 import { book, orgModel, pantry } from '@/lib/book';
-import { canTakeAway } from '@/lib/plan';
+import { canTakeAway, endsSoon } from '@/lib/plan';
 import { requireSetup } from '@/lib/guard';
 
 /**
@@ -70,6 +70,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
       currencySettable={b.recipes.length === 0}
       dishCount={b.recipes.length}
       plan={b.plan}
+      planEndsIn={endsSoon(b.subscription)}
     >
       <CurrencyProvider code={code}>
         <RecipeSheet

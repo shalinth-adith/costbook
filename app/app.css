@@ -142,6 +142,22 @@
 }
 .trial-pips > span[data-on] { opacity: 1; background: var(--saffron); }
 .trial .figure { color: var(--on-soot); }
+
+/* The paid half of that counter: days, not dishes.
+   Same chip, same bar, so the two read as one fact in two situations. It
+   turns warm in the last week — the point at which the dashboard starts
+   saying so too, and the point at which it is worth a glance. */
+.ends {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  padding: 5px 10px; border-radius: 999px;
+  border: 1px solid var(--soot-rule); text-decoration: none;
+  color: var(--on-soot-secondary); font-size: 12.5px; white-space: nowrap;
+  transition: border-color 120ms var(--ease-enter), color 120ms var(--ease-enter);
+}
+.ends:hover { color: var(--on-soot); border-color: var(--on-soot-secondary); }
+.ends .figure { color: var(--on-soot); font-weight: 600; }
+.ends[data-close] { border-color: var(--saffron); }
+.ends[data-close] .figure { color: var(--saffron); }
 /* Spent. The only state that raises its voice, and it raises it once. */
 .trial[data-full] { border-color: var(--saffron); color: var(--saffron); }
 .trial[data-full] .figure { color: var(--saffron); }

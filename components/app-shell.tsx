@@ -83,6 +83,7 @@ export function AppShell({
   currencySettable,
   dishCount,
   plan,
+  planEndsIn = null,
   children,
 }: {
   current: string;
@@ -94,6 +95,17 @@ export function AppShell({
   dishCount: number;
   /** Free or paid. The trial counter is drawn only while there is a trial. */
   plan: Plan;
+  /**
+   * Days until the paid stretch runs out, or null when there is nothing to
+   * count — more than a month left, or no stretch at all.
+   *
+   * Counted on the server and passed in, rather than worked out here from a
+   * date. This renders on both sides of the wire and "today" is not the same
+   * instant in both: a stretch ending at midnight would render 1 on the
+   * server and 0 in the browser, which React reports as a hydration error on
+   * a screen nobody was looking at.
+   */
+  planEndsIn?: number | null;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -149,6 +161,27 @@ export function AppShell({
             * Gone entirely once the book is paid for: there is nothing left
             * to count, and a spent meter is just a reminder of a wall.
             */}
+          {/*
+            * The paid half of the trial counter.
+            *
+            * A free book counts dishes because six is the limit that matters
+            * to it; a paid one counts days, and only inside the last month —
+            * see COUNTDOWN_WITHIN_DAYS. Quiet on purpose: the dashboard's
+            * banner does the shouting in the last week, and a figure that has
+            * been on screen for eleven months is furniture by the time it
+            * means something.
+            */}
+          {plan === 'paid' && planEndsIn !== null ? (
+            <Link
+              href="/plans"
+              className="ends"
+              data-close={planEndsIn <= 7 ? '' : undefined}
+              title={`Your plan runs out in ${String(planEndsIn)} ${planEndsIn === 1 ? 'day' : 'days'}. Nothing renews by itself.`}
+            >
+              <span className="figure">{planEndsIn}</span>
+              <span className="ends-said">{planEndsIn === 1 ? 'day left' : 'days left'}</span>
+            </Link>
+          ) : null}
           {plan === 'free' ? (
             <Link
               href="/plans"

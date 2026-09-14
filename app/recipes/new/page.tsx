@@ -8,6 +8,7 @@ import { book } from "@/lib/book";
 import { requireSetup } from "@/lib/guard";
 
 import { createDishFromPaste } from "../actions";
+import { endsSoon } from '@/lib/plan';
 
 export const metadata: Metadata = { title: "New dish · Costbook" };
 
@@ -47,6 +48,7 @@ export default async function NewDishPage({
       currencySettable={b.recipes.length === 0}
       dishCount={b.recipes.length}
       plan={b.plan}
+      planEndsIn={endsSoon(b.subscription)}
     >
       <CurrencyProvider code={b.org.currency}>
         <NewDishView
