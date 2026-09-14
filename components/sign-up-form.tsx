@@ -145,11 +145,18 @@ export function SignUpForm() {
           {pending ? 'Checking…' : 'Confirm and continue'}
         </button>
 
+        {/*
+          * "You can close this tab" was true of a link and is a lie about a
+          * code: the box the code goes in is on this tab. Kept as a notice
+          * rather than deleted, because the fear it was written for is real —
+          * that leaving now loses the account — and that fear is worth
+          * answering with what is actually true.
+          */}
         <div className="notice notice-flat">
-          <p className="notice-title">You can close this tab.</p>
+          <p className="notice-title">Keep this tab open.</p>
           <p className="notice-text">
-            Nothing is lost and nothing is half-made. The code works for an hour, and if it lapses
-            we&rsquo;ll send another the next time you try to sign in.
+            The code goes in the box above. Your account is already made, so closing this loses
+            nothing — but you would have to sign in again to be sent a fresh code.
           </p>
         </div>
 
