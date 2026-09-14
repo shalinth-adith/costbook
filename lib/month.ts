@@ -111,6 +111,45 @@ export function shelfAtEndOf(
 export function compareMonth(input: MonthInput): MonthCompare {
   const against = monthBefore(input.period);
 
+  /*
+   * Counted from the history rather than from `movesSince`.
+   *
+   * That helper collapses every change to one ingredient inside its window
+   * into a single net move dated by the newest of them — right for "where
+   * does ghee stand against a month ago", wrong here: a rise in September
+   * would carry August's move out of August and report a month in which
+   * nothing happened.
+   *
+   * ASKED FIRST. Everything below rolls the shelf back twice and recosts the
+   * whole menu against itself. A month where no rate moved has nothing for
+   * that work to find — the card renders nothing — so the question comes
+   * before the arithmetic rather than after it.
+   */
+  const firstDay = `${input.period}-01`;
+  const dayAfter = monthAfter(input.period);
+  const movedIds = Object.entries(input.history)
+    .filter(([, changes]) =>
+      changes.some(
+        (c) => c.from !== null && c.on >= firstDay && c.on < dayAfter,
+      ),
+    )
+    .map(([id]) => id);
+
+  if (movedIds.length === 0) {
+    return {
+      period: input.period,
+      against,
+      costThen: null,
+      costNow: null,
+      percent: null,
+      dearer: 0,
+      cheaper: 0,
+      impact: { moved: [], crossing: [], notCrossing: [], crossCount: 0 },
+      rateMoves: 0,
+      frozenByLineRates: 0,
+    };
+  }
+
   const then = shelfAtEndOf(against, input.ingredients, input.history);
   const now = shelfAtEndOf(input.period, input.ingredients, input.history);
 
@@ -150,24 +189,6 @@ export function compareMonth(input: MonthInput): MonthCompare {
     else if (m.newCost < m.oldCost) cheaper += 1;
   }
 
-  /*
-   * Counted from the history rather than from `movesSince`.
-   *
-   * That helper collapses every change to one ingredient inside its window
-   * into a single net move dated by the newest of them — right for "where
-   * does ghee stand against a month ago", wrong here: a rise in September
-   * would carry August's move out of August and report a month in which
-   * nothing happened.
-   */
-  const firstDay = `${input.period}-01`;
-  const dayAfter = monthAfter(input.period);
-  const movedIds = Object.entries(input.history)
-    .filter(([, changes]) =>
-      changes.some(
-        (c) => c.from !== null && c.on >= firstDay && c.on < dayAfter,
-      ),
-    )
-    .map(([id]) => id);
   const movedRates = movedIds.length;
 
   /*

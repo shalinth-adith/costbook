@@ -67,7 +67,7 @@ describe("plate costs, month by month", () => {
       ingredients: [ing("rice", 40)],
       meta: meta(["a"]),
       model: DEFAULT_MODEL,
-      history: {},
+      history: { rice: [change(30, 40, "2026-07-12")] },
       period: "2026-08",
       until: "2026-08",
       months: 3,
@@ -94,7 +94,14 @@ describe("plate costs, month by month", () => {
     expect(out.percent).toBeCloseTo(33.33, 1);
   });
 
-  it("says flat as null rather than as nought per cent", () => {
+  it("reports nothing at all when no rate has moved in the window", () => {
+    /*
+     * Not "flat": nothing. Six identical totals are not a measurement, they
+     * are today's shelf copied across six months, and the card declines to
+     * draw them. Since the answer is discarded, the six passes of recosting
+     * that produce it are skipped — which is the point of counting the moves
+     * before doing the work rather than after.
+     */
     const out = trendOf({
       recipes: [dish("a", ["rice"])],
       ingredients: [ing("rice", 40)],
@@ -104,27 +111,36 @@ describe("plate costs, month by month", () => {
       until: "2026-08",
       months: 3,
     });
+    expect(out.moved).toBe(0);
+    expect(out.months).toEqual([]);
+    expect(out.dishes).toBe(0);
     expect(out.percent).toBeNull();
-    expect(out.dishes).toBe(1);
   });
 
   it("reads a rate's arrival as flat, never as a rise from nothing", () => {
-    // Ghee got its first price in August. `shelfAtEndOf` leaves a first rate
-    // in place rather than rolling it back to nothing — the month card's
-    // contract — so the ghee dish costs the same in every month and the
-    // trend does not show a menu inflating because somebody finished costing.
+    /*
+     * Rice rose in July, so the window is live. Ghee got its FIRST price in
+     * August: `shelfAtEndOf` leaves a first rate in place rather than rolling
+     * it back to nothing — the month card's contract — so the ghee dish costs
+     * the same in every month, and the menu does not appear to have inflated
+     * because somebody finished their costing.
+     */
     const out = trendOf({
       recipes: [dish("a", ["rice"]), dish("b", ["ghee"])],
       ingredients: [ing("rice", 40), ing("ghee", 300)],
       meta: meta(["a", "b"]),
       model: DEFAULT_MODEL,
-      history: { ghee: [change(null, 300, "2026-08-02")] },
+      history: {
+        rice: [change(30, 40, "2026-07-12")],
+        ghee: [change(null, 300, "2026-08-02")],
+      },
       until: "2026-08",
       months: 3,
     });
     expect(out.dishes).toBe(2);
-    expect(out.months.map((m) => m.total)).toEqual([340, 340, 340]);
-    expect(out.percent).toBeNull();
+    // Ghee steady at 300 throughout; only rice moves, 30 → 40 in July.
+    expect(out.months.map((m) => m.total)).toEqual([330, 340, 340]);
+    expect(out.percent).toBeCloseTo(3.03, 1);
   });
 });
 

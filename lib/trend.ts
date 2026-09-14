@@ -68,6 +68,28 @@ export function trendOf(input: TrendInput): Trend {
     p = monthBefore(p);
   }
 
+  /*
+   * Rates that moved inside the window, counted from the history itself.
+   *
+   * A first rate is not a move: it is somebody finishing their costing, and
+   * `shelfAtEndOf` deliberately leaves it in place in every month rather than
+   * reporting a menu that rose from nothing. So `from !== null` here, exactly
+   * as the month card counts it.
+   *
+   * COUNTED FIRST, AND ON PURPOSE. Everything below recosts the whole menu
+   * six times over — six shelves rolled back, six passes of `dashboard()`
+   * across every dish. On a book where no rate has ever been changed that
+   * work produces six identical totals which the card then declines to draw.
+   * So the question "did anything move?" is asked before the work, not after.
+   */
+  const from = `${periods[0] ?? input.until}-01`;
+  const to = monthAfter(input.until);
+  const moved = Object.values(input.history).filter((changes) =>
+    changes.some((c) => c.from !== null && c.on >= from && c.on < to),
+  ).length;
+
+  if (moved === 0) return { months: [], dishes: 0, percent: null, moved: 0 };
+
   const ids = input.recipes.map((r) => r.id);
   const byMonth = periods.map((period) => {
     const shelf = shelfAtEndOf(period, input.ingredients, input.history);
@@ -95,20 +117,6 @@ export function trendOf(input: TrendInput): Trend {
       counted.reduce((sum, id) => sum + (byMonth[i]?.get(id) ?? 0), 0),
     ),
   }));
-
-  /*
-   * Rates that moved inside the window, counted from the history itself.
-   *
-   * A first rate is not a move: it is somebody finishing their costing, and
-   * `shelfAtEndOf` deliberately leaves it in place in every month rather than
-   * reporting a menu that rose from nothing. So `from !== null` here, exactly
-   * as the month card counts it.
-   */
-  const from = `${periods[0] ?? input.until}-01`;
-  const to = monthAfter(input.until);
-  const moved = Object.values(input.history).filter((changes) =>
-    changes.some((c) => c.from !== null && c.on >= from && c.on < to),
-  ).length;
 
   const first = months[0]?.total ?? 0;
   const last = months[months.length - 1]?.total ?? 0;

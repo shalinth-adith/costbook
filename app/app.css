@@ -6755,3 +6755,92 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 .nd-add:hover { color: var(--text-primary); }
 .nd-add-lede { margin: 0 0 var(--sp-3); font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); }
 .nd-add-fault { margin: 0 0 var(--sp-3); font-size: 13px; font-weight: 500; color: var(--accent-deep); }
+
+
+/* ── while a screen is on its way ───────────────────────────────────────
+   Every page here is dynamic and waits on the database: about 440ms of
+   server time on a warm machine, of which the costing arithmetic is about
+   five. That wait cannot be removed, so it is furnished instead — with the
+   shape of the page that is coming, not a spinner, so nothing jumps when it
+   lands. The animation is a slow sweep rather than a pulse: a pulse on
+   eleven blocks at once reads as an error state. */
+
+.sk {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    var(--surface-sunken) 0%,
+    var(--border-hairline) 50%,
+    var(--surface-sunken) 100%
+  );
+  background-size: 200% 100%;
+  animation: sk-sweep 1.6s linear infinite;
+}
+@keyframes sk-sweep {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+/* A wait that flickers is worse than a wait that sits still. */
+@media (prefers-reduced-motion: reduce) {
+  .sk { animation: none; background: var(--surface-sunken); }
+}
+
+/*
+ * `inline-size: 100%` is load-bearing, not belt-and-braces.
+ *
+ * `.shell` is a column flex container (so the footer sits at the bottom of a
+ * short screen), which makes this a flex item — and an auto inline margin on
+ * a flex item cancels the stretch that would otherwise fill the row. Measured:
+ * without the width, this box shrank to its content and sat 492px wide in the
+ * middle of a 1280px window, with five cards wrapping onto three rows. The
+ * width restores the fill; the auto margins then only matter past 1480.
+ */
+.sk-page {
+  display: grid; gap: var(--sp-5);
+  padding: var(--sp-6) 40px var(--sp-8);
+  inline-size: 100%; max-inline-size: 1480px; margin-inline: auto;
+  box-sizing: border-box;
+}
+.sk-col { display: grid; gap: 10px; align-content: start; min-inline-size: 0; }
+.sk-head { display: flex; align-items: center; gap: var(--sp-5); flex-wrap: wrap; }
+.sk-ring {
+  inline-size: 132px; block-size: 132px; border-radius: 50%;
+  border: 10px solid var(--surface-sunken); flex: none;
+}
+.sk-bar { display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; }
+
+.sk-rows { display: grid; gap: 10px; }
+.sk-row {
+  border: 1px solid var(--border-hairline); border-radius: var(--radius-field);
+  padding: var(--sp-4);
+}
+
+.sk-cards { display: grid; gap: var(--sp-3); }
+.sk-cards-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.sk-cards-5 { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.sk-card {
+  border: 1px solid var(--border-hairline); border-radius: var(--radius-field);
+  padding: var(--sp-4); background: var(--surface-card);
+}
+
+.sk-table {
+  border: 1px solid var(--border-hairline); border-radius: var(--radius-field);
+  background: var(--surface-card); overflow: hidden; min-inline-size: 0;
+}
+.sk-tr {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4); padding: 14px var(--sp-4);
+  border-block-end: 1px solid var(--border-row);
+}
+.sk-tr:last-child { border-block-end: 0; }
+
+.sk-band { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); gap: var(--sp-6); align-items: start; }
+
+@media (max-width: 1100px) {
+  .sk-band { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 700px) {
+  .sk-page { padding-inline: 20px; }
+  .sk-ring { display: none; }
+}
