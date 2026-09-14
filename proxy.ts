@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { createServerClient } from "@supabase/ssr";
 
-import { gateFor, isPublic } from "@/lib/landing";
+import { authErrorLanding, gateFor, isPublic } from "@/lib/landing";
 import { supabaseConfigured } from "@/lib/supabase/env";
 
 /**
@@ -58,6 +58,21 @@ export async function proxy(request: NextRequest) {
   const signedIn = auth.user !== null;
 
   const path = request.nextUrl.pathname;
+
+  /*
+   * A link the provider already refused.
+   *
+   * It arrives at the Site URL with the reason on the query string, which is
+   * the landing page — a page about buying software, shown to somebody who
+   * cannot get in. Caught here rather than in the page itself so the landing
+   * page stays statically rendered: reading a search param inside it would
+   * make the most-visited screen in the product dynamic for the sake of an
+   * error almost nobody hits.
+   */
+  const failed = authErrorLanding(request.nextUrl.search);
+  if (failed !== null && !path.startsWith("/api/")) {
+    return NextResponse.redirect(new URL(failed, request.url));
+  }
 
   /*
    * The lookup runs only for someone asking for a screen inside the product.

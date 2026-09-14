@@ -189,6 +189,43 @@ export function gateFor(
 }
 
 /**
+ * Where a link that failed at the provider should land.
+ *
+ * When a confirmation or recovery link is expired, already spent, or simply
+ * wrong, Supabase never reaches our handler at all: it refuses the token on
+ * its own side and sends the browser to the project's Site URL with the
+ * reason on the query string — `?error=access_denied&error_code=otp_expired`.
+ *
+ * That address is the landing page, which is a page about buying software. So
+ * somebody whose link expired — a person who is, by definition, locked out and
+ * already frustrated — was shown a sales pitch with their error invisible in
+ * the URL bar. This routes them to the sign-in screen instead, which says what
+ * happened and offers both ways forward.
+ *
+ * Read on the query string rather than the fragment. Supabase puts the error
+ * in both, and the fragment is never sent to a server — a `#` is a browser's
+ * private business, which is exactly the sort of thing that makes this class
+ * of bug invisible in logs.
+ */
+export function authErrorLanding(search: string): string | null {
+  if (search === "") return null;
+  const asked = new URLSearchParams(
+    search.startsWith("?") ? search.slice(1) : search,
+  );
+  const code = asked.get("error_code");
+  const error = asked.get("error");
+  if (code === null && error === null) return null;
+
+  /*
+   * Every one of these means the same thing to the person holding it: the
+   * link does not work any more, ask for another. Naming which is a guess
+   * dressed as a diagnosis — `otp_expired` covers both "an hour passed" and
+   * "something opened this before you did".
+   */
+  return "/sign-in?link=spent";
+}
+
+/**
  * A `next` parameter, if it is safe to redirect to.
  *
  * The whole point of this function is that the value came from a query string,

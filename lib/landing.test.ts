@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { PUBLIC_PATHS, UNLISTED, gateFor, isPublic } from "./landing";
+import {
+  PUBLIC_PATHS,
+  UNLISTED,
+  authErrorLanding,
+  gateFor,
+  isPublic,
+} from "./landing";
 
 /**
  * Which pages a stranger may read.
@@ -173,5 +179,29 @@ describe("the way back in, for somebody who cannot get in", () => {
   it("keeps both out of the sitemap", () => {
     expect(UNLISTED).toContain("/reset");
     expect(UNLISTED).toContain("/auth");
+  });
+});
+
+describe("a link the provider refused before it reached us", () => {
+  /*
+   * Supabase checks a confirmation or recovery token on its own side. When it
+   * refuses one it never calls our handler: it sends the browser to the Site
+   * URL with the reason attached. That address is the landing page.
+   */
+  it("sends an expired link to the screen that explains it", () => {
+    expect(
+      authErrorLanding("?error=access_denied&error_code=otp_expired"),
+    ).toBe("/sign-in?link=spent");
+  });
+
+  it("catches any provider error, not only expiry", () => {
+    expect(authErrorLanding("?error=server_error")).toBe("/sign-in?link=spent");
+    expect(authErrorLanding("error_code=bad_oauth_state")).toBe("/sign-in?link=spent");
+  });
+
+  it("leaves every ordinary visit alone", () => {
+    for (const search of ["", "?utm_source=instagram", "?next=%2Frecipes", "?new=1"]) {
+      expect(authErrorLanding(search)).toBeNull();
+    }
   });
 });
