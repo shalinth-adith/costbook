@@ -137,6 +137,40 @@ export async function outbox(limit = 60): Promise<readonly Queued[]> {
  * `sent_at` is written only after the provider has accepted the message. A
  * row that fails keeps its null and its reason, and will be tried again.
  */
+/**
+ * Hand one message to the provider. Null when it was accepted.
+ *
+ * The one place that knows the provider's shape, so the nightly drain and a
+ * code that somebody is waiting for both post the same way.
+ */
+export async function postToProvider(
+  to: string,
+  subject: string,
+  body: string,
+): Promise<string | null> {
+  const key = providerKey();
+  if (key === null) return "no mail provider is configured";
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: fromAddress(),
+        to: [to],
+        subject,
+        text: body,
+      }),
+    });
+    if (!res.ok) return `${String(res.status)} ${(await res.text()).slice(0, 300)}`;
+    return null;
+  } catch (e) {
+    return e instanceof Error ? e.message : "could not reach the provider";
+  }
+}
+
 export interface Drained {
   readonly sent: number;
   readonly failed: number;
@@ -178,26 +212,7 @@ export async function drainWith(
     body: string;
     attempts: number;
   }[]) {
-    let fault: string | null = null;
-    try {
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${key}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: fromAddress(),
-          to: [m.to_email],
-          subject: m.subject,
-          text: m.body,
-        }),
-      });
-      if (!res.ok)
-        fault = `${String(res.status)} ${(await res.text()).slice(0, 300)}`;
-    } catch (e) {
-      fault = e instanceof Error ? e.message : "could not reach the provider";
-    }
+    const fault = await postToProvider(m.to_email, m.subject, m.body);
 
     if (fault === null) {
       await supabase

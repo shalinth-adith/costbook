@@ -12,6 +12,7 @@ import {
 } from '@/lib/accounts';
 import { type SignInState, emailFault, nextAttempts, signIn } from '@/lib/auth';
 import { afterSignIn } from '@/lib/after-auth';
+import { sendSignupCode } from '@/lib/send-code';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { supabaseServer } from '@/lib/supabase/server';
 
@@ -71,16 +72,12 @@ export async function resendVerification(email: string): Promise<{ readonly sent
     return { sentAt: Date.now() };
   }
 
-  const supabase = await supabaseServer();
-  const { error } = await supabase.auth.resend({
-    type: 'signup',
-    email
-  });
-  if (error !== null) {
-    // Said in the log, not to the screen: the screen must not become a way to
-    // learn which addresses have unconfirmed accounts.
-    console.warn(`[auth] could not resend the confirmation: ${error.message}`);
-  }
+  /*
+   * The same code the sign-up screen sends, posted the same way — see
+   * lib/send-code.ts. Deliberately quiet about whether the address has an
+   * account: this screen is reachable by anybody.
+   */
+  await sendSignupCode({ email });
   return { sentAt: Date.now() };
 }
 

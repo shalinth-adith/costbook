@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { MIN_PASSWORD } from '@/components/entry-shell';
 import { afterSignIn } from '@/lib/after-auth';
 import { emailFault } from '@/lib/auth';
+import { sendSignupCode } from '@/lib/send-code';
 import { CODE_REFUSED, codeFault, digitsOf } from '@/lib/verify';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { supabaseServer } from '@/lib/supabase/server';
@@ -51,37 +52,31 @@ export async function createAccount(email: string, password: string): Promise<Si
    */
   if (!supabaseConfigured()) redirect(await afterSignIn(null));
 
-  const supabase = await supabaseServer();
   /*
-   * Where the confirmation link comes back to.
+   * The account is made and the code is posted by us, not by the provider.
    *
-   * Without this the link lands on Supabase's own site URL, which is fine for
-   * a project whose site URL is this application and wrong the moment it is
-   * not — and it carries a one-time credential that only our handler knows
-   * what to do with. Named here rather than assumed there.
+   * `auth.signUp` asks Supabase to send its own mail from a template in the
+   * dashboard — which for a week said "follow this link" while this screen
+   * asked for six digits, because the two live in different places and
+   * nothing in this repository could make them agree. See lib/send-code.ts.
    */
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password
-  });
+  const out = await sendSignupCode({ email, password });
 
-  if (error !== null) {
-    const message = error.message.toLowerCase();
-    if (message.includes('already') || message.includes('registered')) return { kind: 'exists' };
-    return { kind: 'failed', message: error.message };
+  // A31: the same sentence whether the address has an account or not.
+  if (out.exists) return { kind: 'exists' };
+  if (!out.ok) {
+    return {
+      kind: 'failed',
+      message: 'We could not send the code just now. Try again in a moment.',
+    };
   }
 
-  // Email confirmation is off, so a session arrives with the account and the
-  // next stop is setting up the book.
-  // A new account has four unanswered questions, so this lands on /setup —
-  // but it says so by asking, not by knowing.
-  if (data.session !== null) redirect(await afterSignIn(null));
-
   /*
-   * No session means the project has email confirmation switched on, which it
-   * is not today. Reaching this line therefore means somebody turned it on in
-   * the Supabase dashboard — and that they could only have done so with a mail
-   * provider configured, so the link the next screen describes is real.
+   * Always the code screen.
+   *
+   * The account exists and is unconfirmed, which is the state this flow is
+   * for: there is no session to fall into, because nothing has proved the
+   * address yet.
    */
   return { kind: 'sent', email };
 }
@@ -110,7 +105,12 @@ export async function confirmSignUp(
   const { error } = await supabase.auth.verifyOtp({
     email,
     token: digitsOf(code),
-    type: 'signup',
+    /*
+     * The type the code was minted as — lib/send-code.ts asks for a magiclink
+     * code both when the account is created and when another is sent, so this
+     * screen verifies one thing rather than guessing which arrived.
+     */
+    type: 'magiclink',
   });
 
   /*
@@ -137,13 +137,10 @@ export async function resendSignUp(
   email: string,
 ): Promise<{ readonly ok: boolean; readonly message?: string }> {
   if (!supabaseConfigured()) return { ok: false, message: 'No mail is configured.' };
-  const supabase = await supabaseServer();
-  const { error } = await supabase.auth.resend({
-    type: 'signup',
-    email
-  });
-  if (error !== null) return { ok: false, message: error.message };
-  return { ok: true };
+  const out = await sendSignupCode({ email });
+  return out.ok
+    ? { ok: true }
+    : { ok: false, message: 'That did not send. Try again in a moment.' };
 }
 
 /** Sign out. The book stays; the session does not. */

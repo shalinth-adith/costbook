@@ -22,10 +22,12 @@ import { supabaseEnv } from "./env";
  *
  * WHAT KEEPS IT NARROW:
  *
- *   - Three importers, all of them sessionless by nature: `lib/settle.ts`
+ *   - Four importers, all of them sessionless by nature: `lib/settle.ts`
  *     (the payment webhook), `lib/post.ts` (writing a letter into an outbox
- *     no session may read), and the scheduled job that sends the plan
- *     reminders. Nothing rendered for a person ever reaches this file.
+ *     no session may read), `lib/send-code.ts` (minting a verification code
+ *     for somebody who has no session yet — that is the point of it), and the
+ *     scheduled job that sends the plan reminders. Nothing rendered for a
+ *     person ever reaches this file.
  *   - No fallback. A missing key throws rather than quietly degrading to the
  *     anon client, because degrading here means "writes nothing, says fine",
  *     which is the exact bug being fixed.

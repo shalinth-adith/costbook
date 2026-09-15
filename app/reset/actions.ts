@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { afterSignIn } from '@/lib/after-auth';
 import { emailFault } from '@/lib/auth';
 import { passwordFault } from '@/lib/password';
+import { sendRecoveryCode } from '@/lib/send-code';
 import { CODE_REFUSED, codeFault, digitsOf } from '@/lib/verify';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { supabaseServer } from '@/lib/supabase/server';
@@ -42,22 +43,18 @@ export async function requestReset(
 
   if (!supabaseConfigured()) return { kind: 'sent', email };
 
-  const supabase = await supabaseServer();
   /*
-   * No redirect target, because nothing is going to be clicked.
-   *
-   * Supabase renders the same one-time token as either a URL or six digits,
-   * and which one arrives is decided by the template. This product sends the
-   * digits: a link is fetched by corporate mail scanners before the person
-   * reads it, which spends the token and leaves them holding an error for
-   * something that already succeeded. See lib/verify.ts.
+   * The code is generated and posted by us, for the same reason sign-up's is:
+   * a dashboard template cannot be kept in step with this screen. See
+   * lib/send-code.ts.
    */
-  await supabase.auth.resetPasswordForEmail(email);
+  await sendRecoveryCode(email);
 
   /*
-   * The result is deliberately not read. Supabase returns the same shape for
-   * an address it has never seen, and a branch here — even a branch that only
-   * logged — would be the beginning of the leak this whole function avoids.
+   * The result is deliberately not read. An address with no account fails
+   * inside that call and says so in the log; a branch here — even one that
+   * only logged — would be the beginning of the leak this function exists to
+   * avoid.
    */
   return { kind: 'sent', email };
 }

@@ -1,5 +1,5 @@
 import type { Letter } from "./letters";
-import { type Drained, drainWith } from "./mail";
+import { type Drained, drainWith, postToProvider } from "./mail";
 import { SUPPORT_EMAIL } from "./org";
 import { supabaseAdmin } from "./supabase/admin";
 
@@ -114,4 +114,41 @@ export async function drainAsService(limit = 50): Promise<Drained> {
     console.error("[mail] the nightly drain could not run:", String(error));
     return { sent: 0, failed: 0, skipped: true };
   }
+}
+
+/**
+ * Send one message now, and write down that it went.
+ *
+ * The queue is right for a support reply somebody will read tomorrow. It is
+ * wrong for a six-digit code, where a person is watching an empty box: that
+ * has to leave before this function returns, or the screen is lying about
+ * what it just did.
+ *
+ * The outbox row is written either way — sent, or with the provider's refusal
+ * on it — because a code that never arrived is the thing support will be
+ * asked about, and "we have no record" is not an answer.
+ */
+export async function sendNow(
+  to: string,
+  letter: Letter,
+): Promise<{ readonly ok: boolean; readonly said: string | null }> {
+  const fault = await postToProvider(to, letter.subject, letter.body);
+
+  try {
+    const supabase = supabaseAdmin();
+    await supabase.from("mail_outbox").insert({
+      to_email: to,
+      subject: letter.subject.slice(0, 200),
+      body: letter.body.slice(0, 8000),
+      sent_at: fault === null ? new Date().toISOString() : null,
+      last_error: fault === null ? null : fault.slice(0, 500),
+      attempts: 1,
+    });
+  } catch (error) {
+    // Losing the record must not lose the mail: it has already gone.
+    console.error("[mail] sent but could not record it:", String(error));
+  }
+
+  if (fault !== null) console.error(`[mail] "${letter.subject}" refused: ${fault}`);
+  return { ok: fault === null, said: fault };
 }
