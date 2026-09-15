@@ -54,17 +54,11 @@ export async function attemptSignIn(_previous: SignInState, form: FormData): Pro
 }
 
 /**
- * A10 · 06, "Send it again" — and now it does.
+ * A10 · 06, "send a new code".
  *
- * This moved a timestamp on the in-memory fixture and sent nothing, which was
- * honest while there was no mail provider: the comment said so, and the screen
- * offering it was unreachable against a real project because confirmation was
- * switched off. Both of those changed. Confirmation is on, so an operator can
- * now arrive at this button for real — and a button on the one screen a
- * locked-out person can reach must not be a decoration.
- *
- * It is deliberately quiet about whether the address has an account, the same
- * way /reset is: this screen is reachable by anybody.
+ * Reachable by anybody, with any address, so it says nothing about whether
+ * the address has an account — and, since the audit of 2026-09-15, it can no
+ * longer create one: lib/send-code.ts checks first, and counts.
  */
 export async function resendVerification(email: string): Promise<{ readonly sentAt: number }> {
   if (!supabaseConfigured()) {
@@ -122,7 +116,16 @@ async function signInWithSupabase(
     return { kind: 'locked', unlocksInMs: 60_000 };
   }
   if (message.includes('confirm')) {
-    return { kind: 'unverified', email, sentDaysAgo: null };
+    /*
+     * The password matched — the provider checks that before it mentions
+     * confirmation — so the account is theirs and only the address is
+     * unproven. Post the code now rather than making them ask: the screen
+     * that follows is a code field, and a code field with no code on its way
+     * is the dead end this used to be ("we sent a link", when nothing had
+     * been sent and links were no longer a thing this product posts).
+     */
+    const posted = await sendSignupCode({ email });
+    return { kind: 'unverified', email, sentDaysAgo: null, sent: posted.ok };
   }
 
   /*

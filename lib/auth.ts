@@ -73,6 +73,13 @@ export type SignInResult =
       readonly kind: "unverified";
       readonly email: string;
       readonly sentDaysAgo: number | null;
+      /**
+       * Whether a code went out with this answer. Undefined on the fixture
+       * path, which posts nothing; false when the throttle in
+       * lib/code-throttle.ts refused one, so the screen can say so instead
+       * of claiming a mail that is not coming.
+       */
+      readonly sent?: boolean;
     }
   | { readonly kind: "ok"; readonly email: string };
 

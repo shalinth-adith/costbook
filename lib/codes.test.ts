@@ -26,6 +26,15 @@ describe("the code mail", () => {
     expect(recovery.body).toMatch(/choose a new password/i);
   });
 
+  it("tells the holder of an existing account that the code signs them in, and makes no second account", () => {
+    const again = codeLetter({ code: "111222", purpose: "signin" });
+    expect(again.subject).toContain("111222");
+    expect(again.body).toMatch(/to sign in/i);
+    expect(again.body).toMatch(/already has one/i);
+    expect(again.body).toMatch(/no second account/i);
+    expect(signup.body).not.toMatch(/already has one/i);
+  });
+
   it("carries no link at all, which is the entire point", () => {
     for (const letter of [signup, recovery]) {
       expect(letter.body).not.toMatch(/https?:\/\//);

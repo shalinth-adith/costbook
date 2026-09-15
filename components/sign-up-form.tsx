@@ -47,17 +47,14 @@ export function SignUpForm() {
   const short = MIN_PASSWORD - password.length;
 
   const [fault, setFault] = useState<string | null>(null);
-  const [exists, setExists] = useState(false);
 
   const submit = () => {
     if (!longEnough) { setTooEarly(true); return; }
     setFault(null);
-    setExists(false);
     start(async () => {
       const out = await createAccount(email, password);
-      // A successful sign-up redirects on the server, so anything that comes
-      // back is something the operator has to be told about.
-      if (out.kind === 'exists') { setExists(true); return; }
+      // Whatever comes back is either the code screen or something the
+      // operator has to be told about.
       if (out.kind === 'fields') { setFault(out.message); return; }
       if (out.kind === 'failed') { setFault(out.message); return; }
       if (out.kind === 'sent') setSent(out.email);
@@ -137,9 +134,10 @@ export function SignUpForm() {
         {/* The heading is "your account exists", not "check your email" — the
             anxiety at this moment is that closing the tab loses the work. */}
         <h1 className="entry-title">Your account exists. Now prove the address.</h1>
+        {/* The same words for a new address and one that already has an
+            account: the owner's letter says which, and the screen does not. */}
         <p className="entry-sub">
-          We&rsquo;ve sent a six-digit code to <b>{sent}</b>. Type it here and you&rsquo;ll go
-          straight to setting up your book.
+          We&rsquo;ve sent a six-digit code to <b>{sent}</b>. Type it here and you&rsquo;re in.
         </p>
 
         <div className="field">
@@ -274,17 +272,6 @@ export function SignUpForm() {
         </span>
       </label>
 
-      {/* Worded identically whether the address has an account or not, with a
-          route to sign-in — so the form cannot be used to find out who does. */}
-      {exists && (
-        <div className="notice notice-flat">
-          <p className="notice-title">If this address already has an account, we&rsquo;ve sent a sign-in link to it.</p>
-          <p className="notice-text">
-            Check your email rather than making a second account.{' '}
-            <Link href="/sign-in" className="link link-sm">Sign in instead</Link>
-          </p>
-        </div>
-      )}
       {fault !== null && (
         <p className="field-fault field-fault-over">{fault}</p>
       )}

@@ -4217,6 +4217,15 @@ a.dsh-watch:hover .dsh-watch-h { text-decoration: underline; text-underline-offs
 .acct > summary { list-style: none; cursor: pointer; }
 .acct > summary::-webkit-details-marker { display: none; }
 .acct > summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+/* The header sits above the page, and has to say so. The dashboard's
+   headline band arrives with a transform (`.dsh-in`), which makes it a
+   stacking context painted after the header's own — and the account menu,
+   absolute and z-index 30 but inside the header, went under it. "Sign out"
+   could not be pressed on the one screen the app opens on. Lifting the
+   header into a context of its own puts the menu back on top of everything
+   the page draws. */
+.topbar { position: relative; z-index: 40; }
+
 .acct-menu {
   position: absolute; inset-inline-end: 0; top: calc(100% + 8px); z-index: 30;
   min-inline-size: 200px; padding: 8px; display: grid; gap: 2px;

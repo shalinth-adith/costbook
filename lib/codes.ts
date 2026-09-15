@@ -17,8 +17,15 @@ import { CODE_MINUTES } from "./recover";
  * message cannot drift apart.
  */
 
-/** Why a code was sent. The two flows differ in one sentence, not in shape. */
-export type Purpose = "signup" | "recovery";
+/**
+ * Why a code was sent. The flows differ in a sentence, not in shape.
+ *
+ * `signin` is the letter for somebody who tried to create an account on an
+ * address that already has one. The code they get signs them in, and the
+ * letter says so — the alternative, a "finish signing up" mail to a person
+ * who finished months ago, was what the audit of 2026-09-15 found going out.
+ */
+export type Purpose = "signup" | "recovery" | "signin";
 
 export function codeLetter(input: {
   readonly code: string;
@@ -27,7 +34,21 @@ export function codeLetter(input: {
   const why =
     input.purpose === "signup"
       ? "to finish signing up"
-      : "to choose a new password";
+      : input.purpose === "recovery"
+        ? "to choose a new password"
+        : "to sign in";
+
+  /*
+   * Said only to the person who already has the account. It is not a leak:
+   * the letter goes to the address itself, and whoever typed it into the
+   * sign-up form sees the same code screen as everybody else.
+   */
+  const already =
+    input.purpose === "signin"
+      ? "Somebody — most likely you — just tried to create a Costbook account with this " +
+        "address, and it already has one. There is no second account to make: type the " +
+        "code into that screen and you are signed in to the one you have.\n\n"
+      : "";
 
   return {
     subject: `${input.code} is your Costbook code`,
@@ -42,6 +63,7 @@ export function codeLetter(input: {
     body:
       `${input.code}\n\n` +
       `That is your Costbook code, ${why}. Type it into the screen you came from.\n\n` +
+      already +
       `It lasts ${String(CODE_MINUTES)} minutes and can be used once. Nobody at Costbook will ` +
       `ever ask you for it.\n\n` +
       /*

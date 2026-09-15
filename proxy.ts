@@ -57,6 +57,22 @@ export async function proxy(request: NextRequest) {
   const { data: auth } = await supabase.auth.getUser();
   const signedIn = auth.user !== null;
 
+  /*
+   * A server action answers for itself, the way a route handler does.
+   *
+   * The gate below replies with a redirect, and a redirect is the one thing
+   * an action's caller cannot read: the browser follows it, receives the
+   * sign-in page as HTML where the client expected an action result, and
+   * Next raises "An unexpected response was received from the server" into
+   * the nearest error boundary. So a person whose session had expired — an
+   * hour in another tab, a token rotated elsewhere — pressed Sign out, or
+   * Save, and was shown "That failed on our side, not yours." The token
+   * refresh above has already happened; what is skipped is only the reply.
+   * The action runs, finds no session, and does the right thing itself: sign
+   * out redirects to /sign-in, and everything else reads the empty book.
+   */
+  if (request.method === "POST" && request.headers.has("next-action")) return response;
+
   const path = request.nextUrl.pathname;
 
   /*
@@ -88,14 +104,22 @@ export async function proxy(request: NextRequest) {
    * One indexed lookup, and it answers both questions at once.
    *
    * `memberships` is indexed on user_id and joins straight to the row carrying
-   * setup_done, so role and setup state arrive together. RLS makes this safe to
-   * run with the anon key: it returns the caller's own membership or nothing.
+   * setup_done, so role and setup state arrive together.
+   *
+   * THE CALLER'S OWN ROW, BY NAME. RLS returns a person their own membership
+   * and nothing else — except for an app admin, whose policies (migration 25)
+   * return everybody's. `limit(1)` with no filter then handed the admin
+   * whichever row Postgres reached first, and when that was somebody else's
+   * unfinished organisation, the gate sent the admin to /setup, whose own
+   * check (which does filter) sent them straight back. The same fault was
+   * fixed in `book()` the day before; this is the other half of it.
    */
   const membership = asking
     ? (
         await supabase
           .from('memberships')
           .select('role, organizations(setup_done)')
+          .eq('user_id', auth.user?.id ?? '')
           .limit(1)
           .maybeSingle()
       ).data

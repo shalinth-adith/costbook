@@ -15,10 +15,11 @@ export type SignUpState =
   | { readonly kind: 'idle' }
   | { readonly kind: 'fields'; readonly message: string; readonly field: 'email' | 'password' }
   /**
-   * A31: the same sentence whether the address has an account or not, so the
-   * form cannot be used to find out who does.
+   * A31: the same screen whether the address has an account or not, so the
+   * form cannot be used to find out who does. An address that already has
+   * one is sent a code that signs its owner in (lib/send-code.ts), and the
+   * code screen reads the same to everybody.
    */
-  | { readonly kind: 'exists' }
   | { readonly kind: 'sent'; readonly email: string }
   | { readonly kind: 'failed'; readonly message: string };
 
@@ -62,8 +63,17 @@ export async function createAccount(email: string, password: string): Promise<Si
    */
   const out = await sendSignupCode({ email, password });
 
-  // A31: the same sentence whether the address has an account or not.
-  if (out.exists) return { kind: 'exists' };
+  /*
+   * One answer for a working send, whether the address was new or not.
+   *
+   * This used to return a separate `exists` state, which put "If this
+   * address already has an account, we've sent a sign-in link" on the
+   * screen — while the mail behind it was a "finish signing up" code with
+   * nowhere to type it, and the different screen told anybody watching
+   * which addresses have accounts. Now the owner gets a code that signs
+   * them in, with a letter saying so, and this form shows the code screen
+   * to everybody alike.
+   */
   if (!out.ok) {
     return {
       kind: 'failed',
@@ -95,6 +105,8 @@ export async function createAccount(email: string, password: string): Promise<Si
 export async function confirmSignUp(
   email: string,
   code: string,
+  /** Where the sign-in gate stopped them, when this is reached from sign-in. */
+  next: string | null = null,
 ): Promise<
   | { readonly kind: 'fields'; readonly message: string }
   /**
@@ -108,7 +120,7 @@ export async function confirmSignUp(
   const fault = codeFault(code);
   if (fault !== null) return { kind: 'fields', message: fault };
 
-  if (!supabaseConfigured()) return { kind: 'verified', next: await afterSignIn(null) };
+  if (!supabaseConfigured()) return { kind: 'verified', next: await afterSignIn(next) };
 
   const supabase = await supabaseServer();
   const { error } = await supabase.auth.verifyOtp({
@@ -142,7 +154,7 @@ export async function confirmSignUp(
     return { kind: 'fields', message: CODE_REFUSED };
   }
 
-  return { kind: 'verified', next: await afterSignIn(null) };
+  return { kind: 'verified', next: await afterSignIn(next) };
 }
 
 /**

@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useState } from "react";
-import { unstable_rethrow } from "next/navigation";
+import { useActionState, useEffect, useState, useTransition } from "react";
+import { unstable_rethrow, useRouter } from "next/navigation";
 
 import { attemptSignIn, resendVerification } from "@/app/sign-in/actions";
+import { confirmSignUp } from "@/app/sign-up/actions";
 import { type FieldName, IDLE, type SignInState, emailFault } from "@/lib/auth";
 import { FREE_LIMITS } from "@/lib/org";
 import { LINK_FAILED } from "@/lib/recover";
+import { CODE_LENGTH, codeFault, digitsOf } from "@/lib/verify";
 
 import { StatusGlyph } from "./status-chip";
 
@@ -158,7 +160,22 @@ export function SignInForm({
    * never mistaken for the dismissed one.
    */
   const [dismissed, setDismissed] = useState<SignInState | null>(null);
-  const [resentAt, setResentAt] = useState<number | null>(null);
+
+  /*
+   * The code step, for an account whose address is not yet proven.
+   *
+   * The password has been accepted by the time this renders, and a code is
+   * already on its way (app/sign-in/actions.ts). What is left is the same
+   * field the sign-up screen has — this used to be a card that said "we sent
+   * a link", when nothing had been sent, and offered a button that then did
+   * send a code, to a screen with nowhere to type it.
+   */
+  const router = useRouter();
+  const [code, setCode] = useState("");
+  const [codeWrong, setCodeWrong] = useState<string | null>(null);
+  const [checking, startCheck] = useTransition();
+  const [cooldown, setCooldown] = useState(0);
+  const [fresh, setFresh] = useState(false);
 
   const live: SignInState = state === dismissed ? IDLE : state;
 
@@ -219,63 +236,158 @@ export function SignInForm({
   }
 
   if (live.kind === "unverified") {
+    const confirmCode = () => {
+      const wrong = codeFault(code);
+      if (wrong !== null) {
+        setCodeWrong(wrong);
+        return;
+      }
+      setCodeWrong(null);
+      startCheck(async () => {
+        try {
+          const out = await confirmSignUp(live.email, code, next);
+          if (out.kind === "verified") {
+            router.push(out.next);
+            return;
+          }
+          setCodeWrong(out.message);
+        } catch (e) {
+          unstable_rethrow(e);
+          setCodeWrong("That did not go through. Try again in a moment.");
+        }
+      });
+    };
+
+    // A new code retires the one before it, and the screen says so.
+    const again = () => {
+      setCooldown(45);
+      setCode("");
+      setCodeWrong(null);
+      setFresh(false);
+      startCheck(async () => {
+        await resendVerification(live.email);
+        setFresh(true);
+      });
+      const tick = window.setInterval(() => {
+        setCooldown((n) => {
+          if (n <= 1) {
+            window.clearInterval(tick);
+            return 0;
+          }
+          return n - 1;
+        });
+      }, 1000);
+    };
+
     return (
-      <div className="entry-card">
+      <form
+        key="code"
+        className="entry-card"
+        onSubmit={(e) => {
+          e.preventDefault();
+          confirmCode();
+        }}
+      >
         <div className="notice notice-near">
           <StatusGlyph status="near" size={14} />
           <div className="notice-text">
             <span className="notice-title">One step left</span>
             <span className="notice-copy">
-              {resentAt === null ? (
+              {live.sent === false ? (
                 <>
-                  We sent a link to <span className="figure">{live.email}</span>
-                  {live.sentDaysAgo !== null && live.sentDaysAgo > 0
-                    ? ` ${live.sentDaysAgo === 1 ? "a day" : `${live.sentDaysAgo} days`} ago`
-                    : ""}
-                  . Open it and you are in.
+                  Your password is right, and the address has not been
+                  confirmed yet. Several codes have gone to{" "}
+                  <span className="figure">{live.email}</span> in the last
+                  quarter of an hour, so no new one was sent — type the one in
+                  the newest email, or wait a few minutes and ask again.
                 </>
               ) : (
                 <>
-                  Look for the one already sent to{" "}
-                  <span className="figure">{live.email}</span>, and check the
-                  spam folder. If it is not there, write to us and we will let
-                  you in by hand.
+                  Your password is right. The address has not been confirmed
+                  yet, so we have just sent a six-digit code to{" "}
+                  <span className="figure">{live.email}</span>. Type it and
+                  you are in.
                 </>
               )}
             </span>
           </div>
         </div>
-        <div className="entry-row">
-          {/*
-            * "Send it again" sent nothing. It moved a timestamp in memory and
-            * the card then said "On its way" — the one kind of lie this
-            * screen cannot afford, because the person reading it is waiting
-            * for an email that will never arrive. There is no mail provider
-            * yet, so the honest action is the door that is open.
-            */}
-          <button
-            type="button"
-            className="btn entry-action"
-            onClick={() => {
-              void resendVerification(live.email).then((r) =>
-                setResentAt(r.sentAt),
-              );
-            }}
+
+        <div className="field">
+          <div className="field-label-row">
+            <label className="field-label" htmlFor="code">
+              The code from the email
+            </label>
+          </div>
+          <div
+            className={`field-control${codeWrong !== null ? " is-wrong" : ""}${checking ? " is-locked" : ""}`}
           >
-            I cannot find it
-          </button>
+            <input
+              id="code"
+              name="code"
+              className="field-input code-input figure"
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              placeholder="123456"
+              maxLength={12}
+              autoFocus
+              disabled={checking}
+              value={code}
+              aria-invalid={codeWrong !== null}
+              aria-describedby={codeWrong ? "code-fault" : undefined}
+              onChange={(e) => {
+                setCode(digitsOf(e.target.value));
+                setCodeWrong(null);
+              }}
+            />
+          </div>
+          {codeWrong !== null && (
+            <span id="code-fault" className="fault">
+              {codeWrong}
+            </span>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          className="btn btn-primary entry-action"
+          disabled={checking || digitsOf(code).length < CODE_LENGTH}
+        >
+          {checking ? "Checking…" : "Confirm and sign in"}
+        </button>
+
+        {fresh && (
+          <p className="entry-note">
+            A new code is on its way. The one before it has stopped working —
+            use the newest email.
+          </p>
+        )}
+
+        <p className="entry-foot">
+          Didn&rsquo;t arrive? Check the spam folder, or{" "}
           <button
             type="button"
-            className="btn"
+            className="link link-sm"
+            onClick={again}
+            disabled={checking || cooldown > 0}
+          >
+            {cooldown > 0 ? `send a new code (${String(cooldown)}s)` : "send a new code"}
+          </button>
+          .{" "}
+          <button
+            type="button"
+            className="link link-sm"
             onClick={() => {
               setDismissed(state);
               setPassword("");
+              setCode("");
+              setCodeWrong(null);
             }}
           >
             Change email
           </button>
-        </div>
-      </div>
+        </p>
+      </form>
     );
   }
 
