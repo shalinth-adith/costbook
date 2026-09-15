@@ -126,7 +126,8 @@ export function AppShell({
 
   return (
     <div className="shell">
-      <header className="topbar">
+      {/* Named so the page can change under it without it moving (page-motion.tsx). */}
+      <header className="topbar" style={{ viewTransitionName: 'site-header' }}>
         <Wordmark mode="app" />
 
         <nav className="nav is-wide" aria-label="Main">

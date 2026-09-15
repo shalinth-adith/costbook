@@ -4352,6 +4352,60 @@
 .wiz-edit:hover { background: var(--surface-sunken); }
 .wiz-edit:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .wiz-save-note { font-size: 14px; color: var(--text-secondary); margin: 20px 0 0; }
+
+/* ── the review, redrawn ──────────────────────────────────────────────
+   The name big, the answers as chips, the rules as three tiles carrying
+   the one figure each comes down to. Sections arrive in order. */
+.wiz-rv { animation: wiz-in var(--dur-state) var(--ease-enter) both; animation-delay: calc(var(--i) * 90ms); }
+.wiz-rv-name {
+  margin: 0; font-size: 34px; line-height: 1.05; letter-spacing: -0.02em;
+  overflow-wrap: anywhere; text-wrap: balance;
+}
+.wiz-rv-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.wiz-rv-chip {
+  display: inline-flex; align-items: baseline; gap: 8px;
+  padding: 8px 14px; border: 1px solid var(--border-hairline); border-radius: 999px;
+  background: var(--surface-page); font-size: 14px; color: var(--text-primary);
+}
+.wiz-rv-chip-k { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); }
+.wiz-rv-chip .figure { font-weight: 600; }
+.wiz-rv-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.wiz-rv-tile {
+  display: grid; gap: 6px; align-content: start;
+  padding: 18px 18px 20px; border-radius: 12px;
+  background: var(--surface-sunken); border: 1px solid var(--border-hairline);
+  animation: wiz-in var(--dur-state) var(--ease-enter) both; animation-delay: calc(140ms + var(--i) * 90ms);
+}
+.wiz-rv-label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); }
+.wiz-rv-fig { font-size: 32px; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-block: 2px 4px; }
+.wiz-rv-fig small { font-size: 16px; font-weight: 700; letter-spacing: 0; color: var(--text-secondary); }
+.wiz-rv-said { font-size: 13px; line-height: 1.5; color: var(--text-secondary); text-wrap: pretty; }
+.wiz-rv-said .figure { color: var(--text-primary); font-weight: 600; }
+@media (max-width: 760px) { .wiz-rv-tiles { grid-template-columns: minmax(0, 1fr); } }
+
+/* Each step of setup arrives; the columns are keyed by step (setup-wizard.tsx). */
+.wiz-step { animation: wiz-in var(--dur-state) var(--ease-enter) both; }
+@keyframes wiz-in { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { .wiz-step, .wiz-rv, .wiz-rv-tile { animation: none; } }
+
+/* ── page-to-page ─────────────────────────────────────────────────────
+   Every route change is handed to the View Transitions API by
+   components/page-motion.tsx. The content fades and rises a little; the
+   top bar is anchored. Old browsers get the plain swap they had. */
+::view-transition { pointer-events: none; }
+::view-transition-group(page) { animation-duration: 0s; }
+::view-transition-old(page) { animation: 110ms var(--ease-exit) both vt-fade reverse; }
+::view-transition-new(page) {
+  animation: 200ms var(--ease-enter) 40ms both vt-fade, 240ms var(--ease-enter) both vt-rise;
+}
+@keyframes vt-fade { from { opacity: 0; } }
+@keyframes vt-rise { from { translate: 0 8px; } }
+::view-transition-group(site-header) { animation: none; z-index: 100; }
+::view-transition-old(site-header) { display: none; }
+::view-transition-new(site-header) { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(page), ::view-transition-new(page) { animation: none; }
+}
 .wiz-back { font: inherit; }
 @media (max-width: 900px) { .wiz-ticks { display: none; } }
 

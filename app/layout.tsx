@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { Bricolage_Grotesque, Libre_Franklin, Spline_Sans_Mono } from 'next/font/google';
 
+import { PageMotion } from '@/components/page-motion';
+
 import { siteUrl } from './robots';
 
 import './tokens.css';
@@ -55,7 +57,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${sans.variable} ${mono.variable} ${display.variable}`}>
-      <body>{children}</body>
+      <body>
+        <PageMotion>{children}</PageMotion>
+      </body>
     </html>
   );
 }

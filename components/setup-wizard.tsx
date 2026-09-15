@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { type CSSProperties, useMemo, useState, useTransition } from 'react';
 
 import { CURRENCIES, currency, formatMoney } from '@/core/currency';
 import { PRESETS, applyRounding, describeRule, type PresetName } from '@/core/rounding';
@@ -174,7 +174,7 @@ export function SetupWizard({ initialCurrency, defaults, preview = false }: {
       </header>
 
       <div className="wiz-body">
-        <main className="wiz-form">
+        <main className="wiz-form wiz-step" key={`form-${String(step)}`}>
           {step === 1 && (
             <>
               <p className="wiz-eyebrow">1 of 3 · your restaurant</p>
@@ -430,38 +430,48 @@ export function SetupWizard({ initialCurrency, defaults, preview = false }: {
                 time, and each change shows what it reprices before it commits.
               </p>
 
-              <section className="wiz-review">
+              {/*
+                * The review reads like the book it is about to become, not like
+                * a form's receipt. The name is set big, because it heads every
+                * card; the answers are chips; the three rules are tiles with
+                * the one figure each rule comes down to, so the whole of setup
+                * can be checked in a glance and edited in a click.
+                */}
+              <section className="wiz-review wiz-rv" style={{ '--i': 0 } as CSSProperties}>
                 <div className="wiz-review-head">
                   <h2 className="wiz-sec-h">Your restaurant</h2>
                   <button type="button" className="wiz-edit" onClick={() => setStep(1)}>Edit</button>
                 </div>
-                <dl className="wiz-rows">
-                  <div className="wiz-row"><dt>Name</dt><dd>{name.trim()}</dd></div>
-                  <div className="wiz-row"><dt>Country</dt><dd>{picked?.name ?? '—'}</dd></div>
-                  <div className="wiz-row"><dt>Money</dt><dd>{cur.name} · a hundred is <b className="figure">{said(100)}</b></dd></div>
-                  <div className="wiz-row"><dt>Kitchen</dt><dd>{size !== undefined ? <>{size.label}, {size.said}</> : '—'}</dd></div>
-                </dl>
+                <p className="wiz-rv-name display">{name.trim()}</p>
+                <ul className="wiz-rv-chips" aria-label="Restaurant details">
+                  <li className="wiz-rv-chip"><span className="wiz-rv-chip-k">Country</span>{picked?.name ?? '—'}</li>
+                  <li className="wiz-rv-chip"><span className="wiz-rv-chip-k">Money</span>{cur.name} <b className="figure">{said(100)}</b></li>
+                  <li className="wiz-rv-chip"><span className="wiz-rv-chip-k">Kitchen</span>{size !== undefined ? <>{size.label} · {size.said}</> : '—'}</li>
+                </ul>
               </section>
 
-              <section className="wiz-review">
+              <section className="wiz-review wiz-rv" style={{ '--i': 1 } as CSSProperties}>
                 <div className="wiz-review-head">
                   <h2 className="wiz-sec-h">Your rules</h2>
                   <button type="button" className="wiz-edit" onClick={() => setStep(2)}>Edit</button>
                 </div>
-                <dl className="wiz-rows">
-                  <div className="wiz-row">
-                    <dt>Of every {said(100)} a guest pays</dt>
-                    <dd><b className="figure">{said(100 - keep)}</b> to ingredients, <b className="figure">{said(keep)}</b> for everything else</dd>
+                <div className="wiz-rv-tiles">
+                  <div className="wiz-rv-tile" style={{ '--i': 0 } as CSSProperties}>
+                    <span className="wiz-rv-label">Of every {said(100)} a guest pays</span>
+                    <span className="wiz-rv-fig display">{said(100 - keep)}</span>
+                    <span className="wiz-rv-said">to ingredients. The other <b className="figure">{said(keep)}</b> pays rent, wages and gas before any of it is profit.</span>
                   </div>
-                  <div className="wiz-row">
-                    <dt>A suggested price</dt>
-                    <dd>{sentence(describeRule(rule))}. <b className="figure">{said(46.3)}</b> becomes <b className="figure">{said(applyRounding(46.3, rule))}</b>.</dd>
+                  <div className="wiz-rv-tile" style={{ '--i': 1 } as CSSProperties}>
+                    <span className="wiz-rv-label">A price on the menu</span>
+                    <span className="wiz-rv-fig display">{said(applyRounding(46.3, rule))}</span>
+                    <span className="wiz-rv-said">is what <b className="figure">{said(46.3)}</b> becomes: {describeRule(rule)}.</span>
                   </div>
-                  <div className="wiz-row">
-                    <dt>A rate nobody has checked</dt>
-                    <dd>Flagged after <b className="figure">{stale}</b> days</dd>
+                  <div className="wiz-rv-tile" style={{ '--i': 2 } as CSSProperties}>
+                    <span className="wiz-rv-label">A rate nobody has checked</span>
+                    <span className="wiz-rv-fig display">{stale} <small>days</small></span>
+                    <span className="wiz-rv-said">and it is flagged, so a costed menu cannot quietly stop being true.</span>
                   </div>
-                </dl>
+                </div>
               </section>
 
               <p className="wiz-save-note">
@@ -497,7 +507,7 @@ export function SetupWizard({ initialCurrency, defaults, preview = false }: {
           </footer>
         </main>
 
-        <aside className="wiz-live" aria-live="polite">
+        <aside className="wiz-live wiz-step" aria-live="polite" key={`live-${String(step)}`}>
           <p className="wiz-live-label">{step === 2 ? 'Your rules, working' : 'What this sets up'}</p>
 
           {step !== 2 && (
