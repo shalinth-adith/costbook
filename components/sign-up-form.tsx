@@ -27,6 +27,8 @@ export function SignUpForm() {
   const [cooldown, setCooldown] = useState(0);
   const [code, setCode] = useState('');
   const [codeFault, setCodeFault] = useState<string | null>(null);
+  /** A newer code has just gone out, so the older one has stopped working. */
+  const [fresh, setFresh] = useState(false);
 
   const longEnough = password.length >= MIN_PASSWORD;
   const short = MIN_PASSWORD - password.length;
@@ -66,12 +68,29 @@ export function SignUpForm() {
     });
   };
 
+  /*
+   * Ask for another code.
+   *
+   * This existed and was never put on the screen, which is the whole of the
+   * bug: a refused code says "ask for another and it will arrive in a moment"
+   * and the only control on that screen was "Wrong address?" — which goes back
+   * and signs up again, minting a third code and leaving an inbox with several
+   * that look alike.
+   *
+   * Asking retires the code before it. Supabase keeps one token per account,
+   * so the new mail does not join the old one, it replaces it — said out loud
+   * here because the refusal cannot distinguish stale from expired.
+   */
   const resend = () => {
     setCooldown(45);
+    setCode('');
+    setCodeFault(null);
+    setFresh(false);
     // Actually send one. The countdown used to be the whole of this function.
     start(async () => {
       const out = await resendSignUp(sent ?? email);
-      if (!out.ok) setFault(out.message ?? 'That did not send. Try again in a moment.');
+      if (out.ok) setFresh(true);
+      else setCodeFault(out.message ?? 'That did not send. Try again in a moment.');
     });
     const tick = window.setInterval(() => {
       setCooldown((n) => {
@@ -146,8 +165,30 @@ export function SignUpForm() {
           {pending ? 'Checking…' : 'Confirm and continue'}
         </button>
 
+        {fresh && (
+          <p className="entry-note">
+            A new code is on its way. The one before it has stopped working — use the newest
+            email.
+          </p>
+        )}
+
+        {/*
+          * The way out of a refused code.
+          *
+          * "That code has expired or does not match. Ask for another" was on
+          * this screen for a week with nothing to ask with.
+          */}
         <p className="entry-foot">
-          Check the spam folder.{' '}
+          Didn&rsquo;t arrive? Check the spam folder, or{' '}
+          <button
+            type="button"
+            className="link link-sm"
+            onClick={resend}
+            disabled={pending || cooldown > 0}
+          >
+            {cooldown > 0 ? `send a new code (${String(cooldown)}s)` : 'send a new code'}
+          </button>
+          .{' '}
           <button type="button" className="link link-sm" onClick={() => setSent(null)}>
             Wrong address?
           </button>

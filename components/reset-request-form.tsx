@@ -5,7 +5,7 @@ import { useActionState, useState, useTransition } from 'react';
 
 import { unstable_rethrow } from 'next/navigation';
 
-import { type ResetState, confirmReset, requestReset } from '@/app/reset/actions';
+import { type ResetState, confirmReset, requestReset, resendReset } from '@/app/reset/actions';
 import { CODE_LENGTH, codeFault as faultOf, digitsOf } from '@/lib/verify';
 import { RESET_SENT } from '@/lib/recover';
 
@@ -25,6 +25,9 @@ export function ResetRequestForm() {
   const [code, setCode] = useState('');
   const [codeWrong, setCodeWrong] = useState<string | null>(null);
   const [checking, start] = useTransition();
+  const [cooldown, setCooldown] = useState(0);
+  /** A newer code has just gone out, so the older one has stopped working. */
+  const [fresh, setFresh] = useState(false);
 
   /*
    * The address the code was sent to.
@@ -49,6 +52,30 @@ export function ResetRequestForm() {
         setCodeWrong('That did not go through. Try again in a moment.');
       }
     });
+  };
+
+  /*
+   * Ask for another code — the sign-up screen's fix, applied here too.
+   *
+   * A code is one token on the account, so this replaces the previous one
+   * rather than adding to it, and the screen says so: two of our mails look
+   * identical and only the newer one works.
+   */
+  const again = () => {
+    setCooldown(45);
+    setCode('');
+    setCodeWrong(null);
+    setFresh(false);
+    start(async () => {
+      await resendReset(asked);
+      setFresh(true);
+    });
+    const tick = window.setInterval(() => {
+      setCooldown((n) => {
+        if (n <= 1) { window.clearInterval(tick); return 0; }
+        return n - 1;
+      });
+    }, 1000);
   };
 
   if (state.kind === 'sent') {
@@ -115,8 +142,24 @@ export function ResetRequestForm() {
           {checking ? 'Checking…' : 'Next'}
         </button>
 
+        {fresh && (
+          <p className="entry-note">
+            A new code is on its way. The one before it has stopped working — use the newest
+            email.
+          </p>
+        )}
+
         <p className="entry-foot">
-          Check the spam folder.{' '}
+          Didn&rsquo;t arrive? Check the spam folder, or{' '}
+          <button
+            type="button"
+            className="link link-sm"
+            onClick={again}
+            disabled={checking || cooldown > 0}
+          >
+            {cooldown > 0 ? `send a new code (${String(cooldown)}s)` : 'send a new code'}
+          </button>
+          .{' '}
           <Link className="link link-sm" href="/sign-in">
             Back to sign in
           </Link>
@@ -131,8 +174,8 @@ export function ResetRequestForm() {
     <form key="ask" className="entry-card" action={act}>
       <h1 className="entry-title">Forgotten your password?</h1>
       <p className="entry-sub">
-        Give the address you signed up with and we will post a link that lets you choose a new
-        one. Asking does not change anything until you follow it.
+        Give the address you signed up with and we will post a six-digit code that lets you
+        choose a new one. Asking does not change anything until you type it.
       </p>
 
       <div className="field">
@@ -163,7 +206,7 @@ export function ResetRequestForm() {
       </div>
 
       <button type="submit" className="btn btn-primary entry-action" disabled={pending}>
-        {pending ? 'Sending…' : 'Send me a link'}
+        {pending ? 'Sending…' : 'Send me a code'}
       </button>
 
       <p className="entry-foot">

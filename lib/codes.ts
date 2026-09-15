@@ -44,6 +44,16 @@ export function codeLetter(input: {
       `That is your Costbook code, ${why}. Type it into the screen you came from.\n\n` +
       `It lasts ${String(CODE_MINUTES)} minutes and can be used once. Nobody at Costbook will ` +
       `ever ask you for it.\n\n` +
+      /*
+       * Said because the provider cannot say it.
+       *
+       * The code lives in one column on the account, so asking for another
+       * overwrites the one before it — and a stale code is refused with the
+       * same words as an expired one. Somebody looking at two of our mails has
+       * no way to tell which is live unless we tell them here.
+       */
+      `Asked more than once? Only the newest code works — this one, if it is the ` +
+      `most recent mail from us.\n\n` +
       `If you did not ask for this, nothing has happened to your account and you can ignore ` +
       `this message.\n\n` +
       `— Costbook · ${SUPPORT_EMAIL}`,

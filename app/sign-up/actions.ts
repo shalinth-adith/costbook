@@ -119,7 +119,19 @@ export async function confirmSignUp(
    * not reliably say which — a guess dressed as a diagnosis is worse than the
    * one instruction that always applies.
    */
-  if (error !== null) return { kind: 'fields', message: CODE_REFUSED };
+  if (error !== null) {
+    /*
+     * Logged, because the screen deliberately will not say which it was.
+     *
+     * The provider answers `otp_expired` for expired, mistyped AND superseded
+     * alike, so there is nothing honest to put on the screen — but without a
+     * line here there is nothing to read afterwards either, and the first time
+     * somebody reported a refused code it had to be reconstructed from the
+     * mail provider's outbox. The address and the code stay out of the log.
+     */
+    console.warn(`[auth] sign-up code refused: ${error.code ?? String(error.status)}`);
+    return { kind: 'fields', message: CODE_REFUSED };
+  }
 
   redirect(await afterSignIn(null));
 }

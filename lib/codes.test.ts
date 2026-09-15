@@ -33,6 +33,19 @@ describe("the code mail", () => {
     }
   });
 
+  /*
+   * The first refused code in the wild was a stale one.
+   *
+   * Two of these mails sat in an inbox six minutes apart and looked identical;
+   * only the newer worked, and the refusal says "expired or does not match"
+   * for both. Nothing but this sentence can tell them which to use.
+   */
+  it("says that asking again retires the code before it", () => {
+    for (const letter of [signup, recovery]) {
+      expect(letter.body).toMatch(/only the newest code works/i);
+    }
+  });
+
   it("tells them nobody will ask for it, and that ignoring it is safe", () => {
     expect(signup.body).toMatch(/nobody at costbook will ever ask you for it/i);
     expect(signup.body).toMatch(/did not ask for this/i);

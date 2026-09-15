@@ -246,6 +246,8 @@
 }
 .link:hover { color: var(--text-primary); }
 .link-sm { font-size: 11.5px; }
+/* A link that is a button can be disabled, and must then look it. */
+.link:disabled { opacity: 0.5; cursor: default; text-decoration: none; }
 
 .icon-btn {
   width: 26px; height: 26px;

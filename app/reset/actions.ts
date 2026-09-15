@@ -82,9 +82,30 @@ export async function confirmReset(
     token: digitsOf(code),
     type: 'recovery',
   });
-  if (error !== null) return { kind: 'fields', message: CODE_REFUSED };
+  if (error !== null) {
+    // Same reason as sign-up's: the screen cannot say which, so the log must.
+    console.warn(`[auth] recovery code refused: ${error.code ?? String(error.status)}`);
+    return { kind: 'fields', message: CODE_REFUSED };
+  }
 
   redirect('/reset/new');
+}
+
+/**
+ * Send another recovery code.
+ *
+ * The refusal message tells people to ask for another one; until this existed
+ * the screen gave them nothing to ask with, and the only way forward was to
+ * start the whole flow again from the address field.
+ *
+ * It answers the same way for every address, like `requestReset` does.
+ */
+export async function resendReset(email: string): Promise<{ readonly ok: boolean }> {
+  const shape = emailFault(email);
+  if (shape !== null) return { ok: false };
+  if (!supabaseConfigured()) return { ok: true };
+  await sendRecoveryCode(email);
+  return { ok: true };
 }
 
 export type ChooseState =
