@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 
 import { confirmSignUp, createAccount, resendSignUp } from '@/app/sign-up/actions';
 import { CODE_LENGTH, codeFault as faultOf, digitsOf } from '@/lib/verify';
@@ -16,6 +17,9 @@ import { unstable_rethrow } from 'next/navigation';
  * asking twice, and a form with the whole of setup before the account exists loses
  * people who would have finished five after it.
  */
+/** How long "confirmed" stays on screen before the book opens. */
+const VERIFIED_BEAT_MS = 1100;
+
 export function SignUpForm() {
   const [pending, start] = useTransition();
 
@@ -29,6 +33,15 @@ export function SignUpForm() {
   const [codeFault, setCodeFault] = useState<string | null>(null);
   /** A newer code has just gone out, so the older one has stopped working. */
   const [fresh, setFresh] = useState(false);
+  /** The code worked; where the book opens. Shown for a beat, then followed. */
+  const [verified, setVerified] = useState<string | null>(null);
+  const router = useRouter();
+  useEffect(() => {
+    if (verified === null) return;
+    // Long enough to be read, short enough not to be waited for.
+    const t = window.setTimeout(() => router.push(verified), VERIFIED_BEAT_MS);
+    return () => window.clearTimeout(t);
+  }, [verified, router]);
 
   const longEnough = password.length >= MIN_PASSWORD;
   const short = MIN_PASSWORD - password.length;
@@ -57,11 +70,10 @@ export function SignUpForm() {
     setCodeFault(null);
     start(async () => {
       try {
-        // A correct code redirects on the server; anything returned is a fault.
         const out = await confirmSignUp(sent ?? email, code);
+        if (out.kind === 'verified') { setVerified(out.next); return; }
         setCodeFault(out.message);
       } catch (error) {
-        // The redirect that means success is thrown. It goes back to Next.
         unstable_rethrow(error);
         setCodeFault('That did not go through. Try again in a moment.');
       }
@@ -99,6 +111,18 @@ export function SignUpForm() {
       });
     }, 1000);
   };
+
+  if (verified !== null) {
+    return (
+      <div key="done" className="entry-card entry-done" role="status" aria-live="polite">
+        <span className="entry-done-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" className="entry-done-svg"><path d="M5 12.5l4.5 4.5L19 7.5" pathLength="100" /></svg>
+        </span>
+        <h1 className="entry-title">Address confirmed.</h1>
+        <p className="entry-sub">Opening your book&hellip;</p>
+      </div>
+    );
+  }
 
   if (sent !== null) {
     return (

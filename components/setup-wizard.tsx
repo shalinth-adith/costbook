@@ -317,7 +317,8 @@ export function SetupWizard({ initialCurrency, defaults, preview = false }: {
                   <h2 className="wiz-sec-h">Your food cost</h2>
                   <p className="wiz-sec-p">
                     Of every {said(100)} a guest pays, how much goes on ingredients.
-                    The rest stays with you, before rent, wages and the rest of it.
+                    The rest is not profit — it has to pay rent, wages, gas and everything
+                    else first. What is left of it is what you keep.
                   </p>
                 </div>
                 <div className="wiz-sec-body">
@@ -331,7 +332,7 @@ export function SetupWizard({ initialCurrency, defaults, preview = false }: {
                         onClick={() => setKeep(100 - fc)}
                       >
                         <span className="wiz-size-label figure">{said(fc)}</span>
-                        <span className="wiz-size-said">{said(100 - fc)} stays with you</span>
+                        <span className="wiz-size-said">{said(100 - fc)} for everything else</span>
                       </button>
                     ))}
                   </div>
@@ -449,7 +450,7 @@ export function SetupWizard({ initialCurrency, defaults, preview = false }: {
                 <dl className="wiz-rows">
                   <div className="wiz-row">
                     <dt>Of every {said(100)} a guest pays</dt>
-                    <dd><b className="figure">{said(keep)}</b> stays with you, <b className="figure">{said(100 - keep)}</b> goes to suppliers</dd>
+                    <dd><b className="figure">{said(100 - keep)}</b> to ingredients, <b className="figure">{said(keep)}</b> for everything else</dd>
                   </div>
                   <div className="wiz-row">
                     <dt>A suggested price</dt>
@@ -526,7 +527,7 @@ export function SetupWizard({ initialCurrency, defaults, preview = false }: {
                 <span className="wiz-card-money-more">
                   {examplePrice === null
                     ? 'Choose a keep between the bounds to see the price.'
-                    : <>Sells at that, so <b className="figure">{said(examplePrice - EXAMPLE_COST)}</b> of it stays with you. Exact figure {said(EXAMPLE_COST / ((100 - keep) / 100))}, then {describeRule(rule)}.</>}
+                    : <>Sells at that. <b className="figure">{said(EXAMPLE_COST)}</b> pays for the ingredients; the other <b className="figure">{said(examplePrice - EXAMPLE_COST)}</b> has to cover rent, wages and gas before any of it is profit. Exact figure {said(EXAMPLE_COST / ((100 - keep) / 100))}, then {describeRule(rule)}.</>}
                 </span>
               </div>
             </div>
@@ -555,7 +556,7 @@ export function SetupWizard({ initialCurrency, defaults, preview = false }: {
                 <dt>Of every {said(100)} a guest pays</dt>
                 <dd>
                   {keepOk
-                    ? <><b className="figure">{said(keep)}</b> stays with you, <b className="figure">{said(100 - keep)}</b> goes to suppliers</>
+                    ? <><b className="figure">{said(100 - keep)}</b> to ingredients, <b className="figure">{said(keep)}</b> for everything else</>
                     : <>Choose a keep between {100 - TARGET_MAX} and {100 - TARGET_MIN}</>}
                 </dd>
               </div>

@@ -1457,6 +1457,20 @@
 .entry-money { height: var(--row-default); }
 .entry-money input { font-size: 14px; }
 .entry-note { font-size: 12px; color: var(--text-tertiary); margin: 0; text-wrap: pretty; }
+/* The beat after a code works: a tick that draws itself, then the book.
+   The check is the one thing on the sign-up screens allowed the good green. */
+.entry-done { align-items: flex-start; }
+.entry-done-mark {
+  inline-size: 44px; block-size: 44px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--on-tint); color: var(--on-ink);
+  animation: entry-done-in var(--dur-state) var(--ease-enter) both;
+}
+.entry-done-svg { inline-size: 24px; block-size: 24px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 100; stroke-dashoffset: 0; animation: entry-done-draw 360ms var(--ease-enter) 120ms both; }
+@keyframes entry-done-in { from { transform: scale(0.6); opacity: 0; } }
+@keyframes entry-done-draw { from { stroke-dashoffset: 100; } }
+@media (prefers-reduced-motion: reduce) { .entry-done-mark, .entry-done-svg { animation: none; } }
 .entry-derived { font-size: 13px; color: var(--text-primary); margin: 0; }
 .entry-derived-said { color: var(--text-secondary); }
 

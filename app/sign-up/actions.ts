@@ -95,11 +95,20 @@ export async function createAccount(email: string, password: string): Promise<Si
 export async function confirmSignUp(
   email: string,
   code: string,
-): Promise<{ readonly kind: 'fields'; readonly message: string }> {
+): Promise<
+  | { readonly kind: 'fields'; readonly message: string }
+  /**
+   * Confirmed, and where to go. Returned rather than redirected so the screen
+   * can say so first: a code that worked used to cut straight to setup, and
+   * with nothing between "Confirm" and a wholly different page, the person
+   * who had just typed six digits could not tell the two apart.
+   */
+  | { readonly kind: 'verified'; readonly next: string }
+> {
   const fault = codeFault(code);
   if (fault !== null) return { kind: 'fields', message: fault };
 
-  if (!supabaseConfigured()) redirect(await afterSignIn(null));
+  if (!supabaseConfigured()) return { kind: 'verified', next: await afterSignIn(null) };
 
   const supabase = await supabaseServer();
   const { error } = await supabase.auth.verifyOtp({
@@ -133,7 +142,7 @@ export async function confirmSignUp(
     return { kind: 'fields', message: CODE_REFUSED };
   }
 
-  redirect(await afterSignIn(null));
+  return { kind: 'verified', next: await afterSignIn(null) };
 }
 
 /**
