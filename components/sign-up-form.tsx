@@ -145,42 +145,11 @@ export function SignUpForm() {
           {pending ? 'Checking…' : 'Confirm and continue'}
         </button>
 
-        {/*
-          * "You can close this tab" was true of a link and is a lie about a
-          * code: the box the code goes in is on this tab. Kept as a notice
-          * rather than deleted, because the fear it was written for is real —
-          * that leaving now loses the account — and that fear is worth
-          * answering with what is actually true.
-          */}
-        <div className="notice notice-flat">
-          <p className="notice-title">Keep this tab open.</p>
-          <p className="notice-text">
-            The code goes in the box above. Your account is already made, so closing this loses
-            nothing — but you would have to sign in again to be sent a fresh code.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          className="btn entry-action"
-          disabled={cooldown > 0 || pending}
-          onClick={resend}
-        >
-          {cooldown > 0 ? `Sent — try again in ${cooldown}s` : 'Send another code'}
-        </button>
-        {cooldown > 0 && (
-          <p className="entry-foot">
-            Sent. Pressing again won&rsquo;t make it arrive faster — the counter is there so a
-            second press feels answered rather than ignored.
-          </p>
-        )}
-        <p className="entry-foot">Check the spam folder first — that&rsquo;s where it usually is.</p>
         <p className="entry-foot">
-          Wrong address?{' '}
+          Check the spam folder.{' '}
           <button type="button" className="link link-sm" onClick={() => setSent(null)}>
-            Change it
-          </button>{' '}
-          and we&rsquo;ll send again — the account moves with it, nothing is created twice.
+            Wrong address?
+          </button>
         </p>
         {/*
           * A code rather than a link, and no link beside it.
