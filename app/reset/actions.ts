@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { afterSignIn } from '@/lib/after-auth';
 import { emailFault } from '@/lib/auth';
 import { passwordFault } from '@/lib/password';
+import { sessionProvedByCode } from '@/lib/proved';
 import { sendRecoveryCode } from '@/lib/send-code';
 import { CODE_REFUSED, codeFault, digitsOf } from '@/lib/verify';
 import { supabaseConfigured } from '@/lib/supabase/env';
@@ -135,8 +136,15 @@ export async function chooseNewPassword(
 
   const supabase = await supabaseServer();
   const { data: auth } = await supabase.auth.getUser();
-  // The link has been used, or an hour passed while this screen sat open.
+  // The code has been used, or an hour passed while this screen sat open.
   if (auth.user === null) return { kind: 'expired' };
+  /*
+   * And it has to be a session that typed a code, this hour. A password
+   * sign-in reaching this action — the screen refuses it too, but a screen
+   * is a courtesy — is somebody at an open laptop, not somebody who has
+   * proved the address. See lib/proved.ts.
+   */
+  if (!(await sessionProvedByCode(supabase))) return { kind: 'expired' };
 
   const { error } = await supabase.auth.updateUser({ password });
   if (error !== null) return { kind: 'failed', message: error.message };

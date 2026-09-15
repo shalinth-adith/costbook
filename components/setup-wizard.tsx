@@ -2,6 +2,8 @@
 
 import { type CSSProperties, useMemo, useState, useTransition } from 'react';
 
+import { signOut } from '@/app/sign-up/actions';
+
 import { CURRENCIES, currency, formatMoney } from '@/core/currency';
 import { PRESETS, applyRounding, describeRule, type PresetName } from '@/core/rounding';
 import { COUNTRIES, TEAM_SIZES, type TeamSize, countryOf, searchCountries } from '@/lib/countries';
@@ -57,9 +59,15 @@ const sentence = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
  * right half is the consequence of the field beside it throughout, which
  * is how Settings works too. Nothing is written until the last button.
  */
-export function SetupWizard({ initialCurrency, defaults, preview = false }: {
+export function SetupWizard({ initialCurrency, defaults, preview = false, signedInAs = null }: {
   initialCurrency: string;
   defaults: SetupDefaults;
+  /**
+   * Whose book this is being set up as. Shown with a way out, because this
+   * is the only screen an unfinished account can reach and it had no sign
+   * out: somebody who signed in to the wrong account here was stuck in it.
+   */
+  signedInAs?: string | null;
   /**
    * Show the screens without saving them. The real wizard is behind an
    * account once it is answered, so this is how it is looked at afterwards:
@@ -163,6 +171,12 @@ export function SetupWizard({ initialCurrency, defaults, preview = false }: {
         <Wordmark />
         <span className="wiz-kicker">YOUR RESTAURANT</span>
         {preview && <span className="wiz-preview">Preview · nothing here is saved</span>}
+        {signedInAs !== null && (
+          <form action={signOut} className="wiz-who">
+            <span className="wiz-who-mail">{signedInAs}</span>
+            <button type="submit" className="link link-sm">Not you? Sign out</button>
+          </form>
+        )}
         <ol className="wiz-ticks" aria-label="Setup progress">
           {SCREENS.map((s) => (
             <li key={s.no} className="wiz-tick" data-state={s.no < step ? 'done' : s.no === step ? 'now' : 'todo'}>

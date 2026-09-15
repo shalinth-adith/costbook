@@ -5,6 +5,8 @@ import { CurrencyProvider } from "@/components/currency-provider";
 
 import { book } from "@/lib/book";
 import { landingFor } from "@/lib/landing";
+import { supabaseConfigured } from "@/lib/supabase/env";
+import { supabaseServer } from "@/lib/supabase/server";
 
 /**
  * Setup, asked once after sign-up and before there is any data.
@@ -36,9 +38,15 @@ export default async function SetupPage() {
    */
   const code = org.currency;
   const defaults = { foodCostTarget: org.foodCostTarget, rounding: org.rounding, staleAfterDays: org.staleAfterDays };
+
+  // The address the wizard is being answered for, so it can offer a way out.
+  const signedInAs = supabaseConfigured()
+    ? ((await (await supabaseServer()).auth.getUser()).data.user?.email ?? null)
+    : null;
+
   return (
     <CurrencyProvider code={code}>
-      <SetupWizard initialCurrency={code} defaults={defaults} />
+      <SetupWizard initialCurrency={code} defaults={defaults} signedInAs={signedInAs} />
     </CurrencyProvider>
   );
 }

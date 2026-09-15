@@ -5,7 +5,7 @@ import { useActionState, useState } from 'react';
 import { unstable_rethrow } from 'next/navigation';
 
 import { type ChooseState, chooseNewPassword } from '@/app/reset/actions';
-import { LINK_FAILED } from '@/lib/recover';
+import { CODE_SPENT } from '@/lib/recover';
 
 import { PASSWORD_RULE } from './entry-shell';
 
@@ -39,8 +39,8 @@ export function NewPasswordForm() {
   if (state.kind === 'expired') {
     return (
       <div className="entry-card">
-        <h1 className="entry-title">That link has been spent.</h1>
-        <p className="entry-sub">{LINK_FAILED}</p>
+        <h1 className="entry-title">That code has been spent.</h1>
+        <p className="entry-sub">{CODE_SPENT}</p>
         <Link className="btn btn-primary entry-action" href="/reset">
           Send me another
         </Link>

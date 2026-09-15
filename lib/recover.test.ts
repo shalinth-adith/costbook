@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ASK_FOR_CODE,
+  CODE_SPENT,
   LINK_FAILED,
   CODE_MINUTES,
   RESET_SENT,
@@ -78,9 +80,23 @@ describe("where a link lands", () => {
 });
 
 describe("a failed link", () => {
-  it("gives one sentence and one thing to do", () => {
+  it("says what happened and points at a code, because links are no longer sent", () => {
     expect(LINK_FAILED).toMatch(/expired or has already been used/i);
-    expect(LINK_FAILED).toMatch(/ask for another/i);
+    expect(LINK_FAILED).toMatch(/six-digit code/i);
+    expect(LINK_FAILED).toMatch(/ask for a code/i);
+  });
+});
+
+describe("the new-password screen without its proof", () => {
+  it("tells a spent code holder the one thing to do", () => {
+    expect(CODE_SPENT).toMatch(/has been used, or the hour/i);
+    expect(CODE_SPENT).toMatch(/ask for another/i);
+    expect(CODE_SPENT).not.toMatch(/\blink\b/i);
+  });
+
+  it("tells a password session that a code is the proof, not the laptop", () => {
+    expect(ASK_FOR_CODE).toMatch(/code posted to your address/i);
+    expect(ASK_FOR_CODE).toMatch(/nothing changes until/i);
   });
 });
 

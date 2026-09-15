@@ -221,13 +221,17 @@ export function SignInForm({
           </div>
         </div>
         {/*
-          * A33 offers a reset link here and it is not offered yet, because
-          * there is no mail provider to send one. What is offered instead is
-          * the one door that is actually open — a person, at an address that
-          * is read. Telling somebody locked out to wait fifteen minutes and
-          * nothing else is how a bad morning becomes a refund request.
+          * A33 offers a reset here, and now there is one: a person who has
+          * tried too many passwords in a row has usually forgotten it, and a
+          * code to their address is the door that opens without waiting.
+          * The human stays as the second door, for whoever cannot use the
+          * first — telling somebody locked out to wait and nothing else is
+          * how a bad morning becomes a refund request.
           */}
-        <Link className="btn btn-primary entry-action" href="/contact">
+        <Link className="btn btn-primary entry-action" href="/reset">
+          Forgotten it? Ask for a code
+        </Link>
+        <Link className="btn entry-action" href="/contact">
           Write to us and we&rsquo;ll let you back in
         </Link>
         <Countdown ms={live.unlocksInMs} onExpire={() => setDismissed(state)} />
@@ -449,11 +453,11 @@ export function SignInForm({
         <div className="notice notice-near">
           <StatusGlyph status="near" size={14} />
           <div className="notice-text">
-            <span className="notice-title">That link has been spent</span>
+            <span className="notice-title">That link no longer works</span>
             <span className="notice-copy">
               {LINK_FAILED}{" "}
               <Link className="link" href="/reset">
-                Send another
+                Ask for a code
               </Link>
               .
             </span>

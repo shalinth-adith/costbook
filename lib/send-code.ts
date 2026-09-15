@@ -7,6 +7,7 @@ import {
   windowStart,
 } from "./code-throttle";
 import { codeLetter } from "./codes";
+import { CODE_SEND_FLOOR_MS, atLeast } from "./pace";
 import { sendNow } from "./post";
 import { supabaseAdmin } from "./supabase/admin";
 
@@ -124,10 +125,22 @@ async function mayPost(supabase: Admin, email: string): Promise<boolean> {
   return verdict.ok;
 }
 
-/** A code that proves an address, for a new account or a returning one. */
+/**
+ * A code that proves an address, for a new account or a returning one.
+ *
+ * Held to a floor (lib/pace.ts): the path that sends nothing — no account,
+ * or the throttle said no — must not answer faster than the one that does.
+ */
 export async function sendSignupCode(input: {
   readonly email: string;
   /** Given only when the account is being created. */
+  readonly password?: string;
+}): Promise<{ readonly ok: boolean; readonly exists: boolean }> {
+  return atLeast(CODE_SEND_FLOOR_MS, () => signupCode(input));
+}
+
+async function signupCode(input: {
+  readonly email: string;
   readonly password?: string;
 }): Promise<{ readonly ok: boolean; readonly exists: boolean }> {
   let supabase: Admin;
@@ -207,8 +220,12 @@ export async function sendSignupCode(input: {
   return { ok: out.ok, exists };
 }
 
-/** A code that lets somebody set a new password. */
+/** A code that lets somebody set a new password. Same floor, same reason. */
 export async function sendRecoveryCode(email: string): Promise<boolean> {
+  return atLeast(CODE_SEND_FLOOR_MS, () => recoveryCode(email));
+}
+
+async function recoveryCode(email: string): Promise<boolean> {
   try {
     const supabase = supabaseAdmin();
     const address = email.trim().toLowerCase();

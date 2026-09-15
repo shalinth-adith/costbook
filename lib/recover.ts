@@ -85,6 +85,24 @@ export function landingAfterConfirm(type: ConfirmType): string | null {
  * and that is ask for another.
  */
 export const LINK_FAILED =
-  "That link has expired or has already been used. Ask for another and it will arrive in a moment.";
+  "That link has expired or has already been used. Costbook sends a six-digit code now instead " +
+  "of a link: sign in below, or ask for a code to choose a new password.";
+
+/**
+ * What the new-password screen says when the proof behind it is gone: the
+ * code was typed already, or the hour it lasts has passed while the screen
+ * sat open. One sentence, one thing to do.
+ */
+export const CODE_SPENT =
+  "That code has been used, or the hour it lasts has passed. Ask for another and it will arrive in a moment.";
+
+/**
+ * And what it says to a session that never typed a code at all — somebody
+ * signed in with a password who found this screen. Nothing is wrong; they
+ * are simply asked to prove the address the way everybody else does.
+ */
+export const ASK_FOR_CODE =
+  "Choosing a new password starts with a code posted to your address, so that it is the address " +
+  "and not an open laptop that decides. Ask for one and type it; nothing changes until you do.";
 
 export { passwordFault };

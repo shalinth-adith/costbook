@@ -3862,6 +3862,10 @@
   padding: 18px 40px; border-block-end: 1px solid var(--border-hairline);
 }
 .wiz-kicker { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+/* Whose book, and the way out — the only sign-out an unfinished account has. */
+.wiz-who { margin-inline-start: auto; display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; color: var(--text-tertiary); }
+.wiz-who-mail { color: var(--text-secondary); }
+.wiz-who + .wiz-ticks { margin-inline-start: 0; }
 .wiz-preview {
   padding: 4px 10px; border-radius: 999px; background: var(--accent-tint); color: var(--accent);
   font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
