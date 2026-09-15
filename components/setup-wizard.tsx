@@ -107,9 +107,18 @@ export function SetupWizard({ initialCurrency, defaults, preview = false }: {
 
   const pickCountry = (c: string) => {
     setCountry(c);
+    const found = countryOf(c);
+    /*
+     * The field reads back what was chosen.
+     *
+     * A tile lit up under an empty search box is a choice made in two places
+     * that agree by accident. Writing the name into the box makes the box the
+     * record: it narrows the list to the one picked, and editing it is how
+     * you pick another.
+     */
+    setSearch(found?.name ?? '');
     // The country proposes the money once; a hand-picked currency is kept.
-    const proposed = countryOf(c)?.currency;
-    if (!codeChosen && proposed !== undefined) setCode(proposed);
+    if (!codeChosen && found !== undefined) setCode(found.currency);
   };
 
   const missing1 = [
@@ -212,7 +221,7 @@ export function SetupWizard({ initialCurrency, defaults, preview = false }: {
                     onChange={(e) => setSearch(e.target.value)}
                     onKeyDown={(e) => {
                       const first = shown[0];
-                      if (e.key === 'Enter' && first !== undefined) { pickCountry(first.code); setSearch(''); }
+                      if (e.key === 'Enter' && first !== undefined) pickCountry(first.code);
                     }}
                   />
                   <div className="wiz-countries" role="radiogroup" aria-label="Country">

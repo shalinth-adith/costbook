@@ -393,7 +393,7 @@ export function DashboardView({
 
   if (first !== null) {
     return first.kind === "none" ? (
-      <DashboardEmpty target={target} />
+      <DashboardEmpty target={target} used={recipes.length} />
     ) : (
       <DashboardFirst state={first} target={target} today={today} />
     );

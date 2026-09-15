@@ -208,6 +208,9 @@
               border-color var(--dur-micro) var(--ease-enter);
 }
 .btn:hover { background: var(--surface-sunken); border-color: var(--border-control-hover); }
+/* Many buttons are <a>. The browser underlines those, and until now only one
+   variant said otherwise, so "Cost a dish" sat underlined inside its own button. */
+.btn, .btn:hover { text-decoration: none; }
 .btn-primary {
   background: var(--surface-inverse); color: var(--text-on-inverse);
   border-color: var(--surface-inverse); padding-inline: 18px;
@@ -2474,19 +2477,86 @@
 .fd-other a { color: var(--text-secondary); text-underline-offset: 3px; }
 
 .fd-h2 { margin: 0; font-size: 15px; font-weight: 600; }
+
+/* ── state one: nothing costed ───────────────────────────────────────
+   Two columns: the sentence and the button, and beside them a sketch of
+   the page this will become. The sketch is hairline and carries no figure
+   (A35 — an empty dashboard never shows nought; A15 — no figure animates
+   its value). What moves is the drawing of it, once, on arrival. */
+
+.fd-empty {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
+  gap: var(--sp-9); align-items: start;
+}
+.fd-step {
+  margin: 0; font-size: 11.5px; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--accent-deep);
+}
+.fd-act { flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--sp-4); }
+.fd-left { font-size: 13px; color: var(--text-tertiary); }
+.fd-left .figure { color: var(--text-primary); font-weight: 600; }
+
 .fd-lands {
-  border-block-start: 1px solid var(--border-hairline); padding-block-start: var(--sp-6);
-  display: flex; flex-direction: column; gap: var(--sp-4);
+  background: var(--surface-sunken); border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card); padding: var(--sp-5) var(--sp-5) var(--sp-4);
+  display: flex; flex-direction: column; gap: var(--sp-5);
 }
-.fd-land { display: flex; align-items: baseline; gap: 14px; }
+.fd-land-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-4); }
+.fd-land { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: var(--sp-4); align-items: center; }
+.fd-draw { inline-size: 112px; block-size: 48px; }
+.fd-svg { display: block; inline-size: 100%; block-size: 100%; overflow: visible; }
+.fd-land-p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-secondary); text-wrap: pretty; }
 .fd-land-n {
-  font-size: 11.5px; letter-spacing: 0.1em; font-weight: 600; color: var(--on-ink);
-  flex: none;
+  font-size: 11px; letter-spacing: 0.1em; font-weight: 600; color: var(--on-ink);
+  margin-inline-end: 10px;
 }
-.fd-land p { margin: 0; font-size: 15.5px; line-height: 1.5; text-wrap: pretty; }
 .fd-settled {
-  margin: var(--sp-2) 0 0; font-size: 13px; color: var(--text-tertiary);
-  line-height: 1.55; max-inline-size: 62ch; text-wrap: pretty;
+  margin: 0; padding-block-start: var(--sp-4); border-block-start: 1px solid var(--border-hairline);
+  font-size: 12.5px; color: var(--text-tertiary); line-height: 1.55; text-wrap: pretty;
+}
+
+/* The strokes. Ghost = not yet there; ink = where the finished page will
+   carry a figure. Both are neutral: the accent is spent on the button. */
+.fd-ghost { fill: none; stroke: var(--border-strong); stroke-width: 1.25; stroke-dasharray: 2.5 2.5; }
+.fd-ring  { fill: none; stroke: var(--text-primary); stroke-width: 3; stroke-linecap: round;
+            stroke-dasharray: 100; stroke-dashoffset: 38; transform: rotate(-90deg); transform-origin: 24px 24px; }
+.fd-bar   { fill: var(--text-primary); transform-origin: 54px 0; }
+.fd-bar-2 { fill: var(--border-strong); }
+.fd-stub  { fill: var(--border-strong); }
+.fd-row   { transform-origin: 0 0; }
+.fd-line  { fill: none; stroke: var(--text-primary); stroke-width: 1.75; stroke-linejoin: round;
+            stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 0; }
+.fd-dot   { fill: var(--accent); transform-origin: 86px 14px; }
+
+/* Arrival. Static CSS above is the finished drawing; every keyframe below
+   says only where it starts from, so `animation: none` IS the still frame. */
+.fd-lead > * { animation: fd-in var(--dur-state) var(--ease-enter) both; }
+.fd-lead > :nth-child(1) { animation-delay: 0ms; }
+.fd-lead > :nth-child(2) { animation-delay: 50ms; }
+.fd-lead > :nth-child(3) { animation-delay: 100ms; }
+.fd-lead > :nth-child(4) { animation-delay: 150ms; }
+.fd-lead > :nth-child(5) { animation-delay: 200ms; }
+.fd-lead > :nth-child(6) { animation-delay: 250ms; }
+.fd-lands { animation: fd-in var(--dur-state) var(--ease-enter) both; animation-delay: 120ms; }
+.fd-land  { animation: fd-in var(--dur-state) var(--ease-enter) both; animation-delay: calc(240ms + var(--i) * 140ms); }
+.fd-ring  { animation: fd-ring 720ms var(--ease-enter) both; animation-delay: calc(360ms + var(--i) * 140ms); }
+.fd-bar   { animation: fd-grow 420ms var(--ease-enter) both; animation-delay: calc(560ms + var(--i) * 140ms); }
+.fd-bar-2 { animation-delay: calc(640ms + var(--i) * 140ms); }
+.fd-row   { animation: fd-in var(--dur-state) var(--ease-enter) both; animation-delay: calc(420ms + var(--i) * 140ms + var(--r) * 90ms); }
+.fd-line  { animation: fd-ring 640ms var(--ease-enter) both; animation-delay: calc(560ms + var(--i) * 140ms); }
+.fd-dot   { animation: fd-pop 260ms var(--ease-enter) both; animation-delay: calc(1180ms + var(--i) * 140ms); }
+
+@keyframes fd-in   { from { opacity: 0; transform: translateY(6px); } }
+@keyframes fd-ring { from { stroke-dashoffset: 100; } }
+@keyframes fd-grow { from { transform: scaleX(0); } }
+@keyframes fd-pop  { from { transform: scale(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .fd-lead > *, .fd-lands, .fd-land, .fd-ring, .fd-bar, .fd-row, .fd-line, .fd-dot { animation: none; }
+}
+
+@media (max-width: 860px) {
+  .fd-empty { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ── state three: the rate moved it ────────────────────────────────── */

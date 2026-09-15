@@ -211,8 +211,13 @@ export default async function DashboardPage() {
             on this page that came from another person. */}
         <PlanNotice plan={b.plan} subscription={b.subscription} />
         {/* Above the figures, because until there are figures worth reading
-            this IS the screen. Gone the moment the book is paid for. */}
-        {start !== null ? (
+            this IS the screen. Gone the moment the book is paid for.
+
+            Not while nothing is costed: the empty screen below is the whole
+            page then, and the rail's "Cost one dish." above its "Cost one
+            dish, and this page starts working." was two headlines and two
+            buttons for one action. */}
+        {start !== null && start.kind !== "none" ? (
           <StartRail
             start={start}
             used={b.recipes.length}
