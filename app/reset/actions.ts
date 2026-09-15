@@ -5,16 +5,19 @@ import { redirect } from 'next/navigation';
 import { afterSignIn } from '@/lib/after-auth';
 import { emailFault } from '@/lib/auth';
 import { passwordFault } from '@/lib/password';
+import { CODE_REFUSED, codeFault, digitsOf } from '@/lib/verify';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { supabaseServer } from '@/lib/supabase/server';
 
-import { siteUrl } from '../robots';
 
 export type ResetState =
   | { readonly kind: 'idle' }
   | { readonly kind: 'fields'; readonly message: string }
-  /** The only other answer there is. See RESET_SENT in lib/recover.ts. */
-  | { readonly kind: 'sent' };
+  /**
+   * The only other answer there is (see RESET_SENT in lib/recover.ts), and it
+   * carries the address so the code step need not ask for it a second time.
+   */
+  | { readonly kind: 'sent'; readonly email: string };
 
 /**
  * Ask for a link.
@@ -37,26 +40,54 @@ export async function requestReset(
   const shape = emailFault(email);
   if (shape !== null) return { kind: 'fields', message: shape.message };
 
-  if (!supabaseConfigured()) return { kind: 'sent' };
+  if (!supabaseConfigured()) return { kind: 'sent', email };
 
   const supabase = await supabaseServer();
   /*
-   * The link comes back to our own handler, carrying where to go next.
+   * No redirect target, because nothing is going to be clicked.
    *
-   * Not to /reset/new directly: the link arrives with a one-time credential
-   * that has to be exchanged for a session before any screen can do anything,
-   * and only a route handler can write the cookie that results.
+   * Supabase renders the same one-time token as either a URL or six digits,
+   * and which one arrives is decided by the template. This product sends the
+   * digits: a link is fetched by corporate mail scanners before the person
+   * reads it, which spends the token and leaves them holding an error for
+   * something that already succeeded. See lib/verify.ts.
    */
-  await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteUrl()}/auth/confirm?next=${encodeURIComponent('/reset/new')}`,
-  });
+  await supabase.auth.resetPasswordForEmail(email);
 
   /*
    * The result is deliberately not read. Supabase returns the same shape for
    * an address it has never seen, and a branch here — even a branch that only
    * logged — would be the beginning of the leak this whole function avoids.
    */
-  return { kind: 'sent' };
+  return { kind: 'sent', email };
+}
+
+/**
+ * Prove the address with the code from the recovery mail.
+ *
+ * `type: 'recovery'` rather than `'signup'` — the same call, a different
+ * token family. A success writes a session, which is what makes the next
+ * screen safe: /reset/new changes the password of whoever the session
+ * belongs to and never takes an address.
+ */
+export async function confirmReset(
+  email: string,
+  code: string,
+): Promise<{ readonly kind: 'fields'; readonly message: string }> {
+  const fault = codeFault(code);
+  if (fault !== null) return { kind: 'fields', message: fault };
+
+  if (!supabaseConfigured()) redirect('/reset/new');
+
+  const supabase = await supabaseServer();
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token: digitsOf(code),
+    type: 'recovery',
+  });
+  if (error !== null) return { kind: 'fields', message: CODE_REFUSED };
+
+  redirect('/reset/new');
 }
 
 export type ChooseState =

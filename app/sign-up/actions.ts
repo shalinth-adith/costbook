@@ -9,7 +9,6 @@ import { CODE_REFUSED, codeFault, digitsOf } from '@/lib/verify';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { supabaseServer } from '@/lib/supabase/server';
 
-import { siteUrl } from '../robots';
 
 export type SignUpState =
   | { readonly kind: 'idle' }
@@ -63,8 +62,7 @@ export async function createAccount(email: string, password: string): Promise<Si
    */
   const { data, error } = await supabase.auth.signUp({
     email,
-    password,
-    options: { emailRedirectTo: `${siteUrl()}/auth/confirm` },
+    password
   });
 
   if (error !== null) {
@@ -142,8 +140,7 @@ export async function resendSignUp(
   const supabase = await supabaseServer();
   const { error } = await supabase.auth.resend({
     type: 'signup',
-    email,
-    options: { emailRedirectTo: `${siteUrl()}/auth/confirm` },
+    email
   });
   if (error !== null) return { ok: false, message: error.message };
   return { ok: true };

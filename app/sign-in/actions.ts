@@ -15,7 +15,6 @@ import { afterSignIn } from '@/lib/after-auth';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { supabaseServer } from '@/lib/supabase/server';
 
-import { siteUrl } from '../robots';
 
 /**
  * The password is compared here and nowhere else.
@@ -75,8 +74,7 @@ export async function resendVerification(email: string): Promise<{ readonly sent
   const supabase = await supabaseServer();
   const { error } = await supabase.auth.resend({
     type: 'signup',
-    email,
-    options: { emailRedirectTo: `${siteUrl()}/auth/confirm` },
+    email
   });
   if (error !== null) {
     // Said in the log, not to the screen: the screen must not become a way to

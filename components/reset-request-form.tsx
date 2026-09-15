@@ -1,9 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState } from 'react';
+import { useActionState, useState, useTransition } from 'react';
 
-import { type ResetState, requestReset } from '@/app/reset/actions';
+import { unstable_rethrow } from 'next/navigation';
+
+import { type ResetState, confirmReset, requestReset } from '@/app/reset/actions';
+import { CODE_LENGTH, codeFault as faultOf, digitsOf } from '@/lib/verify';
 import { RESET_SENT } from '@/lib/recover';
 
 const IDLE: ResetState = { kind: 'idle' };
@@ -19,20 +22,95 @@ const IDLE: ResetState = { kind: 'idle' };
  */
 export function ResetRequestForm() {
   const [state, act, pending] = useActionState(requestReset, IDLE);
+  const [code, setCode] = useState('');
+  const [codeWrong, setCodeWrong] = useState<string | null>(null);
+  const [checking, start] = useTransition();
+
+  /*
+   * The address the code was sent to.
+   *
+   * Held from the request rather than asked for again: the person has already
+   * typed it, and asking twice on the screen after "we have sent you a code"
+   * reads as the product having lost it.
+   */
+  const asked = state.kind === 'sent' ? state.email : '';
+
+  const send = () => {
+    const wrong = faultOf(code);
+    if (wrong !== null) { setCodeWrong(wrong); return; }
+    setCodeWrong(null);
+    start(async () => {
+      try {
+        // A correct code redirects on the server to where the password is set.
+        const out = await confirmReset(asked, code);
+        setCodeWrong(out.message);
+      } catch (error) {
+        unstable_rethrow(error);
+        setCodeWrong('That did not go through. Try again in a moment.');
+      }
+    });
+  };
 
   if (state.kind === 'sent') {
     return (
-      <div className="entry-card">
-        <h1 className="entry-title">Check your mail.</h1>
+      <form
+        className="entry-card"
+        onSubmit={(e) => {
+          e.preventDefault();
+          send();
+        }}
+      >
+        <h1 className="entry-title">Type the code.</h1>
         <p className="entry-sub">{RESET_SENT}</p>
+
+        <div className="field">
+          <div className="field-label-row">
+            <label className="field-label" htmlFor="code">
+              The code from the email
+            </label>
+          </div>
+          <div className={`field-control${codeWrong !== null ? ' is-wrong' : ''}${checking ? ' is-locked' : ''}`}>
+            <input
+              id="code"
+              name="code"
+              className="field-input code-input figure"
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              placeholder="123456"
+              maxLength={12}
+              autoFocus
+              disabled={checking}
+              value={code}
+              aria-invalid={codeWrong !== null}
+              aria-describedby={codeWrong ? 'code-fault' : undefined}
+              onChange={(e) => {
+                setCode(digitsOf(e.target.value));
+                setCodeWrong(null);
+              }}
+            />
+          </div>
+          {codeWrong !== null && (
+            <span id="code-fault" className="fault">
+              {codeWrong}
+            </span>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          className="btn btn-primary entry-action"
+          disabled={checking || digitsOf(code).length < CODE_LENGTH}
+        >
+          {checking ? 'Checking…' : 'Next'}
+        </button>
+
         <p className="entry-foot">
-          Worded the same whether the address has an account or not, so this screen cannot be
-          used to find out who does.
+          Check the spam folder.{' '}
+          <Link className="link link-sm" href="/sign-in">
+            Back to sign in
+          </Link>
         </p>
-        <Link className="btn entry-action" href="/sign-in">
-          Back to sign in
-        </Link>
-      </div>
+      </form>
     );
   }
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   LINK_FAILED,
-  LINK_MINUTES,
+  CODE_MINUTES,
   RESET_SENT,
   confirmType,
   landingAfterConfirm,
@@ -21,6 +21,11 @@ describe("the reset screen keeps its mouth shut", () => {
     expect(RESET_SENT).toMatch(/if that address has an account/i);
   });
 
+  it("promises a code, because that is what is sent", () => {
+    expect(RESET_SENT).toMatch(/six-digit code/i);
+    expect(RESET_SENT).not.toMatch(/\blink\b/i);
+  });
+
   it("never says an account was not found", () => {
     for (const giveaway of [/no account/i, /not found/i, /unknown address/i, /isn't registered/i]) {
       expect(RESET_SENT).not.toMatch(giveaway);
@@ -32,7 +37,7 @@ describe("the reset screen keeps its mouth shut", () => {
   });
 
   it("tells them how long they have", () => {
-    expect(LINK_MINUTES).toBe(60);
+    expect(CODE_MINUTES).toBe(60);
     expect(RESET_SENT).toMatch(/an hour/i);
   });
 });
