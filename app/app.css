@@ -2775,21 +2775,6 @@
 .mv-dish-fc { font-weight: 600; }
 .mv-dish-delta { color: var(--text-tertiary); font-size: 12px; }
 
-.dash-stale {
-  list-style: none; margin: 0; padding: 0;
-  display: flex; flex-wrap: wrap; gap: var(--sp-2);
-}
-.dash-stale-item {
-  display: flex; align-items: baseline; gap: 8px;
-  background: var(--surface-card);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-field);
-  padding: 8px 12px;
-}
-.dash-stale-name { font-size: 13px; color: var(--text-primary); text-decoration: none; }
-.dash-stale-name:hover { text-decoration: underline; text-underline-offset: 2px; }
-.dash-stale-days { font-size: 11.5px; color: var(--text-tertiary); }
-
 .dash-blocked { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
 .dash-blocked-item {
   display: flex; align-items: baseline; gap: 9px;
@@ -3057,76 +3042,6 @@
 /* The one figure on the page that is a problem gets the weight of one. */
 .dash-top .stat-figure.ink-over { color: var(--over-ink-strong); }
 
-/* ── the headline ──────────────────────────────────────────────────── */
-
-/* One figure, at the size of the only thing on the page that matters, and a
-   sentence beside it in money rather than in percent. A percentage is the
-   engineer's unit; the person reading this thinks in what comes over the
-   counter and what goes back out to the supplier. */
-
-.dh {
-  padding: var(--sp-8) var(--sp-6) var(--sp-6);
-  max-width: none;
-  display: flex; flex-direction: column; gap: var(--sp-3);
-}
-.dh-who {
-  margin: 0;
-  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--text-tertiary); font-weight: 600;
-}
-.dh-row { display: flex; align-items: baseline; gap: var(--sp-4); flex-wrap: wrap; }
-.dh-figure {
-  font-size: clamp(52px, 8vw, 84px); line-height: 0.92; font-weight: 600;
-  letter-spacing: -0.03em;
-}
-.dh-said {
-  margin: 0; max-width: 22ch;
-  font-size: clamp(17px, 2vw, 21px); line-height: 1.35;
-  color: var(--text-primary); text-wrap: balance;
-}
-.dh-against { margin: 0; font-size: 15px; color: var(--text-secondary); }
-.dh-verdict { font-weight: 600; }
-.dh-verdict.is-good { color: var(--on-ink-strong); }
-.dh-verdict.is-fine { color: var(--near-ink-strong); }
-.dh-verdict.is-bad  { color: var(--over-ink-strong); }
-
-/* The caveat sits with the figure it qualifies, not in a footnote below the
-   fold. A headline drawn from a third of the menu that does not say so is the
-   most confident wrong number this product could print. */
-.dh-caveat {
-  margin: var(--sp-2) 0 0; max-width: 74ch;
-  font-size: 13px; line-height: 1.55; color: var(--near-ink-strong);
-  background: var(--near-tint);
-  border: 1px solid var(--near-edge);
-  border-radius: var(--radius-field);
-  padding: 11px 14px;
-}
-
-/* ── the counts ────────────────────────────────────────────────────── */
-
-/* Each says what it counts and why it matters, because the reader did not
-   open this to learn what "food cost" or "unplaced" mean. */
-
-.dc {
-  display: grid; gap: var(--sp-3);
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  margin-inline: var(--sp-6); margin-block-end: var(--sp-6);
-  max-width: none;
-}
-.dc-card {
-  background: var(--surface-card);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-field);
-  padding: var(--sp-4) var(--sp-4) var(--sp-4);
-  display: flex; flex-direction: column; gap: 2px;
-  border-block-start: 3px solid var(--border-strong);
-}
-.dc-card.is-bad { border-block-start-color: var(--over-edge); }
-.dc-card.is-open { border-block-start-color: var(--near-edge); }
-.dc-n { font-size: 34px; line-height: 1.05; font-weight: 600; letter-spacing: -0.02em; }
-.dc-what { font-size: 14px; font-weight: 600; color: var(--text-primary); }
-.dc-why { font-size: 12.5px; color: var(--text-secondary); line-height: 1.45; margin-block-start: 4px; }
-
 /* ── the rest, said plainly ────────────────────────────────────────── */
 
 .spr-axis {
@@ -3147,105 +3062,24 @@
   .wr-said, .wr-bar { display: none; }
 }
 
-/* ── the dashboard's numbers ───────────────────────────────────────── */
+/* ── the dashboard's clock ─────────────────────────────────────────── */
 
-.dh-top {
-  display: flex; align-items: baseline; justify-content: space-between;
-  gap: var(--sp-4); flex-wrap: wrap;
-}
 .dh-clock { display: flex; align-items: baseline; gap: 10px; min-height: 16px; }
 .dh-day { font-size: 12.5px; color: var(--text-secondary); }
 .dh-time { font-size: 12.5px; color: var(--text-tertiary); }
 
-/* Each count is a door, so it has to look like one: a surface that lifts, and
-   a line saying what is behind it. The reason a figure is what it is belongs
-   beside the figure — walking somebody to another screen to explain a number
-   loses them the number. */
-.dc-card {
-  text-align: start; font: inherit; cursor: default;
-  border-block-start: 3px solid var(--border-strong);
-  transition:
-    transform var(--dur-micro) var(--ease-enter),
-    box-shadow var(--dur-micro) var(--ease-enter),
-    border-color var(--dur-micro) var(--ease-enter);
-}
-.dc-card.is-flat { cursor: default; opacity: 1; }
-.dc-card.is-door { cursor: pointer; }
-.dc-card.is-door:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgb(23 27 36 / 0.07);
-  border-color: var(--border-control);
-}
-.dc-card.is-door:focus-visible {
-  outline: 2px solid var(--text-primary); outline-offset: 2px;
-}
-.dc-card.ink-on { border-block-start-color: var(--on-ink); }
-.dc-card.ink-near { border-block-start-color: var(--near-ink); }
-.dc-card.ink-over { border-block-start-color: var(--over-ink); }
-.dc-card.ink-quiet { border-block-start-color: var(--border-control); }
-
-.dc-go {
-  margin-block-start: var(--sp-2);
-  font-size: 11.5px; color: var(--text-tertiary);
-  display: inline-flex; align-items: center; gap: 5px;
-}
-.dc-card.is-door:hover .dc-go { color: var(--text-primary); }
-.dc-go::after { content: "→"; transition: transform var(--dur-micro) var(--ease-enter); }
-.dc-card.is-door:hover .dc-go::after { transform: translateX(2px); }
-
-/* The cards arrive rather than appearing. Once, on load, staggered — it draws
-   the eye across the row in reading order, which is the order they matter in. */
+/* Arrival. Rails, cards and panels across the app land with this rather
+   than appearing. Was 8px over 240ms, which nobody saw. */
 @keyframes dc-arrive {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(22px); }
   to   { opacity: 1; transform: none; }
 }
-.dc-card.is-door {
-  animation: dc-arrive var(--dur-state) var(--ease-enter) both;
-}
-
-/* Somebody who asked for no motion asked for no motion. */
-@media (prefers-reduced-motion: reduce) {
-  .dc-card.is-door { animation: none; }
-  .dc-card.is-door:hover { transform: none; }
-  .dc-go::after { transition: none; }
-}
-
-/* ── the panel behind a count ──────────────────────────────────────── */
-
-.pl { display: flex; flex-direction: column; gap: var(--sp-3); }
-.pl-lede { margin: 0; font-size: 13px; color: var(--text-secondary); line-height: 1.55; }
-.pl-empty {
-  margin: 0; font-size: 13.5px; color: var(--text-secondary);
-  background: var(--surface-sunken); border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-field); padding: 14px 16px;
-}
-.pl-head,
-.pl-row {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) 82px;
-  gap: 12px; align-items: baseline;
-}
-.pl-head {
-  font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--text-secondary); font-weight: 600;
-  padding-block-end: 6px; border-block-end: 1px solid var(--border-control);
-}
-.pl-head-end { text-align: end; }
-.pl-rows { display: flex; flex-direction: column; }
-.pl-row {
-  padding-block: 10px; border-block-end: 1px solid var(--border-row);
-  color: inherit; text-decoration: none; font-size: 13px;
-}
-.pl-row:last-child { border-block-end: 0; }
-.pl-row:hover { background: var(--surface-sunken); }
-.pl-name { font-weight: 500; }
-.pl-said { color: var(--text-secondary); font-size: 12.5px; }
-.pl-keeps { text-align: end; font-weight: 600; font-size: 14px; }
 
 /* ── live ──────────────────────────────────────────────────────────── */
 
-/* Four kinds of motion on this page and no others: arrival, drawing, growing,
-   breathing. Each is commented where it is declared. All four are turned off
-   under prefers-reduced-motion at the bottom of this block. */
+/* Two kinds of motion declared here and no others: drawing and breathing.
+   Each is commented where it is declared. Both are turned off under
+   prefers-reduced-motion at the bottom of this block. */
 
 .live {
   display: flex; align-items: center; gap: 10px;
@@ -3276,18 +3110,6 @@
 
 /* ── the ring ──────────────────────────────────────────────────────── */
 
-.dh-ring {
-  display: grid; grid-template-columns: auto minmax(0, 1fr);
-  align-items: center; gap: var(--sp-8);
-  padding-block: var(--sp-6) var(--sp-5);
-}
-.dh-ring-wrap {
-  position: relative; display: grid; place-items: center;
-  animation: dc-arrive 480ms var(--ease-enter) both;
-}
-.dh-ring-figure {
-  position: absolute; font-size: 30px; font-weight: 600; letter-spacing: -0.02em;
-}
 .ring { transform: rotate(-90deg); display: block; }
 .ring circle { fill: none; stroke-linecap: round; }
 .ring-track { stroke: var(--surface-sunken); }
@@ -3302,161 +3124,13 @@
 .ring-arc.ink-near { stroke: var(--near-ink); }
 .ring-arc.ink-over { stroke: var(--over-ink); }
 
-.dh-copy { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.dh-said-strong { font-weight: 700; font-size: 1.15em; }
-
-@media (max-width: 720px) {
-  .dh-ring { grid-template-columns: 1fr; justify-items: start; }
-}
-
-/* ── cards, alive ──────────────────────────────────────────────────── */
-
-.dc-card { position: relative; padding-block-start: var(--sp-4); }
-.dc-card.is-flat { animation: dc-arrive 480ms var(--ease-enter) both; }
-/* Arrival, visibly. Was 8px over 240ms, which nobody saw. */
-@keyframes dc-arrive {
-  from { opacity: 0; transform: translateY(22px); }
-  to   { opacity: 1; transform: none; }
-}
-.dc-card.is-door { animation: dc-arrive 520ms var(--ease-enter) both; }
-.dc-card.is-door:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 28px rgb(23 27 36 / 0.10);
-}
-
-.dc-icon {
-  position: absolute; inset-block-start: var(--sp-3); inset-inline-end: var(--sp-3);
-  width: 30px; height: 30px; border-radius: 8px;
-  display: grid; place-items: center;
-  background: var(--surface-sunken);
-}
-.dc-icon svg { width: 17px; height: 17px; }
-.dc-icon.ink-on { color: var(--on-ink); background: var(--on-tint); }
-.dc-icon.ink-near { color: var(--near-ink); background: var(--near-tint); }
-.dc-icon.ink-over { color: var(--over-ink); background: var(--over-tint); }
-.dc-icon.ink-quiet { color: var(--text-tertiary); }
-
-.dc-n { font-size: 40px; }
-.dc-n.ink-on { color: var(--on-ink); }
-.dc-n.ink-near { color: var(--near-ink); }
-.dc-n.ink-over { color: var(--over-ink); }
-
-/* Growing. Each card's bar goes from nothing to its width after the card has
-   landed — the width is the pile's share of the menu, so five bars read as
-   one picture of where the book stands. */
-.dc-bar {
-  display: block; height: 6px; margin-block-start: var(--sp-3);
-  background: var(--surface-sunken); border-radius: 3px; overflow: hidden;
-}
-.dc-bar-fill {
-  display: block; height: 100%; border-radius: 3px;
-  transform-origin: left center;
-  animation: dc-grow 640ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-@keyframes dc-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-.dc-bar-fill.ink-on { background: var(--on-ink); }
-.dc-bar-fill.ink-near { background: var(--near-ink); }
-.dc-bar-fill.ink-over { background: var(--over-ink); }
-.dc-bar-fill.ink-quiet { background: var(--border-control); }
-.dc-share { font-size: 11px; color: var(--text-tertiary); margin-block-start: 4px; }
-
 /* Somebody who asked for no motion asked for no motion. Every keyframe and
-   transition above, off — and the ring and bars at their final state. */
+   transition above, off — and the ring at its final state. */
 @media (prefers-reduced-motion: reduce) {
   .live-dot::after, .sig-item.is-alert .sig-dot::after { animation: none; display: none; }
-  .dh-ring-wrap, .sig-item, .dc-card.is-flat, .dc-card.is-door { animation: none; }
+  .sig-item { animation: none; }
   .ring-arc { transition: none; }
-  .dc-bar-fill { animation: none; }
-  .dc-card.is-door:hover { transform: none; box-shadow: none; }
 }
-
-/* ── do this today ─────────────────────────────────────────────────── */
-
-/* The list the whole page exists for. Everything above it is state; this is
-   what to do about it, each line a sentence with its fix, ranked by what it
-   is costing right now. */
-
-.td { padding: 0 var(--sp-6) var(--sp-5); max-width: none; }
-.td-head { display: flex; align-items: baseline; gap: 10px; margin-block-end: var(--sp-3); }
-.td-count {
-  font-size: 12px; font-weight: 600; min-width: 22px; text-align: center;
-  background: var(--surface-inverse); color: var(--text-on-inverse);
-  border-radius: 999px; padding: 2px 7px;
-}
-.td-empty {
-  margin: 0; font-size: 14px; color: var(--on-ink-strong);
-  background: var(--on-tint); border: 1px solid var(--on-edge);
-  border-radius: var(--radius-field); padding: 14px 16px; max-width: 70ch;
-}
-.td-list {
-  background: var(--surface-card); border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-field); overflow: hidden;
-}
-.td-item { animation: dc-arrive 460ms var(--ease-enter) both; }
-.td-row {
-  display: grid; grid-template-columns: 4px minmax(0, 1fr) 20px;
-  gap: 14px; align-items: center;
-  padding: 13px 16px 13px 14px;
-  border-block-end: 1px solid var(--border-row);
-  color: inherit; text-decoration: none; font-size: 14px; line-height: 1.5;
-  transition: background var(--dur-micro) var(--ease-enter);
-}
-.td-item:last-child .td-row { border-block-end: 0; }
-.td-row:hover { background: var(--surface-sunken); }
-.td-mark { align-self: stretch; border-radius: 2px; background: var(--border-control); }
-.td-row.ink-over .td-mark { background: var(--over-ink); }
-.td-row.ink-near .td-mark { background: var(--near-ink); }
-.td-said b { font-weight: 600; }
-.td-go { color: var(--text-quiet); transition: transform var(--dur-micro) var(--ease-enter); }
-.td-row:hover .td-go { color: var(--text-primary); transform: translateX(2px); }
-
-/* ── best and weakest ──────────────────────────────────────────────── */
-
-.bw {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: var(--sp-3); margin: 0 var(--sp-6) var(--sp-5); max-width: none;
-}
-.bw-col {
-  background: var(--surface-card); border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-field); padding: var(--sp-3) var(--sp-4);
-}
-.bw-h {
-  margin: 0 0 6px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
-  font-weight: 700;
-}
-.bw-h.ink-on { color: var(--on-ink-strong); }
-.bw-h.ink-over { color: var(--over-ink-strong); }
-.bw-row {
-  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
-  padding: 8px 0; border-block-end: 1px solid var(--border-row);
-  color: inherit; text-decoration: none; font-size: 14px;
-}
-.bw-row:last-of-type { border-block-end: 0; }
-.bw-row:hover .bw-name { text-decoration: underline; text-underline-offset: 2px; }
-.bw-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bw-keeps { font-weight: 600; white-space: nowrap; }
-.bw-none { margin: 6px 0 0; font-size: 13px; color: var(--text-tertiary); }
-
-/* ── ingredients that matter most ──────────────────────────────────── */
-
-.iu { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-.iu-item {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px;
-  background: var(--surface-card); border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-field); padding: 10px 14px; font-size: 13px;
-}
-.iu-item.is-unpriced { border-color: var(--near-edge); background: var(--near-tint); }
-.iu-name { font-weight: 600; grid-column: 1; }
-.iu-count { grid-column: 2; grid-row: 1; color: var(--text-secondary); white-space: nowrap; }
-.iu-rate { grid-column: 1 / -1; font-size: 12px; color: var(--text-tertiary); }
-.iu-item.is-unpriced .iu-rate { color: var(--near-ink-strong); font-weight: 600; }
-
-@media (prefers-reduced-motion: reduce) {
-  .td-item { animation: none; }
-  .td-go { transition: none; }
-}
-.td-more { font-size: 12px; color: var(--text-tertiary); }
 
 /* ── quantity, typed ───────────────────────────────────────────────── */
 
@@ -4039,11 +3713,10 @@
 /* ══ The design pass: three faces, a warm ground, one accent ═══════════ */
 
 /* The one figure a screen is about. */
-.display, .dh-ring-figure, .rail-amount, .price-one-figure, .batch-total-value, .set-card-big, .dc-card .dc-figure {
+.display, .rail-amount, .price-one-figure, .batch-total-value, .set-card-big {
   font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
   font-weight: 800; letter-spacing: -0.03em; line-height: 0.95;
 }
-.dh-ring-figure { font-size: 96px; }
 .rail-amount { font-size: 52px; font-weight: 800; }
 .price-one-figure { font-size: 60px; }
 .batch-total-value { font-size: 24px; }
@@ -4062,34 +3735,22 @@
 .dash-lede, .set-lede, .nd-lede, .rail-plain, .sheet-copy { font-size: 15px; line-height: 1.55; }
 .set-rule { font-family: var(--font-display), var(--font-sans), sans-serif; font-weight: 700; font-size: 26px; letter-spacing: -0.02em; line-height: 1.9; }
 
-/* One accent: primary actions, the live pill, the ring. */
+/* One accent: primary actions and the live pill. */
 .btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .btn-primary:hover { background: #F25A2D; border-color: #F25A2D; }
 .btn-primary:disabled { background: var(--border-strong); border-color: var(--border-strong); color: #fff; }
 .live-pill, .live-strip-dot { background: var(--accent); }
-.dh-ring circle.is-arc, .dh-ring .ring-arc { stroke: var(--accent); }
 .sheet-footer .btn-primary:not(:disabled) { animation-name: attention-accent; }
 @keyframes attention-accent { 0%, 100% { box-shadow: 0 0 0 0 rgb(255 106 61 / 0.35); } 50% { box-shadow: 0 0 0 8px rgb(255 106 61 / 0); } }
 
 /* Tinted surfaces where a panel answers the field beside it. */
 .price-one, .set-live .set-worked, .set-live .set-card, .set-live .set-rounding-eg, .nd-side .nd-card, .nd-side-rest { background: var(--info-tint); border-color: var(--info-edge); }
 .price-card { background: var(--surface-card); }
-.dc-card.is-on { background: var(--on-tint); border-color: var(--on-edge); }
-.dc-card.is-near { background: var(--near-tint); border-color: var(--near-edge); }
-.dc-card.is-over { background: var(--over-tint); border-color: var(--over-edge); }
-.dc-card.is-unpriced { background: var(--incomplete-tint); border-color: var(--border-strong); }
 
 /* Corners, hairlines, one soft shadow on hover only. */
-.card, .dc-card, .lib-row, .ing-row, .set-card, .set-method, .nd-card { border-radius: 16px; }
-.lib-row, .ing-row, .dc-card, .td-row { transition: transform var(--dur-micro) var(--ease-enter), box-shadow var(--dur-micro) var(--ease-enter); }
-.lib-row:hover, .ing-row:hover, .dc-card:hover, .td-row:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgb(23 27 36 / 0.08); }
-
-/* Door cards in their status tint, the count in the display face. */
-.dc-card.is-door.ink-on { background: var(--on-tint); border-color: var(--on-edge); }
-.dc-card.is-door.ink-near { background: var(--near-tint); border-color: var(--near-edge); }
-.dc-card.is-door.ink-over { background: var(--over-tint); border-color: var(--over-edge); }
-.dc-card.is-door.ink-quiet { background: var(--incomplete-tint); border-color: var(--border-strong); }
-.dc-n { font-family: var(--font-display), var(--font-sans), sans-serif; font-weight: 800; font-size: 56px; letter-spacing: -0.03em; line-height: 0.95; }
+.card, .lib-row, .ing-row, .set-card, .set-method, .nd-card { border-radius: 16px; }
+.lib-row, .ing-row { transition: transform var(--dur-micro) var(--ease-enter), box-shadow var(--dur-micro) var(--ease-enter); }
+.lib-row:hover, .ing-row:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgb(23 27 36 / 0.08); }
 
 /* What a dish keeps, as a pill in its status colour. */
 .lib-keeps { display: inline-flex; align-items: baseline; gap: 4px; padding: 5px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
@@ -4126,16 +3787,13 @@
 
 /* New dish: the live count in the accent tint; the create button is the one accent on the page. */
 .nd-side .nd-chip.is-known { background: var(--accent-tint); color: #8A2E12; }
-/* The hero figure beside the ring, not inside it: at 96px it needs a line of its own. */
-.dh-ring-wrap { display: flex; align-items: center; gap: 28px; }
-.dh-ring-figure { position: static; white-space: nowrap; order: -1; }
 .ctable-rate-unit { color: var(--text-quiet); font-size: 10.5px; margin-inline-start: 2px; }
 
 /* ══ Full width, on white ═══════════════════════════════════════════════ */
 /* Every page fills the screen it is on; the ground is white; panels sit a
    warm shade below it. The owner's monitor is wide and a strip down the
    middle read as empty. */
-.costing, .nd, .set, .dh, .dash-hero, .dash-block, .stats.dash-top, .td, .mc, .tr { padding-inline: 40px; }
+.costing, .nd, .set, .dash-hero, .dash-block, .stats.dash-top, .mc, .tr { padding-inline: 40px; }
 .page-head { padding-inline: 40px; }
 .set { padding-inline: 40px; }
 /*
@@ -4156,7 +3814,7 @@
 }
 
 /* Panels on a white ground: a warm surface, a hairline, and room. */
-.card, .dc-card, .lib-group, .set-card, .nd-card, .set-more, .price-card, .imp-panel { background: var(--surface-sunken); border: 1px solid var(--border-hairline); }
+.card, .lib-group, .set-card, .nd-card, .set-more, .price-card, .imp-panel { background: var(--surface-sunken); border: 1px solid var(--border-hairline); }
 .ctable-head { background: #FFFFFF; }
 .lib-head { background: #FFFFFF; }
 .set-method, .set-charge, .set-line { background: transparent; }
@@ -4903,16 +4561,6 @@ a.dsh-watch:hover .dsh-watch-h { text-decoration: underline; text-underline-offs
  * all; without it the property is simply ignored, which is the quiet kind of
  * fix that looks done and is not.
  */
-/*
- * A row with two ends, not an inline control.
- *
- * `.bw-row` is `display: flex` with `justify-content: space-between`, and it
- * was in the list below — which sets `display: inline-flex` and, being later,
- * won. Two rows then sat on one line with the space-between gone, printing
- * "Upma keeps AED 75Coconut Chutney keeps AED 71" on the dashboard. It takes
- * the hit area from its own rule and keeps its own display.
- */
-.bw-row { min-block-size: 24px; }
 
 .me-name,
 .lib-link,
@@ -4977,25 +4625,9 @@ a.link {
 /* The frame no longer needs a gap above it: the soot edge is the edge. */
 .page { margin-block-start: 0; border-block-start: 0; border-start-start-radius: 0; border-start-end-radius: 0; }
 
-/* A tile is a link now, and must not read as a paragraph of links. */
-a.dc-card, a.dc-card:hover { text-decoration: none; color: inherit; }
-a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: none; }
-
 /* ── Fewer words ───────────────────────────────────────────────────────────
-   The headline says its figure once; the month, the counts and the sections
-   keep their verdict and drop the sentence that explained it. */
-.dh-line {
-  margin: 6px 0 0; font-size: 12.5px; color: var(--text-tertiary);
-  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
-}
-.dh-line b { color: var(--text-primary); font-weight: 600; }
-.dh-sep { color: var(--border-strong); }
-.dh-caveat {
-  margin: 10px 0 0; padding: 0; background: none; border: 0;
-  font-size: 12.5px; color: var(--near-ink); display: inline-flex; align-items: center; gap: 8px;
-}
-.dh-caveat i { width: 6px; height: 6px; border-radius: 50%; background: var(--near-control); flex: none; }
-
+   The month, the counts and the sections keep their verdict and drop the
+   sentence that explained it. */
 .mline { margin: 0; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; font-size: 14.5px; }
 .mline + .mline { margin-block-start: 6px; }
 .mline b { font-weight: 600; color: var(--text-primary); }
@@ -5125,56 +4757,6 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
 /* The four sales groups, before there are sales. */
 .me-grid.is-empty .me-group { border-style: dashed; }
 .me-grid.is-empty .me-none { color: var(--text-quiet); }
-
-
-/* ── Headline across, then rows ────────────────────────────────────────────
-   Three rows hugged the left of a wide screen: the figure, the six bars, and
-   the two one-liners of what changed. Each now has a partner on the right.
-   Blocks inside a row give up their own gutter; the row supplies it once. */
-.dh-row {
-  display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
-  gap: var(--sp-8); align-items: center; padding-inline: 40px;
-}
-.dh-row .dh, .dh-row .tr { padding-inline: 0; }
-.dh-row .tr { padding-block: 0 var(--sp-2); }
-.dh-row .tr-bars { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-
-/* .td-band, not .td-row — .td-row is each job's own row, and a grid on it
-   turned every job into a two-column block with a coloured rectangle. */
-.td-band {
-  display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
-  gap: var(--sp-8); align-items: start; padding-inline: 40px;
-}
-.td-band .td, .td-band .mc, .td-band .dash-block { padding-inline: 0; }
-.td-band .td { padding-block-end: var(--sp-4); }
-.td-side { display: grid; gap: var(--sp-4); padding-block-start: 6px; }
-.td-side .mc { padding-block-end: 0; }
-.td-side .dash-block { padding: 0; }
-.td-side .dash-h {
-  margin: 0 0 6px; font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text-tertiary);
-}
-.td-side > * + * { border-block-start: 1px solid var(--border-hairline); padding-block-start: var(--sp-4); }
-
-/* Nothing moved this month, so the side carries one short block. A narrow
-   column holding two lines beside a tall list of actions reads as a gap where
-   something failed to load; it goes under the actions instead. */
-.td-band.is-thin { grid-template-columns: minmax(0, 1fr); gap: var(--sp-5); }
-
-@media (max-width: 1100px) {
-  .dh-row, .td-band { grid-template-columns: 1fr; }
-}
-@media (max-width: 900px) { .dh-row, .td-band { padding-inline: 20px; } }
-
-/* One line each, but only where there is a line's worth of room: in the
-   narrow hero column under 1100px they must wrap or they run off the edge. */
-@media (min-width: 1101px) {
-  .dh-caveat { flex-wrap: nowrap; white-space: nowrap; }
-  .dh-line { white-space: nowrap; }
-}
-@media (max-width: 1100px) {
-  .dh-caveat { flex-wrap: wrap; white-space: normal; }
-}
 
 
 /* The costing rail: one grid column, its blocks stacked.
@@ -6433,13 +6015,6 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
   .dish-tile-fig { font-size: 24px; white-space: normal; overflow: visible; text-overflow: clip; }
   .dish-tile-unit { font-size: 12.5px; }
 
-  /* ── the hero: the figure over the ring, not beside it ──────────────── */
-  /* 96px of "AED 71" and a 160px ring on one line is 498px, and no phone is
-     that wide. Stacked, and the figure stays the biggest thing on the page. */
-  .dh-ring-wrap { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .dh-ring-figure { font-size: 56px; }
-  .dh-ring { gap: var(--sp-5); }
-
   /* ── six months, at whatever width there is ─────────────────────────── */
   .tr-bars { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
   .tr-mon { font-size: 9.5px; letter-spacing: 0.02em; }
@@ -6502,7 +6077,7 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
   }
 
   /* ── the page's own gutters ─────────────────────────────────────────── */
-  .costing, .nd, .set, .dh, .dash-hero, .dash-block, .stats.dash-top, .td, .mc, .tr { padding-inline: 16px; }
+  .costing, .nd, .set, .dash-hero, .dash-block, .stats.dash-top, .mc, .tr { padding-inline: 16px; }
   .page { margin-inline: 0; border-inline: 0; border-radius: 0; }
 
   /*
@@ -6680,8 +6255,8 @@ a.dc-card .dc-what, a.dc-card .dc-why, a.dc-card .dc-share { text-decoration: no
     animation-delay: calc(160ms + var(--i, 0) * 55ms);
   }
   /* The figure above it does not move, and does not count up: it fades in
-     already reading what it reads. `dc-grow` is scaleX — a column needs its
-     own, on the other axis. */
+     already reading what it reads. A scaleX grow is wrong for a column — it
+     needs its own, on the other axis. */
   .tr-fig { animation: tr-fade 300ms var(--ease-enter) both; animation-delay: calc(300ms + var(--i, 0) * 55ms); }
 
   /* ── the two lists that arrived with no arrival ──────────────────────
