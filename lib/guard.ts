@@ -22,8 +22,18 @@ import { FREE_LIMITS, type Role, atFreeLimit, canDo, canImport } from "./org";
  * to not show the app until step 1 is answered.
  */
 export async function requireSetup(): Promise<void> {
-  const { org } = await book();
-  if (!org.setupDone) redirect("/setup");
+  const b = await book();
+  /*
+   * No user, no setup screen.
+   *
+   * `book()` answers a session it cannot read with the empty book, whose
+   * setup is not done — so an expired or rotated session was sent to /setup,
+   * whose proxy check saw a cookie and sent it back here, and the two pages
+   * traded the browser between them at three requests a second. A session
+   * the server cannot read is a sign-in, not a setup.
+   */
+  if (b.orgId === null) redirect("/sign-in");
+  if (!b.org.setupDone) redirect("/setup");
 }
 
 /**

@@ -4388,6 +4388,122 @@
 @keyframes wiz-in { from { opacity: 0; transform: translateY(8px); } }
 @media (prefers-reduced-motion: reduce) { .wiz-step, .wiz-rv, .wiz-rv-tile { animation: none; } }
 
+/* ── the ledger (components/ledger.tsx) ───────────────────────────────
+   Rows of name-and-figure with a coloured edge for standing. Colour is
+   state and nothing else. */
+.lg { display: grid; align-content: start; min-inline-size: 0; }
+.lg-label {
+  display: flex; align-items: baseline; gap: 8px; margin: 0 0 6px;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-tertiary);
+}
+.lg-count { font-size: 11px; color: var(--text-primary); background: var(--surface-sunken); border-radius: 999px; padding: 1px 7px; letter-spacing: 0; }
+.lg-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center;
+  padding: 9px 4px 9px 10px; border-block-end: 1px solid var(--border-row);
+  border-inline-start: 3px solid transparent; color: inherit; text-decoration: none;
+  transition: background var(--dur-micro) var(--ease-enter);
+}
+.lg-row:first-of-type { border-block-start: 1px solid var(--border-hairline); }
+a.lg-row:hover { background: var(--surface-sunken); }
+.lg-row.is-over { border-inline-start-color: var(--accent-deep); }
+.lg-row.is-near { border-inline-start-color: var(--near-control); }
+.lg-row.is-on { border-inline-start-color: var(--on-ink); }
+.lg-row.is-quiet { border-inline-start-color: var(--border-strong); }
+.lg-said { display: grid; gap: 2px; min-inline-size: 0; }
+.lg-name { font-size: 14px; font-weight: 600; letter-spacing: -0.005em; overflow-wrap: anywhere; }
+.lg-sub { font-size: 12px; color: var(--text-tertiary); line-height: 1.4; }
+.lg-sub b { color: var(--text-primary); font-weight: 600; }
+.lg-fig { font-size: 12.5px; text-align: end; white-space: nowrap; color: var(--text-secondary); }
+.lg-fig.is-over { color: var(--over-ink); font-weight: 600; }
+.lg-fig.is-near { color: var(--near-ink); font-weight: 600; }
+.lg-fig.is-on { color: var(--on-ink); font-weight: 600; }
+.lg-fig.is-quiet { color: var(--text-quiet); }
+.lg-empty { margin: 0; padding: 10px 0; border-block-start: 1px solid var(--border-hairline); font-size: 13px; color: var(--text-secondary); line-height: 1.5; text-wrap: pretty; }
+.lg-more { margin: 6px 0 0; font-size: 12px; color: var(--text-tertiary); }
+
+/* ── the dashboard, redrawn ───────────────────────────────────────────
+   One figure, three ledgers, four doors. */
+.dsh-in { animation: fd-in var(--dur-state) var(--ease-enter) both; animation-delay: calc(var(--i, 0) * 70ms); }
+.lg { animation: fd-in var(--dur-state) var(--ease-enter) both; animation-delay: calc(var(--i, 0) * 70ms); }
+@media (prefers-reduced-motion: reduce) { .dsh-in, .lg { animation: none; } }
+
+.hb-row {
+  display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); gap: var(--sp-5);
+  align-items: stretch; padding: var(--sp-4) var(--sp-6) var(--sp-5);
+}
+.hb-row:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
+.hb {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--sp-5); align-items: center;
+  padding: var(--sp-5) var(--sp-6); background: var(--surface-sunken);
+  border: 1px solid var(--border-hairline); border-radius: var(--radius-card);
+}
+.hb-ring { position: relative; display: grid; place-items: center; }
+.hb-ring .ring { grid-area: 1 / 1; }
+.hb-ring-figure { grid-area: 1 / 1; font-size: 24px; font-weight: 600; letter-spacing: -0.02em; }
+.hb-copy { display: grid; gap: 4px; min-inline-size: 0; }
+.hb-k { margin: 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary); }
+.hb-v { margin: 0; font-size: clamp(30px, 3.6vw, 42px); line-height: 1; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; }
+.hb-of { font-size: 0.5em; font-weight: 700; color: var(--text-secondary); letter-spacing: -0.01em; }
+.hb-s { margin: 2px 0 0; font-size: 14px; line-height: 1.5; color: var(--text-secondary); max-inline-size: 48ch; text-wrap: pretty; }
+.hb-s b { color: var(--text-primary); }
+.hb-link { color: var(--text-primary); text-underline-offset: 3px; }
+.hb-caveat { margin: 4px 0 0; font-size: 12px; color: var(--text-tertiary); }
+.hb-side { display: grid; gap: 2px; justify-items: end; text-align: end; padding-inline-start: var(--sp-5); border-inline-start: 1px solid var(--border-hairline); }
+.hb-side-v { font-size: 26px; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.hb-side-s { font-size: 11.5px; color: var(--text-tertiary); max-inline-size: 14ch; text-wrap: balance; }
+
+.dsh-cols {
+  display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(240px, 0.8fr);
+  gap: var(--sp-6); padding: 0 var(--sp-6) var(--sp-5); align-items: start;
+}
+.dsh-col { display: grid; gap: var(--sp-5); min-inline-size: 0; }
+.dsh-rail {
+  display: grid; gap: var(--sp-4); align-content: start;
+  padding: var(--sp-4) var(--sp-4) var(--sp-5); background: var(--surface-sunken);
+  border: 1px solid var(--border-hairline); border-radius: var(--radius-card);
+}
+.dsh-rail .lg-label { margin: 0; }
+.dsh-watch { display: grid; gap: 4px; color: inherit; text-decoration: none; }
+a.dsh-watch:hover .dsh-watch-h { text-decoration: underline; text-underline-offset: 3px; }
+.dsh-watch-h { font-size: 14px; font-weight: 600; letter-spacing: -0.005em; }
+.dsh-watch-s { font-size: 12.5px; color: var(--text-secondary); line-height: 1.45; text-wrap: pretty; margin: 0; }
+.dsh-watch-go { justify-self: start; margin-block-start: 4px; }
+.dsh-top { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 4px 0; border-block-end: 1px solid var(--border-row); }
+.dsh-top:last-child { border-block-end: 0; }
+.dsh-top-name { font-weight: 500; }
+.dsh-top-fig { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+
+.pile-strip {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;
+  padding: 0 var(--sp-6) var(--sp-5);
+}
+.pile {
+  display: grid; gap: 2px; padding: 12px 14px; border-radius: 10px; color: inherit; text-decoration: none;
+  border: 1px solid var(--border-hairline); background: var(--surface-page);
+  transition: transform var(--dur-micro) var(--ease-enter);
+}
+.pile:hover { transform: translateY(-1px); }
+.pile.is-on { background: var(--on-tint); border-color: var(--on-edge); }
+.pile.is-near { background: var(--near-tint); border-color: var(--near-edge); }
+.pile.is-over { background: var(--over-tint, #FBE7E4); border-color: var(--over-edge-soft); }
+.pile.is-quiet { background: var(--surface-sunken); }
+.pile-v { font-size: 26px; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.pile-k { font-size: 12.5px; color: var(--text-primary); }
+.pile-s { font-size: 11px; color: var(--text-tertiary); }
+
+@media (max-width: 1100px) {
+  .hb-row { grid-template-columns: minmax(0, 1fr); }
+  .dsh-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .dsh-rail { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  .hb { grid-template-columns: auto minmax(0, 1fr); }
+  .hb-side { grid-column: 1 / -1; justify-items: start; text-align: start; padding: 0; border: 0; }
+  .dsh-cols { grid-template-columns: minmax(0, 1fr); }
+  .pile-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 /* ── page-to-page ─────────────────────────────────────────────────────
    Every route change is handed to the View Transitions API by
    components/page-motion.tsx. The content fades and rises a little; the

@@ -211,15 +211,38 @@ export const book = cache(async (): Promise<Book> => {
   const { data: auth } = await supabase.auth.getUser();
   if (auth.user === null) return EMPTY;
 
+  /*
+   * The caller's own book, by membership — never "the first organisation RLS
+   * shows".
+   *
+   * For everyone but an app admin those are the same row. An admin's policies
+   * (migration 25) let them read every book, so `limit(1)` with no order
+   * handed the dev account a random organisation — an empty one with setup
+   * not done, which sent it to /setup, whose proxy check sent it back, at
+   * three requests a second. The membership says whose book this is; the
+   * organisation is looked up by that, and every child read below is scoped
+   * to it too, so an admin's dashboard is their own kitchen and not every
+   * kitchen at once.
+   */
+  const { data: mine } = await supabase
+    .from("memberships")
+    .select("org_id")
+    .eq("user_id", auth.user.id)
+    .limit(1)
+    .maybeSingle();
+  const mineId = (mine as { org_id: string } | null)?.org_id;
+  if (mineId === undefined) return EMPTY;
+
   const { data: orgs } = await supabase
     .from("organizations")
     .select("*")
+    .eq("id", mineId)
     .limit(1);
   const orgRow = (orgs as OrgRow[] | null)?.[0];
   if (orgRow === undefined) return EMPTY;
 
-  // RLS scopes every one of these to the caller's org, so none of them carries
-  // a where-clause of its own. The policy is the filter.
+  // RLS scopes each of these to the books the caller may read; the org id
+  // narrows that to the one this is, which only differs for an admin.
   const [
     recipesRes,
     componentsRes,
@@ -231,10 +254,10 @@ export const book = cache(async (): Promise<Book> => {
     flagsRes,
     salesRes,
   ] = await Promise.all([
-    supabase.from("recipes").select("*"),
+    supabase.from("recipes").select("*").eq("org_id", mineId),
     supabase.from("recipe_components").select("*"),
-    supabase.from("ingredients").select("*"),
-    supabase.from("memberships").select("role, user_id, display_name"),
+    supabase.from("ingredients").select("*").eq("org_id", mineId),
+    supabase.from("memberships").select("role, user_id, display_name").eq("org_id", mineId),
     /*
      * Everyone asked and not yet arrived.
      *
@@ -246,9 +269,10 @@ export const book = cache(async (): Promise<Book> => {
     supabase
       .from("invitations")
       .select("id, email, role, expires_at")
+      .eq("org_id", mineId)
       .is("accepted_at", null)
       .gt("expires_at", new Date().toISOString()),
-    supabase.from("subscriptions").select("plan, status, term, started_at, current_period_end, provider_reference, exports_unlocked_at").limit(1),
+    supabase.from("subscriptions").select("plan, status, term, started_at, current_period_end, provider_reference, exports_unlocked_at").eq("org_id", mineId).limit(1),
     /*
      * The last year, not all of it.
      *
@@ -262,8 +286,8 @@ export const book = cache(async (): Promise<Book> => {
       .select("ingredient_id, purchase_qty, qty_from, price_from, price_to, changed_at, source, import_id")
       .gte("changed_at", new Date(Date.now() - 366 * 86_400_000).toISOString())
       .order("changed_at", { ascending: false }),
-    supabase.from("flags").select("*").order("sent_at", { ascending: false }),
-    supabase.from("dish_sales").select("recipe_id, period, sold"),
+    supabase.from("flags").select("*").eq("org_id", mineId).order("sent_at", { ascending: false }),
+    supabase.from("dish_sales").select("recipe_id, period, sold").eq("org_id", mineId),
   ]);
 
   /*
@@ -316,8 +340,14 @@ export const book = cache(async (): Promise<Book> => {
   }
 
   const recipeRows = (recipesRes.data ?? []) as RecipeRow[];
-  const componentRows = (componentsRes.data ?? []) as ComponentRow[];
   const ingredientRows = (ingredientsRes.data ?? []) as IngredientRow[];
+  // Neither components nor history carry an org id; both are kept to this
+  // book's own rows here.
+  const recipeIds = new Set(recipeRows.map((r) => r.id));
+  const ingredientIds = new Set(ingredientRows.map((i) => i.id));
+  const componentRows = ((componentsRes.data ?? []) as ComponentRow[]).filter((c) =>
+    recipeIds.has(c.recipe_id),
+  );
 
   const byRecipe = new Map<string, ComponentRow[]>();
   for (const c of componentRows) {
@@ -340,6 +370,8 @@ export const book = cache(async (): Promise<Book> => {
     source: string | null;
     import_id: string | null;
   }[]) {
+    // An admin reads every book's history; this book's ingredients only.
+    if (!ingredientIds.has(h.ingredient_id)) continue;
     const list = history[h.ingredient_id] ?? (history[h.ingredient_id] = []);
     list.push({
       from: h.price_from === null ? null : Number(h.price_from),
