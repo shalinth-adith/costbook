@@ -317,8 +317,9 @@ export function SetupWizard({ initialCurrency, defaults, preview = false }: {
                   <h2 className="wiz-sec-h">Your food cost</h2>
                   <p className="wiz-sec-p">
                     Of every {said(100)} a guest pays, how much goes on ingredients.
-                    The rest is not profit — it has to pay rent, wages, gas and everything
-                    else first. What is left of it is what you keep.
+                    The rest is not profit: rent, wages and gas come out of it first, and
+                    what is left — typically {said(25)} to {said(30)} of the {said(100)} — is
+                    what you keep.
                   </p>
                 </div>
                 <div className="wiz-sec-body">
@@ -527,7 +528,7 @@ export function SetupWizard({ initialCurrency, defaults, preview = false }: {
                 <span className="wiz-card-money-more">
                   {examplePrice === null
                     ? 'Choose a keep between the bounds to see the price.'
-                    : <>Sells at that. <b className="figure">{said(EXAMPLE_COST)}</b> pays for the ingredients; the other <b className="figure">{said(examplePrice - EXAMPLE_COST)}</b> has to cover rent, wages and gas before any of it is profit. Exact figure {said(EXAMPLE_COST / ((100 - keep) / 100))}, then {describeRule(rule)}.</>}
+                    : <>Sells at that. <b className="figure">{said(EXAMPLE_COST)}</b> pays for the ingredients; the other <b className="figure">{said(examplePrice - EXAMPLE_COST)}</b> pays rent, wages and gas first, and your profit is what is left of it. Exact figure {said(EXAMPLE_COST / ((100 - keep) / 100))}, then {describeRule(rule)}.</>}
                 </span>
               </div>
             </div>
