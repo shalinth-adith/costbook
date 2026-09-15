@@ -71,7 +71,7 @@ export function DashboardFirst({
               <span className="figure">{target}%</span>.
             </p>
           </div>
-          <Link href="/recipes?new=1" className="btn">Cost another</Link>
+          <Link href="/recipes/new" className="btn">Cost another</Link>
         </div>
 
         <Link href={`/recipes/${dish.id}`} className="fd-dish">

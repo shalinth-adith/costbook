@@ -49,7 +49,7 @@ export function DashboardEmpty({ target, used }: { target: number; used: number 
           from your rates, and from then on it recosts itself whenever a rate moves.
         </p>
         <div className="fd-act">
-          <Link href="/recipes?new=1" className="btn btn-primary fd-btn">
+          <Link href="/recipes/new" className="btn btn-primary fd-btn">
             Cost your first dish
           </Link>
           {left > 0 ? (

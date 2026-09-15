@@ -7,7 +7,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } 
 import type { Ingredient } from '@/core/ingredient';
 import type { Recipe } from '@/core/recipe';
 import { looseNumber } from '@/core/loose';
-import { isKnownUnit, normaliseUnit } from '@/core/units';
+import { isKnownUnit, normaliseUnit, packUnitFor } from '@/core/units';
 
 import { addIngredient } from '@/app/ingredients/actions';
 import { type Draft, draftFrom, matchKey } from '@/lib/draft';
@@ -175,6 +175,10 @@ export function NewDishView({
   const [fixes, setFixes] = useState<Readonly<Record<number, Fix>>>({});
   const [fault, setFault] = useState<string | null>(null);
   const [limited, setLimited] = useState(false);
+  const faultRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (fault !== null) faultRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [fault]);
   const [showExample, setShowExample] = useState(false);
 
   // Read the raw paste once to know which rows are flagged...
@@ -205,7 +209,13 @@ export function NewDishView({
    * asks, the name already filled, and a price required. Saved, it joins the
    * ingredients list at once, and the line re-reads against it.
    */
-  const [adding, setAdding] = useState<{ readonly index: number; readonly name: string } | null>(null);
+  const [adding, setAdding] = useState<{
+    readonly index: number;
+    readonly name: string;
+    /** The line as read — "50 ml" — so the pop-up can open on the right pack. */
+    readonly qty: number | null;
+    readonly unit: string | null;
+  } | null>(null);
   const [savingIngredient, setSavingIngredient] = useState(false);
   const [addFault, setAddFault] = useState<string | null>(null);
   /** Bumped to re-seed the form after a refusal, since it clears on commit. */
@@ -497,7 +507,7 @@ export function NewDishView({
                   className="set-input figure nd-kg"
                   inputMode="decimal"
                   placeholder="—"
-                  aria-label="Batch weight in kilos"
+                  aria-label="Batch weight in kg"
                   value={batchKg ?? ''}
                   onChange={(e) => {
                     const v = e.target.value.trim();
@@ -508,7 +518,7 @@ export function NewDishView({
               </div>
               </span>
               <span className="nd-help">
-                The weight is optional: give it for a batter or a gravy that other dishes use by the kilo.
+                The weight is optional, in kg: give it for a batter or a gravy that other dishes use by weight.
               </span>
             </label>
             {note('portions')}
@@ -684,7 +694,7 @@ export function NewDishView({
           </div>
 
           {fault !== null && (
-            <div className="card card-note nd-fault">
+            <div className="card card-note nd-fault" role="alert" ref={faultRef}>
               <span>{fault}</span>
               {limited && <Link href="/plans" className="btn btn-primary">See the plans</Link>}
             </div>
@@ -740,9 +750,10 @@ export function NewDishView({
                     <>
                       <span className="figure strong">{draft.needing}</span>{' '}
                       {draft.needing === 1 ? 'line needs' : 'lines need'} something from
-                      you, marked below. Type the amount on the row and it is done.
-                      Anything you leave, the dish still keeps — it just reports the
-                      lowest it could cost until you fill it in.
+                      you, marked below — an amount typed on the row, or a price for
+                      something new to your ingredients. Anything you leave, the dish
+                      still keeps — it just reports the lowest it could cost until you
+                      fill it in.
                     </>
                   )}
                 </p>
@@ -813,7 +824,7 @@ export function NewDishView({
                           className="nd-add"
                           onClick={() => {
                             setAddFault(null);
-                            setAdding({ index: i, name: line.name === '' ? line.raw : line.name });
+                            setAdding({ index: i, name: line.name === '' ? line.raw : line.name, qty: line.qty, unit: line.unit });
                           }}
                         >
                           Add its price
@@ -903,6 +914,15 @@ export function NewDishView({
           It is not in your ingredients list yet. Give the pack you buy and what the pack
           costs — a 5 kg bag at 200 — and it is saved to the list, so this dish and every
           dish that uses it later is costed from it.
+          {/* Why the unit is already chosen. An oil saved by the kilo refuses
+              the ml on the line that created it, and the dish with it. */}
+          {adding !== null && adding.unit !== null && packUnitFor(adding.unit) !== null ? (
+            <>
+              {' '}The line says <b className="figure">{adding.qty === null ? '' : String(adding.qty)}{adding.unit}</b>, so it
+              is bought by the {({ kg: 'kilo', l: 'litre', pc: 'piece' })[packUnitFor(adding.unit) ?? 'kg']} —
+              keep it that way unless the kitchen buys it differently.
+            </>
+          ) : null}
         </p>
         {addFault !== null ? (
           <p className="nd-add-fault" role="alert">
@@ -916,6 +936,7 @@ export function NewDishView({
           requirePrice
           busy={savingIngredient}
           seedName={adding?.name ?? ''}
+          seedUnit={packUnitFor(adding?.unit)}
           onAdd={saveNewIngredient}
         />
       </Sheet>

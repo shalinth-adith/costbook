@@ -248,8 +248,19 @@ export async function createDishFromPaste(input: {
       components.push(ingredientComponent(ingredient, row.line.qty, unit, { scope, ...priced }));
     } catch (e) {
       if (e instanceof RecipeError) {
+        /*
+         * The way out, not only the refusal.
+         *
+         * "oil is measured by mass, so it cannot be used in ml" was true and
+         * left somebody with an oil saved by the kilo and no idea which of
+         * the two to change. Both are named.
+         */
+        const out =
+          e.code === 'family_mismatch'
+            ? ` Either write the line the way ${row.line.name} is bought, or open ${row.line.name} on the Ingredients screen and change how it is bought.`
+            : ' Change that line and create the dish again.';
         return {
-          message: `${row.line.name}: ${e.message} Change that line and create the dish again; nothing has been created.`,
+          message: `${row.line.name}: ${e.message}${out} Nothing has been created.`,
           undoable: false,
           id: null,
         };

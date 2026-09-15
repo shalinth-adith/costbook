@@ -1,5 +1,7 @@
 'use client';
 
+import type { PackUnit } from '@/core/units';
+
 import { useRef, useState } from 'react';
 
 import {
@@ -35,6 +37,7 @@ export function IngredientEntry({
   compact = false,
   busy,
   seedName,
+  seedUnit,
   onAdd,
   onOpenExisting,
   requirePrice = false,
@@ -45,6 +48,12 @@ export function IngredientEntry({
   busy: boolean;
   /** What was already typed elsewhere, so it is not typed twice (A20). */
   seedName?: string;
+  /**
+   * The pack unit the line that opened this implies (core/units packUnitFor).
+   * A line written in ml opens on the litre, not on kg — the default that
+   * saved an oil by weight and then refused the millilitres on its own line.
+   */
+  seedUnit?: PackUnit | null;
   onAdd: (ingredient: NewIngredient) => void;
   onOpenExisting?: (id: string) => void;
   /**
@@ -59,7 +68,7 @@ export function IngredientEntry({
 
   const [name, setName] = useState(seedName ?? '');
   const [qty, setQty] = useState('');
-  const [unit, setUnit] = useState<string>('kg');
+  const [unit, setUnit] = useState<string>(seedUnit ?? 'kg');
   const [price, setPrice] = useState('');
 
   const packQty = Number(qty);
@@ -79,7 +88,7 @@ export function IngredientEntry({
     setName('');
     setQty('');
     setPrice('');
-    setUnit('kg');
+    setUnit(seedUnit ?? 'kg');
     nameField.current?.focus();
   };
 

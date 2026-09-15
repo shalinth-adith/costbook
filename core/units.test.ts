@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   BASE_UNIT,
+  packUnitFor,
   UnitError,
   convert,
   fromBase,
@@ -192,5 +193,20 @@ describe('conversion within a family', () => {
     for (const [from, to] of pairs) {
       expect(() => convert(1, from, to)).toThrowError(UnitError);
     }
+  });
+});
+
+describe("packUnitFor", () => {
+  // The oil that was saved by the kilo because the pop-up never read "ml".
+  it("reads the line's unit into the pack it is bought in", () => {
+    expect(packUnitFor("ml")).toBe("l");
+    expect(packUnitFor("l")).toBe("l");
+    expect(packUnitFor("g")).toBe("kg");
+    expect(packUnitFor("kg")).toBe("kg");
+    expect(packUnitFor("pc")).toBe("pc");
+  });
+  it("has no opinion for a line with no measurable unit", () => {
+    expect(packUnitFor(null)).toBeNull();
+    expect(packUnitFor("portion")).toBeNull();
   });
 });

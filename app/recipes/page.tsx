@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation';
+
 import { AppShell } from '@/components/app-shell';
 import { CurrencyProvider } from '@/components/currency-provider';
 import { LibraryView } from '@/components/library-view';
@@ -50,6 +52,17 @@ export default async function RecipesPage({
   const asked = typeof q['q'] === 'string' ? q['q'] : '';
 
   const b = await book();
+
+  /*
+   * Nothing costed yet, and asked to create: the screen, not the sheet.
+   *
+   * An empty book renders the import-first page and never mounts the sheet
+   * `?new=1` opens, so the link did nothing — a person clicked "Add a dish by
+   * hand" eleven times and got the same page eleven times. /recipes/new is
+   * the whole first-dish screen, and the one every first dish should land on.
+   */
+  if (creating && b.recipes.length === 0) redirect('/recipes/new');
+
   const model = await orgModel();
   const p = await pantry();
 

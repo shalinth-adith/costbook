@@ -87,7 +87,7 @@ export function RecipesEmpty() {
               the first one, because you&rsquo;re teaching us your ingredients as you go — the second
               is much faster.
             </p>
-            <Link href="/recipes?new=1" className="btn rx-panel-btn">Add a dish by hand</Link>
+            <Link href="/recipes/new" className="btn rx-panel-btn">Add a dish by hand</Link>
           </section>
         </div>
       </div>

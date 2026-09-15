@@ -3830,6 +3830,11 @@
 .nd-cols { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: var(--sp-6); align-items: start; }
 .nd-main { min-width: 0; }
 .nd-side { position: sticky; top: var(--sp-4); min-width: 0; }
+/* The panel before a line is typed. `.is-todo` dims a step to 0.72 on the
+   left, where the step above it is lit; here nothing beside it is lit and
+   the dim read as broken. Full ink, and a dashed edge to say "not yet". */
+.nd-side .nd-card.is-todo { opacity: 1; border-style: dashed; }
+.nd-side .nd-card.is-todo .nd-h { color: var(--text-secondary); }
 /* `backwards`, not `both`. A finished animation that keeps holding its last
    frame overrides every ordinary rule on the element — so with `both` this
    card could never be dimmed by anything: not its own `.is-todo` (which has

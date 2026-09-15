@@ -207,3 +207,21 @@ export function convert(qty: number, from: string, to: string): number {
 
   return (qty * source.factor) / target.factor;
 }
+
+/** The three pack sizes an ingredient is bought in. */
+export type PackUnit = 'kg' | 'l' | 'pc';
+
+/**
+ * The pack unit a recipe line implies.
+ *
+ * "50 ml oil" is bought by the litre and "200 g onion" by the kilo. The
+ * ingredient pop-up used to open on kg whatever the line said, and an oil
+ * saved by the kilo then refused the ml on the very line that created it —
+ * a dish thrown away over a default nobody was asked about. Null for a line
+ * with no unit Costbook can measure.
+ */
+export function packUnitFor(unit: string | null | undefined): PackUnit | null {
+  if (unit === null || unit === undefined) return null;
+  const family = unitFamily(unit);
+  return family === 'mass' ? 'kg' : family === 'volume' ? 'l' : family === 'count' ? 'pc' : null;
+}
