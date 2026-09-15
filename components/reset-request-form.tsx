@@ -53,7 +53,18 @@ export function ResetRequestForm() {
 
   if (state.kind === 'sent') {
     return (
+      /*
+       * Keyed, and the key is load-bearing.
+       *
+       * Both steps render a `<form class="entry-card">` with one input in the
+       * same position, so React reconciles them as the same element and
+       * mutates it in place — turning the uncontrolled email field into the
+       * controlled code field, which it warns about, and which would also
+       * carry that field's cursor, autofill and native validation state into
+       * a screen that has nothing to do with it.
+       */
       <form
+        key="code"
         className="entry-card"
         onSubmit={(e) => {
           e.preventDefault();
@@ -117,7 +128,7 @@ export function ResetRequestForm() {
   const fault = state.kind === 'fields' ? state.message : null;
 
   return (
-    <form className="entry-card" action={act}>
+    <form key="ask" className="entry-card" action={act}>
       <h1 className="entry-title">Forgotten your password?</h1>
       <p className="entry-sub">
         Give the address you signed up with and we will post a link that lets you choose a new

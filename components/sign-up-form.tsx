@@ -84,6 +84,7 @@ export function SignUpForm() {
   if (sent !== null) {
     return (
       <form
+        key="code"
         className="entry-card"
         onSubmit={(e) => {
           e.preventDefault();
